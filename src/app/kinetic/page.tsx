@@ -1,23 +1,21 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   Zap, 
-  Activity, 
   Terminal, 
   ShieldCheck, 
   Globe, 
   ChevronLeft,
-  Search,
   Cpu,
-  RefreshCw,
-  Sun,
-  Moon
+  RefreshCw
 } from 'lucide-react';
 
 export default function KineticPage() {
-  const [logs, setLogs] = useState([
+  const [logs] = useState([
     { time: "14:22:01", agent: "Triage", message: "New Lead detected from WhatsApp (+91...)", status: "SUCCESS" },
     { time: "14:22:05", agent: "Itinerary", message: "Generating 7-day Bali Luxury plan...", status: "IN_PROGRESS" },
     { time: "14:22:12", agent: "Bidding", message: "Broadcasting requirements to 5 Dubai vendors", status: "SUCCESS" },
@@ -26,7 +24,16 @@ export default function KineticPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-mono selection:bg-[#14B8A6] selection:text-white overflow-hidden flex flex-col">
-      {/* Top Bar - Daylight Version */}
+      <style>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 8s linear infinite;
+        }
+      `}</style>
+
       <div className="h-16 border-b border-slate-200 flex items-center justify-between px-8 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="flex items-center space-x-6 text-left">
           <Link href="/dashboard" className="text-slate-400 hover:text-primary transition-colors">
@@ -51,7 +58,6 @@ export default function KineticPage() {
       </div>
 
       <div className="flex-1 flex overflow-hidden text-left">
-        {/* Left Side: Real-time Streams */}
         <div className="w-1/3 border-r border-slate-200 flex flex-col bg-white">
           <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div className="flex items-center space-x-2">
@@ -88,7 +94,6 @@ export default function KineticPage() {
           </div>
         </div>
 
-        {/* Center: Command Dashboard - Daylight Style */}
         <div className="flex-1 flex flex-col bg-slate-50/50">
           <div className="p-12 space-y-12">
             <div className="grid grid-cols-3 gap-8 text-left">
@@ -114,7 +119,7 @@ export default function KineticPage() {
               <div className="relative z-10 flex justify-between items-center mb-12">
                 <div className="space-y-2 text-left">
                   <h3 className="text-3xl font-black text-primary tracking-tighter">Strategic Value Forecast</h3>
-                  <p className="text-sm text-slate-400 font-semibold tracking-tight">Predictive GMV based on current lead velocity and system-wide conversion.</p>
+                  <p className="text-sm text-slate-400 font-semibold tracking-tight">Predictive GMV based on current lead velocity and conversion.</p>
                 </div>
                 <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 text-right shadow-inner">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Projected April Revenue</div>
@@ -126,7 +131,7 @@ export default function KineticPage() {
                 {[45, 60, 55, 80, 75, 95, 100].map((h, i) => (
                   <div key={i} className="flex-1 bg-slate-100 rounded-2xl relative group/bar overflow-hidden shadow-inner">
                     <div 
-                      className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#14B8A6] to-[#14B8A6]/40 transition-all duration-1000 delay-300 ease-out group-hover/bar:from-[#14B8A6] group-hover/bar:to-[#14B8A6]/60 rounded-t-lg"
+                      className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#14B8A6] to-[#14B8A6]/40 transition-all duration-1000 delay-300 ease-out rounded-t-lg"
                       style={{ height: `${h}%` }}
                     />
                   </div>
@@ -136,16 +141,6 @@ export default function KineticPage() {
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }
