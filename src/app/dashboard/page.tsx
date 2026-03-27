@@ -9,7 +9,8 @@ import {
   Map, 
   CreditCard,
   Plus,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from 'lucide-react';
 
 const StatCard = ({ label, value, trend, status, icon: Icon }) => (
@@ -35,11 +36,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, fetch from process.env.NEXT_PUBLIC_API_URL
     const fetchSummary = async () => {
       try {
         const response = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/analytics/dashboard', {
-          headers: { 'Authorization': 'Bearer test-token' } // Mock auth for demo
+          headers: { 'Authorization': 'Bearer test-token' }
         });
         const data = await response.json();
         setSummary(data);
