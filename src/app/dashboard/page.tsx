@@ -101,7 +101,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-8">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-xl font-bold text-primary">Recent Leads</h3>
-            <button className="text-accent font-bold text-sm flex items-center hover:underline">
+            <button className="text-secondary font-bold text-sm flex items-center hover:underline">
               View All <ArrowRight size={16} className="ml-1" />
             </button>
           </div>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-slate-400 font-bold">SCORE</div>
-                    <div className="text-sm font-black text-accent">{lead.score}%</div>
+                    <div className="text-sm font-black text-secondary">{lead.score}%</div>
                   </div>
                 </div>
               </div>
@@ -140,10 +140,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-primary rounded-[32px] p-8 text-white relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
           <div className="relative z-10">
             <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6">
-              <Zap size={24} className="text-accent" fill="currentColor" />
+              <Zap size={24} className="text-secondary" fill="currentColor" />
             </div>
             <h3 className="text-2xl font-bold mb-2">Kinetic Intelligence</h3>
             <p className="text-slate-400 text-sm leading-relaxed mb-8">
@@ -155,18 +155,3 @@ export default function DashboardPage() {
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Last AI Action</div>
                 <div className="text-sm text-slate-200">Bidding Agent countered bid for Hyatt Dubai at ₹42,500.</div>
               </div>
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Market Insight</div>
-                <div className="text-sm text-slate-200">Bali demand is up 12% this week. Adjust luxury margins?</div>
-              </div>
-            </div>
-          </div>
-          
-          <button className="relative z-10 w-full bg-accent text-primary py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-accent/10 mt-8 hover:scale-[1.02] transition-transform">
-            Switch to Kinetic OS
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
