@@ -85,36 +85,36 @@ const LandingPage = () => {
             </span>
           </div>
         </div>
-        <div className="hidden md:flex space-x-10 text-sm font-medium text-slate-500 text-left text-left">
-          <a href="#vision" className="hover:text-[#0F172A] transition-colors">Vision</a>
-          <a href="#modules" className="hover:text-[#0F172A] transition-colors">Modules</a>
-          <Link href="/kinetic" className="hover:text-[#0F172A] transition-colors font-semibold text-[#14B8A6] text-left">Kinetic OS</Link>
-          <a href="#pricing" className="hover:text-[#0F172A] transition-colors text-left">Pricing</a>
+        <div className="hidden md:flex space-x-10 text-sm font-medium text-slate-500 text-left">
+          <a href="#vision" className="hover:text-[#0A0A0A] transition-colors">Vision</a>
+          <a href="#modules" className="hover:text-[#0A0A0A] transition-colors">Modules</a>
+          <Link href="/kinetic" className="hover:text-[#0A0A0A] transition-colors font-semibold text-[#1D9E75] text-left">Kinetic OS</Link>
+          <a href="#pricing" className="hover:text-[#0A0A0A] transition-colors text-left">Pricing</a>
         </div>
         <div>
-          <Link href="/register" className="bg-[#0F172A] text-white text-sm px-5 py-2 rounded-full font-medium hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-[#0F172A]/10">
+          <Link href="/register" className="bg-[#C9A84C] text-[#0A0A0A] text-sm px-5 py-2 rounded-full font-bold hover:bg-[#B89840] transition-all active:scale-95 shadow-lg shadow-[#C9A84C]/20">
             Get Started
           </Link>
         </div>
       </nav>
 
       <section id="vision" className="relative px-6 pt-24 pb-32 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="inline-block px-4 py-1.5 mb-8 bg-slate-100 rounded-full text-xs font-semibold tracking-wider text-slate-500 uppercase">
+        <div className="inline-block px-4 py-1.5 mb-8 bg-[#C9A84C]/10 border border-[#C9A84C]/20 rounded-full text-xs font-semibold tracking-wider text-[#C9A84C] uppercase">
           AI-Native Travel Operating System
         </div>
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter text-[#0F172A] leading-[1.05] mb-8 text-center">
+        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-[#0A0A0A] leading-[1.05] mb-8 text-center font-headline">
           The future of travel<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0F172A] via-[#14B8A6] to-[#F97316]">is autonomous.</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C9A84C] via-[#1D9E75] to-[#C9A84C]">is autonomous.</span>
         </h1>
-        <p className="text-xl md:text-2xl text-slate-500 max-w-3xl leading-relaxed mb-12 text-center">
+        <p className="text-xl md:text-2xl text-[#4A453E] max-w-3xl leading-relaxed mb-12 text-center font-body">
           Automate discovery, contracting, pricing, and fulfillment across global supply. 
-          80%+ reduction in manual ops, <span className="text-[#0F172A] font-bold font-black">under 2 minutes</span> for any quotation.
+          80%+ reduction in manual ops, <span className="text-[#0A0A0A] font-bold">under 2 minutes</span> for any quotation.
         </p>
         <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 items-center justify-center">
-          <Link href="/register" className="bg-[#0F172A] text-white text-lg px-10 py-4 rounded-full font-semibold hover:shadow-2xl hover:shadow-[#0F172A]/20 transition-all active:scale-95 text-center">
+          <Link href="/register" className="bg-[#0A0A0A] text-[#F5F0E8] text-lg px-10 py-4 rounded-full font-bold hover:shadow-2xl hover:shadow-[#0A0A0A]/20 transition-all active:scale-95 text-center">
             Start Free Pilot
           </Link>
-          <button className="bg-white border-2 border-slate-200 text-lg px-10 py-4 rounded-full font-semibold hover:border-[#0F172A] transition-all active:scale-95">
+          <button className="bg-white border-2 border-[#C9A84C]/20 text-lg px-10 py-4 rounded-full font-bold text-[#0A0A0A] hover:border-[#C9A84C] transition-all active:scale-95" onClick={() => window.open('https://vimeo.com/nama-travel-os-demo', '_blank')}>
             Watch the Demo
           </button>
         </div>

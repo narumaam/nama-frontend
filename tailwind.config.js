@@ -8,9 +8,9 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#0F172A",
-        accent: "#14B8A6",
-        secondary: "#F97316",
+        primary: "#C9A84C",
+        accent: "#1D9E75",
+        secondary: "#FF8C00",
         "surface-container": "var(--surface-container)",
         "surface-container-low": "var(--surface-container-low)",
         "surface-container-lowest": "var(--surface-container-lowest)",
@@ -22,6 +22,11 @@ module.exports = {
         "primary-container": "var(--primary-container)",
         "secondary-container": "var(--secondary-container)",
         "on-secondary-container": "var(--on-secondary-container)",
+      },
+      fontFamily: {
+        headline: ["Syne", "sans-serif"],
+        body: ["DM Sans", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
     },
   },

@@ -2,187 +2,259 @@
 
 import React, { useState } from 'react';
 import { 
-  Plus, 
   Sparkles, 
-  Instagram, 
-  Download, 
-  Share2, 
-  MapPin, 
-  Calendar, 
+  Eye, 
+  FileText, 
+  Edit2, 
+  Trash2, 
+  Car, 
+  Hotel, 
+  Map, 
+  Star, 
   Clock, 
-  Info,
+  MapPin, 
+  Ticket, 
+  Plus,
   ChevronRight,
-  MoreVertical
+  Info
 } from 'lucide-react';
-import { BentoCard } from '@/components/BentoCard';
 
 export default function ItinerariesPage() {
+  const [activeDay, setActiveDay] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [itinerary, setItinerary] = useState(null);
-  const [error, setError] = useState(null);
-
-  const generateAIItinerary = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/itineraries/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lead_id: 1,
-          destination: "Dubai",
-          duration_days: 3,
-          traveler_count: 2,
-          preferences: ["Fine Dining", "Luxury"],
-          style: "Luxury"
-        })
-      });
-      
-      if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-      
-      const data = await response.json();
-      setItinerary(data);
-    } catch (err) {
-      console.error("Failed to generate itinerary:", err);
-      setError("AI Engine connection failed. Please ensure the backend is active.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
-    <div className="space-y-10 text-left">
-      <div className="flex justify-between items-end">
-        <div className="text-left">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">AI Itinerary Builder</h1>
-          <p className="text-slate-500 mt-2 font-medium">Generate high-conversion Bento plans in under 2 minutes.</p>
+    <div className="flex flex-col h-[calc(100vh-144px)] overflow-hidden animate-in fade-in duration-700">
+      {/* Page Sub-Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 shrink-0">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
+            <span>Operations</span>
+            <ChevronRight size={10} />
+            <span className="opacity-50">Itinerary Builder</span>
+          </div>
+          <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
+            Dubai Luxury Escape
+          </h1>
+          <div className="flex items-center gap-6 mt-2 text-[#B8B0A0] font-mono text-[10px] uppercase tracking-widest">
+            <span className="flex items-center gap-1.5"><Users size={12} className="text-[#C9A84C]" /> Anjali Sharma + 2</span>
+            <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#C9A84C]" /> 15-20 Oct 2024</span>
+            <span className="flex items-center gap-1.5"><MapPin size={12} className="text-[#C9A84C]" /> Dubai, UAE</span>
+          </div>
         </div>
-        <div className="flex space-x-4">
-          <button 
-            onClick={generateAIItinerary}
-            disabled={loading}
-            className="bg-[#14B8A6] text-primary px-6 py-3 rounded-xl font-black text-sm uppercase tracking-widest flex items-center shadow-lg shadow-[#14B8A6]/10 hover:scale-[1.02] transition-all disabled:opacity-50"
-          >
-            <Sparkles size={18} className="mr-2" fill="currentColor" /> {loading ? "Generating..." : "Generate with AI"}
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1D9E75]/10 text-[#1D9E75] border border-[#1D9E75]/30 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1D9E75]/20 transition-all shadow-[0_0_15px_rgba(29,158,117,0.1)]">
+            <Sparkles size={14} fill="currentColor" /> Auto Generate (AI)
+          </button>
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#111111] text-[#F5F0E8] border border-[#C9A84C]/15 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1A1A1A] transition-all">
+            <Eye size={14} /> Preview
+          </button>
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-[#0A0A0A] rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(201,168,76,0.2)]">
+            <FileText size={14} /> Export PDF
           </button>
         </div>
       </div>
 
-      {!itinerary ? (
-        <div className="bg-white rounded-[40px] border-2 border-dashed border-slate-200 p-24 text-center">
-          <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <MapPin size={32} className="text-slate-300" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-400 mb-2 tracking-tight">No active itinerary selected</h3>
-          <p className="text-slate-400 max-w-xs mx-auto text-sm leading-relaxed">
-            Select a lead from the pipeline or click "Generate with AI" to build a new travel plan.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-          {/* Main Itinerary View */}
-          <div className="xl:col-span-2 space-y-12">
-            <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm relative overflow-hidden text-left">
-              <div className="absolute top-0 right-0 p-8 opacity-5">
-                <MapPin size={160} fill="currentColor" className="text-primary" />
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center space-x-2 text-[#14B8A6] font-black text-[10px] uppercase tracking-[0.3em] mb-4">
-                  <Calendar size={12} /> <span>3 DAY LUXURY EXPERIENCE</span>
-                </div>
-                <h2 className="text-3xl font-black text-[#0F172A] tracking-tighter mb-6">{itinerary.title}</h2>
-                <div className="flex space-x-10 text-slate-400 text-sm font-bold tracking-tight">
-                  <div className="flex items-center"><Clock size={16} className="mr-2" /> 72 Hours</div>
-                  <div className="flex items-center"><Info size={16} className="mr-2" /> 2 Travelers</div>
-                  <div className="flex items-center text-primary"><CreditCard size={16} className="mr-2" /> ₹{itinerary.total_price.toLocaleString()} Total</div>
-                </div>
-              </div>
-            </div>
-
-            {itinerary.days.map((day) => (
-              <div key={day.day_number} className="space-y-6 text-left">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-[#0F172A] text-white rounded-2xl flex items-center justify-center font-black text-xl">
-                    {day.day_number}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-[#0F172A] tracking-tighter">{day.title}</h3>
-                    <p className="text-sm text-slate-500 font-medium">{day.narrative}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-16">
-                  {day.blocks.map((block, idx) => (
-                    <BentoCard 
-                      key={idx}
-                      type={block.type}
-                      title={block.title}
-                      description={block.description}
-                      price={block.price_gross}
-                      currency={block.currency}
-                    />
-                  ))}
-                </div>
-              </div>
+      {/* Main Workspace */}
+      <div className="flex-1 flex overflow-hidden rounded-3xl border border-[#C9A84C]/15 bg-[#111111]/50 shadow-2xl backdrop-blur-sm">
+        {/* Left Panel: Day List */}
+        <aside className="w-64 bg-[#111111] p-6 border-r border-[#C9A84C]/15 overflow-y-auto no-scrollbar shrink-0">
+          <h3 className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.2em] mb-6 font-mono opacity-50">Trip Timeline</h3>
+          <div className="space-y-3">
+            {[
+              { day: 1, title: 'Arrival & Check-in' },
+              { day: 2, title: 'Downtown Exploration' },
+              { day: 3, title: 'Desert Adventure' },
+              { day: 4, title: 'Old Dubai & Souks' },
+              { day: 5, title: 'Leisure & Shopping' },
+            ].map((d) => (
+              <button 
+                key={d.day}
+                onClick={() => setActiveDay(d.day)}
+                className={`w-full p-4 rounded-2xl flex flex-col items-start gap-1 transition-all group ${
+                  activeDay === d.day 
+                    ? 'bg-[#C9A84C] text-[#0A0A0A] shadow-lg' 
+                    : 'bg-[#1A1A1A]/50 text-[#B8B0A0] hover:bg-[#1A1A1A] hover:text-[#F5F0E8] border border-transparent'
+                }`}
+              >
+                <span className={`text-xs font-black uppercase tracking-widest ${activeDay === d.day ? 'text-[#0A0A0A]' : 'text-[#C9A84C] opacity-70 group-hover:opacity-100'}`}>Day {d.day}</span>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-tighter">{d.title}</span>
+              </button>
             ))}
           </div>
+          <button className="w-full mt-6 py-4 border-2 border-dashed border-[#C9A84C]/15 rounded-2xl text-[#C9A84C] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/30 transition-all">
+            <Plus size={16} /> Add Day
+          </button>
+        </aside>
 
-          {/* Marketing & Social Side Sidebar */}
-          <div className="space-y-10 text-left">
-            <div className="bg-[#0F172A] rounded-[40px] p-10 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-[#14B8A6]/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-              <div className="relative z-10">
-                <div className="flex items-center space-x-3 text-[#14B8A6] mb-8">
-                  <Instagram size={24} />
-                  <span className="font-black text-xs uppercase tracking-[0.3em]">Insta Post Generator</span>
-                </div>
-                <div className="bg-white/5 rounded-3xl p-6 border border-white/10 mb-8">
-                  <p className="text-sm text-slate-300 leading-relaxed font-medium italic">
-                    "{itinerary.social_post.caption}"
-                  </p>
-                </div>
-                <div className="space-y-4 mb-8">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Viral Hooks</h4>
-                  {itinerary.social_post.hooks.map((hook, i) => (
-                    <div key={i} className="flex items-start space-x-3">
-                      <div className="w-5 h-5 bg-[#14B8A6] text-primary rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">
-                        {i+1}
-                      </div>
-                      <p className="text-xs font-bold text-slate-200">{hook}</p>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full bg-[#14B8A6] text-primary py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-[#14B8A6]/10 hover:scale-[1.02] transition-transform">
-                  Copy to Clipboard
+        {/* Canvas Area */}
+        <section className="flex-1 overflow-y-auto p-10 no-scrollbar">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-end justify-between mb-12 border-b border-[#C9A84C]/10 pb-8">
+              <div>
+                <h2 className="text-3xl font-black text-[#F5F0E8] tracking-tighter uppercase font-headline">Day {activeDay}: Arrival & Check-in</h2>
+                <p className="text-[#B8B0A0] mt-3 max-w-lg text-sm font-body leading-relaxed">Welcome to Dubai! Your first day is designed for comfort and luxury after your flight. Settle into the magnificent Atlantis The Palm.</p>
+              </div>
+              <div className="flex gap-2">
+                <button className="w-10 h-10 rounded-xl bg-[#1A1A1A] border border-[#C9A84C]/20 flex items-center justify-center text-[#B8B0A0] hover:text-[#C9A84C] transition-all shadow-sm">
+                  <Edit2 size={16} />
+                </button>
+                <button className="w-10 h-10 rounded-xl bg-[#1A1A1A] border border-red-500/20 flex items-center justify-center text-[#B8B0A0] hover:text-red-500 transition-all shadow-sm">
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm text-left">
-              <h3 className="text-xl font-black text-[#0F172A] tracking-tighter mb-6">Actions</h3>
-              <div className="space-y-4">
-                <button className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group">
-                  <div className="flex items-center font-bold text-sm text-slate-600">
-                    <Download size={18} className="mr-3" /> Export as PDF
+            {/* Timeline Blocks */}
+            <div className="space-y-12 relative before:content-[''] before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-[1px] before:bg-gradient-to-b before:from-[#C9A84C]/40 before:via-[#C9A84C]/10 before:to-transparent">
+              
+              {/* Transfer Block */}
+              <TimelineBlock 
+                icon={Car} 
+                type="Transfer" 
+                title="Private Luxury Cab to Hotel" 
+                time="14:30 - 15:15" 
+                location="Dubai Int. Airport (DXB)" 
+                price="$45.00" 
+                description="Meet & Greet service with a professional driver holding a placard at the arrival hall."
+                accentColor="#C9A84C"
+              />
+
+              {/* Accommodation Block */}
+              <div className="relative pl-14 group">
+                <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-[#111111] border border-[#C9A84C]/30 flex items-center justify-center text-[#C9A84C] z-10 shadow-[0_0_15px_rgba(201,168,76,0.2)]">
+                  <Hotel size={20} fill="currentColor" />
+                </div>
+                <div className="bg-[#1A1A1A] border border-[#C9A84C]/15 overflow-hidden rounded-3xl shadow-sm hover:border-[#C9A84C]/40 transition-all duration-300">
+                  <div className="flex flex-col md:flex-row">
+                    <div className="md:w-1/3 h-52 relative">
+                      <img 
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+                        alt="Atlantis" 
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1npYT2RCI2OsPhFrsMgw0jnVCmJCTQ603bz9I-IeorlPkeFGHRrvnV_igEJZ5Gl7YCjB6w8o4BoL-UtslExTPK2I8usTtMaY43Htdce1W63nfpTprcKInQVcNg_uk3I9irw7cdh3-xqpYp1i5ukO2Z-QmYdnPP_tfd1-l0g7RqVFfjIBt1ULXqnCWjqLTRbulAn6zJIyvAEq66PVrkmaV1m9bcSrMFZsSks1AcZBKsRinLq9BgqxXB2wJmSVb4XogxpBQPJ4OoE22" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-60"></div>
+                    </div>
+                    <div className="md:w-2/3 p-8 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-[9px] font-black text-[#C9A84C] uppercase tracking-[0.2em] bg-[#C9A84C]/10 px-3 py-1 rounded-full border border-[#C9A84C]/20 font-mono">Accommodation</span>
+                            <h4 className="text-2xl font-black font-headline text-[#F5F0E8] mt-3 uppercase tracking-tight">Atlantis, The Palm</h4>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-2xl font-black text-[#C9A84C] font-headline">$850</span>
+                            <span className="text-[10px] text-[#B8B0A0] font-mono block opacity-50 uppercase">/ night</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 mb-4">
+                          {[1, 2, 3, 4, 5].map(s => <Star key={s} size={12} fill="#C9A84C" className="text-[#C9A84C]" />)}
+                          <span className="text-[9px] text-[#B8B0A0] font-black ml-3 uppercase tracking-widest font-mono opacity-60">Ocean View Suite</span>
+                        </div>
+                        <p className="text-[#B8B0A0] text-xs font-body leading-relaxed mb-6 opacity-80">Confirmed reservation for 5 nights. Check-in priority enabled. Ocean View room guaranteed.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="px-3 py-1 bg-[#111111] text-[8px] font-black text-[#C9A84C] rounded-lg uppercase tracking-widest border border-[#C9A84C]/15 font-mono">ALL-INCLUSIVE</span>
+                        <span className="px-3 py-1 bg-[#111111] text-[8px] font-black text-[#C9A84C] rounded-lg uppercase tracking-widest border border-[#C9A84C]/15 font-mono">FREE WI-FI</span>
+                      </div>
+                    </div>
                   </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:text-primary transition-colors" />
-                </button>
-                <button className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group">
-                  <div className="flex items-center font-bold text-sm text-slate-600">
-                    <Share2 size={18} className="mr-3" /> Share with Client
+                </div>
+              </div>
+
+              {/* Activity Block */}
+              <div className="relative pl-14 group">
+                <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-[#111111] border border-[#1D9E75]/30 flex items-center justify-center text-[#1D9E75] z-10 shadow-[0_0_15px_rgba(29,158,117,0.15)]">
+                  <Map size={20} />
+                </div>
+                <div className="bg-[#1A1A1A] border border-[#C9A84C]/15 p-8 rounded-3xl shadow-sm hover:border-[#C9A84C]/40 transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <div className="flex gap-8">
+                      <div className="w-28 h-28 rounded-2xl overflow-hidden shrink-0 border border-[#C9A84C]/10 relative group-hover:scale-105 transition-transform duration-500">
+                        <img 
+                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+                          alt="Activity" 
+                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMjG-qae3qfVKgk7GXqn2tEyFu7BxK0s-n7hLUQLDc0Gs7pqrgpkPYuDaOdrSvkWvLdB46rntKxNST6b0FOYLJLLbvW7lk1am_KCYNQ3Y_c0o5jInkBDF7DdtGHt-KXBfwbD1dA-O5dm7KiS_G_aB4x69pFFcEQB_Q7l0xKavL87c29xlAcTTbeBoBS9Vh3oMzfUX-9VBWhKnKihPP9YJrTkx1rTDMxYv-cRAkGcQo_13dVbRhstzAhvRAkWdBkReGdeoQoZCQ4hJe" 
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-[#1D9E75] uppercase tracking-[0.2em] bg-[#1D9E75]/10 px-3 py-1 rounded-full border border-[#1D9E75]/20 font-mono">Activity</span>
+                        <h4 className="text-2xl font-black font-headline text-[#F5F0E8] mt-3 uppercase tracking-tight">Burj Khalifa Observation Deck</h4>
+                        <div className="flex items-center gap-6 mt-4 text-[#B8B0A0] text-[10px] font-black font-mono">
+                          <span className="flex items-center gap-2 uppercase tracking-widest"><Clock size={14} className="text-[#C9A84C]" /> 18:30 - 20:00</span>
+                          <span className="flex items-center gap-2 uppercase tracking-widest"><Ticket size={14} className="text-[#C9A84C]" /> Fast-Track Entry</span>
+                        </div>
+                        <p className="text-[#B8B0A0] text-xs mt-4 font-body leading-relaxed max-w-md opacity-80">Sunset visit to 'At the Top' levels 124 & 125. Breathtaking 360-degree views.</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-[#C9A84C] font-headline">$120</span>
+                      <span className="text-[9px] text-[#1D9E75] font-black block uppercase tracking-widest font-mono mt-1">2 TICKETS</span>
+                    </div>
                   </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:text-primary transition-colors" />
-                </button>
-                <button className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group">
-                  <div className="flex items-center font-bold text-sm text-slate-600">
-                    <MoreVertical size={18} className="mr-3" /> Advanced Settings
+                </div>
+              </div>
+
+              {/* Add Block */}
+              <div className="relative pl-14 pt-4">
+                <button className="flex items-center gap-4 text-[#B8B0A0] hover:text-[#C9A84C] transition-all group">
+                  <div className="w-10 h-10 rounded-full border-2 border-dashed border-[#C9A84C]/20 group-hover:border-[#C9A84C] flex items-center justify-center transition-colors">
+                    <Plus size={18} />
                   </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:text-primary transition-colors" />
+                  <span className="font-black text-[10px] uppercase tracking-[0.2em] font-mono">Add Activity, Transport or Accommodation</span>
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </section>
+      </div>
     </div>
   );
 }
+
+function TimelineBlock({ icon: Icon, type, title, time, location, price, description, accentColor }) {
+  return (
+    <div className="relative pl-14 group">
+      <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-[#111111] border border-[#C9A84C]/30 flex items-center justify-center text-[#C9A84C] z-10 shadow-[0_0_15px_rgba(201,168,76,0.1)] group-hover:scale-110 transition-transform">
+        <Icon size={20} />
+      </div>
+      <div className="bg-[#1A1A1A] border border-[#C9A84C]/15 p-8 rounded-3xl shadow-sm hover:border-[#C9A84C]/40 transition-all duration-300">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <span className="text-[9px] font-black text-[#C9A84C] uppercase tracking-[0.2em] bg-[#C9A84C]/10 px-3 py-1 rounded-full border border-[#C9A84C]/20 font-mono">{type}</span>
+            <h4 className="text-2xl font-black font-headline text-[#F5F0E8] mt-3 uppercase tracking-tight">{title}</h4>
+            <div className="flex items-center gap-6 mt-4 text-[#B8B0A0] text-[10px] font-black font-mono">
+              <span className="flex items-center gap-2 uppercase tracking-widest"><Clock size={14} className="text-[#C9A84C]" /> {time}</span>
+              <span className="flex items-center gap-2 uppercase tracking-widest"><MapPin size={14} className="text-[#C9A84C]" /> {location}</span>
+            </div>
+          </div>
+          <span className="text-2xl font-black text-[#C9A84C] font-headline">{price}</span>
+        </div>
+        <p className="text-[#B8B0A0] text-xs font-body leading-relaxed max-w-lg opacity-80">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+
+  );
+}
+
+const Users = ({ size, className }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);

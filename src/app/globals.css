@@ -1,28 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  /* Brand Colors */
-  --primary: #00236f;
-  --primary-container: #1e3a8a;
-  --secondary: #006b5f;
+  /* NAMA Definitive Brand Colors - Light Mode */
+  --primary: #C9A84C; /* Gold */
+  --primary-container: #4a3e1c;
+  --secondary: #1D9E75; /* Teal AI/Live signals */
   --secondary-container: #d2e8e4;
   --on-secondary-container: #00201a;
   
   /* Backgrounds & Surfaces */
-  --background: #f7f9fb;
-  --foreground: #191c1e;
+  --background: #F5F0E8; /* Off-white / Cream */
+  --foreground: #0A0A0A; /* Warm black */
   
-  --surface-container: #eceef0;
-  --surface-container-low: #f1f3f5;
-  --surface-container-lowest: #ffffff;
-  --surface-container-high: #e1e3e5;
+  --surface-container: #EBE6DE;
+  --surface-container-low: #F0EBE3;
+  --surface-container-lowest: #F5F0E8;
+  --surface-container-high: #E0DBD3;
   --surface-bright: #ffffff;
   
-  --on-surface: #191c1e;
-  --on-surface-variant: #444651;
+  --on-surface: #0A0A0A;
+  --on-surface-variant: #4A453E;
   
   /* Outline */
-  --outline-variant: rgba(0, 0, 0, 0.15);
+  --outline-variant: rgba(201, 168, 76, 0.15); /* Gold tinted borders */
   
   /* Radius */
   --radius-default: 0.5rem;
@@ -56,27 +56,40 @@
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
+
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui;
+  --font-headline: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 .dark {
-  --background: #0a0c10;
-  --foreground: #e1e2e5;
+  --background: #0A0A0A; /* Deep Black/Charcoal */
+  --foreground: #F5F0E8; /* Cream text */
   
-  --surface-container: #1a1c1e;
-  --surface-container-low: #15171a;
-  --surface-container-lowest: #0d0f12;
-  --surface-container-high: #242629;
+  --surface-container: #111111; /* Intentra 2-stop system */
+  --surface-container-low: #171717;
+  --surface-container-lowest: #0A0A0A;
+  --surface-container-high: #1A1A1A;
   
-  --on-surface: #e1e2e5;
-  --on-surface-variant: #c1c3c9;
+  --on-surface: #F5F0E8;
+  --on-surface-variant: #B8B0A0;
   
-  --outline-variant: rgba(255, 255, 255, 0.1);
+  --outline-variant: rgba(201, 168, 76, 0.15); /* Gold tinted borders */
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-headline), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-data, .font-mono {
+  font-family: var(--font-mono), monospace;
 }
 
 /* No-Line Rule: use background contrast instead of borders */
