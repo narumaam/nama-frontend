@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
-
 import React, { useState } from 'react';
 import { 
   Plus, 
@@ -14,22 +12,9 @@ import {
   Clock, 
   Info,
   ChevronRight,
-  MoreVertical,
-  CreditCard
+  MoreVertical
 } from 'lucide-react';
-
-const BentoCard = ({ type, title, description, price, currency }) => (
-  <div className="bg-slate-50 rounded-[24px] p-6 border border-slate-100 hover:shadow-md transition-shadow">
-    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{type}</div>
-    <h4 className="font-black text-[#0F172A] tracking-tight mb-2">{title}</h4>
-    <p className="text-sm text-slate-500 leading-relaxed mb-4">{description}</p>
-    {price && (
-      <div className="text-sm font-black text-[#14B8A6]">
-        {currency} {price?.toLocaleString()}
-      </div>
-    )}
-  </div>
-);
+import { BentoCard } from '@/components/BentoCard';
 
 export default function ItinerariesPage() {
   const [loading, setLoading] = useState(false);
@@ -76,18 +61,12 @@ export default function ItinerariesPage() {
           <button 
             onClick={generateAIItinerary}
             disabled={loading}
-            className="bg-[#14B8A6] text-white px-6 py-3 rounded-xl font-black text-sm uppercase tracking-widest flex items-center shadow-lg shadow-[#14B8A6]/10 hover:scale-[1.02] transition-all disabled:opacity-50"
+            className="bg-[#14B8A6] text-primary px-6 py-3 rounded-xl font-black text-sm uppercase tracking-widest flex items-center shadow-lg shadow-[#14B8A6]/10 hover:scale-[1.02] transition-all disabled:opacity-50"
           >
             <Sparkles size={18} className="mr-2" fill="currentColor" /> {loading ? "Generating..." : "Generate with AI"}
           </button>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 text-red-600 rounded-2xl p-4 text-sm font-medium">
-          {error}
-        </div>
-      )}
 
       {!itinerary ? (
         <div className="bg-white rounded-[40px] border-2 border-dashed border-slate-200 p-24 text-center">
@@ -101,6 +80,7 @@ export default function ItinerariesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+          {/* Main Itinerary View */}
           <div className="xl:col-span-2 space-y-12">
             <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm relative overflow-hidden text-left">
               <div className="absolute top-0 right-0 p-8 opacity-5">
@@ -114,12 +94,12 @@ export default function ItinerariesPage() {
                 <div className="flex space-x-10 text-slate-400 text-sm font-bold tracking-tight">
                   <div className="flex items-center"><Clock size={16} className="mr-2" /> 72 Hours</div>
                   <div className="flex items-center"><Info size={16} className="mr-2" /> 2 Travelers</div>
-                  <div className="flex items-center text-primary"><CreditCard size={16} className="mr-2" /> ₹{itinerary.total_price?.toLocaleString()} Total</div>
+                  <div className="flex items-center text-primary"><CreditCard size={16} className="mr-2" /> ₹{itinerary.total_price.toLocaleString()} Total</div>
                 </div>
               </div>
             </div>
 
-            {itinerary.days?.map((day) => (
+            {itinerary.days.map((day) => (
               <div key={day.day_number} className="space-y-6 text-left">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-[#0F172A] text-white rounded-2xl flex items-center justify-center font-black text-xl">
@@ -131,7 +111,7 @@ export default function ItinerariesPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-16">
-                  {day.blocks?.map((block, idx) => (
+                  {day.blocks.map((block, idx) => (
                     <BentoCard 
                       key={idx}
                       type={block.type}
@@ -146,6 +126,7 @@ export default function ItinerariesPage() {
             ))}
           </div>
 
+          {/* Marketing & Social Side Sidebar */}
           <div className="space-y-10 text-left">
             <div className="bg-[#0F172A] rounded-[40px] p-10 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-48 h-48 bg-[#14B8A6]/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
@@ -156,21 +137,21 @@ export default function ItinerariesPage() {
                 </div>
                 <div className="bg-white/5 rounded-3xl p-6 border border-white/10 mb-8">
                   <p className="text-sm text-slate-300 leading-relaxed font-medium italic">
-                    "{itinerary.social_post?.caption}"
+                    "{itinerary.social_post.caption}"
                   </p>
                 </div>
                 <div className="space-y-4 mb-8">
                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Viral Hooks</h4>
-                  {itinerary.social_post?.hooks?.map((hook, i) => (
+                  {itinerary.social_post.hooks.map((hook, i) => (
                     <div key={i} className="flex items-start space-x-3">
-                      <div className="w-5 h-5 bg-[#14B8A6] text-white rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">
+                      <div className="w-5 h-5 bg-[#14B8A6] text-primary rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">
                         {i+1}
                       </div>
                       <p className="text-xs font-bold text-slate-200">{hook}</p>
                     </div>
                   ))}
                 </div>
-                <button className="w-full bg-[#14B8A6] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-[#14B8A6]/10 hover:scale-[1.02] transition-transform">
+                <button className="w-full bg-[#14B8A6] text-primary py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-[#14B8A6]/10 hover:scale-[1.02] transition-transform">
                   Copy to Clipboard
                 </button>
               </div>

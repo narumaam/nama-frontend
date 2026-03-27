@@ -1,17 +1,15 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
-
 import React, { useEffect, useState } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
   Users, 
+  Briefcase, 
   Map, 
   CreditCard,
   Plus,
-  ArrowRight,
-  Zap
+  ArrowRight
 } from 'lucide-react';
 
 const StatCard = ({ label, value, trend, status, icon: Icon }) => (
@@ -37,10 +35,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // In a real app, fetch from process.env.NEXT_PUBLIC_API_URL
     const fetchSummary = async () => {
       try {
         const response = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/analytics/dashboard', {
-          headers: { 'Authorization': 'Bearer test-token' }
+          headers: { 'Authorization': 'Bearer test-token' } // Mock auth for demo
         });
         const data = await response.json();
         setSummary(data);
@@ -102,7 +101,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-8">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-xl font-bold text-primary">Recent Leads</h3>
-            <button className="text-secondary font-bold text-sm flex items-center hover:underline">
+            <button className="text-accent font-bold text-sm flex items-center hover:underline">
               View All <ArrowRight size={16} className="ml-1" />
             </button>
           </div>
@@ -132,7 +131,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-slate-400 font-bold">SCORE</div>
-                    <div className="text-sm font-black text-secondary">{lead.score}%</div>
+                    <div className="text-sm font-black text-accent">{lead.score}%</div>
                   </div>
                 </div>
               </div>
@@ -141,15 +140,16 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-primary rounded-[32px] p-8 text-white relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
           <div className="relative z-10">
             <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6">
-              <Zap size={24} className="text-secondary" fill="currentColor" />
+              <Zap size={24} className="text-accent" fill="currentColor" />
             </div>
             <h3 className="text-2xl font-bold mb-2">Kinetic Intelligence</h3>
             <p className="text-slate-400 text-sm leading-relaxed mb-8">
               The AI Agent Swarm is currently monitoring 12 active supply chains. No critical anomalies detected.
             </p>
+            
             <div className="space-y-4">
               <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Last AI Action</div>
@@ -161,7 +161,8 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <button className="relative z-10 w-full bg-secondary text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-secondary/10 mt-8 hover:scale-[1.02] transition-transform">
+          
+          <button className="relative z-10 w-full bg-accent text-primary py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-accent/10 mt-8 hover:scale-[1.02] transition-transform">
             Switch to Kinetic OS
           </button>
         </div>

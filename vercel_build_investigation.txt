@@ -1,0 +1,32 @@
+Build Logs (First 30 Lines):
+04:06:18.271 Running build in Washington, D.C., USA (East) – iad1
+04:06:18.272 Build machine configuration: 2 cores, 8 GB
+04:06:18.296 Cloning github.com/narumaam/nama-frontend (Branch: main, Commit: daa2721)
+04:06:18.298 Skipping build cache, deployment was triggered without cache.
+04:06:18.655 Cloning completed: 358.000ms
+04:06:20.552 Running "vercel build"
+04:06:21.533 Vercel CLI 50.35.0
+04:06:21.763 Running "install" command: `npm install --legacy-peer-deps`...
+04:06:48.810 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory.
+04:06:49.576 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+04:06:50.331 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+04:06:50.408 npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+04:06:50.532 npm warn deprecated glob@7.2.3: Old versions of glob are not supported
+04:06:51.190 npm warn deprecated glob@10.3.10: Old versions of glob are not supported
+04:06:53.398 npm warn deprecated eslint@8.57.1: This version is no longer supported.
+04:07:04.743 added 386 packages, and audited 387 packages in 43s
+04:07:04.745 152 packages are looking for funding
+04:07:04.745   run `npm fund` for details
+...
+04:07:15.284 ./src/app/globals.css
+04:07:15.284 Error: Can't resolve 'tailwindcss'
+at finishWithoutResolve (/vercel/path0/node_modules/next/dist/compiled/webpack/bundle5.js:1:192542)
+
+Findings:
+- The build failed with: `Error: Can't resolve 'tailwindcss'` in `./src/app/globals.css`.
+- The error is NOT related to 'lucide-react' or 'Next.js' version directly. It appears that 'tailwindcss' is missing or could not be resolved.
+- Root Directory Setting: It is saved as `./` (which is functionally equivalent to `.`).
+- Node.js version is set to 24.x.
+
+Screenshot of Build Log:
+![Build Log](https://sc02.alicdn.com/kf/A7582358f9d14460b889826b772d00e59Z.png)

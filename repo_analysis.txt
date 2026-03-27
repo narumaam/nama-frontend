@@ -1,0 +1,24 @@
+Repository: https://github.com/narumaam/nama-frontend
+
+Files and Folders at the Root:
+- backend/app (Folder)
+- docs (Folder)
+- public (Folder)
+- scripts (Folder)
+- src (Folder)
+- DEVELOPER_HANDOFF.md (File)
+- MASTER_RCA.md (File)
+- OPERATIONAL_BLUEPRINT.md (File)
+- Procfile (File)
+- USER_MANUAL.md (File)
+- main.py (File)
+- nixpacks.toml (File)
+- package.json (File)
+- requirements.txt (File)
+- vercel.json (File)
+
+Checks:
+1. Is there a 'frontend' folder? No.
+2. Is there a 'backend' folder? Yes (appears as 'backend/app').
+3. Are 'src' and 'backend' folders there? Yes, both are present.
+4. Is 'package.json' at the root? Yes.
