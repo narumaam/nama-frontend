@@ -1,8 +1,9 @@
-# FORCE CLEAN BUILD v10
+# FORCE CLEAN BUILD v20
 FROM python:3.11-slim
 
 WORKDIR /app
 
+# 🚨 HARD RESET (this is the key fix)
 RUN rm -rf /app/*
 
 RUN apt-get update && apt-get install -y build-essential
@@ -15,4 +16,4 @@ COPY . .
 
 ENV PYTHONPATH=/app/backend
 
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-c", "import backend.app.main"]
