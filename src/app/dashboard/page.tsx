@@ -1,11 +1,12 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import React, { useEffect, useState } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
   Users, 
-  Briefcase, 
   Map, 
   CreditCard,
   Plus,
@@ -149,9 +150,22 @@ export default function DashboardPage() {
             <p className="text-slate-400 text-sm leading-relaxed mb-8">
               The AI Agent Swarm is currently monitoring 12 active supply chains. No critical anomalies detected.
             </p>
-            
             <div className="space-y-4">
               <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Last AI Action</div>
                 <div className="text-sm text-slate-200">Bidding Agent countered bid for Hyatt Dubai at ₹42,500.</div>
               </div>
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Market Insight</div>
+                <div className="text-sm text-slate-200">Bali demand is up 12% this week. Adjust luxury margins?</div>
+              </div>
+            </div>
+          </div>
+          <button className="relative z-10 w-full bg-secondary text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-secondary/10 mt-8 hover:scale-[1.02] transition-transform">
+            Switch to Kinetic OS
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
