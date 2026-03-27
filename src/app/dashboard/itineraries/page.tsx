@@ -236,10 +236,6 @@ function TimelineBlock({ icon: Icon, type, title, time, location, price, descrip
   );
 }
 
-
-  );
-}
-
 const Users = ({ size, className }) => (
   <svg 
     width={size} 

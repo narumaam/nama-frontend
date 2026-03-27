@@ -1,0 +1,8 @@
+# NAMA Travel OS — Composio Agents Dependencies
+# Install: pip install -r requirements.txt
+
+composio-google>=0.7.0
+google-generativeai>=0.8.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+schedule>=1.2.0
