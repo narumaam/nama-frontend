@@ -81,17 +81,24 @@ body {
 
 /* No-Line Rule: use background contrast instead of borders */
 .section-break {
-  @apply bg-surface-container p-6;
+  background: var(--surface-container);
+  padding: 1.5rem;
 }
 
 .card {
-  @apply bg-surface-container-lowest rounded-md;
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-md);
 }
 
 .glass {
-  @apply bg-surface-container-lowest/80 backdrop-blur-[20px];
+  background: color-mix(in srgb, var(--surface-container-lowest) 80%, transparent);
+  backdrop-filter: blur(20px);
 }
 
 .btn-primary {
-  @apply bg-gradient-to-br from-primary to-primary-container text-white px-4 py-2 rounded-md transition-all;
+  background: linear-gradient(to bottom right, var(--primary), var(--primary-container));
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
 }
