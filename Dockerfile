@@ -16,4 +16,4 @@ COPY . .
 
 ENV PYTHONPATH=/app/backend
 
-CMD ["python", "-c", "import backend.app.main"]
+CMD ["python", "main.py"]
