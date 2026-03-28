@@ -2,261 +2,375 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Zap } from 'lucide-react';
+import {
+  Zap, ArrowRight, Brain, MapPin, Target, CreditCard,
+  MessageSquare, Shield, CheckCircle, ChevronRight,
+  TrendingUp, Users, Globe, Bot, Activity, Sparkles
+} from 'lucide-react';
 
-const LandingPage = () => {
-  const [query, setQuery] = useState("Hi NAMA! My husband and I want to visit Bali for a week in December. We want a private villa with a pool and some spa time. Our budget is around $4000 total.");
-  const [result, setResult] = useState({
-    destination: "Bali, Indonesia",
-    duration: "7 Days",
-    travelers: "2 (Couple)",
-    style: "Luxury",
-    reply: "Hi! Thanks for your inquiry about Bali. Our travel specialists are putting together a custom 7-day luxury plan for you. Stay tuned!"
-  });
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
-  const [systemHealth, setSystemHealth] = useState("green");
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface HealthStatus { status: 'online' | 'degraded' | 'offline'; }
 
+// ─── Components ──────────────────────────────────────────────────────────────
+function SystemStatus() {
+  const [health, setHealth] = useState<HealthStatus['status']>('online');
   useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const res = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/health');
-        if (res.ok) setSystemHealth("green");
-        else setSystemHealth("orange");
-      } catch (err) {
-        setSystemHealth("red");
-      }
-    };
-    checkHealth();
-    const interval = setInterval(checkHealth, 30000);
-    return () => clearInterval(interval);
+    fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/health')
+      .then(r => setHealth(r.ok ? 'online' : 'degraded'))
+      .catch(() => setHealth('offline'));
   }, []);
+  const cfg = {
+    online:   { dot: 'bg-[#1D9E75]', label: 'OS ACTIVE',  color: 'text-[#1D9E75]', border: 'border-[#1D9E75]/20', bg: 'bg-[#1D9E75]/8' },
+    degraded: { dot: 'bg-[#C9A84C]', label: 'DEGRADED',   color: 'text-[#C9A84C]', border: 'border-[#C9A84C]/20', bg: 'bg-[#C9A84C]/8' },
+    offline:  { dot: 'bg-red-500',   label: 'OFFLINE',     color: 'text-red-400',   border: 'border-red-500/20',   bg: 'bg-red-500/8' },
+  }[health];
+  return (
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${cfg.border} ${cfg.bg}`}>
+      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${cfg.dot}`} />
+      <span className={`text-[8px] font-black uppercase tracking-[0.2em] font-mono ${cfg.color}`}>{cfg.label}</span>
+    </div>
+  );
+}
 
-  const handleTriage = async () => {
-    setLoading(true);
-    setStatus("Analyzing...");
+const AGENTS = [
+  { name: 'Triage',     desc: 'Parses every inbound signal — WhatsApp, email, DM — into structured intent in seconds.',  Icon: Brain,         color: 'text-[#C9A84C]', border: 'border-[#C9A84C]/20', bg: 'bg-[#C9A84C]/8' },
+  { name: 'Itinerary',  desc: 'Designs bespoke day-by-day itineraries with real-time pricing. No templates. No limits.',   Icon: MapPin,        color: 'text-blue-400',   border: 'border-blue-400/20', bg: 'bg-blue-400/8' },
+  { name: 'Bidding',    desc: 'Negotiates net rates with hotels and vendors via WhatsApp, email, and API integrations.',   Icon: Target,        color: 'text-orange-400', border: 'border-orange-400/20', bg: 'bg-orange-400/8' },
+  { name: 'Finance',    desc: 'Sends invoices, tracks payments, reconciles accounts, and forecasts cash flow autonomously.', Icon: CreditCard,   color: 'text-[#1D9E75]', border: 'border-[#1D9E75]/20', bg: 'bg-[#1D9E75]/8' },
+  { name: 'Comms',      desc: 'Handles all client communication with perfect tone, timing, and context at every stage.',   Icon: MessageSquare, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/8' },
+  { name: 'Operations', desc: 'Executes bookings, tracks confirmations, and re-routes supply chains when things go wrong.', Icon: Shield,       color: 'text-red-400',    border: 'border-red-400/20',   bg: 'bg-red-400/8' },
+];
+
+const STATS = [
+  { value: '80%+',    label: 'Reduction in manual ops' },
+  { value: '<2 min',  label: 'Quotation generation' },
+  { value: '97%',     label: 'AI decision accuracy' },
+  { value: '10×',     label: 'Scale without headcount' },
+];
+
+const ATTENTION_FEED = [
+  { priority: 'CRITICAL', name: 'Meera Nair',     dest: 'Maldives',  value: '₹4,80,000', msg: 'Ready to close · AI confidence 91%',  color: 'text-red-400',   bar: 'bg-red-500' },
+  { priority: 'ATTENTION', name: 'Arjun Mehta',   dest: 'Dubai',     value: '₹2,10,000', msg: 'Quote approved · Awaiting send',       color: 'text-[#C9A84C]', bar: 'bg-[#C9A84C]' },
+  { priority: 'INFO',      name: 'TCS Corporate', dest: 'Thailand',  value: '₹18,40,000',msg: 'All confirmed · Zero action needed',   color: 'text-[#1D9E75]', bar: 'bg-[#1D9E75]' },
+];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function LandingPage() {
+  const [query, setQuery] = useState("Hi NAMA! We want a honeymoon in Maldives — 6 nights, luxury overwater villa, private beach. Budget ₹5L for 2 people. Flexible on dates in April.");
+  const [result, setResult] = useState({ destination: 'Maldives', duration: '6 Nights', travelers: '2 (Couple)', style: 'Luxury', reply: 'Perfect choice for a honeymoon! I have curated an exclusive 6-night Maldives escape at Soneva Jani — overwater bungalow, private lagoon, and infinity spa. Shall I send the full itinerary?' });
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 1000); return () => clearInterval(t); }, []);
+
+  async function handleTriage() {
+    setLoading(true); setStatus('Analyzing...');
     try {
-      const response = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/queries/ingest', {
+      const r = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/queries/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: "DIRECT",
-          content: query,
-          sender_id: "web-visitor",
-          tenant_id: 1
-        })
+        body: JSON.stringify({ source: 'DIRECT', content: query, sender_id: 'web-visitor', tenant_id: 1 }),
       });
-      const data = await response.json();
+      const data = await r.json();
       if (data.extracted_data) {
-        setResult({
-          destination: data.extracted_data.destination || "Unknown",
-          duration: `${data.extracted_data.duration_days} Days`,
-          travelers: `${data.extracted_data.travelers_count} People`,
-          style: data.extracted_data.style || "Standard",
-          reply: data.suggested_reply
-        });
-        setStatus("Success!");
-      } else {
-        setStatus("Extraction failed.");
-      }
-    } catch (err) {
-      console.error("Triage failed:", err);
-      setStatus("Backend connection failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
+        setResult({ destination: data.extracted_data.destination || 'Unknown', duration: `${data.extracted_data.duration_days} Nights`, travelers: `${data.extracted_data.travelers_count} People`, style: data.extracted_data.style || 'Standard', reply: data.suggested_reply });
+        setStatus('Extraction complete ✓');
+      } else { setStatus('Extraction failed — backend responded but no data.'); }
+    } catch { setStatus('Backend offline — using demo data.'); }
+    finally { setLoading(false); }
+  }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#14B8A6] selection:text-white">
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex justify-between items-center transition-all duration-300">
-        <div className="flex items-center space-x-2 text-left">
-          <div className="w-8 h-8 bg-[#0F172A] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">N</span>
-          </div>
-          <span className="text-xl font-bold tracking-tight text-[#0F172A]">NAMA</span>
-          <div className="ml-4 flex items-center space-x-2 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-            <div className={`w-2 h-2 rounded-full animate-pulse ${
-              systemHealth === 'green' ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 
-              systemHealth === 'orange' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'
-            }`} />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              {systemHealth === 'green' ? 'OS ACTIVE' : systemHealth === 'orange' ? 'DEGRADED' : 'OFFLINE'}
-            </span>
-          </div>
+    <div className="min-h-screen bg-[#0A0A0A] text-[#F5F0E8] font-body selection:bg-[#C9A84C] selection:text-[#0A0A0A]">
+
+      {/* ── Navbar ─────────────────────────────────────────────────── */}
+      <nav className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#C9A84C]/10 px-6 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-[#C9A84C] rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.3)]">N</div>
+            <span className="text-base font-black tracking-tighter font-headline text-[#F5F0E8] uppercase">NAMA</span>
+          </Link>
+          <SystemStatus />
         </div>
-        <div className="hidden md:flex space-x-10 text-sm font-medium text-slate-500 text-left">
-          <a href="#vision" className="hover:text-[#0A0A0A] transition-colors">Vision</a>
-          <a href="#modules" className="hover:text-[#0A0A0A] transition-colors">Modules</a>
-          <Link href="/kinetic" className="hover:text-[#0A0A0A] transition-colors font-semibold text-[#1D9E75] text-left">Kinetic OS</Link>
-          <a href="#pricing" className="hover:text-[#0A0A0A] transition-colors text-left">Pricing</a>
-        </div>
-        <div>
-          <Link href="/register" className="bg-[#C9A84C] text-[#0A0A0A] text-sm px-5 py-2 rounded-full font-bold hover:bg-[#B89840] transition-all active:scale-95 shadow-lg shadow-[#C9A84C]/20">
-            Get Started
+        <div className="hidden md:flex items-center gap-8 text-[11px] font-semibold text-[#B8B0A0]">
+          <a href="#vision" className="hover:text-[#F5F0E8] transition-colors">Vision</a>
+          <a href="#agents" className="hover:text-[#F5F0E8] transition-colors">Agents</a>
+          <a href="#demo" className="hover:text-[#F5F0E8] transition-colors">Demo</a>
+          <Link href="/kinetic" className="text-[#C9A84C] hover:opacity-80 transition-opacity flex items-center gap-1">
+            Kinetic OS <Zap size={10} fill="currentColor" />
           </Link>
         </div>
+        <Link
+          href="/dashboard/autopilot"
+          className="bg-[#C9A84C] text-[#0A0A0A] text-[11px] px-5 py-2.5 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(201,168,76,0.2)] uppercase tracking-widest"
+        >
+          Enter OS
+        </Link>
       </nav>
 
-      <section id="vision" className="relative px-6 pt-24 pb-32 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="inline-block px-4 py-1.5 mb-8 bg-[#C9A84C]/10 border border-[#C9A84C]/20 rounded-full text-xs font-semibold tracking-wider text-[#C9A84C] uppercase">
-          AI-Native Travel Operating System
-        </div>
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-[#0A0A0A] leading-[1.05] mb-8 text-center font-headline">
-          The future of travel<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C9A84C] via-[#1D9E75] to-[#C9A84C]">is autonomous.</span>
-        </h1>
-        <p className="text-xl md:text-2xl text-[#4A453E] max-w-3xl leading-relaxed mb-12 text-center font-body">
-          Automate discovery, contracting, pricing, and fulfillment across global supply. 
-          80%+ reduction in manual ops, <span className="text-[#0A0A0A] font-bold">under 2 minutes</span> for any quotation.
-        </p>
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 items-center justify-center">
-          <Link href="/register" className="bg-[#0A0A0A] text-[#F5F0E8] text-lg px-10 py-4 rounded-full font-bold hover:shadow-2xl hover:shadow-[#0A0A0A]/20 transition-all active:scale-95 text-center">
-            Start Free Pilot
-          </Link>
-          <button className="bg-white border-2 border-[#C9A84C]/20 text-lg px-10 py-4 rounded-full font-bold text-[#0A0A0A] hover:border-[#C9A84C] transition-all active:scale-95" onClick={() => window.open('https://vimeo.com/nama-travel-os-demo', '_blank')}>
-            Watch the Demo
-          </button>
+      {/* ── Hero ───────────────────────────────────────────────────── */}
+      <section id="vision" className="relative px-6 pt-28 pb-32 max-w-7xl mx-auto text-center overflow-hidden">
+        {/* Ambient background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#C9A84C]/4 rounded-full blur-[120px]" />
+          <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] bg-[#1D9E75]/3 rounded-full blur-[80px]" />
         </div>
 
-        <div className="mt-20 w-full max-w-5xl bg-slate-50 border border-slate-200 shadow-2xl rounded-3xl overflow-hidden">
-          <div className="p-8 border-b border-slate-200 bg-white flex items-center justify-between">
-            <div className="flex space-x-2">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400" />
-              <div className="w-3 h-3 rounded-full bg-green-400" />
-            </div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">NAMA Triage Playground</div>
-            <div className="w-10"></div>
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 mb-10 bg-[#C9A84C]/8 border border-[#C9A84C]/15 rounded-full">
+            <Sparkles size={11} className="text-[#C9A84C]" />
+            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">AI-Native Travel Operating System · 2026</span>
           </div>
-          <div className="p-12 grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
-            <div className="text-left">
-              <h3 className="text-xl font-bold mb-4 text-left">1. Send a messy query</h3>
-              <p className="text-sm text-slate-500 mb-6 font-medium leading-relaxed text-left">Type any travel request below. See how NAMA's Query Triage Agent extracts structured data instantly.</p>
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative group focus-within:border-[#14B8A6] transition-colors text-left">
-                <textarea 
-                  className="w-full bg-transparent border-none outline-none text-sm font-medium h-32 resize-none text-left"
-                  placeholder="Hi! We are 2 people planning a 5-day luxury trip to Dubai next month. We love dining and desert safaris. Budget ₹5L."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                ></textarea>
-                <button 
-                  onClick={handleTriage}
-                  disabled={loading}
-                  className="absolute bottom-4 right-4 bg-[#0F172A] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-all disabled:opacity-50"
-                >
-                  {loading ? "Processing..." : "Triage Now"}
-                </button>
-              </div>
-              {status && (
-                <div className={`mt-4 text-[10px] font-bold uppercase tracking-widest text-left ${
-                  status.includes("failed") ? "text-red-500" : "text-[#14B8A6]"
-                }`}>
-                  {status}
-                </div>
-              )}
-            </div>
-            <div className="bg-slate-100 rounded-2xl p-8 border border-slate-200 relative overflow-hidden text-left">
-              <div className="absolute top-0 right-0 p-4 opacity-5 text-[#0F172A] text-left">
-                <Zap size={120} fill="currentColor" />
-              </div>
-              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 text-left">AI Extraction Output</h3>
-              <div className="space-y-6 relative z-10 text-left">
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 text-left">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Destination</span>
-                  <span className="text-sm font-bold text-[#0F172A]">{result.destination}</span>
-                </div>
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 text-left">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Duration</span>
-                  <span className="text-sm font-bold text-[#0F172A]">{result.duration}</span>
-                </div>
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 text-left">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Travelers</span>
-                  <span className="text-sm font-bold text-[#0F172A]">{result.travelers}</span>
-                </div>
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 text-left">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Style</span>
-                  <span className="text-sm font-bold text-[#14B8A6]">{result.style}</span>
-                </div>
-                <div className="mt-8 text-left">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase mb-2 text-left">AI Suggested Reply</div>
-                  <div className="text-xs bg-white p-4 rounded-xl border border-slate-200 text-slate-600 leading-relaxed font-medium italic text-left">
-                    "{result.reply}"
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <section id="modules" className="bg-slate-50 py-32 px-6 text-left">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16 text-left">
-          <div className="space-y-6 text-left">
-            <div className="w-14 h-14 bg-[#14B8A6]/10 text-[#14B8A6] rounded-2xl flex items-center justify-center text-3xl">
-              ⚡️
-            </div>
-            <h3 className="text-2xl font-bold text-[#0F172A] tracking-tight text-left">Rapid Quotation</h3>
-            <p className="text-slate-500 leading-relaxed font-medium text-left">
-              Generate full-day itineraries with real-time supply matching and pricing in under 2 minutes. No manual data entry required.
-            </p>
-          </div>
-          <div className="space-y-6 text-left text-left">
-            <div className="w-14 h-14 bg-[#0F172A]/10 text-[#0F172A] rounded-2xl flex items-center justify-center text-3xl">
-              🤖
-            </div>
-            <h3 className="text-2xl font-bold text-[#0F172A] tracking-tight text-left">Autonomous Bidding</h3>
-            <p className="text-slate-500 leading-relaxed font-medium text-left">
-              Our agent swarm negotiates net rates with vendors on your behalf across WhatsApp, Email, and Voice. 
-            </p>
-          </div>
-          <div className="space-y-6 text-left text-left">
-            <div className="w-14 h-14 bg-[#F97316]/10 text-[#F97316] rounded-2xl flex items-center justify-center text-3xl text-left text-left">
-              📊
-            </div>
-            <h3 className="text-2xl font-bold text-[#0F172A] tracking-tight text-left">Real-time P&L</h3>
-            <p className="text-slate-500 leading-relaxed font-medium text-left text-left">
-              Know the profitability of every booking down to the rupee before you even send the confirmation voucher.
-            </p>
-          </div>
-        </div>
-      </section>
+          <h1 className="text-[64px] md:text-[88px] font-black tracking-[-0.04em] leading-none mb-8 font-headline">
+            Travel companies<br />
+            <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(90deg, #C9A84C, #1D9E75, #C9A84C)' }}>
+              don't run software.
+            </span><br />
+            Software runs them.
+          </h1>
 
-      <section id="kinetic" className="bg-[#0F172A] py-32 px-6 overflow-hidden relative text-center">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#14B8A6]/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-        <div className="max-w-5xl mx-auto text-center relative z-10 text-center">
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-10 tracking-tight leading-tight text-center">
-            Switch to <span className="text-[#14B8A6] italic">Kinetic</span> mode.<br />
-            Command your business like a flight center.
-          </h2>
-          <p className="text-slate-400 text-lg mb-12 max-w-2xl mx-auto font-medium leading-relaxed text-center text-center">
-            Real-time anomaly detection, autonomous supply chain re-routing, and instant financial reconciliation. The power of NAMA, in high fidelity.
+          <p className="text-lg text-[#B8B0A0] max-w-2xl mx-auto leading-relaxed mb-12 font-body">
+            NAMA is the world's first Autonomous Travel OS. AI agents handle every lead, itinerary, negotiation, and booking — autonomously. You only touch what needs you.
           </p>
-          <Link href="/kinetic" className="bg-[#14B8A6] text-[#0F172A] px-12 py-5 rounded-full font-bold text-lg shadow-xl shadow-[#14B8A6]/20 hover:scale-105 transition-all inline-block">
-            Enter Command Center
-          </Link>
+
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-20">
+            <Link
+              href="/dashboard/autopilot"
+              className="flex items-center gap-2 bg-[#C9A84C] text-[#0A0A0A] text-sm px-8 py-4 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(201,168,76,0.2)] uppercase tracking-widest"
+            >
+              <Zap size={14} fill="currentColor" /> Enter Command Center
+            </Link>
+            <Link
+              href="/kinetic"
+              className="flex items-center gap-2 bg-transparent border border-[#C9A84C]/20 text-[#C9A84C] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/40 transition-all uppercase tracking-widest"
+            >
+              View Kinetic Engine <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          {/* Stats strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#C9A84C]/10 rounded-3xl overflow-hidden border border-[#C9A84C]/10">
+            {STATS.map(s => (
+              <div key={s.label} className="bg-[#111111] py-8 px-6">
+                <div className="text-3xl font-black font-mono text-[#C9A84C] mb-1">{s.value}</div>
+                <div className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#4A453E]">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      <footer className="py-20 px-6 border-t border-slate-100 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-slate-400 text-sm">
-        <div className="flex items-center space-x-2 mb-8 md:mb-0 text-left">
-          <div className="w-6 h-6 bg-slate-200 rounded flex items-center justify-center font-bold text-slate-400 text-[10px]">
-            N
+      {/* ── No-Workflow Concept ─────────────────────────────────────── */}
+      <section className="py-24 px-6 bg-[#111111] border-y border-[#C9A84C]/10">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-4">The Zero-Workflow Paradigm</div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter font-headline mb-4">
+              No tasks. No reminders.<br />No workflow.
+            </h2>
+            <p className="text-[#B8B0A0] max-w-xl mx-auto text-sm leading-relaxed font-body">
+              Every CRM is built for humans to do work. NAMA is built for AI to do the work and bring you only what it can't handle alone.
+            </p>
           </div>
-          <span className="font-bold text-slate-600">NAMA TRAVEL OS</span>
+
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Old way */}
+            <div className="bg-[#0A0A0A] rounded-3xl border border-white/5 p-8">
+              <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-red-400 mb-6 font-black">Old Way — Every Travel CRM</div>
+              <div className="space-y-3">
+                {['Human creates lead in CRM', 'Human calls to qualify', 'Human builds itinerary manually', 'Human sends quote via email', 'Human chases payment', 'Human coordinates vendors', 'Human follows up 3× after booking'].map((step, i) => (
+                  <div key={i} className="flex items-center gap-3 text-[11px] text-[#4A453E] font-body">
+                    <span className="text-[8px] font-mono text-red-500 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="line-through">{step}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 pt-6 border-t border-white/5 text-[10px] font-mono text-red-400 font-black uppercase tracking-widest">
+                Software = passive tool
+              </div>
+            </div>
+
+            {/* NAMA way */}
+            <div className="bg-[#0A0A0A] rounded-3xl border border-[#C9A84C]/15 p-8 relative overflow-hidden shadow-[0_0_40px_rgba(201,168,76,0.06)]">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#C9A84C]/3 via-transparent to-transparent pointer-events-none" />
+              <div className="relative z-10">
+                <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#C9A84C] mb-6 font-black">NAMA Way — Autonomous OS</div>
+                {/* Attention feed preview */}
+                <div className="space-y-3 mb-6">
+                  {ATTENTION_FEED.map((item, i) => (
+                    <div key={i} className="relative bg-[#111111] rounded-xl border border-[#C9A84C]/10 overflow-hidden flex items-center gap-4 p-3">
+                      <div className={`absolute left-0 inset-y-0 w-[2px] ${item.bar}`} />
+                      <div className="pl-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`text-[7px] font-black font-mono uppercase tracking-widest ${item.color}`}>{item.priority}</span>
+                          <span className="text-[8px] text-[#4A453E] font-body truncate">{item.name} · {item.dest}</span>
+                        </div>
+                        <div className="text-[9px] text-[#B8B0A0] font-body">{item.msg}</div>
+                      </div>
+                      <span className="text-[9px] font-mono font-black text-[#F5F0E8] shrink-0">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 pt-4 border-t border-[#C9A84C]/10 text-[10px] font-mono text-[#C9A84C] font-black uppercase tracking-widest">
+                  Software = autonomous operator
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex space-x-12 font-medium">
-          <a href="#" className="hover:text-[#0F172A] transition-colors font-sans font-medium">Privacy</a>
-          <a href="#" className="hover:text-[#0F172A] transition-colors font-sans font-medium">Terms</a>
-          <a href="#" className="hover:text-[#0F172A] transition-colors font-sans font-medium">Compliance</a>
-          <a href="#" className="hover:text-[#0F172A] transition-colors font-sans font-medium">Contact</a>
+      </section>
+
+      {/* ── Agent Swarm ────────────────────────────────────────────── */}
+      <section id="agents" className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-4">The Agent Swarm</div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter font-headline mb-4">
+              6 AI agents.<br />One travel company.
+            </h2>
+            <p className="text-[#B8B0A0] max-w-xl mx-auto text-sm leading-relaxed font-body">
+              Each agent specializes in one domain. Together, they run an entire travel operation without a single human workflow.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {AGENTS.map(agent => (
+              <div key={agent.name} className={`bg-[#111111] rounded-2xl border ${agent.border} p-6 hover:shadow-[0_0_20px_rgba(201,168,76,0.08)] transition-all group`}>
+                <div className={`w-10 h-10 rounded-xl ${agent.bg} border ${agent.border} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <agent.Icon size={18} className={agent.color} />
+                </div>
+                <div className={`text-xs font-black font-mono uppercase tracking-widest mb-2 ${agent.color}`}>{agent.name} Agent</div>
+                <p className="text-[11px] text-[#B8B0A0] leading-relaxed font-body">{agent.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-8 md:mt-0 font-medium font-sans">
-          © 2026 NAMA Networks. All rights reserved.
+      </section>
+
+      {/* ── Live Demo ───────────────────────────────────────────────── */}
+      <section id="demo" className="py-24 px-6 bg-[#111111] border-y border-[#C9A84C]/10">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-4">Live AI Playground</div>
+            <h2 className="text-3xl md:text-4xl font-black tracking-tighter font-headline mb-3">
+              See the Triage Agent work.
+            </h2>
+            <p className="text-[#B8B0A0] text-sm font-body">Send any messy travel request — watch NAMA extract structured intent in real time.</p>
+          </div>
+
+          <div className="bg-[#0A0A0A] rounded-3xl border border-[#C9A84C]/15 overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)]">
+            {/* Window chrome */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#C9A84C]/10 bg-[#111111]">
+              <div className="flex gap-2">
+                {['bg-red-500', 'bg-[#C9A84C]', 'bg-[#1D9E75]'].map((c, i) => <div key={i} className={`w-2.5 h-2.5 rounded-full ${c} opacity-70`} />)}
+              </div>
+              <div className="text-[8px] font-black uppercase tracking-[0.2em] text-[#4A453E] font-mono">NAMA Triage Playground</div>
+              <div className="text-[8px] font-mono text-[#4A453E] tabular-nums">
+                {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-0">
+              {/* Input */}
+              <div className="p-8 border-r border-[#C9A84C]/10">
+                <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E] font-black mb-3">1. Send a messy travel query</div>
+                <div className="bg-[#111111] rounded-2xl border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/30 transition-colors p-4 relative">
+                  <textarea
+                    className="w-full bg-transparent border-none outline-none text-[11px] font-body h-36 resize-none text-[#F5F0E8] placeholder:text-[#4A453E]"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="Type any travel request..."
+                  />
+                  <button
+                    onClick={handleTriage}
+                    disabled={loading}
+                    className="absolute bottom-3 right-3 bg-[#C9A84C] text-[#0A0A0A] px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <Bot size={10} /> {loading ? 'Processing...' : 'Triage Now'}
+                  </button>
+                </div>
+                {status && (
+                  <div className={`mt-3 text-[9px] font-mono font-black uppercase tracking-widest ${status.includes('fail') || status.includes('offline') ? 'text-red-400' : 'text-[#1D9E75]'}`}>
+                    {status}
+                  </div>
+                )}
+              </div>
+
+              {/* Output */}
+              <div className="p-8">
+                <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E] font-black mb-3">2. AI Extraction Output</div>
+                <div className="space-y-3 mb-5">
+                  {[
+                    { label: 'Destination', value: result.destination },
+                    { label: 'Duration',    value: result.duration },
+                    { label: 'Travelers',   value: result.travelers },
+                    { label: 'Style',       value: result.style },
+                  ].map(row => (
+                    <div key={row.label} className="flex items-center justify-between py-2 border-b border-[#C9A84C]/8">
+                      <span className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{row.label}</span>
+                      <span className="text-[11px] font-bold text-[#F5F0E8] font-body">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-[#111111] rounded-xl border border-[#C9A84C]/10 p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Bot size={10} className="text-[#C9A84C]" />
+                    <span className="text-[8px] font-mono uppercase tracking-widest text-[#C9A84C] font-black">AI Suggested Reply</span>
+                  </div>
+                  <p className="text-[10px] text-[#B8B0A0] leading-relaxed font-body italic">"{result.reply}"</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ───────────────────────────────────────────────────── */}
+      <section className="py-32 px-6 text-center relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px]" />
+        </div>
+        <div className="relative z-10 max-w-3xl mx-auto">
+          <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-6">Define a category</div>
+          <h2 className="text-5xl md:text-6xl font-black tracking-tighter font-headline mb-6">
+            Run your travel business<br />without running operations.
+          </h2>
+          <p className="text-[#B8B0A0] text-base mb-10 font-body">
+            Join the next generation of travel companies that let AI do the work.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/dashboard/autopilot"
+              className="flex items-center justify-center gap-2 bg-[#C9A84C] text-[#0A0A0A] px-10 py-4 rounded-full font-black text-sm hover:opacity-90 transition-opacity shadow-[0_0_30px_rgba(201,168,76,0.2)] uppercase tracking-widest"
+            >
+              <Zap size={14} fill="currentColor" /> Enter NAMA OS
+            </Link>
+            <Link
+              href="/kinetic"
+              className="flex items-center justify-center gap-2 border border-[#C9A84C]/20 text-[#C9A84C] px-10 py-4 rounded-full font-black text-sm hover:border-[#C9A84C]/40 transition-all uppercase tracking-widest"
+            >
+              Kinetic Engine <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ─────────────────────────────────────────────────── */}
+      <footer className="py-12 px-6 border-t border-[#C9A84C]/10">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 bg-[#C9A84C] rounded-md flex items-center justify-center font-black text-[#0A0A0A] text-[10px]">N</div>
+            <span className="font-black text-sm text-[#F5F0E8] uppercase font-headline tracking-tighter">NAMA Travel OS</span>
+          </div>
+          <div className="flex gap-8 text-[11px] text-[#4A453E] font-semibold">
+            {['Privacy', 'Terms', 'Compliance', 'Contact'].map(l => (
+              <a key={l} href="#" className="hover:text-[#B8B0A0] transition-colors">{l}</a>
+            ))}
+          </div>
+          <div className="text-[10px] text-[#4A453E] font-mono">© 2026 NAMA Networks · All rights reserved</div>
         </div>
       </footer>
     </div>
   );
-};
-
-export default LandingPage;
+}

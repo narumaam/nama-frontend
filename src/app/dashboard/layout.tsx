@@ -2,118 +2,189 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Map, 
-  Briefcase, 
-  MessageSquare, 
-  CreditCard, 
-  FileText, 
-  Settings, 
+import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Users,
+  Map,
+  Briefcase,
+  MessageSquare,
+  CreditCard,
+  FileText,
+  Settings,
   Zap,
-  Menu,
   X,
   Bell,
   Search,
-  Activity
+  Activity,
+  Target,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Leads', href: '/dashboard/leads', icon: Users },
-    { name: 'Itineraries', href: '/dashboard/itineraries', icon: Map },
-    { name: 'Bookings', href: '/dashboard/bookings', icon: Briefcase },
-    { name: 'Comms', href: '/dashboard/comms', icon: MessageSquare },
-    { name: 'Analytics', href: '/dashboard/analytics', icon: Activity },
-    { name: 'Finance', href: '/dashboard/finance', icon: CreditCard },
-    { name: 'Content', href: '/dashboard/content', icon: FileText },
+  const navGroups = [
+    {
+      label: 'AI Control',
+      items: [
+        { name: 'Autopilot OS',  href: '/dashboard/autopilot', icon: Zap,             badge: '2', badgeColor: 'bg-red-500' },
+        { name: 'Deals',         href: '/dashboard/deals',     icon: Target,           badge: null },
+      ],
+    },
+    {
+      label: 'Operations',
+      items: [
+        { name: 'Overview',      href: '/dashboard',           icon: LayoutDashboard,  badge: null },
+        { name: 'Leads',         href: '/dashboard/leads',     icon: Users,            badge: null },
+        { name: 'Itineraries',   href: '/dashboard/itineraries', icon: Map,            badge: null },
+        { name: 'Bookings',      href: '/dashboard/bookings',  icon: Briefcase,        badge: null },
+        { name: 'Comms',         href: '/dashboard/comms',     icon: MessageSquare,    badge: null },
+      ],
+    },
+    {
+      label: 'Intelligence',
+      items: [
+        { name: 'Analytics',     href: '/dashboard/analytics', icon: Activity,         badge: null },
+        { name: 'Finance',       href: '/dashboard/finance',   icon: CreditCard,       badge: null },
+        { name: 'Content',       href: '/dashboard/content',   icon: FileText,         badge: null },
+      ],
+    },
   ];
+
+  function isActive(href: string) {
+    if (href === '/dashboard') return pathname === '/dashboard';
+    return pathname.startsWith(href);
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex font-body text-left text-[#F5F0E8]">
-      <aside 
-        className={`${
-          isSidebarOpen ? 'w-64' : 'w-20'
-        } bg-[#111111] text-[#F5F0E8] transition-all duration-300 flex flex-col fixed inset-y-0 z-50 border-r border-[#C9A84C]/15`}
-      >
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-[#C9A84C] rounded-lg flex items-center justify-center font-bold text-[#0A0A0A] shadow-[0_0_15px_rgba(201,168,76,0.3)]">N</div>
-            {isSidebarOpen && <span className="text-xl font-black tracking-tighter font-headline text-[#C9A84C]">NAMA OS</span>}
+
+      {/* ── Sidebar ───────────────────────────────────────────────────── */}
+      <aside className={`${collapsed ? 'w-[68px]' : 'w-60'} bg-[#111111] transition-all duration-300 flex flex-col fixed inset-y-0 z-50 border-r border-[#C9A84C]/10 shrink-0`}>
+
+        {/* Logo */}
+        <div className={`h-[60px] flex items-center border-b border-[#C9A84C]/10 ${collapsed ? 'px-4 justify-center' : 'px-5 justify-between'}`}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-[#C9A84C] rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.25)] shrink-0">N</div>
+            {!collapsed && <span className="text-base font-black tracking-tighter font-headline text-[#C9A84C] uppercase">NAMA OS</span>}
           </div>
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden text-left text-[#C9A84C]">
-            <X size={20} />
-          </button>
+          {!collapsed && (
+            <button onClick={() => setCollapsed(true)} className="text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+              <ChevronLeft size={15} />
+            </button>
+          )}
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4 text-left">
-          {navigation.map((item) => (
-            <Link 
-              key={item.name} 
-              href={item.href}
-              className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all group relative overflow-hidden"
-            >
-              <item.icon size={20} className="text-[#B8B0A0] group-hover:text-[#C9A84C] transition-colors" />
-              {isSidebarOpen && <span className="font-medium text-[#B8B0A0] group-hover:text-[#F5F0E8]">{item.name}</span>}
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-[#C9A84C] rounded-r-full group-hover:h-6 transition-all duration-300"></div>
-            </Link>
+        {/* Collapse expand button when collapsed */}
+        {collapsed && (
+          <button onClick={() => setCollapsed(false)} className="mx-auto mt-3 text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+            <ChevronRight size={15} />
+          </button>
+        )}
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto no-scrollbar">
+          {navGroups.map(group => (
+            <div key={group.label} className="mb-5">
+              {!collapsed && (
+                <div className="text-[7px] font-black uppercase tracking-[0.25em] text-[#4A453E] font-mono px-3 mb-2">{group.label}</div>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map(item => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative group ${
+                        active
+                          ? 'bg-[#C9A84C]/10 text-[#C9A84C]'
+                          : 'text-[#4A453E] hover:text-[#B8B0A0] hover:bg-white/3'
+                      } ${collapsed ? 'justify-center' : ''}`}
+                    >
+                      {/* Active indicator */}
+                      {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A84C] rounded-r-full" />}
+                      <item.icon size={17} className={active ? 'text-[#C9A84C]' : 'text-[#4A453E] group-hover:text-[#B8B0A0] transition-colors'} />
+                      {!collapsed && (
+                        <span className={`text-[11px] font-semibold tracking-wide ${active ? 'text-[#C9A84C]' : 'text-[#B8B0A0] group-hover:text-[#F5F0E8]'}`}>
+                          {item.name}
+                        </span>
+                      )}
+                      {!collapsed && item.badge && (
+                        <span className={`ml-auto text-[7px] font-black px-1.5 py-0.5 rounded-full text-white ${item.badgeColor}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                      {collapsed && item.badge && (
+                        <span className={`absolute top-1 right-1 w-2 h-2 rounded-full ${item.badgeColor}`} />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-[#C9A84C]/15 text-left">
-          <Link 
-            href="/kinetic" 
-            className="flex items-center space-x-3 px-4 py-4 rounded-2xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[#C9A84C] hover:bg-[#C9A84C]/20 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)]"
+        {/* Kinetic mode button */}
+        <div className={`p-3 border-t border-[#C9A84C]/10 ${collapsed ? 'flex justify-center' : ''}`}>
+          <Link
+            href="/kinetic"
+            className={`flex items-center gap-3 px-3 py-3 rounded-2xl bg-[#C9A84C]/8 border border-[#C9A84C]/15 text-[#C9A84C] hover:bg-[#C9A84C]/15 transition-all shadow-[0_0_16px_rgba(201,168,76,0.06)] ${collapsed ? 'justify-center' : ''}`}
           >
-            <Zap size={20} fill="currentColor" />
-            {isSidebarOpen && <span className="font-bold tracking-widest uppercase text-xs">KINETIC MODE</span>}
+            <Zap size={16} fill="currentColor" />
+            {!collapsed && <span className="font-black tracking-widest uppercase text-[9px]">Kinetic Engine</span>}
           </Link>
         </div>
 
-        <div className="p-6 flex items-center space-x-3 text-left bg-[#1A1A1A]/50">
-          <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center font-bold border border-[#C9A84C]/20 text-[#C9A84C]">RI</div>
-          {isSidebarOpen && (
+        {/* User profile */}
+        <div className={`p-3 border-t border-[#C9A84C]/10 flex items-center gap-3 bg-[#0A0A0A]/30 ${collapsed ? 'justify-center' : ''}`}>
+          <div className="w-8 h-8 rounded-full bg-[#1A1A1A] flex items-center justify-center font-bold border border-[#C9A84C]/20 text-[#C9A84C] text-xs shrink-0">RI</div>
+          {!collapsed && (
             <div className="overflow-hidden">
-              <p className="text-sm font-bold truncate text-[#F5F0E8]">Radhika Iyer</p>
-              <p className="text-[10px] text-[#B8B0A0] truncate uppercase tracking-widest font-mono">DMC Admin</p>
+              <p className="text-[11px] font-bold truncate text-[#F5F0E8]">Radhika Iyer</p>
+              <p className="text-[8px] text-[#4A453E] truncate uppercase tracking-widest font-mono">DMC Admin</p>
             </div>
           )}
         </div>
       </aside>
 
-      <main className={`${isSidebarOpen ? 'ml-64' : 'ml-20'} flex-1 flex flex-col transition-all duration-300 text-left`}>
-        <header className="h-20 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-[#C9A84C]/15 px-8 flex items-center justify-between sticky top-0 z-40 text-left">
-          <div className="flex items-center bg-[#111111] rounded-full px-4 py-2 w-96 text-left border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/40 transition-all">
-            <Search size={18} className="text-[#B8B0A0] mr-2" />
-            <input 
-              type="text" 
-              placeholder="Search leads, itineraries, or bookings..." 
-              className="bg-transparent border-none outline-none text-sm w-full text-left text-[#F5F0E8] font-body placeholder:text-[#4A453E]"
+      {/* ── Main content ─────────────────────────────────────────────── */}
+      <main className={`${collapsed ? 'ml-[68px]' : 'ml-60'} flex-1 flex flex-col transition-all duration-300`}>
+
+        {/* Top header */}
+        <header className="h-[60px] bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#C9A84C]/10 px-7 flex items-center justify-between sticky top-0 z-40">
+          <div className="flex items-center bg-[#111111] rounded-full px-4 py-2 w-80 border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/30 transition-all">
+            <Search size={14} className="text-[#4A453E] mr-2.5 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search leads, deals, itineraries..."
+              className="bg-transparent border-none outline-none text-[11px] w-full text-[#F5F0E8] font-body placeholder:text-[#4A453E]"
             />
           </div>
-          <div className="flex items-center space-x-6 text-right">
-            <button className="relative p-2 text-[#B8B0A0] hover:text-[#C9A84C] transition-colors">
-              <Bell size={22} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[#C9A84C] rounded-full border-2 border-[#0A0A0A] animate-pulse"></span>
+          <div className="flex items-center gap-5">
+            <button className="relative p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+              <Bell size={18} />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-[#0A0A0A] animate-pulse" />
             </button>
-            <button className="p-2 text-[#B8B0A0] hover:text-[#C9A84C] transition-colors">
-              <Settings size={22} />
+            <button className="p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+              <Settings size={18} />
             </button>
           </div>
         </header>
 
-        <div className="p-8 text-left bg-[#0A0A0A] min-h-[calc(100vh-80px)]">
+        <div className="p-8 bg-[#0A0A0A] min-h-[calc(100vh-60px)]">
           {children}
         </div>
       </main>
+
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }

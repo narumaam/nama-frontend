@@ -48,6 +48,12 @@
   --outline-variant: rgba(201, 168, 76, 0.15); /* Gold tinted borders */
 }
 
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .bg-gradient-radial { background: radial-gradient(ellipse at center, var(--tw-gradient-stops)); }
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground;
