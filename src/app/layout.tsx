@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, Syne, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "700"],
 });
 
-const spaceGrotesk = Space_Grotesk({
+const syne = Syne({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-syne",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -28,8 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased text-left`}>
-      <body className="min-h-full flex flex-col font-sans bg-white text-slate-900">{children}</body>
+    <html lang="en" className={`${dmSans.variable} ${syne.variable} ${jetbrainsMono.variable} h-full antialiased text-left dark`}>
+      <body className="min-h-full flex flex-col font-body bg-background text-foreground transition-colors duration-300">
+        {children}
+      </body>
     </html>
   );
 }

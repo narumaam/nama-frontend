@@ -24,9 +24,9 @@ module.exports = {
         "on-secondary-container": "var(--on-secondary-container)",
       },
       fontFamily: {
-        headline: ["Syne", "sans-serif"],
-        body: ["DM Sans", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        headline: ["var(--font-syne)", "sans-serif"],
+        body: ["var(--font-dm-sans)", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
     },
   },
