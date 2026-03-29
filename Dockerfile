@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
+RUN ls -la /app
 ENV PYTHONPATH=/app/backend
 
 CMD ["python", "main.py"]
