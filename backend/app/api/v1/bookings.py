@@ -4,7 +4,7 @@ from app.db.session import get_db
 from app.schemas.bookings import Booking, BookingStatus, BookingItem, VoucherGenerateResponse
 from app.api.v1.deps import get_current_user, RoleChecker
 from app.models.auth import UserRole
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 
 router = APIRouter()
