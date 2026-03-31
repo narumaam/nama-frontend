@@ -36,7 +36,7 @@ class Tenant(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    children = relationship("Tenant", backref=ForeignKey("parent_id"), remote_side=[id])
+    children = relationship("Tenant", backref="parent", remote_side=[id])
     users = relationship("User", back_populates="tenant")
 
 class User(Base):
