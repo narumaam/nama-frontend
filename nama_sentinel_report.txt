@@ -1,0 +1,22 @@
+Subject: NAMA Sentinel Report: 1 failures out of 17 tests.
+
+Run Time: 2026-04-02 04:03:19
+
+DETAILED RESULTS:
+- [PASS] Backend Root: Status 200, Latency: 1627.81ms
+- [PASS] Backend Health API: Status 200, Latency: 891.71ms
+- [PASS] Frontend Dashboard: Status 200, Latency: 1079.43ms
+- [PASS] Auth: Login: Status 422, Latency: 862.84ms
+- [PASS] Auth: Register: Status 422, Latency: 921.94ms
+- [PASS] Module: Itineraries: Generate: Status 401, Latency: 820.4ms
+- [PASS] Module: Queries: Ingest: Status 422, Latency: 832.51ms
+- [PASS] Module: Analytics: Dashboard: Status 401, Latency: 823.22ms
+- [PASS] Module: Analytics: Forecast: Status 401, Latency: 696.64ms
+- [PASS] Module: Financials: Summary: Status 401, Latency: 862.85ms
+- [PASS] Module: Documents: Visa Checklist: Status 401, Latency: 820.0ms
+- [PASS] Module: Bidding: Broadcast: Status 401, Latency: 831.97ms
+- [FAIL] Module: Portals: Lookup: Status 500
+- [PASS] Module: Comms: Threads: Status 401, Latency: 864.02ms
+- [PASS] Module: Bookings: List: Status 401, Latency: 831.56ms
+- [PASS] Module: Corporate: Departures: Status 401, Latency: 827.72ms
+- [PASS] Module: Content: Destinations: Status 401, Latency: 893.81ms

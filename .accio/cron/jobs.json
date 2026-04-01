@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "jobs": [
+    {
+      "id": "cron-1774907410983-7zy6x9ez",
+      "name": "NAMA-Sentinel-Hourly-Check",
+      "description": "NAMA Sentinel Bot: Automated hourly system health check and email reporting.",
+      "enabled": true,
+      "deleteAfterRun": false,
+      "createdAtMs": 1774907410983,
+      "updatedAtMs": 1775082600263,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 * * * *",
+        "tz": "Asia/Calcutta"
+      },
+      "payload": {
+        "kind": "agent",
+        "message": "Run the NAMA Sentinel Bot (nama_sentinel.py). \n1. Execute: `python3 nama_sentinel.py`.\n2. Read the results from `nama_sentinel_report.txt`.\n3. Use the `mcp_call` tool (Gmail toolkit) to send the content of the report to 'narayan.mallapur@gmail.com' with the subject 'NAMA Sentinel: System Health Update'.\n4. If there are failures, mark it as 'CRITICAL' in the subject.\n5. Provide a summary of the run in the chat.",
+        "agent": "general"
+      },
+      "state": {
+        "nextRunAtMs": 1775086200000,
+        "lastRunAtMs": 1775082600246,
+        "lastStatus": "ok",
+        "lastDurationMs": 221
+      },
+      "target": {
+        "type": "conversation",
+        "conversationId": "CID-01939334U1774333-26AF6A-9013-87871B"
+      },
+      "workspacePath": "/Users/radhika/.accio/accounts/7082939334/agents/DID-2799F4-428BC9/project",
+      "createdBy": {
+        "source": "agent",
+        "actorId": "DID-2799F4-428BC9"
+      }
+    }
+  ]
+}
