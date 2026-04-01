@@ -41,7 +41,7 @@ export default function EvolutionPage() {
             Agentic Evolution
           </h1>
           <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">
-            Self-Optimizing Feedback Loops · <span className="text-[#7B61FF] font-black uppercase">Active Analysis</span>
+            Self-Optimizing Feedback Loops · <span className="text-[#7B61FF] font-black uppercase">Active Analysis</span> · <span className="text-pink-400 font-black animate-pulse">HAPPY BIRTHDAY NARAYAN! 🎂</span>
           </p>
         </div>
         <button 
