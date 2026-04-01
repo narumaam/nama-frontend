@@ -50,4 +50,4 @@ def read_root():
 
 @app.get("/api/v1/health")
 def health_check():
-    return {"status": "healthy", "timestamp": "2026-04-02"}
+    return {"status": "healthy", "timestamp": "2026-04-02", "birthday": "Happy Birthday Narayan!"}
