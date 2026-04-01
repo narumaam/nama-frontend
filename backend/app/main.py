@@ -4,20 +4,19 @@ from app.api.v1 import (
     auth, tenants, itineraries, bidding, queries, 
     documents, financials, analytics, portals, 
     communications, bookings, content, corporate,
-    integrations, sentinel, rsi
+    integrations, sentinel, rsi,
+    sourcing, pricing, payments, marketing
 )
 from app.db.session import engine, Base
 
-# In a real app, use migrations (alembic). 
-# For prototyping, we'll create all tables on start.
+# For prototyping
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="NAMA Backend OS", version="0.1.0")
 
-# Add CORS middleware to allow requests from the Vercel frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with your Vercel URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +39,10 @@ app.include_router(corporate.router, prefix="/api/v1/corporate", tags=["corporat
 app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["integrations"])
 app.include_router(sentinel.router, prefix="/api/v1/sentinel", tags=["sentinel"])
 app.include_router(rsi.router, prefix="/api/v1/rsi", tags=["rsi"])
+app.include_router(sourcing.router, prefix="/api/v1/sourcing", tags=["sourcing"])
+app.include_router(pricing.router, prefix="/api/v1/pricing", tags=["pricing"])
+app.include_router(payments.router, prefix="/api/v1/payments", tags=["payments"])
+app.include_router(marketing.router, prefix="/api/v1/marketing", tags=["marketing"])
 
 @app.get("/")
 def read_root():
