@@ -1,4 +1,4 @@
-NAMA Sentinel Audit Report - 2026-04-02T04:38:48.770526
+NAMA Sentinel Audit Report - 2026-04-02T04:40:37.371479
 Overall Status: SYSTEM DEGRADED
 
 [M1] Query Triage: ❌ DEGRADED (404) (N/A)
