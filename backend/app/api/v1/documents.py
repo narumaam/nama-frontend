@@ -45,3 +45,8 @@ async def get_visa_requirements(
         return checklist
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "DOCUMENTS"}

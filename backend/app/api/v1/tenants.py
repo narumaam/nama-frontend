@@ -40,3 +40,8 @@ def get_my_org(current_user = Depends(get_current_user), db: Session = Depends(g
     Get the organization details for the currently logged-in user.
     """
     return current_user.tenant
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "TENANTS"}

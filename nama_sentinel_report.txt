@@ -1,22 +1,18 @@
-Subject: NAMA Sentinel Report: 1 failures out of 17 tests.
+NAMA Sentinel Audit Report - 2026-04-02T04:36:26.385597
+Overall Status: SYSTEM DEGRADED
 
-Run Time: 2026-04-02 04:03:19
-
-DETAILED RESULTS:
-- [PASS] Backend Root: Status 200, Latency: 1627.81ms
-- [PASS] Backend Health API: Status 200, Latency: 891.71ms
-- [PASS] Frontend Dashboard: Status 200, Latency: 1079.43ms
-- [PASS] Auth: Login: Status 422, Latency: 862.84ms
-- [PASS] Auth: Register: Status 422, Latency: 921.94ms
-- [PASS] Module: Itineraries: Generate: Status 401, Latency: 820.4ms
-- [PASS] Module: Queries: Ingest: Status 422, Latency: 832.51ms
-- [PASS] Module: Analytics: Dashboard: Status 401, Latency: 823.22ms
-- [PASS] Module: Analytics: Forecast: Status 401, Latency: 696.64ms
-- [PASS] Module: Financials: Summary: Status 401, Latency: 862.85ms
-- [PASS] Module: Documents: Visa Checklist: Status 401, Latency: 820.0ms
-- [PASS] Module: Bidding: Broadcast: Status 401, Latency: 831.97ms
-- [FAIL] Module: Portals: Lookup: Status 500
-- [PASS] Module: Comms: Threads: Status 401, Latency: 864.02ms
-- [PASS] Module: Bookings: List: Status 401, Latency: 831.56ms
-- [PASS] Module: Corporate: Departures: Status 401, Latency: 827.72ms
-- [PASS] Module: Content: Destinations: Status 401, Latency: 893.81ms
+[M1] Query Triage: ❌ DEGRADED (404) (N/A)
+[M2] Itinerary Gen: ❌ DEGRADED (404) (N/A)
+[M3] Bidding Engine: ❌ DEGRADED (404) (N/A)
+[M4] Global Sourcing: ❌ DEGRADED (404) (N/A)
+[M5] Dynamic Pricing: ❌ DEGRADED (404) (N/A)
+[M6] Secure Payments: ❌ DEGRADED (404) (N/A)
+[M7] Document OCR: ❌ DEGRADED (404) (N/A)
+[M8] Real-time Analytics: ❌ DEGRADED (404) (N/A)
+[M9] Marketing OS: ❌ DEGRADED (404) (N/A)
+[M10] White-label Portals: ❌ DEGRADED (404) (N/A)
+[M11] Corporate OS: ❌ DEGRADED (404) (N/A)
+[M12] Integration Vault: ❌ DEGRADED (404) (N/A)
+[M13] Finance Ledger: ❌ DEGRADED (404) (N/A)
+[M14] Sentinel Auditor: ❌ DEGRADED (404) (N/A)
+[M15] Evolution Engine (RSI): ❌ DEGRADED (404) (N/A)

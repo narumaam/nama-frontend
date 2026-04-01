@@ -105,3 +105,8 @@ def cancel_booking(
         currency="INR",
         items=[]
     )
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "BOOKINGS"}

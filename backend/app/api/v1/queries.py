@@ -55,3 +55,8 @@ async def whatsapp_webhook(
     result = await triage_agent.triage_query(query)
     
     return {"status": "ok", "triage_result": result}
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "QUERIES"}

@@ -79,3 +79,8 @@ def get_bidding_status(
             }
         ]
     )
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "BIDDING"}

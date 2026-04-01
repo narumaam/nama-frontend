@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import auth, tenants, itineraries, bidding, queries, documents, financials, analytics, portals, communications, bookings, content, corporate
+from app.api.v1 import (
+    auth, tenants, itineraries, bidding, queries, 
+    documents, financials, analytics, portals, 
+    communications, bookings, content, corporate,
+    integrations, sentinel, rsi
+)
 from app.db.session import engine, Base
 
 # In a real app, use migrations (alembic). 
@@ -18,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API Routes
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["tenants"])
 app.include_router(itineraries.router, prefix="/api/v1/itineraries", tags=["itineraries"])
@@ -31,6 +37,9 @@ app.include_router(communications.router, prefix="/api/v1/communications", tags=
 app.include_router(bookings.router, prefix="/api/v1/bookings", tags=["bookings"])
 app.include_router(content.router, prefix="/api/v1/content", tags=["content"])
 app.include_router(corporate.router, prefix="/api/v1/corporate", tags=["corporate"])
+app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["integrations"])
+app.include_router(sentinel.router, prefix="/api/v1/sentinel", tags=["sentinel"])
+app.include_router(rsi.router, prefix="/api/v1/rsi", tags=["rsi"])
 
 @app.get("/")
 def read_root():
@@ -38,4 +47,4 @@ def read_root():
 
 @app.get("/api/v1/health")
 def health_check():
-    return {"status": "healthy", "timestamp": "2026-03-25"}
+    return {"status": "healthy", "timestamp": "2026-04-02"}

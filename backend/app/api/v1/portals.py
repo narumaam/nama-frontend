@@ -91,3 +91,8 @@ def lookup_portal_by_domain(
             status_code=503,
             detail="Portal service temporarily unavailable. Database initialising."
         )
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "PORTALS"}

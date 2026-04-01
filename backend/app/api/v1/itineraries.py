@@ -28,3 +28,8 @@ async def generate_itinerary(
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "ITINERARIES"}

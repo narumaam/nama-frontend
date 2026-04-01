@@ -74,3 +74,8 @@ async def send_message(
     # (Simplified for the 'send' agent logic)
     
     return message
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "COMMUNICATIONS"}

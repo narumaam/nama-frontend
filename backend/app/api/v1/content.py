@@ -96,3 +96,8 @@ def list_content_blocks(
     if category:
         query = query.filter(ContentBlockModel.category == category)
     return query.all()
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "CONTENT"}

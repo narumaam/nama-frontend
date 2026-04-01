@@ -95,3 +95,8 @@ async def book_seats_for_departure(
     db.refresh(db_dep)
     
     return db_dep
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "CORPORATE"}

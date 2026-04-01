@@ -74,3 +74,8 @@ def get_finance_overview(
         currency="INR",
         last_reconciled=datetime.utcnow() - timedelta(minutes=15)
     )
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "FINANCIALS"}

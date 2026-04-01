@@ -39,3 +39,8 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/health")
+def health_check():
+    return {"status": "ready", "module": "AUTH"}
