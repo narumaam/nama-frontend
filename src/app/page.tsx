@@ -454,6 +454,69 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Operating Layers ─────────────────────────────────────── */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-4">One OS. Three Layers.</div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter font-headline mb-4">
+              Ekla operates.<br />DMC Hub connects supply.<br />Super Admin governs the system.
+            </h2>
+            <p className="text-[#B8B0A0] max-w-2xl mx-auto text-sm leading-relaxed font-body">
+              The Monday demo is not a stack of disconnected screens. It shows how one operator layer runs day-to-day work, one supply layer
+              normalizes the fragmented DMC ecosystem, and one control layer governs subscriptions, currencies, routing, and tenant rules.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {[
+              {
+                title: 'Ekla',
+                eyebrow: 'Autonomous Operator',
+                desc: 'Runs the agency workbench on its own: captures leads, sequences next actions, drafts follow-ups, and pushes clean cases into deals and itineraries.',
+                bullets: ['Lead capture and triage', 'Next-best action orchestration', 'Escalates only what needs human judgment'],
+                href: '/dashboard/ekla',
+              },
+              {
+                title: 'DMC Hub',
+                eyebrow: 'Supply Intelligence',
+                desc: 'Turns messy contracts, supplier communications, and operating handoffs into a structured supply layer that sales and operations can actually use.',
+                bullets: ['Contract upload and normalization story', 'Supplier coordination and ops handoffs', 'Travel agent + DMC + provider continuity'],
+                href: '/dashboard/dmc',
+              },
+              {
+                title: 'Super Admin',
+                eyebrow: 'Platform Control',
+                desc: 'Lets NAMA control how the platform behaves across countries, currencies, teams, subscriptions, and policy rules without hard-coding the business.',
+                bullets: ['Subscriptions and tenant controls', 'Base currency + FX buffer logic', 'Geo-routing, gateway, and governance rules'],
+                href: '/dashboard/admin',
+              },
+            ].map((layer) => (
+              <Link
+                key={layer.title}
+                href={layer.href}
+                className="group rounded-3xl border border-[#C9A84C]/12 bg-[#111111] p-7 hover:border-[#C9A84C]/25 hover:shadow-[0_0_30px_rgba(201,168,76,0.07)] transition-all"
+              >
+                <div className="text-[8px] font-mono uppercase tracking-[0.28em] text-[#C9A84C] font-black mb-3">{layer.eyebrow}</div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-2xl font-black tracking-tight font-headline">{layer.title}</h3>
+                  <ArrowRight size={15} className="text-[#C9A84C] group-hover:translate-x-1 transition-transform" />
+                </div>
+                <p className="text-[11px] text-[#B8B0A0] leading-relaxed font-body mb-5">{layer.desc}</p>
+                <div className="space-y-2">
+                  {layer.bullets.map((bullet) => (
+                    <div key={bullet} className="flex items-start gap-2 text-[10px] text-[#F5F0E8]">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#C9A84C]" />
+                      <span className="leading-relaxed">{bullet}</span>
+                    </div>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA ───────────────────────────────────────────────────── */}
       <section className="py-32 px-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
