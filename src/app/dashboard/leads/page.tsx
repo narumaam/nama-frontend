@@ -59,7 +59,7 @@ export default function LeadsPage() {
               DEMO_READY
             </span>
           </h1>
-          <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">Demo cases mapped from homepage, autopilot, and deal view</p>
+          <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">Seeded demo cases mapped from homepage, autopilot, and deal view</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 bg-[#111111] p-1 rounded-xl border border-[#C9A84C]/15 shadow-inner">

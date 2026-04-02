@@ -179,13 +179,13 @@ export default function KineticPage() {
         </div>
         <div className="flex items-center gap-3 text-[8px] font-black tracking-widest uppercase">
           <div className="flex items-center gap-1.5 text-[#1D9E75] bg-[#1D9E75]/10 px-3 py-1.5 rounded-full border border-[#1D9E75]/20">
-            <ShieldCheck size={11} /> System Healthy
+            <ShieldCheck size={11} /> Demo Health
           </div>
           <div className="flex items-center gap-1.5 text-[#C9A84C] bg-[#C9A84C]/10 px-3 py-1.5 rounded-full border border-[#C9A84C]/20">
-            <Cpu size={11} /> Swarm Active
+            <Cpu size={11} /> Demo Swarm
           </div>
           <div className="flex items-center gap-1.5 text-blue-400 bg-blue-400/10 px-3 py-1.5 rounded-full border border-blue-400/20">
-            <Globe size={11} /> 12 Nodes
+            <Globe size={11} /> 6 Nodes
           </div>
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function KineticPage() {
           {/* KPI row */}
           <div className="grid grid-cols-3 gap-0 border-b border-[#C9A84C]/10 shrink-0">
             {[
-              { label: 'Live GMV', value: `₹${(liveGMV / 100000).toFixed(1)}L`, color: 'text-[#C9A84C]' },
+              { label: 'Demo GMV', value: `₹${(liveGMV / 100000).toFixed(1)}L`, color: 'text-[#C9A84C]' },
               { label: 'Lead Velocity', value: `${liveLeads} LPM`, color: 'text-blue-400' },
               { label: 'Risk Factor', value: '0.02 LOW', color: 'text-[#1D9E75]' },
             ].map((stat, i) => (

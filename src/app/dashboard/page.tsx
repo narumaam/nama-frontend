@@ -89,14 +89,14 @@ export default function DashboardPage() {
           </div>
           <h1 className="text-4xl font-black tracking-tighter text-[#F5F0E8] font-headline uppercase">Operations Overview</h1>
           <p className="text-[#B8B0A0] mt-2 font-body text-sm max-w-2xl">
-            This dashboard is wired to the live demo cases so the Monday walkthrough stays coherent from lead to quote to deal.
+            This dashboard is wired to seeded demo cases so the Monday walkthrough stays coherent from lead to quote to deal.
           </p>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-3">
           <Sparkles size={16} className="text-[#C9A84C]" />
           <div>
             <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Demo Mode</div>
-            <div className="text-sm font-black text-[#F5F0E8]">Live-fallback enabled</div>
+            <div className="text-sm font-black text-[#F5F0E8]">Seeded fallback enabled</div>
           </div>
         </div>
       </div>
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Demo Cases</h2>
-              <p className="text-[#B8B0A0] text-sm mt-1">Tap any card to open the full deal view and walk the quote pipeline.</p>
+            <p className="text-[#B8B0A0] text-sm mt-1">Tap any card to open the full deal view and walk the quote pipeline with deterministic demo data.</p>
             </div>
             <Link href="/dashboard/autopilot" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
               Open Autopilot <ChevronRight size={14} />
@@ -153,7 +153,7 @@ export default function DashboardPage() {
             <FlowStep title="1. Triage" body="Use the homepage playground to load Maldives, Dubai, or Kerala cases." />
             <FlowStep title="2. Autopilot" body="Open the command center and jump directly into the high-priority deal cards." />
             <FlowStep title="3. Deal View" body="Open a case and walk the quote, itinerary, finance, and vendor panels." />
-            <FlowStep title="4. Close" body="Show the consistent design, the demo fallback, and the live health indicators." />
+            <FlowStep title="4. Close" body="Show the consistent design, the seeded fallback, and the health indicators." />
           </ol>
         </aside>
       </div>

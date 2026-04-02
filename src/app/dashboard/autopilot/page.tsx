@@ -56,7 +56,7 @@ const FEED_DATA: FeedItem[] = [
     name: 'Meera Nair',
     destination: 'Maldives Honeymoon',
     value: '₹4,86,000',
-    headline: 'Demo case is live and ready for the quote-to-close walk through.',
+    headline: 'Demo case is staged and ready for the quote-to-close walkthrough.',
     subtext: 'Use this card to open the deal view, then show triage, itinerary, finance, and vendor negotiation in one flow.',
     cta: 'Open Deal',
     ctaType: 'call',
@@ -250,7 +250,7 @@ export default function AutopilotPage() {
             Command Center
           </h1>
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
-            AI is running your business · You only see what needs you
+            Demo AI is running the walkthrough · You only see what needs you
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {[
@@ -349,7 +349,7 @@ export default function AutopilotPage() {
           <div className="bg-[#111111]/40 rounded-xl border border-[#C9A84C]/5 p-4 flex items-center gap-3 mt-2">
             <MessageSquare size={13} className="text-[#C9A84C] shrink-0" />
             <p className="text-[10px] text-[#4A453E] font-body leading-relaxed">
-              NAMA also lives in <span className="text-[#C9A84C] font-bold">WhatsApp</span> & <span className="text-[#C9A84C] font-bold">Mobile Push</span>. You never need to log in — AI alerts you only when it matters.
+              In the demo, this alert pattern is what would later surface in <span className="text-[#C9A84C] font-bold">WhatsApp</span> or <span className="text-[#C9A84C] font-bold">mobile push</span>. For Monday, we keep it on-screen so the walkthrough stays stable.
             </p>
           </div>
         </div>
@@ -377,7 +377,7 @@ export default function AutopilotPage() {
             <div>
               <div className="text-[8px] font-mono uppercase tracking-[0.2em] text-[#0A0A0A]/50 mb-0.5">Deep Dive</div>
               <div className="font-black text-sm uppercase tracking-tight">Kinetic Engine OS</div>
-              <div className="text-[8px] font-mono text-[#0A0A0A]/60 mt-0.5">Real-time swarm monitor</div>
+              <div className="text-[8px] font-mono text-[#0A0A0A]/60 mt-0.5">Operational demo monitor</div>
             </div>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </Link>
