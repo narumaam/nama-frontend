@@ -33,6 +33,26 @@ Use deterministic demo cases only. Do not present external supplier, payment, Wh
 7. Kinetic command center  
    https://nama-frontend.vercel.app/kinetic
 
+## Optional Appendix
+
+If time remains after the core walkthrough, show the DMC and control surfaces as the platform-operator layer.
+
+1. Super Admin control tower
+   https://nama-frontend.vercel.app/dashboard/admin
+
+2. Team & Access appendix
+   https://nama-frontend.vercel.app/dashboard/team
+
+3. DMC contract workspace
+   Use the DMC surface to show messy contract intake, supplier communication, and operations handoff.
+
+Why this matters:
+
+- One company can be a travel agent, DMC, and tour operator at the same time.
+- The platform should let the entity shape its own nomenclature, hierarchy, teams, and responsibilities.
+- Contract files do not arrive standardized. They come as PDFs, scans, emails, images, and chat attachments.
+- Supplier communication should cover hotels, guides, car or cab vendors, drivers, city tours, and activity companies.
+
 ## Fast Demo Timing
 
 - Homepage: 45-60 seconds
@@ -71,6 +91,20 @@ If asked to break that down:
 - Email: "An inbound email is parsed into destination, dates, budget, and intent."
 - WhatsApp placeholder: "WhatsApp is represented in the demo workflow, but not presented as a live production connection."
 - Sales transcript: "Any freeform transcript can be dropped into the same triage engine and normalized."
+
+## DMC Appendix Talk Track
+
+Use this only after the core lead-to-deal flow is already stable.
+
+"This platform is also built for DMCs. That means one business can operate as a travel agent, a DMC, and a tour operator at the same time. Their contracts are rarely standardized, so the DMC workspace is designed to intake messy files and supplier notes, normalize the important parts, and keep the supplier conversation moving."
+
+If you want to break that down:
+
+- Contracts: "PDFs, scans, emails, screenshots, and Word docs all belong in the same intake lane."
+- Normalization: "The demo shows AI-assisted extraction of the practical fields, but we do not claim live OCR perfection."
+- Travel agents: "The same workspace can send the cleaned outcome back to the agent side of the business."
+- Operations: "The ops team can keep a clear thread for hotels, guides, cab owners, drivers, city tours, and activity vendors."
+- Safe wording: "Use 'demo-safe contract normalization' and 'supplier ops handoff' rather than claiming live provider automation."
 
 ## Recommended 5-7 Minute Flow
 
@@ -257,6 +291,8 @@ If any page feels slow or awkward, return to:
 - homepage demo section
 - deals page
 - kinetic page
+- admin control tower
+- team appendix
 
 ## Optional Admin Appendix
 
