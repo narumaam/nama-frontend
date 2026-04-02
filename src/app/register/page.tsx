@@ -50,6 +50,7 @@ export default function RegisterPage() {
   const [businessRoles, setBusinessRoles] = useState<BusinessRole[]>(["Travel Agency", "DMC"]);
   const [selectedMarket, setSelectedMarket] = useState<MarketPreset>(MARKET_PRESETS[0]);
   const [enabledCurrencies, setEnabledCurrencies] = useState<SupportedCurrency[]>(["INR", "AED", "USD"]);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const profileLabel = useMemo(() => {
     if (businessRoles.length === 0) return "Travel business";
@@ -68,6 +69,7 @@ export default function RegisterPage() {
   }
 
   function enterDemoWorkspace() {
+    setShowConfetti(true);
     if (typeof window !== "undefined") {
       window.localStorage.setItem("nama-demo-company", companyName.trim() || "Nair Luxury Escapes");
       window.localStorage.setItem("nama-demo-operator", operatorName.trim() || "Demo Operator");
@@ -76,7 +78,9 @@ export default function RegisterPage() {
       window.localStorage.setItem("nama-demo-base-currency", selectedMarket.currency);
       window.localStorage.setItem("nama-demo-enabled-currencies", JSON.stringify(enabledCurrencies));
     }
-    router.push("/dashboard");
+    window.setTimeout(() => {
+      router.push("/dashboard");
+    }, 900);
   }
 
   function toggleCurrency(currency: SupportedCurrency) {
@@ -88,6 +92,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 font-body text-[#0F172A]">
+      {showConfetti && <ConfettiBurst />}
       <div className="mx-auto grid max-w-7xl gap-8 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="rounded-[36px] border border-[#C9A84C]/20 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)] xl:p-10">
           <div className="mb-8 flex items-center gap-3">
@@ -358,5 +363,56 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{label}</div>
       <div className="mt-1 text-sm font-black text-[#0F172A]">{value}</div>
     </div>
+  );
+}
+
+function ConfettiBurst() {
+  const pieces = Array.from({ length: 22 }, (_, index) => ({
+    id: index,
+    left: `${4 + (index * 4.2) % 92}%`,
+    delay: `${(index % 6) * 0.08}s`,
+    duration: `${2.2 + (index % 5) * 0.18}s`,
+    color: ["#C9A84C", "#14B8A6", "#0F172A", "#F97316"][index % 4],
+    rotate: `${(index % 7) * 17}deg`,
+  }));
+
+  return (
+    <>
+      <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
+        {pieces.map((piece) => (
+          <span
+            key={piece.id}
+            className="absolute top-[-8%] h-4 w-2 rounded-full animate-[nama-confetti-fall_var(--duration)_ease-in_forwards]"
+            style={{
+              left: piece.left,
+              backgroundColor: piece.color,
+              animationDelay: piece.delay,
+              ["--duration" as string]: piece.duration,
+              transform: `rotate(${piece.rotate})`,
+            }}
+          />
+        ))}
+        <div className="absolute inset-x-0 top-16 flex justify-center">
+          <div className="rounded-full border border-[#C9A84C]/20 bg-white/90 px-5 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-[#0F172A] shadow-xl">
+            Workspace created
+          </div>
+        </div>
+      </div>
+      <style jsx global>{`
+        @keyframes nama-confetti-fall {
+          0% {
+            transform: translate3d(0, -12vh, 0) rotate(0deg);
+            opacity: 0;
+          }
+          12% {
+            opacity: 1;
+          }
+          100% {
+            transform: translate3d(0, 110vh, 0) rotate(540deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
+    </>
   );
 }

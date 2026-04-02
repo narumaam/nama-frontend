@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
+import { readDemoProfile } from "@/lib/demo-profile";
 import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet, Wand2 } from "lucide-react";
 
 type DemoCase = {
@@ -22,6 +23,13 @@ type CaptureSignal = {
   lead: string;
   note: string;
   tone: string;
+};
+
+type DemoMarket = {
+  country: string;
+  currency: string;
+  language: string;
+  gateway: string;
 };
 
 const FALLBACK_CASES: DemoCase[] = [
@@ -97,6 +105,16 @@ const SALES_TRANSCRIPT = [
 export default function DashboardPage() {
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [loading, setLoading] = useState(true);
+  const [demoCompany, setDemoCompany] = useState(readDemoProfile().company);
+  const [demoOperator, setDemoOperator] = useState(readDemoProfile().operator);
+  const [businessRoles, setBusinessRoles] = useState<string[]>(["Travel Agency", "DMC"]);
+  const [demoMarket, setDemoMarket] = useState<DemoMarket>({
+    country: "India",
+    currency: "INR",
+    language: "English + Hindi",
+    gateway: "Razorpay",
+  });
+  const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>(["INR", "AED", "USD"]);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +132,28 @@ export default function DashboardPage() {
       }
     }
     load();
+    try {
+      const company = window.localStorage.getItem("nama-demo-company");
+      if (company) setDemoCompany(company);
+    } catch {}
+    try {
+      const operator = window.localStorage.getItem("nama-demo-operator");
+      if (operator) setDemoOperator(operator);
+    } catch {}
+    try {
+      const roles = JSON.parse(window.localStorage.getItem("nama-demo-business-roles") || "[]");
+      if (Array.isArray(roles) && roles.length) setBusinessRoles(roles);
+    } catch {}
+    try {
+      const market = JSON.parse(window.localStorage.getItem("nama-demo-market") || "{}");
+      if (market?.country && market?.currency && market?.language && market?.gateway) {
+        setDemoMarket(market);
+      }
+    } catch {}
+    try {
+      const currencies = JSON.parse(window.localStorage.getItem("nama-demo-enabled-currencies") || "[]");
+      if (Array.isArray(currencies) && currencies.length) setEnabledCurrencies(currencies);
+    } catch {}
     return () => {
       cancelled = true;
     };
@@ -154,6 +194,31 @@ export default function DashboardPage() {
         <MetricCard label="Active Cases" value={`${cases.length}`} sub={`${criticalCount} marked critical`} icon={<Users size={16} />} />
         <MetricCard label="Automation Readiness" value="94%" sub="Backend + frontend verified" icon={<Wand2 size={16} />} />
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Bot size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Onboarding Snapshot</h2>
+            </div>
+            <p className="text-sm text-[#B8B0A0] leading-relaxed max-w-3xl">
+              The workspace is carrying forward what was chosen in onboarding: company identity, operator name, hybrid business roles, operating market, base currency,
+              additional selling currencies, and gateway routing.
+            </p>
+          </div>
+          <Link href="/register" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
+            Review onboarding <ChevronRight size={14} />
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <SnapshotCard label="Company" value={demoCompany} sub={`Run by ${demoOperator}`} />
+          <SnapshotCard label="Business Roles" value={businessRoles.join(" + ")} sub="One entity can operate as all three" />
+          <SnapshotCard label="Operating Market" value={demoMarket.country} sub={demoMarket.language} />
+          <SnapshotCard label="Base Currency" value={demoMarket.currency} sub={`${enabledCurrencies.filter((item) => item !== demoMarket.currency).join(", ") || "No extras"} enabled`} />
+          <SnapshotCard label="Gateway Route" value={demoMarket.gateway} sub="Market-aware billing and checkout" />
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <section className="lg:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
@@ -272,6 +337,16 @@ function MetricCard({ label, value, sub, icon }: { label: string; value: string;
       </div>
       <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
       <div className="text-[10px] uppercase tracking-widest text-[#4A453E] font-mono mt-2">{sub}</div>
+    </div>
+  );
+}
+
+function SnapshotCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[10px] uppercase tracking-widest font-mono text-[#4A453E]">{label}</div>
+      <div className="mt-2 text-sm font-black text-[#F5F0E8]">{value}</div>
+      <div className="mt-1 text-xs text-[#B8B0A0] leading-relaxed">{sub}</div>
     </div>
   );
 }

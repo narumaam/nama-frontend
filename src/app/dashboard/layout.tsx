@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from '@/lib/demo-profile';
 import {
   LayoutDashboard,
   Users,
@@ -20,6 +21,8 @@ import {
   Activity,
   Target,
   Cpu,
+  Globe2,
+  Landmark,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -27,14 +30,21 @@ import {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
-  const [demoCompany, setDemoCompany] = useState("Nair Luxury Escapes");
-  const [demoOperator, setDemoOperator] = useState("Demo Operator");
+  const [demoCompany, setDemoCompany] = useState(DEFAULT_DEMO_PROFILE.company);
+  const [demoOperator, setDemoOperator] = useState(DEFAULT_DEMO_PROFILE.operator);
+  const [demoRoles, setDemoRoles] = useState<string[]>(DEFAULT_DEMO_PROFILE.roles);
+  const [demoMarket, setDemoMarket] = useState(DEFAULT_DEMO_PROFILE.market);
+  const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>(DEFAULT_DEMO_PROFILE.enabledCurrencies);
   const pathname = usePathname();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setDemoCompany(window.localStorage.getItem("nama-demo-company") || "Nair Luxury Escapes");
-    setDemoOperator(window.localStorage.getItem("nama-demo-operator") || "Demo Operator");
+    const profile = readDemoProfile();
+    setDemoCompany(profile.company);
+    setDemoOperator(profile.operator);
+    setDemoRoles(profile.roles);
+    setDemoMarket(profile.market);
+    setEnabledCurrencies(profile.enabledCurrencies);
   }, []);
 
   const navGroups = [
@@ -162,6 +172,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="overflow-hidden">
               <p className="text-[11px] font-bold truncate text-[#F5F0E8]">{demoOperator}</p>
               <p className="text-[8px] text-[#4A453E] truncate uppercase tracking-widest font-mono">{demoCompany}</p>
+              <p className="text-[8px] text-[#C9A84C] truncate uppercase tracking-widest font-mono">
+                {demoRoles.join(" + ")} · Base {demoMarket.currency} · {enabledCurrencies.join(", ")}
+              </p>
             </div>
           )}
         </div>
@@ -208,8 +221,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
                 {showHeaderNotice === "notifications"
                   ? `Three high-priority actions are queued for ${demoCompany}: follow up on Maldives, confirm Kerala payment, and send the Dubai executive quote.`
-                  : `This workspace is currently branded for ${demoCompany}, operated by ${demoOperator}. Live provider credentials can be connected later without changing the operator flow.`}
+                  : `This workspace is branded for ${demoCompany}, operated by ${demoOperator}, with ${demoRoles.join(" + ")} enabled. Base market is ${demoMarket.country} with ${demoMarket.currency} as the control currency and ${enabledCurrencies.join(", ")} available across sales flows.`}
               </p>
+              {showHeaderNotice === "settings" && (
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3">
+                    <div className="flex items-center gap-2 text-[#C9A84C]">
+                      <Globe2 size={13} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Operating Market</span>
+                    </div>
+                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{demoMarket.country}</div>
+                    <div className="mt-1 text-xs text-[#B8B0A0]">{demoMarket.language}</div>
+                  </div>
+                  <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3">
+                    <div className="flex items-center gap-2 text-[#C9A84C]">
+                      <Landmark size={13} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Currency Model</span>
+                    </div>
+                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{demoMarket.currency} base</div>
+                    <div className="mt-1 text-xs text-[#B8B0A0]">{enabledCurrencies.join(", ")} enabled</div>
+                  </div>
+                  <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3">
+                    <div className="flex items-center gap-2 text-[#C9A84C]">
+                      <Cpu size={13} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Business Profile</span>
+                    </div>
+                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{demoRoles.join(" + ")}</div>
+                    <div className="mt-1 text-xs text-[#B8B0A0]">{demoMarket.gateway} routed by default</div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {children}
