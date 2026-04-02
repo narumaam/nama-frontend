@@ -84,6 +84,27 @@ DEMO_CASES: List[Dict[str, Any]] = [
             "latest_message": "Client opened itinerary 3 times in the last 90 minutes.",
             "suggested_follow_up": "Hi Meera, I’ve held the Maldives villa and private beach dinner window for the next 24 hours. Shall I lock it with the deposit link?",
         },
+        "capture": {
+            "primary_source": "WEBSITE",
+            "inbound_channel": "Website demo playground",
+            "entry_point": "Homepage triage preset",
+            "captured_at_label": "2026-04-02 09:12 IST",
+            "source_note": "Lead loaded from the Maldives preset on the landing page.",
+        },
+        "sales_transcript": [
+            {
+                "speaker": "Website",
+                "message": "Meera opened the Maldives honeymoon demo on the landing page.",
+            },
+            {
+                "speaker": "CRM",
+                "message": "Lead captured automatically with high intent and routed to demo deal 1.",
+            },
+            {
+                "speaker": "Sales Agent",
+                "message": "Drafted WhatsApp follow-up and held the villa for 24 hours.",
+            },
+        ],
         "bidding": {
             "vendor": "Soneva Jani",
             "status": "Counter accepted",
@@ -169,6 +190,27 @@ DEMO_CASES: List[Dict[str, Any]] = [
             "latest_message": "Lead scoring has increased after response to premium options.",
             "suggested_follow_up": "Hi Arjun, your Dubai executive itinerary is ready. I’ve included Downtown stay, airport transfers, and one premium desert evening. Shall I send the final quote PDF?",
         },
+        "capture": {
+            "primary_source": "PHONE_CALL",
+            "inbound_channel": "Sales team call",
+            "entry_point": "Outbound qualification call",
+            "captured_at_label": "2026-04-02 10:05 IST",
+            "source_note": "Executive travel brief captured during a recorded sales call and synced into CRM.",
+        },
+        "sales_transcript": [
+            {
+                "speaker": "Sales Agent",
+                "message": "Connected with Arjun by phone and confirmed meeting-plus-leisure requirements.",
+            },
+            {
+                "speaker": "CRM",
+                "message": "Call transcript attached to the Dubai bleisure lead and marked attention.",
+            },
+            {
+                "speaker": "Sales Agent",
+                "message": "Opened the deal workspace and prepared the executive quote for sending.",
+            },
+        ],
         "bidding": {
             "vendor": "Address Boulevard",
             "status": "Rate held for 18 hours",
@@ -246,6 +288,27 @@ DEMO_CASES: List[Dict[str, Any]] = [
             "latest_message": "Deposit reminder pending for 26 hours.",
             "suggested_follow_up": "Hi Mr. Sharma, your Kerala family itinerary is still on hold. I can keep the Munnar suite and private houseboat for a few more hours if you’d like me to secure them now.",
         },
+        "capture": {
+            "primary_source": "EMAIL",
+            "inbound_channel": "Inbound family enquiry email",
+            "entry_point": "Family travel enquiry form",
+            "captured_at_label": "2026-04-02 11:18 IST",
+            "source_note": "Family trip request first arrived by email and was imported into the CRM queue.",
+        },
+        "sales_transcript": [
+            {
+                "speaker": "Email",
+                "message": "Sharma family requested a five-day Kerala plan with child-friendly pacing.",
+            },
+            {
+                "speaker": "CRM",
+                "message": "Email lead captured and prioritized as critical for follow-up.",
+            },
+            {
+                "speaker": "Sales Agent",
+                "message": "Prepared the Kerala itinerary and queued the payment reminder.",
+            },
+        ],
         "bidding": {
             "vendor": "Private Houseboat Operator",
             "status": "Pending confirmation",
@@ -257,6 +320,25 @@ DEMO_CASES: List[Dict[str, Any]] = [
 
 def list_demo_cases() -> List[Dict[str, Any]]:
     return DEMO_CASES
+
+
+def get_demo_crm_case(slug: Optional[str] = None, lead_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    case = get_demo_case(slug=slug, lead_id=lead_id)
+    if not case:
+        return None
+    return {
+        "slug": case["slug"],
+        "lead_id": case["lead_id"],
+        "guest_name": case["guest_name"],
+        "organization": case["organization"],
+        "priority": case["priority"],
+        "capture": case["capture"],
+        "sales_transcript": case["sales_transcript"],
+        "communications": case["communications"],
+        "triage": case["triage"],
+        "finance": case["finance"],
+        "bidding": case["bidding"],
+    }
 
 
 def get_demo_case(slug: Optional[str] = None, lead_id: Optional[int] = None) -> Optional[Dict[str, Any]]:

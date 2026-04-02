@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.demo_data import get_demo_case, list_demo_cases
+from app.demo_data import get_demo_case, get_demo_crm_case, list_demo_cases
 from app.schemas.itinerary import ItineraryResponse
 from app.schemas.queries import ExtractedLeadData, QueryTriageResult
 
@@ -19,6 +19,9 @@ def get_cases():
             "destination": case["triage"]["destination"],
             "quote_total": case["finance"]["quote_total"],
             "status": case["finance"]["status"],
+            "capture_source": case["capture"]["primary_source"],
+            "inbound_channel": case["capture"]["inbound_channel"],
+            "transcript_snippet": case["sales_transcript"][0]["message"],
         }
         for case in list_demo_cases()
     ]
@@ -37,6 +40,14 @@ def get_case_by_lead(lead_id: int):
     case = get_demo_case(lead_id=lead_id)
     if not case:
         raise HTTPException(status_code=404, detail="Demo lead not found")
+    return case
+
+
+@router.get("/crm/{slug}")
+def get_demo_crm(slug: str):
+    case = get_demo_crm_case(slug=slug)
+    if not case:
+        raise HTTPException(status_code=404, detail="Demo CRM case not found")
     return case
 
 
@@ -70,4 +81,3 @@ def get_demo_itinerary(slug: str):
     if not case:
         raise HTTPException(status_code=404, detail="Demo case not found")
     return ItineraryResponse(**case["itinerary"])
-
