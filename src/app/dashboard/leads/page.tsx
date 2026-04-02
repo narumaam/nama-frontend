@@ -68,10 +68,50 @@ const captureSources = [
 ];
 
 const schedulerItems = [
-  { time: "09:30", title: "Call Meera Nair", owner: "Aisha Khan", mode: "Phone callback", color: "text-[#C9A84C]" },
-  { time: "11:00", title: "Send Dubai executive quote", owner: "Ravi Menon", mode: "Email send", color: "text-[#1D9E75]" },
-  { time: "14:30", title: "Kerala payment reminder", owner: "Farah Khan", mode: "WhatsApp follow-up", color: "text-[#C9A84C]" },
-  { time: "17:00", title: "Review Maldives deposit status", owner: "Aisha Khan", mode: "Manager checkpoint", color: "text-[#F5F0E8]" },
+  {
+    time: "09:30",
+    title: "Call Meera Nair",
+    owner: "Aisha Khan",
+    mode: "Phone callback",
+    color: "text-[#C9A84C]",
+    account: "Nair Luxury Escapes",
+    stage: "Follow Up",
+    objective: "Unlock deposit confirmation before the 24-hour hold expires.",
+    note: "Lead reopened the itinerary three times and viewed the premium villa option last.",
+  },
+  {
+    time: "11:00",
+    title: "Send Dubai executive quote",
+    owner: "Ravi Menon",
+    mode: "Email send",
+    color: "text-[#1D9E75]",
+    account: "Velocity Corporate Travel",
+    stage: "Quoted",
+    objective: "Send the executive version with add-on airport lounge and flexible transfer options.",
+    note: "Corporate traveler asked for a one-page decision-ready summary for approvers.",
+  },
+  {
+    time: "14:30",
+    title: "Kerala payment reminder",
+    owner: "Farah Khan",
+    mode: "WhatsApp follow-up",
+    color: "text-[#C9A84C]",
+    account: "Sharma Family Travels",
+    stage: "Qualified",
+    objective: "Prompt payment before the family departure window moves into a higher fare tier.",
+    note: "Customer asked for softer pacing and easier installment timing in the previous thread.",
+  },
+  {
+    time: "17:00",
+    title: "Review Maldives deposit status",
+    owner: "Aisha Khan",
+    mode: "Manager checkpoint",
+    color: "text-[#F5F0E8]",
+    account: "Nair Luxury Escapes",
+    stage: "Follow Up",
+    objective: "Escalate if the deposit is still pending and switch the follow-up owner if needed.",
+    note: "This checkpoint keeps high-intent luxury leads from slipping overnight without visibility.",
+  },
 ];
 
 const calendarDays = [
@@ -160,6 +200,7 @@ export default function LeadsPage() {
   const [query, setQuery] = useState("");
   const [enrichedLead, setEnrichedLead] = useState<LeadRecord | null>(null);
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState(schedulerItems[0]);
 
   useEffect(() => {
     let cancelled = false;
@@ -361,7 +402,14 @@ export default function LeadsPage() {
           </div>
           <div className="space-y-3">
             {schedulerItems.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <button
+                key={item.title}
+                type="button"
+                onClick={() => setSelectedSchedule(item)}
+                className={`w-full rounded-2xl border bg-[#0A0A0A] p-4 text-left transition-colors ${
+                  selectedSchedule.title === item.title ? "border-[#C9A84C]/30" : "border-[#C9A84C]/10 hover:border-[#C9A84C]/20"
+                }`}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className={`text-[10px] font-black uppercase tracking-widest ${item.color}`}>{item.time}</div>
@@ -370,8 +418,39 @@ export default function LeadsPage() {
                   </div>
                   <Clock3 size={14} className="text-[#4A453E]" />
                 </div>
-              </div>
+              </button>
             ))}
+          </div>
+          <div className="mt-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[9px] font-mono uppercase tracking-widest text-[#C9A84C]">Selected scheduler touch</div>
+                <div className="mt-1 text-sm font-black text-[#F5F0E8]">{selectedSchedule.title}</div>
+              </div>
+              <span className="rounded-full border border-[#C9A84C]/15 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                {selectedSchedule.stage}
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+                <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Owner + Channel</div>
+                <div className="mt-2 text-sm text-[#F5F0E8]">{selectedSchedule.owner}</div>
+                <div className="mt-1 text-[10px] text-[#B8B0A0]">{selectedSchedule.mode}</div>
+              </div>
+              <div className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+                <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Account</div>
+                <div className="mt-2 text-sm text-[#F5F0E8]">{selectedSchedule.account}</div>
+                <div className="mt-1 text-[10px] text-[#B8B0A0]">Scheduled for {selectedSchedule.time}</div>
+              </div>
+            </div>
+            <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Expected outcome</div>
+              <div className="mt-2 text-sm text-[#F5F0E8] leading-relaxed">{selectedSchedule.objective}</div>
+            </div>
+            <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">CRM context</div>
+              <div className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">{selectedSchedule.note}</div>
+            </div>
           </div>
         </aside>
       </div>
