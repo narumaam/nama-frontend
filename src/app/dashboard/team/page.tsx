@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { ArrowRight, CheckCircle2, ClipboardList, FileUp, Filter, Mail, Plus, Shield, Users, UserPlus2 } from "lucide-react";
 
 type TeamRole = {
@@ -105,15 +106,31 @@ const ORG_CHART = {
 };
 
 export default function TeamPage() {
+  const profile = useMemo(() => readDemoProfile(), []);
   const [selectedRole, setSelectedRole] = useState("Sales");
   const [selectedMode, setSelectedMode] = useState<"invite" | "bulk" | "roles" | "hierarchy" | "structure" | "assign">("invite");
   const [orgDepartments, setOrgDepartments] = useState(ORG_CHART.departments);
   const [draggingDept, setDraggingDept] = useState<string | null>(null);
+  const [entityLabel, setEntityLabel] = useState(
+    profile.roles[0] || DEFAULT_DEMO_PROFILE.roles[0]
+  );
+  const [teamLabel, setTeamLabel] = useState("Inbound Desk");
+  const [designationLabel, setDesignationLabel] = useState("Senior Executive");
+  const [reportingLabel, setReportingLabel] = useState("Reports to Sales Manager");
 
   const filteredInvites = useMemo(
     () => INVITES.filter((invite) => invite.role === selectedRole || selectedRole === "All"),
     [selectedRole]
   );
+  const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
+  const visibleOperator = profile.operator || DEFAULT_DEMO_PROFILE.operator;
+  const hierarchyPreview = {
+    adminTitle: `${entityLabel} Admin`,
+    adminSubtitle: `${visibleCompany} · ${visibleOperator}`,
+    departmentTitle: `${teamLabel} Cluster`,
+    designationTitle: designationLabel,
+    reportingTitle: reportingLabel,
+  };
 
   function moveDepartment(targetTitle: string) {
     if (!draggingDept || draggingDept === targetTitle) return;
@@ -139,6 +156,13 @@ export default function TeamPage() {
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             Demo-safe workspace for customer admins to create individual invites, preview bulk user uploads, assign roles, and show the hierarchy and team ownership model without touching live credentials.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">{profile.market.country}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">
+              Base {profile.baseCurrency} · {profile.enabledCurrencies.join(" / ")}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -371,8 +395,8 @@ export default function TeamPage() {
                 </p>
                 <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
                   <div className="mx-auto w-fit rounded-2xl border border-[#C9A84C]/20 bg-[#C9A84C]/10 px-5 py-4 text-center">
-                    <div className="text-sm font-black text-[#F5F0E8]">{ORG_CHART.top.title}</div>
-                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{ORG_CHART.top.subtitle}</div>
+                    <div className="text-sm font-black text-[#F5F0E8]">{hierarchyPreview.adminTitle}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{hierarchyPreview.adminSubtitle}</div>
                   </div>
                   <div className="mx-auto h-6 w-px bg-[#C9A84C]/20" />
                   <div className="grid gap-4 md:grid-cols-3">
@@ -391,7 +415,7 @@ export default function TeamPage() {
                           draggingDept === dept.title ? "border-[#C9A84C]/30 shadow-[0_0_18px_rgba(201,168,76,0.12)]" : "border-[#C9A84C]/10"
                         }`}>
                           <div className="mb-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Drag to reorder</div>
-                          <div className="text-sm font-black text-[#F5F0E8]">{dept.title}</div>
+                          <div className="text-sm font-black text-[#F5F0E8]">{dept.title === ORG_CHART.departments[0].title ? hierarchyPreview.departmentTitle : dept.title}</div>
                           <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{dept.subtitle}</div>
                           <div className="mt-4 space-y-2">
                             {dept.teams.map((team) => (
@@ -415,16 +439,45 @@ export default function TeamPage() {
                   <Shield size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Configurable Nomenclature</span>
                 </div>
+                <div className="mb-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Visible preview</div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <PreviewField label="Business entity" value={entityLabel} />
+                    <PreviewField label="Team label" value={teamLabel} />
+                    <PreviewField label="Designation" value={designationLabel} />
+                    <PreviewField label="Reporting line" value={reportingLabel} />
+                  </div>
+                </div>
                 <div className="space-y-3">
                   {NOMENCLATURE.map((item) => (
                     <div key={item.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
                       <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{item.label}</div>
-                      <div className="mt-1 text-sm font-black text-[#F5F0E8]">{item.current}</div>
+                      <div className="mt-1 text-sm font-black text-[#F5F0E8]">
+                        {item.label === "Business Entity"
+                          ? entityLabel
+                          : item.label === "Team"
+                            ? teamLabel
+                            : item.label === "Designation"
+                              ? designationLabel
+                              : item.label === "Reporting Layer"
+                                ? reportingLabel
+                                : item.current}
+                      </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {item.alternatives.map((alt) => (
-                          <span key={alt} className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                          <button
+                            key={alt}
+                            type="button"
+                            onClick={() => {
+                              if (item.label === "Business Entity") setEntityLabel(alt);
+                              if (item.label === "Team") setTeamLabel(alt);
+                              if (item.label === "Designation") setDesignationLabel(alt);
+                              if (item.label === "Reporting Layer") setReportingLabel(alt);
+                            }}
+                            className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10"
+                          >
                             {alt}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -487,6 +540,14 @@ export default function TeamPage() {
               Use this page as the admin control-room appendix after the main lead-to-deal walkthrough. It is demo-ready, self-contained, and safe to show live.
             </div>
           </div>
+          <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Current tenant snapshot</div>
+            <div className="space-y-2 text-sm text-[#B8B0A0]">
+              <div>{visibleCompany}</div>
+              <div>{profile.market.country} · {profile.market.language}</div>
+              <div>{entityLabel} · {designationLabel}</div>
+            </div>
+          </div>
         </aside>
       </div>
     </div>
@@ -509,6 +570,15 @@ function Metric({ label, value, sub, icon }: { label: string; value: string; sub
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
+    </div>
+  );
+}
+
+function PreviewField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
       <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
       <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
     </div>
