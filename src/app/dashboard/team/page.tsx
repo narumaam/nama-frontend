@@ -54,14 +54,77 @@ const ASSIGNMENTS = [
   { lead: "Sharma Family", owner: "Farah", role: "Finance", note: "Payment reminder and deposit monitoring." },
 ];
 
+const NOMENCLATURE = [
+  {
+    label: "Business Entity",
+    current: "Travel Organization",
+    alternatives: ["DMC", "Tour Operator", "Travel Agency"],
+  },
+  {
+    label: "Department",
+    current: "Sales / Operations / Finance",
+    alternatives: ["Holiday Desk", "Corporate Desk", "Back Office"],
+  },
+  {
+    label: "Team",
+    current: "Inbound Desk",
+    alternatives: ["Luxury Desk", "MICE Desk", "Visa Cell"],
+  },
+  {
+    label: "Designation",
+    current: "Senior Executive",
+    alternatives: ["Travel Consultant", "Trip Architect", "Reservations Lead"],
+  },
+  {
+    label: "Reporting Layer",
+    current: "Reports to Sales Manager",
+    alternatives: ["Reports to Department Lead", "Reports to Admin", "Reports to Founder"],
+  },
+];
+
+const ORG_CHART = {
+  top: { title: "Customer Admin", subtitle: "Nair Luxury Escapes" },
+  departments: [
+    {
+      title: "Holiday Desk",
+      subtitle: "Sales Manager · Aisha Khan",
+      teams: ["Inbound Desk", "Luxury Desk"],
+    },
+    {
+      title: "Operations Cell",
+      subtitle: "Ops Lead · Rohan Iyer",
+      teams: ["Trip Design", "Bookings"],
+    },
+    {
+      title: "Finance & Billing",
+      subtitle: "Finance Lead · Meera Shah",
+      teams: ["Collections", "Reconciliation"],
+    },
+  ],
+  bottom: "Sub-agent Partners / External Contributors",
+};
+
 export default function TeamPage() {
   const [selectedRole, setSelectedRole] = useState("Sales");
-  const [selectedMode, setSelectedMode] = useState<"invite" | "bulk" | "roles" | "hierarchy" | "assign">("invite");
+  const [selectedMode, setSelectedMode] = useState<"invite" | "bulk" | "roles" | "hierarchy" | "structure" | "assign">("invite");
+  const [orgDepartments, setOrgDepartments] = useState(ORG_CHART.departments);
+  const [draggingDept, setDraggingDept] = useState<string | null>(null);
 
   const filteredInvites = useMemo(
     () => INVITES.filter((invite) => invite.role === selectedRole || selectedRole === "All"),
     [selectedRole]
   );
+
+  function moveDepartment(targetTitle: string) {
+    if (!draggingDept || draggingDept === targetTitle) return;
+    const next = [...orgDepartments];
+    const fromIndex = next.findIndex((dept) => dept.title === draggingDept);
+    const toIndex = next.findIndex((dept) => dept.title === targetTitle);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const [item] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, item);
+    setOrgDepartments(next);
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -106,7 +169,7 @@ export default function TeamPage() {
               <p className="mt-1 text-sm text-[#B8B0A0]">Switch between invite creation, bulk upload, role design, hierarchy, and assignments.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {(["invite", "bulk", "roles", "hierarchy", "assign"] as const).map((mode) => (
+              {(["invite", "bulk", "roles", "hierarchy", "structure", "assign"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setSelectedMode(mode)}
@@ -296,6 +359,81 @@ export default function TeamPage() {
             </div>
           )}
 
+          {selectedMode === "structure" && (
+            <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+                <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
+                  <Users size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Visible Hierarchy Diagram</span>
+                </div>
+                <p className="mb-4 text-xs leading-relaxed text-[#B8B0A0]">
+                  Drag the department cards to reorder the visible hierarchy for each business entity. This is a demo-safe interaction layer to show configurability on screen.
+                </p>
+                <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+                  <div className="mx-auto w-fit rounded-2xl border border-[#C9A84C]/20 bg-[#C9A84C]/10 px-5 py-4 text-center">
+                    <div className="text-sm font-black text-[#F5F0E8]">{ORG_CHART.top.title}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{ORG_CHART.top.subtitle}</div>
+                  </div>
+                  <div className="mx-auto h-6 w-px bg-[#C9A84C]/20" />
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {orgDepartments.map((dept) => (
+                      <div
+                        key={dept.title}
+                        className="relative"
+                        draggable
+                        onDragStart={() => setDraggingDept(dept.title)}
+                        onDragEnd={() => setDraggingDept(null)}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => moveDepartment(dept.title)}
+                      >
+                        <div className="absolute -top-6 left-1/2 h-6 w-px -translate-x-1/2 bg-[#C9A84C]/20" />
+                        <div className={`rounded-2xl border bg-[#0A0A0A] p-4 text-center cursor-grab active:cursor-grabbing transition-all ${
+                          draggingDept === dept.title ? "border-[#C9A84C]/30 shadow-[0_0_18px_rgba(201,168,76,0.12)]" : "border-[#C9A84C]/10"
+                        }`}>
+                          <div className="mb-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Drag to reorder</div>
+                          <div className="text-sm font-black text-[#F5F0E8]">{dept.title}</div>
+                          <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{dept.subtitle}</div>
+                          <div className="mt-4 space-y-2">
+                            {dept.teams.map((team) => (
+                              <div key={team} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">
+                                {team}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mx-auto h-6 w-px bg-[#C9A84C]/20" />
+                  <div className="mx-auto w-fit rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3 text-center">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-[#B8B0A0]">{ORG_CHART.bottom}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+                <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
+                  <Shield size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Configurable Nomenclature</span>
+                </div>
+                <div className="space-y-3">
+                  {NOMENCLATURE.map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{item.label}</div>
+                      <div className="mt-1 text-sm font-black text-[#F5F0E8]">{item.current}</div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {item.alternatives.map((alt) => (
+                          <span key={alt} className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                            {alt}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {selectedMode === "assign" && (
             <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
@@ -341,7 +479,7 @@ export default function TeamPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">What This Proves</h2>
           </div>
           <p className="text-sm leading-relaxed text-[#B8B0A0]">
-            A customer admin can create users one by one, preview a bulk CSV import, assign roles and designations, and present a clear hierarchy from super admin down to sub-agent. This keeps the Monday story focused on operational control without needing live auth provisioning.
+            A customer admin can create users one by one, preview a bulk CSV import, assign roles and designations, show a visible hierarchy diagram, and rename the business structure to match their own entity. This keeps the Monday story focused on operational control without needing live auth provisioning.
           </p>
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Demo Positioning</div>
