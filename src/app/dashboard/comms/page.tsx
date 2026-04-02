@@ -1,277 +1,290 @@
 "use client";
 
-import React, { useState } from 'react';
-import { 
-  Signal, 
-  Mic, 
-  MicOff, 
-  Bot, 
-  User, 
-  Zap, 
-  Smile, 
-  PiggyBank, 
-  TrendingUp, 
-  Activity,
+import React from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Bot,
   ChevronRight,
-  Phone,
+  Clock3,
   MessageSquare,
-  History,
+  Phone,
+  Sparkles,
+  Users,
+  Mic,
+  Mail,
+  MessageCircle,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
+
+type ThreadCard = {
+  channel: string;
+  source: string;
+  guest: string;
+  caseName: string;
+  tone: string;
+  note: string;
+  status: string;
+};
+
+type TranscriptLine = {
+  speaker: string;
+  channel: string;
+  message: string;
+};
+
+const THREADS: ThreadCard[] = [
+  {
+    channel: "Website",
+    source: "Landing page Maldives preset",
+    guest: "Meera Nair",
+    caseName: "Maldives honeymoon",
+    tone: "High intent",
+    note: "A demo inquiry lands directly from the homepage and becomes a deal without manual cleanup.",
+    status: "Captured",
+  },
+  {
+    channel: "Phone",
+    source: "Sales call transcript",
+    guest: "Arjun Mehta",
+    caseName: "Dubai bleisure",
+    tone: "Call-to-CRM",
+    note: "The call summary is attached to the same record so the next rep has context immediately.",
+    status: "Synced",
+  },
+  {
+    channel: "Email",
+    source: "Inbound family enquiry",
+    guest: "Sharma Family",
+    caseName: "Kerala family trip",
+    tone: "Threaded context",
+    note: "The email is normalized into destination, duration, travelers, and follow-up status.",
+    status: "Parsed",
+  },
+  {
+    channel: "WhatsApp",
+    source: "Placeholder messaging rail",
+    guest: "Arjun Mehta",
+    caseName: "Dubai bleisure",
+    tone: "Demo-safe",
+    note: "Shown in the workflow as an expected channel, but not presented as a live production connector.",
+    status: "Illustrated",
+  },
+];
+
+const ACTIVE_TRANSCRIPT: TranscriptLine[] = [
+  {
+    speaker: "Sales Agent",
+    channel: "Phone",
+    message: "I’ve captured the Maldives honeymoon request and I’m moving it into CRM now.",
+  },
+  {
+    speaker: "Client",
+    channel: "Website",
+    message: "Please keep the private dinner, seaplane transfer, and villa hold in place.",
+  },
+  {
+    speaker: "CRM",
+    channel: "System",
+    message: "The lead is now linked to the deal card, itinerary, and follow-up queue.",
+  },
+];
+
+const FOLLOW_UP_QUEUE = [
+  {
+    guest: "Meera Nair",
+    caseName: "Maldives honeymoon",
+    nextStep: "Send deposit link and hold villa for 24 hours.",
+    urgency: "Critical",
+  },
+  {
+    guest: "Arjun Mehta",
+    caseName: "Dubai bleisure",
+    nextStep: "Share executive quote PDF and confirm premium desert option.",
+    urgency: "Attention",
+  },
+  {
+    guest: "Sharma Family",
+    caseName: "Kerala family trip",
+    nextStep: "Nudge for deposit and keep the houseboat operator in reserve.",
+    urgency: "Critical",
+  },
+];
+
+const SOURCE_SUMMARY = [
+  { label: "Website", value: "1 lead", icon: Sparkles },
+  { label: "Phone", value: "1 transcript", icon: Phone },
+  { label: "Email", value: "1 thread", icon: Mail },
+  { label: "WhatsApp", value: "1 placeholder", icon: MessageCircle },
+];
 
 export default function CommsPage() {
   return (
-    <div className="flex flex-col h-[calc(100vh-144px)] overflow-hidden animate-in fade-in duration-700">
-      {/* Page Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 shrink-0">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
             <span>Intelligence Hub</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">AI Comms Interface</span>
+            <span className="opacity-50">Omnichannel CRM</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8] flex items-center gap-4">
+          <h1 className="flex items-center gap-4 text-4xl font-black uppercase tracking-tighter font-headline text-[#F5F0E8]">
             Comms Command
-            <div className="flex items-center gap-2 bg-[#1D9E75]/10 px-3 py-1 rounded-full text-[9px] font-black text-[#1D9E75] border border-[#1D9E75]/20 font-mono tracking-widest animate-pulse">
-              <Signal size={12} /> SIGNAL_STABLE
-            </div>
+            <span className="flex items-center gap-2 rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black font-mono uppercase tracking-widest text-[#1D9E75]">
+              <Sparkles size={12} />
+              Seeded channels
+            </span>
           </h1>
-          <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">Orchestrating AI-driven client communications & recovery</p>
+          <p className="mt-2 max-w-3xl text-xs uppercase tracking-wide font-mono text-[#B8B0A0]">
+            Website, phone, email, and a WhatsApp placeholder all resolve into the same CRM story for the Monday demo.
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-[#C9A84C] text-[#0A0A0A] px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[0_0_20px_rgba(201,168,76,0.2)] hover:scale-105 transition-all active:scale-95">
-            Deploy New Agent Mission
+          <Link
+            href="/dashboard/deals?lead=1"
+            className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+          >
+            Open Maldives case
+          </Link>
+          <button className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
+            Demo reply queued
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content Body */}
-      <div className="flex-1 overflow-hidden grid grid-cols-12 gap-8">
-        {/* Left Panel: Session Queue */}
-        <section className="col-span-12 lg:col-span-3 flex flex-col gap-4 overflow-hidden bg-[#111111]/30 rounded-3xl border border-[#C9A84C]/10 p-6 shadow-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-[#C9A84C] font-mono">Live Call Queue</h2>
-            <span className="font-mono text-[9px] text-[#1D9E75] bg-[#1D9E75]/10 px-2 py-0.5 rounded-lg border border-[#1D9E75]/20 font-bold uppercase tracking-widest">8 Active</span>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2 no-scrollbar">
-            <QueueCard name="Arjun Sharma" type="AI Inbound" time="04:22" desc="Flight Delay Recovery" active />
-            <QueueCard name="Priya Varma" type="AI Outbound" time="01:45" desc="Booking Confirmation" />
-            <QueueCard name="Vikram Seth" type="AI Inbound" time="08:12" desc="Itinerary Adjustment" dimmed />
-            <QueueCard name="Rohan Mehta" type="AI Outbound" time="00:30" desc="Payment Resolve" urgent />
-          </div>
-          <button className="w-full mt-4 py-4 border border-[#C9A84C]/10 hover:bg-[#C9A84C]/5 transition-all text-[9px] font-black uppercase tracking-[0.2em] text-[#B8B0A0] rounded-xl font-mono">
-            View Mission History
-          </button>
-        </section>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {SOURCE_SUMMARY.map((item) => (
+          <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
+        ))}
+      </section>
 
-        {/* Center Panel: Live Session Transcription */}
-        <section className="col-span-12 lg:col-span-6 flex flex-col bg-[#111111]/50 border border-[#C9A84C]/15 overflow-hidden rounded-3xl relative shadow-2xl backdrop-blur-md">
-          <div className="p-8 border-b border-[#C9A84C]/10 flex items-center justify-between bg-black/20">
-            <div>
-              <h2 className="font-black text-sm uppercase tracking-[0.2em] font-headline text-[#F5F0E8]">Active Voice Session</h2>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-[9px] font-mono text-[#B8B0A0] uppercase opacity-50 tracking-widest font-bold">ID: CALL_VOICE_8829-X</span>
-                <span className="text-[9px] font-mono text-[#C9A84C] font-black uppercase tracking-widest border border-[#C9A84C]/20 px-2 py-0.5 rounded-lg">ENCRYPTED</span>
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        <div className="xl:col-span-4 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Users size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel Intake</h2>
+          </div>
+          <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
+            These cards show how the demo captures demand from the same commercial channels your team already uses, then stores the outcome in one CRM lane.
+          </p>
+          <div className="space-y-3">
+            {THREADS.map((thread) => (
+              <div key={thread.channel} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{thread.channel}</div>
+                    <div className="mt-1 text-sm font-black text-[#F5F0E8]">{thread.guest}</div>
+                  </div>
+                  <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+                    {thread.status}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{thread.note}</p>
+                <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{thread.source}</div>
               </div>
-            </div>
-            <button className="px-5 py-2.5 bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-500/20 transition-all flex items-center gap-2 border border-red-500/20 active:scale-95 shadow-lg shadow-red-500/5">
-              <MicOff size={16} strokeWidth={3} /> Interrupt Call
-            </button>
-          </div>
-
-          {/* Waveform Visualization */}
-          <div className="h-24 flex items-center justify-center gap-[3px] px-8 bg-black/40 border-b border-[#C9A84C]/10">
-            {[...Array(30)].map((_, i) => (
-              <div 
-                key={i} 
-                className={`w-1 bg-[#1D9E75] transition-all duration-500 rounded-full ${i % 3 === 0 ? 'h-12 opacity-100 shadow-[0_0_15px_rgba(29,158,117,0.5)] animate-pulse' : 'h-4 opacity-40'}`}
-                style={{ animationDelay: `${i * 0.05}s` }}
-              ></div>
             ))}
           </div>
+        </div>
 
-          {/* Transcript Feed */}
-          <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar">
-            <div className="flex gap-5 max-w-[85%] animate-in slide-in-from-left-4 duration-500">
-              <div className="w-10 h-10 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center shrink-0 border border-[#C9A84C]/20 text-[#C9A84C] shadow-sm">
-                <Bot size={20} />
-              </div>
-              <div className="space-y-2">
-                <span className="text-[10px] text-[#C9A84C] uppercase font-black tracking-[0.2em] font-mono opacity-60">AI Agent Delta</span>
-                <div className="bg-[#1A1A1A] p-6 rounded-3xl rounded-tl-sm text-sm leading-relaxed border border-[#C9A84C]/10 text-[#F5F0E8] font-body shadow-xl">
-                  Hello Mr. Arjun, I noticed your flight 6E-201 from Delhi to Mumbai has been delayed by 2 hours. Would you like me to look for an earlier alternative or perhaps book a lounge access for your wait?
+        <div className="xl:col-span-5 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Bot size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Sales Transcript</h2>
+          </div>
+          <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
+            The Monday demo uses a deterministic transcript so the rep can show how voice, message, and CRM context stay attached to the same lead.
+          </p>
+          <div className="space-y-4">
+            {ACTIVE_TRANSCRIPT.map((line, index) => (
+              <div key={`${line.speaker}-${index}`} className={`flex gap-4 ${index % 2 === 1 ? "flex-row-reverse" : ""}`}>
+                <Avatar icon={index % 2 === 1 ? Users : Bot} accent={index % 2 === 1 ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20" : "bg-[#C9A84C]/10 text-[#C9A84C] border-[#C9A84C]/20"} />
+                <div className={`max-w-[85%] space-y-2 ${index % 2 === 1 ? "text-right" : ""}`}>
+                  <div className={`text-[10px] font-black uppercase tracking-[0.2em] font-mono ${index % 2 === 1 ? "text-[#1D9E75]" : "text-[#C9A84C]"}`}>
+                    {line.speaker} <span className="opacity-50">/ {line.channel}</span>
+                  </div>
+                  <div className={`rounded-3xl border px-5 py-4 text-sm leading-relaxed ${index % 2 === 1 ? "border-[#1D9E75]/15 bg-[#1D9E75]/8 text-[#F5F0E8]" : "border-[#C9A84C]/10 bg-[#0A0A0A] text-[#F5F0E8]"}`}>
+                    {line.message}
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div className="flex gap-5 max-w-[85%] ml-auto flex-row-reverse animate-in slide-in-from-right-4 duration-500">
-              <div className="w-10 h-10 rounded-2xl bg-[#1D9E75]/10 flex items-center justify-center shrink-0 border border-[#1D9E75]/20 text-[#1D9E75] shadow-sm">
-                <User size={20} />
-              </div>
-              <div className="text-right space-y-2">
-                <span className="text-[10px] text-[#1D9E75] uppercase font-black tracking-[0.2em] font-mono opacity-60">Arjun Sharma</span>
-                <div className="bg-[#C9A84C] p-6 rounded-3xl rounded-tr-sm text-sm leading-relaxed text-[#0A0A0A] font-body font-bold shadow-xl">
-                  Ah, that&apos;s frustrating. Is there anything available around 4 PM instead? I have a meeting at 7 PM.
+        <div className="xl:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock3 size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Follow-Up Queue</h2>
+          </div>
+          <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
+            The queue is intentionally deterministic so you can walk the commercial handoff without depending on live messaging rails.
+          </p>
+          <div className="space-y-3">
+            {FOLLOW_UP_QUEUE.map((item) => (
+              <div key={item.caseName} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-black text-[#F5F0E8]">{item.guest}</div>
+                    <div className="mt-1 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{item.caseName}</div>
+                  </div>
+                  <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${item.urgency === "Critical" ? "border-red-400/20 bg-red-400/10 text-red-300" : "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"}`}>
+                    {item.urgency}
+                  </span>
                 </div>
+                <p className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{item.nextStep}</p>
               </div>
-            </div>
-
-            <div className="flex gap-5 max-w-[85%] animate-pulse duration-1000">
-              <div className="w-10 h-10 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center shrink-0 border border-[#C9A84C]/20 text-[#C9A84C]">
-                <Bot size={20} />
-              </div>
-              <div className="space-y-2">
-                <span className="text-[10px] text-[#C9A84C] uppercase font-black tracking-[0.2em] font-mono opacity-60">AI Agent Delta</span>
-                <div className="bg-[#1A1A1A]/50 p-6 rounded-3xl rounded-tl-sm text-sm text-[#B8B0A0] flex gap-3 items-center font-mono border border-dashed border-[#C9A84C]/20">
-                  <span className="w-1.5 h-1.5 bg-[#C9A84C] rounded-full animate-bounce"></span>
-                  <span className="w-1.5 h-1.5 bg-[#C9A84C] rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                  <span className="w-1.5 h-1.5 bg-[#C9A84C] rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                  <span className="ml-2 italic uppercase tracking-widest font-bold">Scanning Flight Inventory Hub...</span>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
+      </section>
 
-          {/* Quick Actions Bar */}
-          <div className="p-6 bg-black/40 border-t border-[#C9A84C]/10 flex gap-4 mt-auto">
-            <button className="flex-1 py-4 bg-[#1A1A1A] text-[#F5F0E8] text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[#111111] transition-all border border-[#C9A84C]/10 font-mono active:scale-95">
-              Request Human Transfer
-            </button>
-            <button className="flex-1 py-4 bg-[#1D9E75] text-[#0A0A0A] text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-105 transition-all shadow-lg shadow-[#1D9E75]/10 font-mono active:scale-95">
-              Force Resolution
-            </button>
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <MessageSquare size={14} className="text-[#C9A84C]" />
+          <h2 className="text-lg font-black text-[#F5F0E8]">Demo Positioning</h2>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">What this proves</div>
+            <p className="text-sm leading-relaxed text-[#B8B0A0]">
+              The same lead can arrive from website, phone, email, or a transcript and still land in one commercial record with the right follow-up context.
+            </p>
           </div>
-        </section>
-
-        {/* Right Panel: Performance Analytics */}
-        <section className="col-span-12 lg:col-span-3 flex flex-col gap-6 overflow-hidden">
-          <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-[#C9A84C] font-mono opacity-60">Live Performance Tracking</h2>
-          <div className="grid grid-cols-1 gap-6">
-            <KPICard label="Mission Resolution" value="94.2%" change="+2.1%" icon={Zap} accent="text-[#C9A84C]" />
-            <KPICard label="Sentiment Analysis" value="4.8/5" change="VERY POSITIVE" icon={Smile} accent="text-[#1D9E75]" progress />
-            
-            <div className="bg-[#C9A84C] p-8 rounded-3xl relative overflow-hidden group shadow-2xl border border-white/20">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <PiggyBank size={64} className="text-[#0A0A0A]" />
-              </div>
-              <div className="relative z-10">
-                <span className="font-mono text-[9px] text-[#0A0A0A] uppercase tracking-[0.2em] mb-4 block font-black opacity-60">Value Recovered (Cycle)</span>
-                <div className="font-black text-3xl text-[#0A0A0A] tracking-tighter font-headline uppercase leading-none">₹8,42,100</div>
-                <p className="font-mono text-[9px] text-[#0A0A0A] mt-6 uppercase tracking-widest font-black border-t border-[#0A0A0A]/10 pt-4">Manual overhead saved: ₹1.2L</p>
-              </div>
-            </div>
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Safe wording</div>
+            <p className="text-sm leading-relaxed text-[#B8B0A0]">
+              Use “deterministic CRM intake” and “demo-safe capture” instead of implying the messaging rails are already live in production.
+            </p>
           </div>
-
-          <div className="flex-1 flex flex-col mt-4 bg-[#111111]/30 p-6 rounded-3xl border border-[#C9A84C]/10">
-            <div className="flex items-center justify-between mb-6">
-              <span className="font-mono text-[10px] text-[#C9A84C] uppercase tracking-widest font-black">Active Campaigns</span>
-              <span className="text-[#1D9E75] font-mono text-[9px] font-black uppercase tracking-tighter bg-[#1D9E75]/10 px-2 py-0.5 rounded-md">3 LIVE</span>
-            </div>
-            <div className="space-y-3">
-              <CampaignItem title="Holiday Up-sell" count="442" color="border-[#C9A84C]" icon={TrendingUp} />
-              <CampaignItem title="Survey Feedback" count="68%" color="border-[#1D9E75]" icon={Activity} />
-            </div>
-            <button className="mt-8 w-full py-5 bg-[#111111] text-[#C9A84C] border border-[#C9A84C]/20 font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all font-mono active:scale-95">
-              Deploy AI Campaign
-            </button>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
 
-function QueueCard({
-  name,
-  type,
-  time,
-  desc,
-  active = false,
-  dimmed = false,
-  urgent = false,
-}: {
-  name: string;
-  type: string;
-  time: string;
-  desc: string;
-  active?: boolean;
-  dimmed?: boolean;
-  urgent?: boolean;
-}) {
+function MetricCard({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
-    <div className={`p-5 rounded-2xl border transition-all cursor-pointer group shadow-sm ${
-      active ? 'bg-[#C9A84C] border-[#C9A84C] text-[#0A0A0A]' : 
-      urgent ? 'bg-[#1A1A1A] border-red-500/40 text-[#F5F0E8]' : 'bg-[#1A1A1A] border-[#C9A84C]/10 text-[#F5F0E8] hover:border-[#C9A84C]/40'
-    } ${dimmed ? 'opacity-40 grayscale' : ''}`}>
-      <div className="flex justify-between items-start mb-3">
-        <span className={`font-mono text-[9px] uppercase tracking-widest font-black ${active ? 'text-[#0A0A0A]/70' : 'text-[#C9A84C]'}`}>{type}</span>
-        <span className={`font-mono text-[9px] font-bold ${active ? 'text-[#0A0A0A]/50' : 'text-[#B8B0A0] opacity-50'}`}>{time}</span>
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+      <div className="mb-3 flex items-center gap-2 text-[#C9A84C]">
+        <Icon size={16} />
+        <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
       </div>
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`w-2 h-2 rounded-full ${active ? 'bg-[#0A0A0A] shadow-[0_0_8px_rgba(10,10,10,0.5)]' : urgent ? 'bg-red-500 animate-pulse' : 'bg-[#1D9E75]'}`}></div>
-        <h3 className={`font-black text-xs uppercase tracking-tight font-headline ${active ? 'text-[#0A0A0A]' : 'text-[#F5F0E8]'}`}>{name}</h3>
-      </div>
-      <p className={`text-[10px] font-medium leading-tight uppercase tracking-tighter opacity-80 ${active ? 'text-[#0A0A0A]' : 'text-[#B8B0A0]'}`}>{desc}</p>
+      <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
+      <div className="mt-1 text-xs text-[#4A453E]">Seeded demo content</div>
     </div>
   );
 }
 
-function KPICard({
-  label,
-  value,
-  change,
+function Avatar({
   icon: Icon,
   accent,
-  progress = false,
 }: {
-  label: string;
-  value: string;
-  change: string;
   icon: LucideIcon;
   accent: string;
-  progress?: boolean;
 }) {
   return (
-    <div className="bg-[#111111] p-6 rounded-3xl border border-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all shadow-xl group">
-      <div className="flex justify-between items-center mb-6">
-        <span className="font-mono text-[10px] text-[#B8B0A0] uppercase tracking-widest font-black opacity-50">{label}</span>
-        <Icon size={20} className="text-[#C9A84C] opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all" />
-      </div>
-      <div className="flex items-baseline gap-3">
-        <span className="font-black text-3xl tracking-tighter text-[#F5F0E8] font-headline uppercase">{value}</span>
-        <span className={`font-mono text-[9px] ${accent} font-black uppercase tracking-[0.2em] bg-current/10 px-2 py-0.5 rounded-lg border border-current/20`}>{change}</span>
-      </div>
-      {progress && (
-        <div className="mt-6 flex gap-1 h-[2px] w-full bg-[#1A1A1A] rounded-full overflow-hidden">
-          <div className="w-[85%] bg-[#1D9E75] h-full shadow-[0_0_10px_#1D9E75]"></div>
-          <div className="w-[10%] bg-[#C9A84C] h-full"></div>
-          <div className="w-[5%] bg-red-500 h-full"></div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CampaignItem({
-  title,
-  count,
-  color,
-  icon: Icon,
-}: {
-  title: string;
-  count: string;
-  color: string;
-  icon: LucideIcon;
-}) {
-  return (
-    <div className={`bg-[#1A1A1A] p-4 rounded-2xl flex items-center justify-between border-l-4 ${color} hover:bg-[#111111] transition-all cursor-pointer group border-y border-r border-transparent hover:border-[#C9A84C]/20 shadow-sm`}>
-      <div>
-        <div className="text-[11px] font-black uppercase tracking-widest text-[#F5F0E8] font-headline">{title}</div>
-        <div className="font-mono text-[9px] text-[#B8B0A0] font-bold uppercase tracking-widest mt-1 opacity-60">{title === 'Holiday Up-sell' ? 'Conversion Rate' : 'System Response'}: <span className="text-[#C9A84C] ml-1">{count}</span></div>
-      </div>
-      <div className="w-8 h-8 rounded-xl bg-[#111111] flex items-center justify-center border border-[#C9A84C]/10 group-hover:scale-110 transition-transform">
-        <Icon size={16} className="text-[#B8B0A0] group-hover:text-[#C9A84C]" />
-      </div>
+    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${accent}`}>
+      <Icon size={18} />
     </div>
   );
 }

@@ -56,8 +56,8 @@ const FEED_DATA: FeedItem[] = [
     name: 'Meera Nair',
     destination: 'Maldives Honeymoon',
     value: '₹4,86,000',
-    headline: 'Demo case is staged and ready for the quote-to-close walkthrough.',
-    subtext: 'Use this card to open the deal view, then show triage, itinerary, finance, and vendor negotiation in one flow.',
+    headline: 'Website enquiry captured and staged for the quote-to-close walkthrough.',
+    subtext: 'Use this card to open the deal view, then show triage, itinerary, finance, and the CRM transcript in one flow.',
     cta: 'Open Deal',
     ctaType: 'call',
     confidence: 91,
@@ -70,7 +70,7 @@ const FEED_DATA: FeedItem[] = [
     name: 'Arjun Mehta',
     destination: 'Dubai Bleisure',
     value: '₹2,12,000',
-    headline: 'Executive travel case is configured with a premium business + leisure blend.',
+    headline: 'Phone-captured executive lead is staged with a premium business + leisure blend.',
     subtext: 'Perfect for showing a quote that feels tailored, fast, and still margin aware.',
     cta: 'Approve & Send',
     ctaType: 'approve',
@@ -84,8 +84,8 @@ const FEED_DATA: FeedItem[] = [
     name: 'Sharma Family',
     destination: 'Kerala Family',
     value: '₹1,24,000',
-    headline: 'Family pacing, houseboat, and payment reminder are all staged for the demo.',
-    subtext: 'This is the backup story if you want to show a lower-value, slower booking path that still converts.',
+    headline: 'Email-captured family request is staged with pacing, houseboat, and reminder context.',
+    subtext: 'This is the backup story if you want to show a slower booking path that still converts.',
     cta: 'Send Reminder',
     ctaType: 'payment',
     confidence: 90,
@@ -96,11 +96,11 @@ const FEED_DATA: FeedItem[] = [
 
 const AGENTS: Agent[] = [
   { id: 'triage',     name: 'Triage',     role: 'Lead Qualification',    state: 'RUNNING', done: 47, current: 'Parsing 2 new WhatsApp leads',        Icon: Brain },
-  { id: 'itinerary',  name: 'Itinerary',  role: 'Trip Architecture',     state: 'RUNNING', done: 12, current: 'Building 7D Rajasthan Royal plan',     Icon: MapPin },
-  { id: 'bidding',    name: 'Bidding',    role: 'Vendor Negotiation',    state: 'ALERT',   done: 8,  current: 'Hyatt Dubai unresponsive >4h',          Icon: Target },
+  { id: 'itinerary',  name: 'Itinerary',  role: 'Trip Architecture',     state: 'RUNNING', done: 12, current: 'Building the Maldives honeymoon draft', Icon: MapPin },
+  { id: 'bidding',    name: 'Bidding',    role: 'Vendor Negotiation',    state: 'ALERT',   done: 8,  current: 'Holding a Dubai fallback rate if needed', Icon: Target },
   { id: 'finance',    name: 'Finance',    role: 'Payments & Ledger',     state: 'IDLE',    done: 31, current: 'Awaiting next transaction event',       Icon: CreditCard },
-  { id: 'comms',      name: 'Comms',      role: 'Client Messaging',      state: 'RUNNING', done: 63, current: 'Sending 3 follow-up messages',          Icon: MessageSquare },
-  { id: 'operations', name: 'Operations', role: 'Booking Execution',     state: 'RUNNING', done: 19, current: 'Confirming Maldives speed boat',        Icon: Shield },
+  { id: 'comms',      name: 'Comms',      role: 'Client Messaging',      state: 'RUNNING', done: 63, current: 'Staging WhatsApp, email, and call follow-ups', Icon: MessageSquare },
+  { id: 'operations', name: 'Operations', role: 'Booking Execution',     state: 'RUNNING', done: 19, current: 'Confirming Maldives speed boat hold',       Icon: Shield },
 ];
 
 // ─── Priority config ──────────────────────────────────────────────────────────
@@ -250,8 +250,20 @@ export default function AutopilotPage() {
             Command Center
           </h1>
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
-            Demo AI is running the walkthrough · You only see what needs you
+            Seeded demo cases are driving the walkthrough · You only see what needs your attention
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              'Website intake',
+              'Phone transcript',
+              'Email capture',
+              'WhatsApp placeholder',
+            ].map((tag) => (
+              <span key={tag} className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+                {tag}
+              </span>
+            ))}
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {[
               { label: 'Maldives', href: '/dashboard/deals?case=maldives-honeymoon' },
@@ -329,7 +341,7 @@ export default function AutopilotPage() {
               )}
             </div>
             <button className="text-[9px] font-mono text-[#4A453E] hover:text-[#C9A84C] transition-colors uppercase tracking-widest flex items-center gap-1">
-              Auto-approve low risk <ChevronRight size={10} />
+              Show safe demo path <ChevronRight size={10} />
             </button>
           </div>
 
@@ -346,12 +358,12 @@ export default function AutopilotPage() {
           )}
 
           {/* Zero-UI hint */}
-          <div className="bg-[#111111]/40 rounded-xl border border-[#C9A84C]/5 p-4 flex items-center gap-3 mt-2">
-            <MessageSquare size={13} className="text-[#C9A84C] shrink-0" />
-            <p className="text-[10px] text-[#4A453E] font-body leading-relaxed">
-              In the demo, this alert pattern is what would later surface in <span className="text-[#C9A84C] font-bold">WhatsApp</span> or <span className="text-[#C9A84C] font-bold">mobile push</span>. For Monday, we keep it on-screen so the walkthrough stays stable.
-            </p>
-          </div>
+            <div className="bg-[#111111]/40 rounded-xl border border-[#C9A84C]/5 p-4 flex items-center gap-3 mt-2">
+              <MessageSquare size={13} className="text-[#C9A84C] shrink-0" />
+              <p className="text-[10px] text-[#4A453E] font-body leading-relaxed">
+              In the demo, this alert pattern is what would later surface in <span className="text-[#C9A84C] font-bold">WhatsApp</span> or <span className="text-[#C9A84C] font-bold">mobile push</span>. For Monday, we keep it on-screen so the walkthrough stays stable and deterministic.
+              </p>
+            </div>
         </div>
 
         {/* Agent Swarm ── 1 col */}
@@ -376,7 +388,7 @@ export default function AutopilotPage() {
           >
             <div>
               <div className="text-[8px] font-mono uppercase tracking-[0.2em] text-[#0A0A0A]/50 mb-0.5">Deep Dive</div>
-              <div className="font-black text-sm uppercase tracking-tight">Kinetic Engine OS</div>
+              <div className="font-black text-sm uppercase tracking-tight">Kinetic Demo OS</div>
               <div className="text-[8px] font-mono text-[#0A0A0A]/60 mt-0.5">Operational demo monitor</div>
             </div>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />

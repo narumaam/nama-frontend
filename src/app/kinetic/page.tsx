@@ -173,19 +173,19 @@ export default function KineticPage() {
           </Link>
           <div className="flex items-center gap-2.5">
             <Zap size={14} fill="currentColor" className="text-[#C9A84C]" />
-            <span className="font-black tracking-[0.25em] text-xs uppercase text-[#C9A84C]">Kinetic Engine OS</span>
+            <span className="font-black tracking-[0.25em] text-xs uppercase text-[#C9A84C]">Kinetic Demo OS</span>
             <span className="text-[#4A453E] text-[9px] font-mono">v4.0</span>
           </div>
         </div>
         <div className="flex items-center gap-3 text-[8px] font-black tracking-widest uppercase">
           <div className="flex items-center gap-1.5 text-[#1D9E75] bg-[#1D9E75]/10 px-3 py-1.5 rounded-full border border-[#1D9E75]/20">
-            <ShieldCheck size={11} /> Demo Health
+            <ShieldCheck size={11} /> Seeded Health
           </div>
           <div className="flex items-center gap-1.5 text-[#C9A84C] bg-[#C9A84C]/10 px-3 py-1.5 rounded-full border border-[#C9A84C]/20">
             <Cpu size={11} /> Demo Swarm
           </div>
           <div className="flex items-center gap-1.5 text-blue-400 bg-blue-400/10 px-3 py-1.5 rounded-full border border-blue-400/20">
-            <Globe size={11} /> 6 Nodes
+            <Globe size={11} /> 6 Seeded Nodes
           </div>
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function KineticPage() {
           <div className="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between bg-[#111111]/50 shrink-0">
             <div className="flex items-center gap-2">
               <Terminal size={12} className="text-[#C9A84C]" />
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#B8B0A0]">Agentic Activity Log</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#B8B0A0]">Seeded Activity Log</span>
             </div>
             <RefreshCw size={11} className="text-[#C9A84C] animate-spin" style={{ animationDuration: '3s' }} />
           </div>
@@ -238,8 +238,8 @@ export default function KineticPage() {
           <div className="grid grid-cols-3 gap-0 border-b border-[#C9A84C]/10 shrink-0">
             {[
               { label: 'Demo GMV', value: `₹${(liveGMV / 100000).toFixed(1)}L`, color: 'text-[#C9A84C]' },
-              { label: 'Lead Velocity', value: `${liveLeads} LPM`, color: 'text-blue-400' },
-              { label: 'Risk Factor', value: '0.02 LOW', color: 'text-[#1D9E75]' },
+              { label: 'Seeded Leads', value: `${liveLeads} LPM`, color: 'text-blue-400' },
+              { label: 'Review Load', value: 'LOW', color: 'text-[#1D9E75]' },
             ].map((stat, i) => (
               <div key={i} className="py-5 px-6 border-r border-[#C9A84C]/10 last:border-r-0">
                 <div className="text-[8px] font-black uppercase tracking-[0.2em] text-[#4A453E] mb-2">{stat.label}</div>
@@ -283,7 +283,7 @@ export default function KineticPage() {
                 <div className="text-xl font-black text-[#C9A84C] font-mono tracking-tighter">₹1,25,00,000</div>
               </div>
               <div className="text-[8px] font-mono text-[#1D9E75] flex items-center gap-1">
-                <TrendingUp size={10} /> +18% vs last month
+                <TrendingUp size={10} /> Demo forecast from seeded pipeline
               </div>
             </div>
             <div className="h-14 flex items-end gap-1.5">
@@ -361,9 +361,9 @@ export default function KineticPage() {
               <div className="text-[7px] font-mono uppercase tracking-[0.15em] text-[#4A453E] mb-2">Last AI Decision</div>
               <div className="bg-[#111111] rounded-xl border border-[#C9A84C]/10 p-3">
                 <div className="text-[9px] text-[#B8B0A0] font-body leading-relaxed">
-                  Bidding Agent switched from Hyatt Dubai to JW Marriott. Margin impact: +2.1%. Client unaffected.
+                  Demo decision card: the Dubai bleisure case stays on the premium hold path, with the fallback option staged if needed.
                 </div>
-                <div className="text-[7px] font-mono text-[#4A453E] mt-1.5">Confidence: 94% · 3m ago</div>
+                <div className="text-[7px] font-mono text-[#4A453E] mt-1.5">Confidence: 94% · seeded case</div>
               </div>
             </div>
 
