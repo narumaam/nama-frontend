@@ -110,6 +110,8 @@ const REGIONAL_COMMERCE = [
   {
     market: "India",
     language: "English + Hindi",
+    baseCurrency: "INR",
+    extraCurrencies: "AED, USD, EUR",
     billingCurrency: "INR",
     gateway: "Razorpay",
     note: "Use GST-aware invoicing, INR subscription pricing, and domestic payment flow for Indian agencies.",
@@ -117,6 +119,8 @@ const REGIONAL_COMMERCE = [
   {
     market: "UAE / Middle East",
     language: "English + Arabic",
+    baseCurrency: "AED",
+    extraCurrencies: "INR, USD, EUR",
     billingCurrency: "AED",
     gateway: "Stripe",
     note: "Present AED pricing, Arabic-ready customer copy, and a cross-border payment rail for faster checkout.",
@@ -124,6 +128,8 @@ const REGIONAL_COMMERCE = [
   {
     market: "Europe",
     language: "English + regional fallback",
+    baseCurrency: "EUR",
+    extraCurrencies: "USD, GBP, INR",
     billingCurrency: "EUR",
     gateway: "Stripe",
     note: "Show EUR plans, VAT-aware billing, and region-appropriate policy wording.",
@@ -131,11 +137,42 @@ const REGIONAL_COMMERCE = [
   {
     market: "US / Global",
     language: "English",
+    baseCurrency: "USD",
+    extraCurrencies: "EUR, GBP, INR",
     billingCurrency: "USD",
     gateway: "Stripe",
     note: "Use USD-led subscription pricing with global card routing and standard enterprise billing.",
   },
 ];
+
+const FX_CONTROL_STACK = [
+  {
+    title: "Rate source",
+    value: "Currency converter API",
+    detail: "Fetch live FX rates first, so the platform is anchored to an external source instead of hard-coded values.",
+  },
+  {
+    title: "Safety buffer",
+    value: "+2.5%",
+    detail: "Add a buffer on top of the live rate to protect margin when quotes need a small cushion.",
+  },
+  {
+    title: "Manual override",
+    value: "Enabled",
+    detail: "Tenant admins can lock a custom exchange rate whenever a market wants tighter control.",
+  },
+  {
+    title: "Fallback",
+    value: "Last known rate",
+    detail: "If the API is unavailable, keep the checkout moving with the last accepted rate snapshot.",
+  },
+];
+
+const BASE_CURRENCY_MODEL = {
+  base: "INR",
+  enabled: ["AED", "USD", "EUR", "GBP"],
+  note: "One accounting currency powers reporting and billing, while additional selling currencies stay available for quotes and checkout.",
+};
 
 const LOCALIZATION_RULES = [
   "Detect billing country at tenant onboarding and default the subscription currency from that market.",
@@ -262,8 +299,9 @@ export default function AdminPage() {
                     <div className="mt-1 text-xs leading-relaxed text-[#B8B0A0]">{region.note}</div>
                   </div>
                   <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <Chip icon={<BadgeIndianRupee size={10} />} text={`Base ${region.baseCurrency}`} />
+                    <Chip icon={<Sparkles size={10} />} text={`Extras ${region.extraCurrencies}`} />
                     <Chip icon={<Languages size={10} />} text={region.language} />
-                    <Chip icon={<BadgeIndianRupee size={10} />} text={region.billingCurrency} />
                     <Chip icon={<Landmark size={10} />} text={region.gateway} />
                   </div>
                 </div>
@@ -275,7 +313,7 @@ export default function AdminPage() {
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="mb-5 flex items-center gap-2">
             <Globe2 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Localization Controls</h2>
+            <h2 className="text-lg font-black text-[#F5F0E8]">Localization & FX Controls</h2>
           </div>
           <div className="space-y-3">
             {LOCALIZATION_RULES.map((rule) => (
@@ -310,6 +348,31 @@ export default function AdminPage() {
               detail="Use live conversion API rates by default, add a safety buffer if desired, or let the tenant manually lock a custom rate."
               icon={<Globe size={14} />}
             />
+          </div>
+          <div className="mt-5 rounded-3xl border border-[#C9A84C]/15 bg-[#0A0A0A] p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <Globe size={14} className="text-[#C9A84C]" />
+              <h3 className="text-sm font-black text-[#F5F0E8]">FX Rate Stack</h3>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {FX_CONTROL_STACK.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{item.title}</div>
+                  <div className="mt-1 text-base font-black text-[#F5F0E8]">{item.value}</div>
+                  <div className="mt-2 text-xs leading-relaxed text-[#B8B0A0]">{item.detail}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4">
+              <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Base currency model</div>
+              <div className="text-sm leading-relaxed text-[#B8B0A0]">{BASE_CURRENCY_MODEL.note}</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Chip icon={<BadgeIndianRupee size={10} />} text={`Base ${BASE_CURRENCY_MODEL.base}`} />
+                {BASE_CURRENCY_MODEL.enabled.map((currency) => (
+                  <Chip key={currency} icon={<Sparkles size={10} />} text={currency} />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -398,6 +461,12 @@ export default function AdminPage() {
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
               Say “platform control tower” and “demo-safe Super Admin surface.” Do not imply that live billing, provisioning,
               or provider controls are fully automated today unless they really are.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">FX explanation</div>
+            <p className="text-sm leading-relaxed text-[#B8B0A0]">
+              Explain that NAMA uses one base currency for reporting and subscriptions, can sell in additional currencies, and can either take live rates from the converter API, add a buffer, or lock a manual rate if the business wants control.
             </p>
           </div>
         </div>
