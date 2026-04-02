@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import (
@@ -51,4 +53,8 @@ def read_root():
 
 @app.get("/api/v1/health")
 def health_check():
-    return {"status": "healthy", "timestamp": "2026-04-02", "birthday": "Happy Birthday Narayan!"}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "demo",
+    }

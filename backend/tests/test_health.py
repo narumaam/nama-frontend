@@ -17,7 +17,8 @@ def test_global_health_endpoint_is_platform_health() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "healthy"
-    assert body["timestamp"] == "2026-04-02"
+    assert body["mode"] == "demo"
+    assert body["timestamp"].startswith("2026-04-02T")
 
 
 def test_auth_health_is_scoped_under_auth() -> None:

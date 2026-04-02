@@ -96,7 +96,9 @@ export default function DashboardPage() {
           <Sparkles size={16} className="text-[#C9A84C]" />
           <div>
             <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Demo Mode</div>
-            <div className="text-sm font-black text-[#F5F0E8]">Seeded fallback enabled</div>
+            <div className="text-sm font-black text-[#F5F0E8]">
+              {loading ? "Syncing seeded cases..." : "Seeded cases ready"}
+            </div>
           </div>
         </div>
       </div>
@@ -113,7 +115,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Demo Cases</h2>
-            <p className="text-[#B8B0A0] text-sm mt-1">Tap any card to open the full deal view and walk the quote pipeline with deterministic demo data.</p>
+              <p className="text-[#B8B0A0] text-sm mt-1">Tap any card to open the full deal view and walk the quote pipeline with deterministic demo data.</p>
             </div>
             <Link href="/dashboard/autopilot" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
               Open Autopilot <ChevronRight size={14} />
