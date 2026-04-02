@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -24,7 +24,16 @@ import {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
+  const [demoCompany, setDemoCompany] = useState("Nair Luxury Escapes");
+  const [demoOperator, setDemoOperator] = useState("Demo Operator");
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setDemoCompany(window.localStorage.getItem("nama-demo-company") || "Nair Luxury Escapes");
+    setDemoOperator(window.localStorage.getItem("nama-demo-operator") || "Demo Operator");
+  }, []);
 
   const navGroups = [
     {
@@ -145,8 +154,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="w-8 h-8 rounded-full bg-[#1A1A1A] flex items-center justify-center font-bold border border-[#C9A84C]/20 text-[#C9A84C] text-xs shrink-0">RI</div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="text-[11px] font-bold truncate text-[#F5F0E8]">Radhika Iyer</p>
-              <p className="text-[8px] text-[#4A453E] truncate uppercase tracking-widest font-mono">DMC Admin</p>
+              <p className="text-[11px] font-bold truncate text-[#F5F0E8]">{demoOperator}</p>
+              <p className="text-[8px] text-[#4A453E] truncate uppercase tracking-widest font-mono">{demoCompany}</p>
             </div>
           )}
         </div>
@@ -166,17 +175,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
           </div>
           <div className="flex items-center gap-5">
-            <button className="relative p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+            <button
+              type="button"
+              onClick={() => setShowHeaderNotice(showHeaderNotice === "notifications" ? null : "notifications")}
+              className="relative p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors"
+            >
               <Bell size={18} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-[#0A0A0A] animate-pulse" />
             </button>
-            <button className="p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+            <button
+              type="button"
+              onClick={() => setShowHeaderNotice(showHeaderNotice === "settings" ? null : "settings")}
+              className="p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors"
+            >
               <Settings size={18} />
             </button>
           </div>
         </header>
 
         <div className="p-8 bg-[#0A0A0A] min-h-[calc(100vh-60px)]">
+          {showHeaderNotice && (
+            <div className="mb-6 rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-5 py-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">
+                {showHeaderNotice === "notifications" ? "Notifications Snapshot" : "Demo Workspace Settings"}
+              </p>
+              <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
+                {showHeaderNotice === "notifications"
+                  ? `Three high-priority actions are queued for ${demoCompany}: follow up on Maldives, confirm Kerala payment, and send the Dubai executive quote.`
+                  : `This workspace is currently branded for ${demoCompany}, operated by ${demoOperator}. Live provider credentials can be connected later without changing the operator flow.`}
+              </p>
+            </div>
+          )}
           {children}
         </div>
       </main>

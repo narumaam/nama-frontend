@@ -324,7 +324,8 @@ const LOCAL_CASES: Record<string, DemoCase> = {
 export default function DealsClientPage() {
   const params = useSearchParams();
   const leadParam = params.get("lead") ?? "1";
-  const slugParam = params.get("case") ?? LEAD_FALLBACK_MAP[leadParam] ?? "maldives-honeymoon";
+  const resolvedSlug = params.get("case") ?? LEAD_FALLBACK_MAP[leadParam] ?? "maldives-honeymoon";
+  const slugParam = LOCAL_CASES[resolvedSlug] ? resolvedSlug : "maldives-honeymoon";
 
   const [data, setData] = useState<DemoCase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -336,9 +337,9 @@ export default function DealsClientPage() {
       try {
         const res = await fetch(apiUrl(`/demo/case/${slugParam}`));
         const json = await res.json();
-        if (!cancelled) setData(json);
+        if (!cancelled) setData(json?.slug ? json : LOCAL_CASES[slugParam]);
       } catch {
-        if (!cancelled) setData(LOCAL_CASES[slugParam] ?? null);
+        if (!cancelled) setData(LOCAL_CASES[slugParam]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -354,7 +355,20 @@ export default function DealsClientPage() {
   }
 
   if (!data) {
-    return <div className="text-red-400 font-mono text-sm">Demo deal unavailable.</div>;
+    const fallback = LOCAL_CASES["maldives-honeymoon"];
+    return (
+      <div className="space-y-4 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <p className="text-red-400 font-mono text-sm">Demo deal unavailable. Loading the primary Maldives showcase instead.</p>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/dashboard/deals?lead=1" className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
+            Open {fallback.guest_name}
+          </Link>
+          <Link href="/dashboard/autopilot" className="rounded-full border border-white/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#B8B0A0]">
+            Back to Autopilot
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
