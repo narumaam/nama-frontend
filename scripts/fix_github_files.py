@@ -34,14 +34,16 @@ def update_github_file(path, local_content_path):
 
 # Define files to fix
 files_to_fix = {
-    "main.py": "main.py",
-    "Procfile": "Procfile",
-    "requirements.txt": "requirements.txt",
     "vercel.json": "vercel.json",
-    "nixpacks.toml": "nixpacks.toml",
+    "backend/Procfile": "backend/Procfile",
+    "backend/requirements.txt": "backend/requirements.txt",
+    "backend/nixpacks.toml": "backend/nixpacks.toml",
+    "backend/main.py": "backend/main.py",
+    "backend/railway.json": "backend/railway.json",
     "src/app/layout.tsx": "src/app/layout.tsx",
     "src/app/page.tsx": "src/app/page.tsx",
-    "src/app/register/page.tsx": "src/app/register/page.tsx"
+    "src/app/register/page.tsx": "src/app/register/page.tsx",
+    "src/lib/api.ts": "src/lib/api.ts"
 }
 
 if __name__ == "__main__":

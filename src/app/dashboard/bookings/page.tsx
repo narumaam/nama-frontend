@@ -15,7 +15,8 @@ import {
   Receipt, 
   ChevronRight,
   Plane,
-  HelpCircle
+  HelpCircle,
+  type LucideIcon,
 } from 'lucide-react';
 
 export default function BookingsPage() {
@@ -159,7 +160,7 @@ export default function BookingsPage() {
                 <button className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-[#C9A84C]"><Plus size={14} /></button>
               </div>
               <div className="bg-[#1D9E75]/5 p-6 rounded-2xl border border-[#1D9E75]/20">
-                <p className="text-sm text-[#F5F0E8] leading-relaxed italic opacity-80">"Please include airport transfers in the final quote."</p>
+                <p className="text-sm text-[#F5F0E8] leading-relaxed italic opacity-80">&ldquo;Please include airport transfers in the final quote.&rdquo;</p>
                 <p className="text-[9px] text-[#1D9E75] font-black font-mono mt-4 uppercase tracking-[0.2em]">Live WhatsApp Update</p>
               </div>
               <button className="w-full py-5 border-2 border-dashed border-[#C9A84C]/15 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#B8B0A0] hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/30 transition-all flex items-center justify-center gap-2 font-mono">
@@ -182,7 +183,29 @@ export default function BookingsPage() {
   );
 }
 
-function FlightRow({ airline, flightNo, route, depTime, depDate, arrTime, arrDate, cabin, pnr, logo }) {
+function FlightRow({
+  airline,
+  flightNo,
+  route,
+  depTime,
+  depDate,
+  arrTime,
+  arrDate,
+  cabin,
+  pnr,
+  logo,
+}: {
+  airline: string;
+  flightNo: string;
+  route: string;
+  depTime: string;
+  depDate: string;
+  arrTime: string;
+  arrDate: string;
+  cabin: string;
+  pnr: string;
+  logo: string;
+}) {
   return (
     <tr className="hover:bg-[#1A1A1A]/50 transition-all group cursor-pointer">
       <td className="px-6 py-6">
@@ -216,7 +239,13 @@ function FlightRow({ airline, flightNo, route, depTime, depDate, arrTime, arrDat
   );
 }
 
-function RequirementItem({ label, status }) {
+function RequirementItem({
+  label,
+  status,
+}: {
+  label: string;
+  status: 'check' | 'pending';
+}) {
   return (
     <li className="flex items-start gap-3 text-xs">
       {status === 'check' ? (
@@ -229,7 +258,13 @@ function RequirementItem({ label, status }) {
   );
 }
 
-function ActionLink({ icon: Icon, label }) {
+function ActionLink({
+  icon: Icon,
+  label,
+}: {
+  icon: LucideIcon;
+  label: string;
+}) {
   return (
     <button className="w-full flex items-center justify-between bg-[#1A1A1A] px-5 py-4 rounded-2xl border border-[#C9A84C]/10 hover:border-[#C9A84C] transition-all group shadow-sm active:scale-95">
       <div className="flex items-center gap-4">

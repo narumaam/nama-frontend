@@ -1,5 +1,11 @@
 import asyncio
 import json
+import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1] / "backend"))
+
 from app.agents.triage import QueryTriageAgent
 from app.agents.itinerary import ItineraryAgent
 from app.schemas.queries import RawQuery, QuerySource
@@ -55,7 +61,6 @@ async def run_end_to_end_test():
     print(itinerary.agent_reasoning)
 
 if __name__ == "__main__":
-    import os
     # Mocking environment for the test script
     os.environ["DATABASE_URL"] = "sqlite:///./test.db"
     os.environ["SECRET_KEY"] = "test-secret"

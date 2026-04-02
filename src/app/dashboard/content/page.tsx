@@ -194,7 +194,23 @@ export default function ContentLibraryPage() {
   );
 }
 
-function StatCard({ label, value, trend, color, trendColor, isCheck = false, isIcon = null }) {
+function StatCard({
+  label,
+  value,
+  trend,
+  color,
+  trendColor,
+  isCheck = false,
+  isIcon = null,
+}: {
+  label: string;
+  value: string;
+  trend: string;
+  color: string;
+  trendColor: string;
+  isCheck?: boolean;
+  isIcon?: React.ReactNode | null;
+}) {
   return (
     <div className={`bg-[#111111] p-8 rounded-3xl border-l-4 ${color} shadow-xl group border border-y-[#C9A84C]/10 border-r-[#C9A84C]/10 hover:scale-[1.02] transition-transform`}>
       <p className="text-[9px] font-black font-mono uppercase tracking-[0.3em] text-[#B8B0A0] mb-3 opacity-60">{label}</p>
@@ -207,7 +223,35 @@ function StatCard({ label, value, trend, color, trendColor, isCheck = false, isI
   );
 }
 
-function AssetRow({ name, id, type, region, version, rating, status, statusColor, icon, typeBg, typeText, typeBorder, pulse = false }) {
+function AssetRow({
+  name,
+  id,
+  type,
+  region,
+  version,
+  rating,
+  status,
+  statusColor,
+  icon,
+  typeBg,
+  typeText,
+  typeBorder,
+  pulse = false,
+}: {
+  name: string;
+  id: string;
+  type: string;
+  region: string;
+  version: string;
+  rating: string;
+  status: string;
+  statusColor: string;
+  icon: React.ReactNode;
+  typeBg: string;
+  typeText: string;
+  typeBorder: string;
+  pulse?: boolean;
+}) {
   return (
     <tr className="hover:bg-[#C9A84C]/5 transition-all group cursor-pointer">
       <td className="px-8 py-6">

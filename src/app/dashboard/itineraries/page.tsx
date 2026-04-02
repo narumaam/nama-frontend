@@ -16,7 +16,8 @@ import {
   Ticket, 
   Plus,
   ChevronRight,
-  Info
+  Info,
+  type LucideIcon,
 } from 'lucide-react';
 
 export default function ItinerariesPage() {
@@ -184,7 +185,7 @@ export default function ItinerariesPage() {
                           <span className="flex items-center gap-2 uppercase tracking-widest"><Clock size={14} className="text-[#C9A84C]" /> 18:30 - 20:00</span>
                           <span className="flex items-center gap-2 uppercase tracking-widest"><Ticket size={14} className="text-[#C9A84C]" /> Fast-Track Entry</span>
                         </div>
-                        <p className="text-[#B8B0A0] text-xs mt-4 font-body leading-relaxed max-w-md opacity-80">Sunset visit to 'At the Top' levels 124 & 125. Breathtaking 360-degree views.</p>
+                        <p className="text-[#B8B0A0] text-xs mt-4 font-body leading-relaxed max-w-md opacity-80">Sunset visit to &lsquo;At the Top&rsquo; levels 124 &amp; 125. Breathtaking 360-degree views.</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -212,7 +213,25 @@ export default function ItinerariesPage() {
   );
 }
 
-function TimelineBlock({ icon: Icon, type, title, time, location, price, description, accentColor }) {
+function TimelineBlock({
+  icon: Icon,
+  type,
+  title,
+  time,
+  location,
+  price,
+  description,
+  accentColor,
+}: {
+  icon: LucideIcon;
+  type: string;
+  title: string;
+  time: string;
+  location: string;
+  price: string;
+  description: string;
+  accentColor?: string;
+}) {
   return (
     <div className="relative pl-14 group">
       <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-[#111111] border border-[#C9A84C]/30 flex items-center justify-center text-[#C9A84C] z-10 shadow-[0_0_15px_rgba(201,168,76,0.1)] group-hover:scale-110 transition-transform">
@@ -236,7 +255,13 @@ function TimelineBlock({ icon: Icon, type, title, time, location, price, descrip
   );
 }
 
-const Users = ({ size, className }) => (
+const Users = ({
+  size = 24,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) => (
   <svg 
     width={size} 
     height={size} 

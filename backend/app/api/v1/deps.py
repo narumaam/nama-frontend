@@ -7,7 +7,11 @@ from app.models.auth import User, Tenant
 import os
 
 ALGORITHM = "HS256"
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-for-jwt")
+APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY and APP_ENV != "development":
+    raise RuntimeError("SECRET_KEY must be configured outside development.")
+SECRET_KEY = SECRET_KEY or "dev-only-secret-key"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login")
 

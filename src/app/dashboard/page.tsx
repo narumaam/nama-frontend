@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { apiUrl } from '@/lib/api';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -10,10 +11,36 @@ import {
   Plus,
   ArrowRight,
   Zap,
-  Activity
+  Activity,
+  type LucideIcon,
 } from 'lucide-react';
 
-const StatCard = ({ label, value, trend, status, icon: Icon }) => (
+type DashboardMetric = {
+  value: number | string;
+  trend: number | string;
+  status: 'UP' | 'DOWN' | string;
+};
+
+type DashboardSummary = {
+  gmv?: DashboardMetric;
+  conversion_rate?: DashboardMetric;
+  total_leads?: DashboardMetric;
+  active_itineraries?: DashboardMetric;
+};
+
+const StatCard = ({
+  label,
+  value,
+  trend,
+  status,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  trend: number | string;
+  status: 'UP' | 'DOWN' | string;
+  icon: LucideIcon;
+}) => (
   <div className="bg-[#111111] p-6 rounded-2xl border border-[#C9A84C]/15 shadow-sm hover:border-[#C9A84C]/30 transition-all group">
     <div className="flex justify-between items-start mb-4">
       <div className="w-12 h-12 bg-[#1A1A1A] rounded-xl flex items-center justify-center text-[#C9A84C] border border-[#C9A84C]/10 group-hover:scale-110 transition-transform">
@@ -32,13 +59,13 @@ const StatCard = ({ label, value, trend, status, icon: Icon }) => (
 );
 
 export default function DashboardPage() {
-  const [summary, setSummary] = useState(null);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const response = await fetch('https://stunning-joy-production-87bb.app.railway.app/api/v1/analytics/dashboard', {
+        const response = await fetch(apiUrl('/analytics/dashboard'), {
           headers: { 'Authorization': 'Bearer test-token' }
         });
         const data = await response.json();

@@ -10,7 +10,11 @@ import os
 router = APIRouter()
 
 # Simple JWT Logic for prototype
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-for-jwt")
+APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY and APP_ENV != "development":
+    raise RuntimeError("SECRET_KEY must be configured outside development.")
+SECRET_KEY = SECRET_KEY or "dev-only-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -41,6 +45,6 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/health")
+@router.get("/auth/health")
 def health_check():
     return {"status": "ready", "module": "AUTH"}

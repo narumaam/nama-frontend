@@ -218,7 +218,27 @@ export default function AnalyticsPage() {
   );
 }
 
-function KPICard({ label, value, change, comparison, icon, borderColor, isPositive, secondary = false, error = false }) {
+function KPICard({
+  label,
+  value,
+  change,
+  comparison,
+  icon,
+  borderColor,
+  isPositive,
+  secondary = false,
+  error = false,
+}: {
+  label: string;
+  value: string;
+  change: string;
+  comparison: string;
+  icon: React.ReactNode;
+  borderColor: string;
+  isPositive: boolean;
+  secondary?: boolean;
+  error?: boolean;
+}) {
   return (
     <div className={`bg-[#111111] p-6 rounded-xl border-t border-r border-b border-r-[#C9A84C]/10 border-b-[#C9A84C]/10 border-t-[#C9A84C]/5 border-l-[3px] ${borderColor} relative overflow-hidden group hover:bg-[#151515] transition-all shadow-xl`}>
       <div className="absolute -bottom-4 -right-4 transition-transform group-hover:scale-110">
@@ -239,7 +259,27 @@ function KPICard({ label, value, change, comparison, icon, borderColor, isPositi
   );
 }
 
-function Bar({ month, height, actualHeight, targetOffset, targetHeight, isCurrent = false, animate = false, isProjection = false, projectionHeight }) {
+function Bar({
+  month,
+  height,
+  actualHeight,
+  targetOffset,
+  targetHeight,
+  isCurrent = false,
+  animate = false,
+  isProjection = false,
+  projectionHeight,
+}: {
+  month: string;
+  height: string;
+  actualHeight?: string;
+  targetOffset?: string;
+  targetHeight?: string;
+  isCurrent?: boolean;
+  animate?: boolean;
+  isProjection?: boolean;
+  projectionHeight?: string;
+}) {
   return (
     <div className="flex flex-col items-center flex-1 group">
       <div className={`w-full bg-[#1A1A1A] rounded-t-sm relative ${height} mb-2 transition-all group-hover:bg-[#C9A84C]/5`}>
@@ -259,7 +299,17 @@ function Bar({ month, height, actualHeight, targetOffset, targetHeight, isCurren
   );
 }
 
-function ProgressBar({ label, value, color, glowColor }) {
+function ProgressBar({
+  label,
+  value,
+  color,
+  glowColor,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  glowColor?: string;
+}) {
   return (
     <div>
       <div className="flex justify-between text-[9px] font-mono mb-2 uppercase tracking-widest">
@@ -276,7 +326,33 @@ function ProgressBar({ label, value, color, glowColor }) {
   );
 }
 
-function AgentRow({ name, role, initials, value, cvr, status, statusColor, bgColor, borderColor, efficiency, efficiencyColor, initialsColor }) {
+function AgentRow({
+  name,
+  role,
+  initials,
+  value,
+  cvr,
+  status,
+  statusColor,
+  bgColor,
+  borderColor,
+  efficiency,
+  efficiencyColor,
+  initialsColor,
+}: {
+  name: string;
+  role: string;
+  initials: string;
+  value: string;
+  cvr: string;
+  status: string;
+  statusColor: string;
+  bgColor: string;
+  borderColor: string;
+  efficiency: number;
+  efficiencyColor: string;
+  initialsColor: string;
+}) {
   return (
     <tr className="group hover:bg-[#1A1A1A] transition-colors">
       <td className="py-4">
@@ -304,7 +380,21 @@ function AgentRow({ name, role, initials, value, cvr, status, statusColor, bgCol
   );
 }
 
-function SegmentCard({ title, roi, margin, ticket, color, roiColor }) {
+function SegmentCard({
+  title,
+  roi,
+  margin,
+  ticket,
+  color,
+  roiColor,
+}: {
+  title: string;
+  roi: string;
+  margin: string;
+  ticket: string;
+  color: string;
+  roiColor: string;
+}) {
   return (
     <div className={`p-4 bg-[#111111] rounded border border-[#C9A84C]/5 border-l-4 ${color} hover:bg-[#151515] transition-all group`}>
       <div className="flex justify-between items-start mb-2">

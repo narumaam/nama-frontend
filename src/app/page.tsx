@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { apiUrl } from '@/lib/api';
 import {
   Zap, ArrowRight, Brain, MapPin, Target, CreditCard,
   MessageSquare, Shield, CheckCircle, ChevronRight,
@@ -15,7 +16,7 @@ interface HealthStatus { status: 'online' | 'degraded' | 'offline'; }
 function SystemStatus() {
   const [health, setHealth] = useState<HealthStatus['status']>('online');
   useEffect(() => {
-    fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/health')
+    fetch(apiUrl('/health'))
       .then(r => setHealth(r.ok ? 'online' : 'degraded'))
       .catch(() => setHealth('offline'));
   }, []);
@@ -67,7 +68,7 @@ export default function LandingPage() {
   async function handleTriage() {
     setLoading(true); setStatus('Analyzing...');
     try {
-      const r = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/queries/ingest', {
+      const r = await fetch(apiUrl('/queries/ingest'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source: 'DIRECT', content: query, sender_id: 'web-visitor', tenant_id: 1 }),
@@ -126,13 +127,13 @@ export default function LandingPage() {
           <h1 className="text-[64px] md:text-[88px] font-black tracking-[-0.04em] leading-none mb-8 font-headline">
             Travel companies<br />
             <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(90deg, #C9A84C, #1D9E75, #C9A84C)' }}>
-              don't run software.
+              don&apos;t run software.
             </span><br />
             Software runs them.
           </h1>
 
           <p className="text-lg text-[#B8B0A0] max-w-2xl mx-auto leading-relaxed mb-12 font-body">
-            NAMA is the world's first Autonomous Travel OS. AI agents handle every lead, itinerary, negotiation, and booking — autonomously. You only touch what needs you.
+            NAMA is the world&apos;s first Autonomous Travel OS. AI agents handle every lead, itinerary, negotiation, and booking - autonomously. You only touch what needs you.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-20">
@@ -171,7 +172,7 @@ export default function LandingPage() {
               No tasks. No reminders.<br />No workflow.
             </h2>
             <p className="text-[#B8B0A0] max-w-xl mx-auto text-sm leading-relaxed font-body">
-              Every CRM is built for humans to do work. NAMA is built for AI to do the work and bring you only what it can't handle alone.
+              Every CRM is built for humans to do work. NAMA is built for AI to do the work and bring you only what it can&apos;t handle alone.
             </p>
           </div>
 
@@ -318,7 +319,7 @@ export default function LandingPage() {
                     <Bot size={10} className="text-[#C9A84C]" />
                     <span className="text-[8px] font-mono uppercase tracking-widest text-[#C9A84C] font-black">AI Suggested Reply</span>
                   </div>
-                  <p className="text-[10px] text-[#B8B0A0] leading-relaxed font-body italic">"{result.reply}"</p>
+                  <p className="text-[10px] text-[#B8B0A0] leading-relaxed font-body italic">&ldquo;{result.reply}&rdquo;</p>
                 </div>
               </div>
             </div>

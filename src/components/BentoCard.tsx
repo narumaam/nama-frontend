@@ -1,7 +1,15 @@
 import React from 'react';
 
-export const BentoCard = ({ type, title, description, price, currency }) => {
-  const typeIcons = {
+type BentoCardProps = {
+  type: 'HOTEL' | 'FLIGHT' | 'TRANSFER' | 'ACTIVITY' | 'MEAL' | string;
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+};
+
+export const BentoCard = ({ type, title, description, price, currency }: BentoCardProps) => {
+  const typeIcons: Record<string, string> = {
     HOTEL: '🏨',
     FLIGHT: '✈️',
     TRANSFER: '🚗',

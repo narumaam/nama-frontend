@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '@/lib/api';
 import { 
   Kanban, 
   List, 
@@ -15,15 +16,15 @@ import {
 
 export default function LeadsPage() {
   const [activeView, setActiveView] = useState('kanban');
-  const [leads, setLeads] = useState([]);
+  const [leads, setLeads] = useState<{ id: string; status: string }[]>([]);
 
   useEffect(() => {
     const fetchLeads = async () => {
       try {
-        const response = await fetch('https://stunning-joy-production-87bb.app.railway.app/api/v1/leads');
+        const response = await fetch(apiUrl('/queries/health'));
         if (response.ok) {
           const data = await response.json();
-          setLeads(data);
+          setLeads([{ id: 'queries-health', status: data.status || 'ready' }]);
         }
       } catch (error) {
         console.error("Error fetching leads:", error);
@@ -161,7 +162,21 @@ export default function LeadsPage() {
   );
 }
 
-function Column({ title, count, children, accent = "text-[#F5F0E8]", muted = false, color }) {
+function Column({
+  title,
+  count,
+  children,
+  accent = "text-[#F5F0E8]",
+  muted = false,
+  color,
+}: {
+  title: string;
+  count: number | string;
+  children: React.ReactNode;
+  accent?: string;
+  muted?: boolean;
+  color?: string;
+}) {
   return (
     <div className={`flex flex-col h-full bg-[#111111] rounded-2xl border border-[#C9A84C]/10 ${muted ? 'opacity-40' : ''} shadow-sm`}>
       <div className={`p-4 border-b border-[#C9A84C]/10 flex justify-between items-center ${color ? `border-t-2 ${color}` : ''}`}>
@@ -175,7 +190,29 @@ function Column({ title, count, children, accent = "text-[#F5F0E8]", muted = fal
   );
 }
 
-function LeadCard({ title, company, value, tag, tagColor, tagBg, initials, avatar, time, status }) {
+function LeadCard({
+  title,
+  company,
+  value,
+  tag,
+  tagColor,
+  tagBg,
+  initials,
+  avatar,
+  time,
+  status,
+}: {
+  title: string;
+  company: string;
+  value: string;
+  tag: string;
+  tagColor: string;
+  tagBg: string;
+  initials?: string;
+  avatar?: string;
+  time?: string;
+  status?: string;
+}) {
   return (
     <div className="bg-[#1A1A1A] p-4 rounded-xl border border-transparent hover:border-[#C9A84C]/30 transition-all group cursor-pointer relative overflow-hidden shadow-sm">
       <div className="flex justify-between items-start mb-3">
@@ -205,7 +242,19 @@ function LeadCard({ title, company, value, tag, tagColor, tagBg, initials, avata
   );
 }
 
-function StatItem({ label, value, progress, sub, subColor }) {
+function StatItem({
+  label,
+  value,
+  progress,
+  sub,
+  subColor,
+}: {
+  label: string;
+  value: string;
+  progress?: number;
+  sub?: string;
+  subColor?: string;
+}) {
   return (
     <div className="flex flex-col">
       <span className="text-[9px] font-mono text-[#B8B0A0] uppercase tracking-widest font-black opacity-60 mb-1">{label}</span>

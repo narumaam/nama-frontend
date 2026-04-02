@@ -1,8 +1,9 @@
 import asyncio
 import httpx
 from datetime import datetime
+import os
 
-BACKEND_URL = "https://stunning-joy-production-87bb.up.railway.app"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 async def audit_modules():
     print("\n" + "="*60)

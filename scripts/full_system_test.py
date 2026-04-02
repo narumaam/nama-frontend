@@ -1,6 +1,11 @@
 import asyncio
 import json
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1] / "backend"))
+
 from app.agents.triage import QueryTriageAgent
 from app.agents.itinerary import ItineraryAgent
 from app.agents.bidding import BiddingAgent

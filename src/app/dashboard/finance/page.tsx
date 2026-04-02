@@ -221,7 +221,13 @@ export default function FinancePage() {
   );
 }
 
-function LegendItem({ color, label }) {
+function LegendItem({
+  color,
+  label,
+}: {
+  color: string;
+  label: string;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span className={`w-2 h-2 rounded-sm ${color}`}></span>
@@ -230,11 +236,27 @@ function LegendItem({ color, label }) {
   );
 }
 
-function ChartBar({ height, color }) {
+function ChartBar({
+  height,
+  color,
+}: {
+  height: string;
+  color: string;
+}) {
   return <div className={`flex-1 ${color} transition-all duration-500 rounded-t-sm ${height}`}></div>;
 }
 
-function FlowItem({ label, value, color, icon }) {
+function FlowItem({
+  label,
+  value,
+  color,
+  icon,
+}: {
+  label: string;
+  value: string;
+  color: string;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between group">
       <div>
@@ -246,7 +268,31 @@ function FlowItem({ label, value, color, icon }) {
   );
 }
 
-function TransactionRow({ date, entity, txnId, category, amount, amountColor, status, statusColor, bgColor, borderColor, pulse }) {
+function TransactionRow({
+  date,
+  entity,
+  txnId,
+  category,
+  amount,
+  amountColor,
+  status,
+  statusColor,
+  bgColor,
+  borderColor,
+  pulse = false,
+}: {
+  date: string;
+  entity: string;
+  txnId: string;
+  category: string;
+  amount: string;
+  amountColor: string;
+  status: string;
+  statusColor: string;
+  bgColor: string;
+  borderColor: string;
+  pulse?: boolean;
+}) {
   return (
     <tr className="hover:bg-[#1A1A1A] transition-all group">
       <td className="px-8 py-5 font-mono text-[10px] uppercase text-[#4A453E] font-bold">{date}</td>

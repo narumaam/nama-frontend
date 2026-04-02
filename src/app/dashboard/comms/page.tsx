@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Phone,
   MessageSquare,
-  History
+  History,
+  type LucideIcon,
 } from 'lucide-react';
 
 export default function CommsPage() {
@@ -110,7 +111,7 @@ export default function CommsPage() {
               <div className="text-right space-y-2">
                 <span className="text-[10px] text-[#1D9E75] uppercase font-black tracking-[0.2em] font-mono opacity-60">Arjun Sharma</span>
                 <div className="bg-[#C9A84C] p-6 rounded-3xl rounded-tr-sm text-sm leading-relaxed text-[#0A0A0A] font-body font-bold shadow-xl">
-                  Ah, that's frustrating. Is there anything available around 4 PM instead? I have a meeting at 7 PM.
+                  Ah, that&apos;s frustrating. Is there anything available around 4 PM instead? I have a meeting at 7 PM.
                 </div>
               </div>
             </div>
@@ -180,7 +181,23 @@ export default function CommsPage() {
   );
 }
 
-function QueueCard({ name, type, time, desc, active, dimmed, urgent }) {
+function QueueCard({
+  name,
+  type,
+  time,
+  desc,
+  active = false,
+  dimmed = false,
+  urgent = false,
+}: {
+  name: string;
+  type: string;
+  time: string;
+  desc: string;
+  active?: boolean;
+  dimmed?: boolean;
+  urgent?: boolean;
+}) {
   return (
     <div className={`p-5 rounded-2xl border transition-all cursor-pointer group shadow-sm ${
       active ? 'bg-[#C9A84C] border-[#C9A84C] text-[#0A0A0A]' : 
@@ -199,7 +216,21 @@ function QueueCard({ name, type, time, desc, active, dimmed, urgent }) {
   );
 }
 
-function KPICard({ label, value, change, icon: Icon, accent, progress }) {
+function KPICard({
+  label,
+  value,
+  change,
+  icon: Icon,
+  accent,
+  progress = false,
+}: {
+  label: string;
+  value: string;
+  change: string;
+  icon: LucideIcon;
+  accent: string;
+  progress?: boolean;
+}) {
   return (
     <div className="bg-[#111111] p-6 rounded-3xl border border-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all shadow-xl group">
       <div className="flex justify-between items-center mb-6">
@@ -221,7 +252,17 @@ function KPICard({ label, value, change, icon: Icon, accent, progress }) {
   );
 }
 
-function CampaignItem({ title, count, color, icon: Icon }) {
+function CampaignItem({
+  title,
+  count,
+  color,
+  icon: Icon,
+}: {
+  title: string;
+  count: string;
+  color: string;
+  icon: LucideIcon;
+}) {
   return (
     <div className={`bg-[#1A1A1A] p-4 rounded-2xl flex items-center justify-between border-l-4 ${color} hover:bg-[#111111] transition-all cursor-pointer group border-y border-r border-transparent hover:border-[#C9A84C]/20 shadow-sm`}>
       <div>

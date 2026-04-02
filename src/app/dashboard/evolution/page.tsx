@@ -15,7 +15,8 @@ import {
   Sparkles,
   Search,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  type LucideIcon,
 } from 'lucide-react';
 
 export default function EvolutionPage() {
@@ -184,7 +185,7 @@ export default function EvolutionPage() {
           {/* RSI Explanation */}
           <div className="bg-[#7B61FF]/5 border border-[#7B61FF]/20 rounded-3xl p-6">
             <p className="text-[10px] text-[#B8B0A0] leading-relaxed italic">
-              "The RSI Engine creates a state-aware architecture where the system autonomously improves its decision-making logic without human intervention, leading to compounding operational efficiency."
+              &ldquo;The RSI Engine creates a state-aware architecture where the system autonomously improves its decision-making logic without human intervention, leading to compounding operational efficiency.&rdquo;
             </p>
           </div>
         </div>
@@ -193,7 +194,21 @@ export default function EvolutionPage() {
   );
 }
 
-function StatCard({ label, value, sub, trend, icon: Icon, color = "text-[#F5F0E8]" }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  trend,
+  icon: Icon,
+  color = "text-[#F5F0E8]",
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  trend?: string;
+  icon: LucideIcon;
+  color?: string;
+}) {
   return (
     <div className="bg-[#111111] border border-[#C9A84C]/15 p-6 rounded-3xl shadow-xl hover:border-[#7B61FF]/30 transition-all group">
       <div className="flex justify-between items-start mb-4">
@@ -211,7 +226,17 @@ function StatCard({ label, value, sub, trend, icon: Icon, color = "text-[#F5F0E8
   );
 }
 
-function RSILogItem({ type, agent, msg, delta }: any) {
+function RSILogItem({
+  type,
+  agent,
+  msg,
+  delta,
+}: {
+  type: 'SUCCESS' | 'ADJUSTMENT' | 'DISCOVERY' | 'OPTIMIZATION';
+  agent: string;
+  msg: string;
+  delta: string;
+}) {
   const isAdjustment = type === 'ADJUSTMENT';
   return (
     <div className="flex gap-4 p-4 rounded-2xl border border-transparent hover:border-[#7B61FF]/10 hover:bg-[#1A1A1A]/50 transition-all cursor-default">
@@ -227,7 +252,13 @@ function RSILogItem({ type, agent, msg, delta }: any) {
   );
 }
 
-function ModelParam({ label, value }: any) {
+function ModelParam({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center justify-between p-3 border-b border-[#C9A84C]/5">
       <p className="text-[9px] font-black text-[#4A453E] uppercase tracking-widest font-mono">{label}</p>
@@ -236,7 +267,15 @@ function ModelParam({ label, value }: any) {
   );
 }
 
-function HealthItem({ label, status, color }: any) {
+function HealthItem({
+  label,
+  status,
+  color,
+}: {
+  label: string;
+  status: string;
+  color: string;
+}) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-[10px] font-black text-[#4A453E] uppercase tracking-widest font-mono">{label}</span>
