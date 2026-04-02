@@ -12,6 +12,7 @@ import {
   List,
   Mail,
   PhoneCall,
+  Search,
   Sparkles,
   Target,
   Users,
@@ -37,6 +38,9 @@ type LeadRecord = DemoCase & {
   nextActionAt: string;
   contactLabel: string;
   lastTouch: string;
+  company: string;
+  email: string;
+  phone: string;
 };
 
 const FALLBACK_CASES: DemoCase[] = [
@@ -79,6 +83,9 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
         nextActionAt: "Today · 09:30",
         contactLabel: "High-intent honeymoon lead",
         lastTouch: "Viewed itinerary 3 times in 90 minutes",
+        company: "Nair Luxury Escapes",
+        email: "meera@nairluxury.com",
+        phone: "+91 98765 11001",
       };
     }
     if (item.slug === "dubai-bleisure") {
@@ -91,6 +98,9 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
         nextActionAt: "Today · 11:00",
         contactLabel: "Corporate bleisure traveler",
         lastTouch: "Requested premium option set",
+        company: "Velocity Corporate Travel",
+        email: "arjun.mehta@velocitycorp.in",
+        phone: "+91 98110 33003",
       };
     }
     return {
@@ -102,6 +112,9 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
       nextActionAt: "Today · 14:30",
       contactLabel: "Family pacing and budget case",
       lastTouch: "Asked for easier payment timing",
+      company: "Sharma Family Travels",
+      email: "booking@sharmafamilytravels.in",
+      phone: "+91 98989 22002",
     };
   });
 }
@@ -109,6 +122,7 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
 export default function LeadsPage() {
   const [activeView, setActiveView] = useState<"kanban" | "list">("kanban");
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -130,11 +144,21 @@ export default function LeadsPage() {
   }, []);
 
   const leads = useMemo(() => buildLeadRecords(cases), [cases]);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredLeads = useMemo(() => {
+    if (!normalizedQuery) return leads;
+    return leads.filter((item) =>
+      item.guest_name.toLowerCase().includes(normalizedQuery) ||
+      item.company.toLowerCase().includes(normalizedQuery) ||
+      item.email.toLowerCase().includes(normalizedQuery) ||
+      item.phone.toLowerCase().includes(normalizedQuery)
+    );
+  }, [leads, normalizedQuery]);
   const stages: LeadStage[] = ["New", "Qualified", "Quoted", "Follow Up", "Won"];
-  const pipelineValue = leads.reduce((sum, item) => sum + item.quote_total, 0);
+  const pipelineValue = filteredLeads.reduce((sum, item) => sum + item.quote_total, 0);
   const stageBuckets = stages.map((stage) => ({
     stage,
-    leads: leads.filter((item) => item.stage === stage),
+    leads: filteredLeads.filter((item) => item.stage === stage),
   }));
 
   return (
@@ -155,6 +179,15 @@ export default function LeadsPage() {
           <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">Stages, owners, follow-up scheduler, and omnichannel context in one CRM surface</p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 min-w-[300px]">
+            <Search size={14} className="text-[#4A453E]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by 3 letters, company, phone, or email"
+              className="w-full bg-transparent text-[11px] font-medium text-[#F5F0E8] placeholder:text-[#4A453E] outline-none"
+            />
+          </div>
           <div className="flex items-center gap-1 bg-[#111111] p-1 rounded-xl border border-[#C9A84C]/15 shadow-inner">
             <button
               onClick={() => setActiveView("kanban")}
@@ -184,9 +217,9 @@ export default function LeadsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard label="Pipeline Value" value={`₹${pipelineValue.toLocaleString("en-IN")}`} sub="Across active CRM leads" icon={<Sparkles size={14} />} />
-        <MetricCard label="Critical Contacts" value={`${leads.filter((item) => item.priority === "CRITICAL").length}`} sub="Needs human attention today" icon={<Target size={14} />} />
+        <MetricCard label="Critical Contacts" value={`${filteredLeads.filter((item) => item.priority === "CRITICAL").length}`} sub="Needs human attention today" icon={<Target size={14} />} />
         <MetricCard label="Scheduled Touches" value={`${schedulerItems.length}`} sub="Calls, quote sends, reminders" icon={<CalendarClock size={14} />} />
-        <MetricCard label="Won This Week" value="01" sub="One case moved to payment" icon={<CheckCircle2 size={14} />} />
+        <MetricCard label="Search Matches" value={`${filteredLeads.length}`} sub="Name, company, phone, or email retrieval" icon={<CheckCircle2 size={14} />} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
@@ -268,7 +301,7 @@ export default function LeadsPage() {
             <span>Status</span>
           </div>
           <div className="divide-y divide-[#C9A84C]/10">
-            {leads.map((item) => (
+            {filteredLeads.map((item) => (
               <Link
                 key={item.slug}
                 href={`/dashboard/deals?case=${item.slug}`}
@@ -277,6 +310,7 @@ export default function LeadsPage() {
                 <div>
                   <div className="text-sm font-black text-[#F5F0E8]">{item.guest_name}</div>
                   <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.contactLabel}</div>
+                  <div className="mt-1 text-[10px] text-[#4A453E]">{item.company}</div>
                 </div>
                 <div className="text-sm text-[#B8B0A0]">{item.source}</div>
                 <div><StagePill stage={item.stage} /></div>
@@ -348,6 +382,11 @@ function LeadCard({ item }: { item: LeadRecord }) {
       <h3 className="font-black text-sm tracking-tight mb-1 text-[#F5F0E8] font-headline uppercase">{item.guest_name}</h3>
       <p className="text-[10px] font-mono text-[#B8B0A0] uppercase tracking-tighter">{item.destination} · {item.source}</p>
       <p className="mt-3 text-xs text-[#B8B0A0] leading-relaxed">{item.contactLabel}</p>
+      <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3 text-[10px] text-[#B8B0A0] space-y-1">
+        <div>{item.company}</div>
+        <div>{item.email}</div>
+        <div>{item.phone}</div>
+      </div>
       <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
         <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Next action</div>
         <div className="mt-1 text-sm font-black text-[#F5F0E8]">{item.nextAction}</div>
