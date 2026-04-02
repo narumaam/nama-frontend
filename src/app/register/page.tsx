@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Globe2,
   Languages,
+  Landmark,
   Shield,
   Sparkles,
   Users,
@@ -32,9 +33,12 @@ const MARKET_PRESETS: MarketPreset[] = [
   { country: "United States", currency: "USD", language: "English", gateway: "Stripe" },
 ];
 
+const SUPPORTED_CURRENCIES = ["INR", "AED", "USD", "EUR", "GBP"] as const;
+type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
+
 const ONBOARDING_STEPS = [
   "Identify the business model: travel agency, DMC, tour operator, or a hybrid of all three.",
-  "Default market controls: local currency, language, and billing gateway based on operating country.",
+  "Default market controls: base currency, additional selling currencies, language, and billing gateway based on operating country.",
   "Set up team structure, nomenclature, roles, designations, and reporting lines.",
   "Enter the workspace with demo-safe data while keeping live credentials for later connection.",
 ];
@@ -45,6 +49,7 @@ export default function RegisterPage() {
   const [operatorName, setOperatorName] = useState("");
   const [businessRoles, setBusinessRoles] = useState<BusinessRole[]>(["Travel Agency", "DMC"]);
   const [selectedMarket, setSelectedMarket] = useState<MarketPreset>(MARKET_PRESETS[0]);
+  const [enabledCurrencies, setEnabledCurrencies] = useState<SupportedCurrency[]>(["INR", "AED", "USD"]);
 
   const profileLabel = useMemo(() => {
     if (businessRoles.length === 0) return "Travel business";
@@ -68,8 +73,17 @@ export default function RegisterPage() {
       window.localStorage.setItem("nama-demo-operator", operatorName.trim() || "Demo Operator");
       window.localStorage.setItem("nama-demo-business-roles", JSON.stringify(businessRoles));
       window.localStorage.setItem("nama-demo-market", JSON.stringify(selectedMarket));
+      window.localStorage.setItem("nama-demo-base-currency", selectedMarket.currency);
+      window.localStorage.setItem("nama-demo-enabled-currencies", JSON.stringify(enabledCurrencies));
     }
     router.push("/dashboard");
+  }
+
+  function toggleCurrency(currency: SupportedCurrency) {
+    if (currency === selectedMarket.currency) return;
+    setEnabledCurrencies((current) =>
+      current.includes(currency) ? current.filter((item) => item !== currency) : [...current, currency]
+    );
   }
 
   return (
@@ -182,6 +196,51 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <Landmark size={15} className="text-[#C9A84C]" />
+                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Currency Model</span>
+              </div>
+              <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+                <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Base Currency</div>
+                    <div className="mt-2 text-2xl font-black text-[#0F172A]">{selectedMarket.currency}</div>
+                    <div className="mt-2 text-sm leading-relaxed text-slate-500">
+                      This is the accounting and billing anchor for the tenant, driven by primary operating market.
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Additional Selling Currencies</div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {SUPPORTED_CURRENCIES.map((currency) => {
+                        const base = currency === selectedMarket.currency;
+                        const active = enabledCurrencies.includes(currency) || base;
+                        return (
+                          <button
+                            type="button"
+                            key={currency}
+                            disabled={base}
+                            onClick={() => toggleCurrency(currency)}
+                            className={`rounded-full border px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-all ${
+                              active
+                                ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#0F172A]"
+                                : "border-slate-200 bg-slate-50 text-slate-500 hover:border-[#C9A84C]/25"
+                            } ${base ? "cursor-default" : ""}`}
+                          >
+                            {currency} {base ? "· Base" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 text-sm leading-relaxed text-slate-500">
+                      The business can sell in more than one currency, but still keep one base operating currency for controls, reporting, and subscriptions.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
               <div className="mb-3 flex items-center gap-2">
                 <Sparkles size={15} className="text-[#C9A84C]" />
@@ -189,7 +248,8 @@ export default function RegisterPage() {
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <PreviewRow label="Business Profile" value={profileLabel} />
-                <PreviewRow label="Billing Currency" value={selectedMarket.currency} />
+                <PreviewRow label="Base Currency" value={selectedMarket.currency} />
+                <PreviewRow label="Additional Currencies" value={enabledCurrencies.filter((item) => item !== selectedMarket.currency).join(", ") || "None"} />
                 <PreviewRow label="Default Language" value={selectedMarket.language} />
                 <PreviewRow label="Payment Rail" value={selectedMarket.gateway} />
               </div>
@@ -240,6 +300,9 @@ export default function RegisterPage() {
             <div className="space-y-4 text-sm leading-relaxed text-slate-600">
               <p>
                 “Before subscriptions and credentials, NAMA onboards the business itself: what kind of operator it is, where it operates, which currency and language it defaults to, and how the workspace should behave.”
+              </p>
+              <p>
+                “Every tenant has one base currency for control and reporting, and can enable more selling currencies on top depending on the markets it serves.”
               </p>
               <p>
                 “One company can be a travel agency, DMC, and tour operator at the same time. This onboarding flow reflects that instead of forcing a single identity.”

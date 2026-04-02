@@ -163,7 +163,8 @@ Action:
 
 - show the company name and operator fields
 - point to the hybrid business profile selection: travel agency, DMC, tour operator
-- point to country-aware defaults: language, billing currency, and gateway routing
+- point to country-aware defaults: language, base currency, additional currencies, and gateway routing
+- mention that FX can come from the currency converter API, with a safety buffer or a manual locked rate if the business prefers
 - keep it to 30-45 seconds, then enter the demo workspace
 
 Fallback if unavailable:

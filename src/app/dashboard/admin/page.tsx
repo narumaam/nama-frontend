@@ -141,6 +141,7 @@ const LOCALIZATION_RULES = [
   "Detect billing country at tenant onboarding and default the subscription currency from that market.",
   "Use browser locale as a hint, but allow the tenant admin to lock language and currency manually.",
   "Switch payment gateway by region and availability instead of forcing one gateway globally.",
+  "Pull exchange rates from the FX provider by default, then allow a buffer percentage or a manual locked rate when the business wants tighter control.",
   "Keep Super Admin override controls for plan pricing, tax labels, gateway routing, and fallback currencies.",
 ];
 
@@ -303,6 +304,11 @@ export default function AdminPage() {
               title="Fallback logic"
               detail="If a gateway or currency is unavailable in a market, route to the next approved pair instead of breaking checkout."
               icon={<Sparkles size={14} />}
+            />
+            <InfoTile
+              title="FX control"
+              detail="Use live conversion API rates by default, add a safety buffer if desired, or let the tenant manually lock a custom rate."
+              icon={<Globe size={14} />}
             />
           </div>
         </div>
