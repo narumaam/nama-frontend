@@ -3,6 +3,7 @@ import json
 from typing import Dict, Any, Optional
 from app.schemas.queries import RawQuery, QueryTriageResult, ExtractedLeadData
 from app.agents.prompts.triage_prompts import TRIAGE_SYSTEM_PROMPT, TRIAGE_USER_PROMPT
+from app.demo_data import list_demo_cases
 
 class QueryTriageAgent:
     """
@@ -37,11 +38,43 @@ class QueryTriageAgent:
         # to demonstrate the extraction flow.
         
         lower_content = query.content.lower()
-        
-        # Simple extraction logic for demonstration
-        destination = "Thailand" if "thailand" in lower_content else ("Dubai" if "dubai" in lower_content else "India")
+
+        for case in list_demo_cases():
+            tokens = [
+                case["slug"].replace("-", " "),
+                case["guest_name"].lower(),
+                case["triage"]["destination"].lower(),
+                *[pref.lower() for pref in case["triage"]["preferences"]],
+            ]
+            if any(token in lower_content for token in tokens):
+                triage = case["triage"]
+                return QueryTriageResult(
+                    is_valid_query=True,
+                    extracted_data=ExtractedLeadData(
+                        destination=triage["destination"],
+                        duration_days=triage["duration_days"],
+                        travelers_count=triage["travelers_count"],
+                        travel_dates=triage["travel_dates"],
+                        budget_per_person=triage["budget_per_person"],
+                        currency=triage["currency"],
+                        preferences=triage["preferences"],
+                        style=triage["style"],
+                        confidence_score=triage["confidence_score"],
+                    ),
+                    suggested_reply=triage["suggested_reply"],
+                    reasoning=triage["reasoning"],
+                )
+
+        # Simple extraction logic for fallback demonstration
+        destination = (
+            "Thailand" if "thailand" in lower_content else
+            "Dubai" if "dubai" in lower_content else
+            "Maldives" if "maldives" in lower_content else
+            "Kerala" if "kerala" in lower_content else
+            "India"
+        )
         duration = 5 if "5 days" in lower_content else (7 if "week" in lower_content else 4)
-        travelers = 2 if "couple" in lower_content or "2 people" in lower_content else 1
+        travelers = 2 if "couple" in lower_content or "2 people" in lower_content else (3 if "family" in lower_content else 1)
         
         extracted = ExtractedLeadData(
             destination=destination,

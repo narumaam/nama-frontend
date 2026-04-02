@@ -11,6 +11,11 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface HealthStatus { status: 'online' | 'degraded' | 'offline'; }
+interface DemoPreset {
+  slug: string;
+  label: string;
+  query: string;
+}
 
 // ─── Components ──────────────────────────────────────────────────────────────
 function SystemStatus() {
@@ -55,15 +60,62 @@ const ATTENTION_FEED = [
   { priority: 'INFO',      name: 'TCS Corporate', dest: 'Thailand',  value: '₹18,40,000',msg: 'All confirmed · Zero action needed',   color: 'text-[#1D9E75]', bar: 'bg-[#1D9E75]' },
 ];
 
+const DEMO_PRESETS: DemoPreset[] = [
+  {
+    slug: 'maldives-honeymoon',
+    label: 'Maldives Honeymoon',
+    query: 'Hi NAMA! We want a honeymoon in Maldives — 6 nights, luxury overwater villa, private beach. Budget ₹5L for 2 people. Flexible on dates in April.',
+  },
+  {
+    slug: 'dubai-bleisure',
+    label: 'Dubai Bleisure',
+    query: 'Need 4 nights in Dubai for one executive traveler. Mix of meetings and leisure. Downtown hotel, airport transfers, one desert experience. Budget around ₹2L all-in.',
+  },
+  {
+    slug: 'kerala-family',
+    label: 'Kerala Family',
+    query: 'Need a Kerala family trip for 5 days in June for 2 adults and 1 child. Want Munnar, Alleppey houseboat, and easy pacing. Budget about ₹1.2L total.',
+  },
+];
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [query, setQuery] = useState("Hi NAMA! We want a honeymoon in Maldives — 6 nights, luxury overwater villa, private beach. Budget ₹5L for 2 people. Flexible on dates in April.");
   const [result, setResult] = useState({ destination: 'Maldives', duration: '6 Nights', travelers: '2 (Couple)', style: 'Luxury', reply: 'Perfect choice for a honeymoon! I have curated an exclusive 6-night Maldives escape at Soneva Jani — overwater bungalow, private lagoon, and infinity spa. Shall I send the full itinerary?' });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState('maldives-honeymoon');
   const [tick, setTick] = useState(0);
 
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 1000); return () => clearInterval(t); }, []);
+
+  async function loadPreset(slug: string) {
+    const preset = DEMO_PRESETS.find((item) => item.slug === slug);
+    if (preset) {
+      setQuery(preset.query);
+    }
+    setSelectedPreset(slug);
+    setLoading(true);
+    setStatus("Loading demo case...");
+    try {
+      const r = await fetch(apiUrl(`/demo/triage/${slug}`));
+      const data = await r.json();
+      if (data.extracted_data) {
+        setResult({
+          destination: data.extracted_data.destination || 'Unknown',
+          duration: `${data.extracted_data.duration_days} Nights`,
+          travelers: `${data.extracted_data.travelers_count} ${data.extracted_data.travelers_count > 1 ? 'People' : 'Person'}`,
+          style: data.extracted_data.style || 'Standard',
+          reply: data.suggested_reply,
+        });
+        setStatus('Demo case loaded ✓');
+      }
+    } catch {
+      setStatus('Demo case unavailable.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleTriage() {
     setLoading(true); setStatus('Analyzing...');
@@ -276,6 +328,21 @@ export default function LandingPage() {
               {/* Input */}
               <div className="p-8 border-r border-[#C9A84C]/10">
                 <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E] font-black mb-3">1. Send a messy travel query</div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {DEMO_PRESETS.map((preset) => (
+                    <button
+                      key={preset.slug}
+                      onClick={() => loadPreset(preset.slug)}
+                      className={`rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+                        selectedPreset === preset.slug
+                          ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]'
+                          : 'border-[#C9A84C]/10 bg-[#111111] text-[#B8B0A0] hover:text-[#F5F0E8]'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="bg-[#111111] rounded-2xl border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/30 transition-colors p-4 relative">
                   <textarea
                     className="w-full bg-transparent border-none outline-none text-[11px] font-body h-36 resize-none text-[#F5F0E8] placeholder:text-[#4A453E]"

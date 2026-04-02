@@ -5,7 +5,7 @@ from app.api.v1 import (
     documents, financials, analytics, portals, 
     communications, bookings, content, corporate,
     integrations, sentinel, rsi,
-    sourcing, pricing, payments, marketing
+    sourcing, pricing, payments, marketing, demo
 )
 from app.db.session import engine, Base
 
@@ -43,6 +43,7 @@ app.include_router(sourcing.router, prefix="/api/v1/sourcing", tags=["sourcing"]
 app.include_router(pricing.router, prefix="/api/v1/pricing", tags=["pricing"])
 app.include_router(payments.router, prefix="/api/v1/payments", tags=["payments"])
 app.include_router(marketing.router, prefix="/api/v1/marketing", tags=["marketing"])
+app.include_router(demo.router, prefix="/api/v1/demo", tags=["demo"])
 
 @app.get("/")
 def read_root():

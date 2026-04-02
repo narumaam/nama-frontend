@@ -9,6 +9,7 @@ from app.agents.prompts.itinerary_prompts import SYSTEM_PROMPT, USER_PROMPT, INS
 from app.adapters.amadeus import AmadeusAdapter
 from app.adapters.tbo import TBOAdapter
 from app.adapters.bokun import BokunAdapter
+from app.demo_data import list_demo_cases
 
 class ItineraryAgent:
     """
@@ -28,6 +29,15 @@ class ItineraryAgent:
         """
         Main entry point for generating a new itinerary.
         """
+        for case in list_demo_cases():
+            triage = case["triage"]
+            if (
+                request.destination.lower() == triage["destination"].lower()
+                and request.duration_days == triage["duration_days"]
+                and request.traveler_count == triage["travelers_count"]
+            ):
+                return ItineraryResponse(**case["itinerary"])
+
         # Step 1: Logic to determine search dates
         check_in = "2024-12-15"
         check_out = "2024-12-22"

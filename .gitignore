@@ -8,3 +8,5 @@ node_modules/
 __pycache__/
 *.pyc
 nama_dev.db
+.venv/
+.vercel
