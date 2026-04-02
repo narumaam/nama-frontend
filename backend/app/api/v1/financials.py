@@ -5,12 +5,16 @@ from app.schemas.financials import Transaction, TransactionType, TransactionStat
 from app.agents.finance import FinanceAgent
 from app.api.v1.deps import get_current_user, RoleChecker
 from app.models.auth import UserRole
-from app.demo_data import get_demo_case_by_booking_id
+from app.demo_data import get_demo_case, get_demo_case_by_booking_id, list_demo_cases
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 
 router = APIRouter()
 finance_agent = FinanceAgent()
+
+
+def _resolve_demo_case(booking_id: int):
+    return get_demo_case_by_booking_id(booking_id) or get_demo_case(slug="maldives-honeymoon")
 
 @router.get("/booking/{booking_id}/profit", response_model=BookingProfit)
 async def get_booking_profitability(
@@ -23,7 +27,7 @@ async def get_booking_profitability(
     Calculates net profit and margin based on reconciled transactions.
     """
     try:
-        demo_case = get_demo_case_by_booking_id(booking_id)
+        demo_case = _resolve_demo_case(booking_id)
         if demo_case:
             finance = demo_case["finance"]
             return BookingProfit(
@@ -61,7 +65,7 @@ async def reconcile_payment(
     Uses the Finance Intelligence Agent to match messy descriptions.
     """
     try:
-        demo_case = get_demo_case_by_booking_id(transaction_id)
+        demo_case = _resolve_demo_case(transaction_id)
         if demo_case:
             return Transaction(
                 id=transaction_id,
@@ -92,7 +96,7 @@ def get_finance_overview(
     """
     Get the overall ledger summary for the tenant organization (Kinetic layer).
     """
-    demo_case = get_demo_case_by_booking_id(current_user.tenant_id)
+    demo_case = get_demo_case_by_booking_id(current_user.tenant_id) or get_demo_case(slug="maldives-honeymoon")
     if demo_case:
         finance = demo_case["finance"]
         return LedgerSummary(
@@ -106,8 +110,8 @@ def get_finance_overview(
     # Prototype: Return mock summary
     return LedgerSummary(
         tenant_id=current_user.tenant_id,
-        balance_available=1525000.0,
-        pending_settlements=420000.0,
+        balance_available=list_demo_cases()[0]["finance"]["gross_profit"] * 8,
+        pending_settlements=list_demo_cases()[0]["finance"]["deposit_due"],
         currency="INR",
         last_reconciled=datetime.utcnow() - timedelta(minutes=15)
     )

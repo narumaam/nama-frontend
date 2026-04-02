@@ -5,12 +5,20 @@ from app.schemas.bidding import BidRequest, VendorBid, BiddingProcess, BidStatus
 from app.agents.bidding import BiddingAgent
 from app.api.v1.deps import get_current_user, RoleChecker
 from app.models.auth import UserRole
-from app.demo_data import get_demo_case_by_process_id, get_demo_case_by_booking_id
+from app.demo_data import get_demo_case, get_demo_case_by_process_id, get_demo_case_by_booking_id, list_demo_cases
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 
 router = APIRouter()
 bidding_agent = BiddingAgent()
+
+
+def _resolve_demo_case(lookup_id: int):
+    return (
+        get_demo_case_by_process_id(lookup_id)
+        or get_demo_case_by_booking_id(lookup_id)
+        or get_demo_case(slug="maldives-honeymoon")
+    )
 
 @router.post("/broadcast", response_model=List[Dict[str, Any]])
 async def start_bidding_broadcast(
@@ -24,7 +32,7 @@ async def start_bidding_broadcast(
     Broadcasts requirements to multiple vendors for an itinerary block.
     """
     try:
-        demo_case = get_demo_case_by_booking_id(request.itinerary_block_id)
+        demo_case = _resolve_demo_case(request.itinerary_block_id)
         if demo_case:
             vendor_names = {
                 1: "Soneva Jani",
@@ -63,8 +71,7 @@ async def evaluate_vendor_bid(
     """
     Evaluates an incoming bid using AI-driven negotiation logic (M3).
     """
-    # Mocking the current process for evaluation
-    demo_case = get_demo_case_by_process_id(process_id)
+    demo_case = _resolve_demo_case(process_id)
     mock_process = BiddingProcess(
         id=process_id,
         itinerary_block_id=1,
@@ -73,11 +80,24 @@ async def evaluate_vendor_bid(
     )
     
     try:
-        decision = await bidding_agent.evaluate_and_negotiate(mock_process, vendor_bid)
         if demo_case:
-            decision["demo_case"] = demo_case["slug"]
-            decision["client_name"] = demo_case["guest_name"]
-            decision["lead_summary"] = demo_case["triage"]["destination"]
+            counter_price = round(demo_case["finance"]["cost_total"] * 1.03, 2)
+            decision = {
+                "process_id": process_id,
+                "demo_case": demo_case["slug"],
+                "client_name": demo_case["guest_name"],
+                "lead_summary": demo_case["triage"]["destination"],
+                "vendor_name": vendor_bid.vendor_name,
+                "status": "NEGOTIATING",
+                "decision": "COUNTER",
+                "recommended_action": "Hold rate with add-ons and preserve margin",
+                "current_price": vendor_bid.price,
+                "counter_offer": counter_price,
+                "reasoning": demo_case["bidding"]["note"],
+            }
+            return decision
+
+        decision = await bidding_agent.evaluate_and_negotiate(mock_process, vendor_bid)
         return decision
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -91,7 +111,7 @@ def get_bidding_status(
     """
     Get the status and history of an ongoing bidding process.
     """
-    demo_case = get_demo_case_by_process_id(process_id)
+    demo_case = _resolve_demo_case(process_id)
     if demo_case:
         return BiddingProcess(
             id=process_id,
@@ -123,7 +143,7 @@ def get_bidding_status(
         itinerary_block_id=1,
         status=BidStatus.NEGOTIATING,
         bids=[
-            VendorBid(vendor_id=101, vendor_name="Grand Hyatt Dubai", price=12500, status=BidStatus.NEGOTIATING)
+            VendorBid(vendor_id=101, vendor_name=list_demo_cases()[0]["bidding"]["vendor"], price=12500, status=BidStatus.NEGOTIATING)
         ],
         negotiation_history=[
             {

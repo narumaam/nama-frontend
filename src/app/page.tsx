@@ -48,8 +48,8 @@ function SystemStatus() {
 
 const AGENTS = [
   { name: 'Triage',     desc: 'Parses every inbound signal — WhatsApp, email, DM — into structured intent in seconds.',  Icon: Brain,         color: 'text-[#C9A84C]', border: 'border-[#C9A84C]/20', bg: 'bg-[#C9A84C]/8' },
-  { name: 'Itinerary',  desc: 'Designs bespoke day-by-day itineraries with real-time pricing. No templates. No limits.',   Icon: MapPin,        color: 'text-blue-400',   border: 'border-blue-400/20', bg: 'bg-blue-400/8' },
-  { name: 'Bidding',    desc: 'Negotiates net rates with hotels and vendors via WhatsApp, email, and API integrations.',   Icon: Target,        color: 'text-orange-400', border: 'border-orange-400/20', bg: 'bg-orange-400/8' },
+  { name: 'Itinerary',  desc: 'Designs bespoke day-by-day itineraries from structured travel cases. Fast, visual, and editable.',   Icon: MapPin,        color: 'text-blue-400',   border: 'border-blue-400/20', bg: 'bg-blue-400/8' },
+  { name: 'Bidding',    desc: 'Prepares vendor negotiation workflows and quote logic from the case data you provide.',   Icon: Target,        color: 'text-orange-400', border: 'border-orange-400/20', bg: 'bg-orange-400/8' },
   { name: 'Finance',    desc: 'Sends invoices, tracks payments, reconciles accounts, and forecasts cash flow autonomously.', Icon: CreditCard,   color: 'text-[#1D9E75]', border: 'border-[#1D9E75]/20', bg: 'bg-[#1D9E75]/8' },
   { name: 'Comms',      desc: 'Handles all client communication with perfect tone, timing, and context at every stage.',   Icon: MessageSquare, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/8' },
   { name: 'Operations', desc: 'Executes bookings, tracks confirmations, and re-routes supply chains when things go wrong.', Icon: Shield,       color: 'text-red-400',    border: 'border-red-400/20',   bg: 'bg-red-400/8' },
@@ -204,7 +204,7 @@ export default function LandingPage() {
           href="/dashboard/autopilot"
           className="bg-[#C9A84C] text-[#0A0A0A] text-[11px] px-5 py-2.5 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(201,168,76,0.2)] uppercase tracking-widest"
         >
-          Enter OS
+          Open Demo OS
         </Link>
       </nav>
 
@@ -219,7 +219,7 @@ export default function LandingPage() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 mb-10 bg-[#C9A84C]/8 border border-[#C9A84C]/15 rounded-full">
             <Sparkles size={11} className="text-[#C9A84C]" />
-            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">AI-Native Travel Operating System · 2026</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">AI-Native Travel Operating System · Demo Ready</span>
           </div>
 
           <h1 className="text-[64px] md:text-[88px] font-black tracking-[-0.04em] leading-none mb-8 font-headline">
@@ -231,7 +231,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg text-[#B8B0A0] max-w-2xl mx-auto leading-relaxed mb-12 font-body">
-            NAMA is the world&apos;s first Autonomous Travel OS. AI agents handle every lead, itinerary, negotiation, and booking - autonomously. You only touch what needs you.
+            NAMA turns travel leads into structured demo cases, itineraries, quotes, and operator views. This build is designed to show the workflow clearly, fast, and safely.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-20">
@@ -239,19 +239,19 @@ export default function LandingPage() {
               href="/dashboard/autopilot"
               className="flex items-center gap-2 bg-[#C9A84C] text-[#0A0A0A] text-sm px-8 py-4 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(201,168,76,0.2)] uppercase tracking-widest"
             >
-              <Zap size={14} fill="currentColor" /> Enter Command Center
+              <Zap size={14} fill="currentColor" /> Open Demo OS
             </Link>
             <Link
               href="/kinetic"
               className="flex items-center gap-2 bg-transparent border border-[#C9A84C]/20 text-[#C9A84C] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/40 transition-all uppercase tracking-widest"
             >
-              View Kinetic Engine <ChevronRight size={14} />
+              View Control Room <ChevronRight size={14} />
             </Link>
             <Link
               href="/dashboard/deals?case=maldives-honeymoon"
               className="flex items-center gap-2 bg-transparent border border-white/10 text-[#F5F0E8] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/25 transition-all uppercase tracking-widest"
             >
-              Open Demo Deal <ChevronRight size={14} />
+              Open Maldives Case <ChevronRight size={14} />
             </Link>
           </div>
 
@@ -359,9 +359,9 @@ export default function LandingPage() {
           <div className="text-center mb-12">
             <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-4">Live AI Playground</div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tighter font-headline mb-3">
-              See the Triage Agent work.
+              See the triage flow in one click.
             </h2>
-            <p className="text-[#B8B0A0] text-sm font-body">Send any messy travel request — watch NAMA extract structured intent in real time.</p>
+            <p className="text-[#B8B0A0] text-sm font-body">Use the presets to load a deterministic demo case instantly, or type your own request and run the same flow.</p>
           </div>
 
           <div className="bg-[#0A0A0A] rounded-3xl border border-[#C9A84C]/15 overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)]">
@@ -379,9 +379,9 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-2 gap-0">
               {/* Input */}
               <div className="p-8 border-r border-[#C9A84C]/10">
-                <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E] font-black mb-3">1. Send a messy travel query</div>
+                <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E] font-black mb-3">1. Load a demo case or type a query</div>
                 <div className="mb-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] px-4 py-3 text-[10px] text-[#B8B0A0] leading-relaxed">
-                  Use the preset chips for a reliable Monday walkthrough. Each one maps to a live demo case and also works offline.
+                  The presets are the fastest path for Monday. They load the same deterministic case every time and fall back safely if the backend is unreachable.
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {DEMO_PRESETS.map((preset) => (
@@ -398,6 +398,11 @@ export default function LandingPage() {
                     </button>
                   ))}
                 </div>
+                <div className="mb-4 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#4A453E] font-mono">
+                  <span className="h-px flex-1 bg-white/5" />
+                  One click, then review the output
+                  <span className="h-px flex-1 bg-white/5" />
+                </div>
                 <div className="bg-[#111111] rounded-2xl border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/30 transition-colors p-4 relative">
                   <textarea
                     className="w-full bg-transparent border-none outline-none text-[11px] font-body h-36 resize-none text-[#F5F0E8] placeholder:text-[#4A453E]"
@@ -410,7 +415,7 @@ export default function LandingPage() {
                     disabled={loading}
                     className="absolute bottom-3 right-3 bg-[#C9A84C] text-[#0A0A0A] px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    <Bot size={10} /> {loading ? 'Processing...' : 'Triage Now'}
+                    <Bot size={10} /> {loading ? 'Processing...' : 'Run Demo'}
                   </button>
                 </div>
                 {status && (
@@ -457,10 +462,10 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-3xl mx-auto">
           <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-6">Define a category</div>
           <h2 className="text-5xl md:text-6xl font-black tracking-tighter font-headline mb-6">
-            Run your travel business<br />without running operations.
+            Run your travel business<br />without running every step manually.
           </h2>
           <p className="text-[#B8B0A0] text-base mb-10 font-body">
-            Join the next generation of travel companies that let AI do the work.
+            This demo shows how a lead becomes a structured case, a quote, and an operator view in seconds.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
