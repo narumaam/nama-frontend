@@ -266,3 +266,18 @@ def get_demo_case(slug: Optional[str] = None, lead_id: Optional[int] = None) -> 
         if lead_id is not None and case["lead_id"] == lead_id:
             return case
     return None
+
+
+def get_demo_case_by_booking_id(booking_id: int) -> Optional[Dict[str, Any]]:
+    # In the demo, booking IDs mirror the lead IDs for the three showcase cases.
+    return get_demo_case(lead_id=booking_id)
+
+
+def get_demo_case_by_thread_id(thread_id: int) -> Optional[Dict[str, Any]]:
+    # In the demo, thread IDs mirror the lead IDs for the three showcase cases.
+    return get_demo_case(lead_id=thread_id)
+
+
+def get_demo_case_by_process_id(process_id: int) -> Optional[Dict[str, Any]]:
+    # In the demo, process IDs mirror the lead IDs for the three showcase cases.
+    return get_demo_case(lead_id=process_id)

@@ -17,6 +17,14 @@ interface DemoPreset {
   query: string;
 }
 
+interface DemoPreview {
+  destination: string;
+  duration: string;
+  travelers: string;
+  style: string;
+  reply: string;
+}
+
 // ─── Components ──────────────────────────────────────────────────────────────
 function SystemStatus() {
   const [health, setHealth] = useState<HealthStatus['status']>('online');
@@ -78,6 +86,33 @@ const DEMO_PRESETS: DemoPreset[] = [
   },
 ];
 
+const DEMO_PREVIEWS: Record<string, DemoPreview> = {
+  "maldives-honeymoon": {
+    destination: "Maldives",
+    duration: "6 Nights",
+    travelers: "2 (Couple)",
+    style: "Luxury",
+    reply:
+      "Perfect choice for a honeymoon! I have curated an exclusive 6-night Maldives escape at Soneva Jani — overwater bungalow, private lagoon, and infinity spa. Shall I send the full itinerary?",
+  },
+  "dubai-bleisure": {
+    destination: "Dubai",
+    duration: "4 Nights",
+    travelers: "1 (Executive)",
+    style: "Premium",
+    reply:
+      "I’ve prepared a premium Dubai business-leisure plan with Downtown stay, executive transfers, and a desert experience. Would you like the executive version or a softer leisure-heavy version?",
+  },
+  "kerala-family": {
+    destination: "Kerala",
+    duration: "5 Nights",
+    travelers: "3 (Family)",
+    style: "Comfort",
+    reply:
+      "I’ve mapped a relaxed Kerala family journey with Munnar hills, a private Alleppey houseboat, and child-friendly pacing. Would you like the standard or upgraded resort option?",
+  },
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [query, setQuery] = useState("Hi NAMA! We want a honeymoon in Maldives — 6 nights, luxury overwater villa, private beach. Budget ₹5L for 2 people. Flexible on dates in April.");
@@ -97,6 +132,10 @@ export default function LandingPage() {
     setSelectedPreset(slug);
     setLoading(true);
     setStatus("Loading demo case...");
+    const localPreview = DEMO_PREVIEWS[slug];
+    if (localPreview) {
+      setResult(localPreview);
+    }
     try {
       const r = await fetch(apiUrl(`/demo/triage/${slug}`));
       const data = await r.json();
@@ -109,9 +148,16 @@ export default function LandingPage() {
           reply: data.suggested_reply,
         });
         setStatus('Demo case loaded ✓');
+      } else if (localPreview) {
+        setStatus('Using local demo fallback ✓');
       }
     } catch {
-      setStatus('Demo case unavailable.');
+      if (localPreview) {
+        setResult(localPreview);
+        setStatus('Using local demo fallback ✓');
+      } else {
+        setStatus('Demo case unavailable.');
+      }
     } finally {
       setLoading(false);
     }
@@ -200,6 +246,12 @@ export default function LandingPage() {
               className="flex items-center gap-2 bg-transparent border border-[#C9A84C]/20 text-[#C9A84C] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/40 transition-all uppercase tracking-widest"
             >
               View Kinetic Engine <ChevronRight size={14} />
+            </Link>
+            <Link
+              href="/dashboard/deals?case=maldives-honeymoon"
+              className="flex items-center gap-2 bg-transparent border border-white/10 text-[#F5F0E8] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/25 transition-all uppercase tracking-widest"
+            >
+              Open Demo Deal <ChevronRight size={14} />
             </Link>
           </div>
 
@@ -328,6 +380,9 @@ export default function LandingPage() {
               {/* Input */}
               <div className="p-8 border-r border-[#C9A84C]/10">
                 <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E] font-black mb-3">1. Send a messy travel query</div>
+                <div className="mb-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] px-4 py-3 text-[10px] text-[#B8B0A0] leading-relaxed">
+                  Use the preset chips for a reliable Monday walkthrough. Each one maps to a live demo case and also works offline.
+                </div>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {DEMO_PRESETS.map((preset) => (
                     <button
@@ -432,8 +487,13 @@ export default function LandingPage() {
             <span className="font-black text-sm text-[#F5F0E8] uppercase font-headline tracking-tighter">NAMA Travel OS</span>
           </div>
           <div className="flex gap-8 text-[11px] text-[#4A453E] font-semibold">
-            {['Privacy', 'Terms', 'Compliance', 'Contact'].map(l => (
-              <a key={l} href="#" className="hover:text-[#B8B0A0] transition-colors">{l}</a>
+            {[
+              { label: 'Privacy', href: '/privacy' },
+              { label: 'Terms', href: '/terms' },
+              { label: 'Compliance', href: '/compliance' },
+              { label: 'Contact', href: '/contact' },
+            ].map((item) => (
+              <Link key={item.label} href={item.href} className="hover:text-[#B8B0A0] transition-colors">{item.label}</Link>
             ))}
           </div>
           <div className="text-[10px] text-[#4A453E] font-mono">© 2026 NAMA Networks · All rights reserved</div>

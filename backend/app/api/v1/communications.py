@@ -5,6 +5,7 @@ from app.schemas.communications import Message, CommunicationThread, DraftRespon
 from app.agents.comms import CommsAgent
 from app.api.v1.deps import get_current_user, RoleChecker
 from app.models.auth import UserRole
+from app.demo_data import get_demo_case_by_thread_id
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 
@@ -19,6 +20,36 @@ def get_active_threads(
     """
     Get all active communication threads for the organization (M5).
     """
+    demo_case = get_demo_case_by_thread_id(current_user.tenant_id)
+    if demo_case:
+        comms = demo_case["communications"]
+        triage = demo_case["triage"]
+        return [
+            CommunicationThread(
+                id=demo_case["lead_id"],
+                lead_id=demo_case["lead_id"],
+                tenant_id=current_user.tenant_id,
+                status=ThreadStatus.ACTIVE,
+                last_message_at=datetime.utcnow() - timedelta(minutes=8),
+                messages=[
+                    Message(
+                        thread_id=demo_case["lead_id"],
+                        channel=MessageChannel[comms["channel"]],
+                        role=MessageRole.CLIENT,
+                        content=demo_case["query"],
+                        metadata={"destination": triage["destination"], "style": triage["style"]},
+                    ),
+                    Message(
+                        thread_id=demo_case["lead_id"],
+                        channel=MessageChannel[comms["channel"]],
+                        role=MessageRole.AGENT,
+                        content=comms["suggested_follow_up"],
+                        metadata={"status": "DEMO_READY"},
+                    ),
+                ]
+            )
+        ]
+
     # Mocking threads for prototype
     return [
         CommunicationThread(
@@ -44,6 +75,21 @@ async def draft_communication(
     Generate an AI-powered draft for a communication thread (M5).
     """
     try:
+        demo_case = get_demo_case_by_thread_id(request.thread_id)
+        if demo_case:
+            comms = demo_case["communications"]
+            content = comms["suggested_follow_up"]
+            if channel == MessageChannel.EMAIL:
+                content = (
+                    f"Subject: {demo_case['triage']['destination']} itinerary ready\n\n"
+                    f"{comms['suggested_follow_up']}\n\n"
+                    f"Trip value: ₹{demo_case['finance']['quote_total']:,.0f}"
+                )
+            return DraftResponse(
+                suggested_content=content,
+                reasoning=f"Used demo case '{demo_case['slug']}' to generate a deterministic {channel.value} follow-up for Monday demo."
+            )
+
         # 1. Fetch history for the thread (Mocked)
         mock_history = [
             Message(thread_id=request.thread_id, channel=channel, role=MessageRole.CLIENT, content="Hi, checking in on my Dubai quote.")
@@ -66,6 +112,17 @@ async def send_message(
     Send a message through the unified communication channel (M5).
     This would trigger WhatsApp/Email APIs in a real app.
     """
+    demo_case = get_demo_case_by_thread_id(message.thread_id)
+    if demo_case:
+        message.timestamp = datetime.utcnow()
+        message.role = MessageRole.AGENT
+        message.metadata = {
+            **(message.metadata or {}),
+            "delivery": "DEMO_SENT",
+            "case": demo_case["slug"],
+        }
+        return message
+
     # Prototype: Logic to record and 'send' the message
     message.timestamp = datetime.utcnow()
     message.role = MessageRole.AGENT

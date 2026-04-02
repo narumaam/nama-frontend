@@ -51,34 +51,46 @@ interface Agent {
 // ─── Static data ─────────────────────────────────────────────────────────────
 const FEED_DATA: FeedItem[] = [
   {
-    id: 1, priority: 'CRITICAL', name: 'Meera Nair', destination: 'Maldives Overwater',
-    value: '₹4,80,000', headline: 'Client opened itinerary 3× in 90 min — conversion window is NOW.',
-    subtext: 'AI probability jumped from 62% → 91% in last 2 hours based on engagement signals.',
-    cta: 'Call Client', ctaType: 'call', confidence: 91, ago: '4m ago', leadId: 1,
+    id: 1,
+    priority: 'CRITICAL',
+    name: 'Meera Nair',
+    destination: 'Maldives Honeymoon',
+    value: '₹4,86,000',
+    headline: 'Demo case is live and ready for the quote-to-close walk through.',
+    subtext: 'Use this card to open the deal view, then show triage, itinerary, finance, and vendor negotiation in one flow.',
+    cta: 'Open Deal',
+    ctaType: 'call',
+    confidence: 91,
+    ago: 'Just now',
+    leadId: 1,
   },
   {
-    id: 2, priority: 'CRITICAL', name: 'Sharma Family', destination: 'Kerala Backwaters',
-    value: '₹1,20,000', headline: 'Payment of ₹60,000 overdue 26 hrs — cancellation risk rising.',
-    subtext: 'Vendor holding block expires in 4 hours. Auto-reminder sent 3×. Human touch needed.',
-    cta: 'Send Reminder', ctaType: 'payment', confidence: 72, ago: '26m ago', leadId: 2,
+    id: 3,
+    priority: 'ATTENTION',
+    name: 'Arjun Mehta',
+    destination: 'Dubai Bleisure',
+    value: '₹2,12,000',
+    headline: 'Executive travel case is configured with a premium business + leisure blend.',
+    subtext: 'Perfect for showing a quote that feels tailored, fast, and still margin aware.',
+    cta: 'Approve & Send',
+    ctaType: 'approve',
+    confidence: 89,
+    ago: '2m ago',
+    leadId: 3,
   },
   {
-    id: 3, priority: 'ATTENTION', name: 'Arjun Mehta', destination: 'Dubai Business + Leisure',
-    value: '₹2,10,000', headline: 'Itinerary built. AI-personalized quote ready to send.',
-    subtext: 'Confidence: high. Arjun responded well to last message. Recommend sending within the hour.',
-    cta: 'Approve & Send', ctaType: 'approve', confidence: 84, ago: '1h ago', leadId: 3,
-  },
-  {
-    id: 4, priority: 'ATTENTION', name: 'Priya Krishnan', destination: 'Bali Honeymoon',
-    value: '₹3,60,000', headline: 'Competitor quoted ₹3.2L. AI proposes spa add-on to hold margin.',
-    subtext: 'Suggested counter: keep price at ₹3.6L, add complimentary spa (cost ₹8K, perceived value ₹40K).',
-    cta: 'Review Strategy', ctaType: 'review', confidence: 68, ago: '2h ago', leadId: 4,
-  },
-  {
-    id: 5, priority: 'INFO', name: 'TCS Corporate Batch', destination: 'Thailand Team Offsite',
-    value: '₹18,40,000', headline: 'All 3 hotels confirmed. Trip fully locked. Zero action needed.',
-    subtext: 'AI flagged as "watch": minor weather alert for Koh Samui day 4. Alternate itinerary pre-staged.',
-    cta: 'View Details', ctaType: 'review', confidence: 99, ago: '3h ago', leadId: 5,
+    id: 2,
+    priority: 'CRITICAL',
+    name: 'Sharma Family',
+    destination: 'Kerala Family',
+    value: '₹1,24,000',
+    headline: 'Family pacing, houseboat, and payment reminder are all staged for the demo.',
+    subtext: 'This is the backup story if you want to show a lower-value, slower booking path that still converts.',
+    cta: 'Send Reminder',
+    ctaType: 'payment',
+    confidence: 90,
+    ago: '5m ago',
+    leadId: 2,
   },
 ];
 
@@ -240,6 +252,21 @@ export default function AutopilotPage() {
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
             AI is running your business · You only see what needs you
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              { label: 'Maldives', href: '/dashboard/deals?case=maldives-honeymoon' },
+              { label: 'Dubai', href: '/dashboard/deals?case=dubai-bleisure' },
+              { label: 'Kerala', href: '/dashboard/deals?case=kerala-family' },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] hover:text-[#F5F0E8] hover:border-[#C9A84C]/30 transition-all"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* Autopilot toggle */}

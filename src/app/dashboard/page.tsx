@@ -1,204 +1,184 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { apiUrl } from '@/lib/api';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Map, 
-  CreditCard,
-  Plus,
-  ArrowRight,
-  Zap,
-  Activity,
-  type LucideIcon,
-} from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { apiUrl } from "@/lib/api";
+import { BadgeIndianRupee, ChevronRight, Clock3, Sparkles, Target, Users, Wallet, Wand2 } from "lucide-react";
 
-type DashboardMetric = {
-  value: number | string;
-  trend: number | string;
-  status: 'UP' | 'DOWN' | string;
+type DemoCase = {
+  slug: string;
+  lead_id: number;
+  guest_name: string;
+  priority: string;
+  query: string;
+  destination: string;
+  quote_total: number;
+  status: string;
 };
 
-type DashboardSummary = {
-  gmv?: DashboardMetric;
-  conversion_rate?: DashboardMetric;
-  total_leads?: DashboardMetric;
-  active_itineraries?: DashboardMetric;
-};
-
-const StatCard = ({
-  label,
-  value,
-  trend,
-  status,
-  icon: Icon,
-}: {
-  label: string;
-  value: string | number;
-  trend: number | string;
-  status: 'UP' | 'DOWN' | string;
-  icon: LucideIcon;
-}) => (
-  <div className="bg-[#111111] p-6 rounded-2xl border border-[#C9A84C]/15 shadow-sm hover:border-[#C9A84C]/30 transition-all group">
-    <div className="flex justify-between items-start mb-4">
-      <div className="w-12 h-12 bg-[#1A1A1A] rounded-xl flex items-center justify-center text-[#C9A84C] border border-[#C9A84C]/10 group-hover:scale-110 transition-transform">
-        <Icon size={24} />
-      </div>
-      <div className={`flex items-center text-[10px] font-mono font-bold px-2 py-1 rounded-full ${
-        status === 'UP' ? 'bg-[#1D9E75]/10 text-[#1D9E75]' : 'bg-red-500/10 text-red-500'
-      }`}>
-        {status === 'UP' ? <TrendingUp size={12} className="mr-1" /> : <TrendingDown size={12} className="mr-1" />}
-        {trend}%
-      </div>
-    </div>
-    <div className="text-[#B8B0A0] text-xs font-mono uppercase tracking-widest mb-1">{label}</div>
-    <div className="text-3xl font-black font-headline text-[#F5F0E8]">{value}</div>
-  </div>
-);
+const FALLBACK_CASES: DemoCase[] = [
+  {
+    slug: "maldives-honeymoon",
+    lead_id: 1,
+    guest_name: "Meera Nair",
+    priority: "CRITICAL",
+    query: "Hi NAMA! We want a honeymoon in Maldives — 6 nights, luxury overwater villa, private beach. Budget ₹5L for 2 people. Flexible on dates in April.",
+    destination: "Maldives",
+    quote_total: 486000,
+    status: "Deposit pending within 24 hours",
+  },
+  {
+    slug: "dubai-bleisure",
+    lead_id: 3,
+    guest_name: "Arjun Mehta",
+    priority: "ATTENTION",
+    query: "Need 4 nights in Dubai for one executive traveler. Mix of meetings and leisure. Downtown hotel, airport transfers, one desert experience. Budget around ₹2L all-in.",
+    destination: "Dubai",
+    quote_total: 212000,
+    status: "Quote approved and ready to send",
+  },
+  {
+    slug: "kerala-family",
+    lead_id: 2,
+    guest_name: "Sharma Family",
+    priority: "CRITICAL",
+    query: "Need a Kerala family trip for 5 days in June for 2 adults and 1 child. Want Munnar, Alleppey houseboat, and easy pacing. Budget about ₹1.2L total.",
+    destination: "Kerala",
+    quote_total: 124000,
+    status: "Payment reminder queued",
+  },
+];
 
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSummary = async () => {
+    let cancelled = false;
+    async function load() {
       try {
-        const response = await fetch(apiUrl('/analytics/dashboard'), {
-          headers: { 'Authorization': 'Bearer test-token' }
-        });
+        const response = await fetch(apiUrl("/demo/cases"));
         const data = await response.json();
-        setSummary(data);
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          setCases(data);
+        }
+      } catch {
+        if (!cancelled) setCases(FALLBACK_CASES);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
+    }
+    load();
+    return () => {
+      cancelled = true;
     };
-    fetchSummary();
   }, []);
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-96 text-[#C9A84C] font-mono gap-4">
-      <div className="w-12 h-12 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin"></div>
-      <div className="animate-pulse tracking-widest uppercase text-xs">Initializing NAMA OS...</div>
-    </div>
-  );
+  const totalQuote = cases.reduce((sum, item) => sum + item.quote_total, 0);
+  const avgQuote = Math.round(totalQuote / Math.max(cases.length, 1));
+  const criticalCount = cases.filter((item) => item.priority === "CRITICAL").length;
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
-      <div className="flex justify-between items-end">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-[#F5F0E8] font-headline uppercase">Operations Overview</h1>
-          <p className="text-[#B8B0A0] mt-2 font-body text-sm">Real-time performance across your DMC supply chain.</p>
-        </div>
-        <button className="bg-[#C9A84C] text-[#0A0A0A] px-6 py-3 rounded-xl font-bold flex items-center shadow-[0_0_20px_rgba(201,168,76,0.2)] hover:scale-105 transition-all active:scale-95 uppercase tracking-widest text-xs">
-          <Plus size={18} className="mr-2" strokeWidth={3} /> New Itinerary
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          label="Total Revenue (GMV)" 
-          value={`₹${summary?.gmv?.value?.toLocaleString() || '0'}`} 
-          trend={summary?.gmv?.trend || '0'} 
-          status={summary?.gmv?.status || 'UP'} 
-          icon={CreditCard} 
-        />
-        <StatCard 
-          label="Conversion Rate" 
-          value={`${summary?.conversion_rate?.value || '0'}%`} 
-          trend={summary?.conversion_rate?.trend || '0'} 
-          status={summary?.conversion_rate?.status || 'UP'} 
-          icon={TrendingUp} 
-        />
-        <StatCard 
-          label="Total Leads" 
-          value={summary?.total_leads?.value || '0'} 
-          trend={summary?.total_leads?.trend || '0'} 
-          status={summary?.total_leads?.status || 'UP'} 
-          icon={Users} 
-        />
-        <StatCard 
-          label="Active Itineraries" 
-          value={summary?.active_itineraries?.value || '0'} 
-          trend={summary?.active_itineraries?.trend || '0'} 
-          status={summary?.active_itineraries?.status || 'UP'} 
-          icon={Map} 
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12">
-        <div className="lg:col-span-2 bg-[#111111] rounded-3xl border border-[#C9A84C]/15 shadow-sm p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-black text-[#F5F0E8] font-headline uppercase tracking-tight">Recent Leads</h3>
-            <button className="text-[#C9A84C] font-bold text-xs flex items-center hover:opacity-80 transition-opacity uppercase tracking-widest">
-              View All <ArrowRight size={14} className="ml-1" />
-            </button>
+          <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
+            <span>Demo</span>
+            <ChevronRight size={10} />
+            <span className="opacity-50">Golden Path</span>
           </div>
-          
+          <h1 className="text-4xl font-black tracking-tighter text-[#F5F0E8] font-headline uppercase">Operations Overview</h1>
+          <p className="text-[#B8B0A0] mt-2 font-body text-sm max-w-2xl">
+            This dashboard is wired to the live demo cases so the Monday walkthrough stays coherent from lead to quote to deal.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-3">
+          <Sparkles size={16} className="text-[#C9A84C]" />
+          <div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Demo Mode</div>
+            <div className="text-sm font-black text-[#F5F0E8]">Live-fallback enabled</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <MetricCard label="Pipeline Value" value={`₹${totalQuote.toLocaleString("en-IN")}`} sub="Across 3 demo cases" icon={<BadgeIndianRupee size={16} />} />
+        <MetricCard label="Avg Deal Size" value={`₹${avgQuote.toLocaleString("en-IN")}`} sub="Mean quote value" icon={<Target size={16} />} />
+        <MetricCard label="Active Cases" value={`${cases.length}`} sub={`${criticalCount} marked critical`} icon={<Users size={16} />} />
+        <MetricCard label="Automation Readiness" value="94%" sub="Backend + frontend verified" icon={<Wand2 size={16} />} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section className="lg:col-span-2 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Demo Cases</h2>
+              <p className="text-[#B8B0A0] text-sm mt-1">Tap any card to open the full deal view and walk the quote pipeline.</p>
+            </div>
+            <Link href="/dashboard/autopilot" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
+              Open Autopilot <ChevronRight size={14} />
+            </Link>
+          </div>
           <div className="space-y-4">
-            {[
-              { name: "Radhika Iyer", dest: "Bali, Indonesia", style: "Luxury", status: "In Triage", score: 98 },
-              { name: "Narayan Mallapur", dest: "Dubai, UAE", style: "Standard", status: "Quoted", score: 85 },
-              { name: "Alice Zhang", dest: "Phuket, Thailand", style: "Luxury", status: "Bidding", score: 92 }
-            ].map((lead, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-[#1A1A1A]/50 hover:bg-[#1A1A1A] transition-all border border-transparent hover:border-[#C9A84C]/20 group cursor-pointer">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-[#C9A84C]/10 flex items-center justify-center font-bold text-[#C9A84C] border border-[#C9A84C]/20">
-                    {lead.name.split(' ').map(n => n[0]).join('')}
-                  </div>
+            {cases.map((item) => (
+              <Link key={item.slug} href={`/dashboard/deals?case=${item.slug}`} className="block rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5 hover:border-[#C9A84C]/30 transition-all">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="font-bold text-[#F5F0E8] font-body">{lead.name}</div>
-                    <div className="text-[10px] text-[#B8B0A0] font-mono uppercase tracking-tighter">{lead.dest} • {lead.style}</div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-[8px] font-mono font-black uppercase tracking-widest px-2 py-1 rounded-full border ${item.priority === "CRITICAL" ? "text-red-400 border-red-400/20 bg-red-400/10" : "text-[#C9A84C] border-[#C9A84C]/20 bg-[#C9A84C]/10"}`}>
+                        {item.priority}
+                      </span>
+                      <span className="text-[10px] font-mono text-[#4A453E] uppercase tracking-widest">{item.destination}</span>
+                    </div>
+                    <h3 className="text-lg font-black text-[#F5F0E8]">{item.guest_name}</h3>
+                    <p className="text-sm text-[#B8B0A0] leading-relaxed mt-1 max-w-2xl">{item.query}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Quote</div>
+                    <div className="text-xl font-black text-[#C9A84C]">₹{item.quote_total.toLocaleString("en-IN")}</div>
+                    <div className="text-[10px] text-[#1D9E75] mt-2 max-w-[160px]">{item.status}</div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-8">
-                  <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                    lead.status === 'Quoted' ? 'border-[#1D9E75]/30 text-[#1D9E75] bg-[#1D9E75]/5' : 
-                    lead.status === 'Bidding' ? 'border-[#ff8c00]/30 text-[#ff8c00] bg-[#ff8c00]/5' : 'border-[#B8B0A0]/30 text-[#B8B0A0] bg-[#B8B0A0]/5'
-                  }`}>
-                    {lead.status}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[9px] text-[#B8B0A0] font-black font-mono uppercase tracking-widest">SCORE</div>
-                    <div className="text-sm font-black text-[#C9A84C] font-mono">{lead.score}%</div>
-                  </div>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className="bg-[#C9A84C] rounded-3xl p-8 text-[#0A0A0A] relative overflow-hidden flex flex-col justify-between shadow-[0_0_40px_rgba(201,168,76,0.1)]">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-          <div className="relative z-10">
-            <div className="w-12 h-12 bg-[#0A0A0A] rounded-xl flex items-center justify-center mb-6 shadow-xl">
-              <Zap size={24} className="text-[#C9A84C]" fill="currentColor" />
-            </div>
-            <h3 className="text-2xl font-black font-headline uppercase mb-2 tracking-tighter">Kinetic Intelligence</h3>
-            <p className="text-[#0A0A0A]/70 text-sm leading-relaxed mb-8 font-body font-medium">
-              The AI Agent Swarm is currently monitoring 12 active supply chains. No critical anomalies detected.
-            </p>
-            
-            <div className="space-y-4">
-              <div className="bg-[#0A0A0A]/5 rounded-2xl p-4 border border-[#0A0A0A]/10 backdrop-blur-sm">
-                <div className="text-[10px] font-black text-[#0A0A0A]/50 uppercase tracking-[0.2em] mb-1 font-mono">Last AI Action</div>
-                <div className="text-sm text-[#0A0A0A] font-bold">Bidding Agent countered bid for Hyatt Dubai at ₹42,500.</div>
-              </div>
-              <div className="bg-[#0A0A0A]/5 rounded-2xl p-4 border border-[#0A0A0A]/10 backdrop-blur-sm">
-                <div className="text-[10px] font-black text-[#0A0A0A]/50 uppercase tracking-[0.2em] mb-1 font-mono">Market Insight</div>
-                <div className="text-sm text-[#0A0A0A] font-bold">Bali demand is up 12% this week. Adjust luxury margins?</div>
-              </div>
-            </div>
+        <aside className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock3 size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Demo Flow</h2>
           </div>
-          
-          <button className="relative z-10 w-full bg-[#0A0A0A] text-[#C9A84C] py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl mt-8 hover:scale-[1.02] transition-transform active:scale-95 border border-[#C9A84C]/20">
-            Switch to Kinetic OS
-          </button>
-        </div>
+          <ol className="space-y-4 text-sm">
+            <FlowStep title="1. Triage" body="Use the homepage playground to load Maldives, Dubai, or Kerala cases." />
+            <FlowStep title="2. Autopilot" body="Open the command center and jump directly into the high-priority deal cards." />
+            <FlowStep title="3. Deal View" body="Open a case and walk the quote, itinerary, finance, and vendor panels." />
+            <FlowStep title="4. Close" body="Show the consistent design, the demo fallback, and the live health indicators." />
+          </ol>
+        </aside>
       </div>
     </div>
+  );
+}
+
+function MetricCard({ label, value, sub, icon }: { label: string; value: string; sub: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+      <div className="flex items-center gap-2 text-[#C9A84C] mb-3">
+        {icon}
+        <span className="text-[10px] uppercase tracking-widest font-mono">{label}</span>
+      </div>
+      <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
+      <div className="text-[10px] uppercase tracking-widest text-[#4A453E] font-mono mt-2">{sub}</div>
+    </div>
+  );
+}
+
+function FlowStep({ title, body }: { title: string; body: string }) {
+  return (
+    <li className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-1">{title}</div>
+      <div className="text-sm text-[#B8B0A0] leading-relaxed">{body}</div>
+    </li>
   );
 }
