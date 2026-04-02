@@ -8,7 +8,10 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock3,
+  Globe2,
+  Instagram,
   Kanban,
+  Linkedin,
   List,
   Mail,
   PhoneCall,
@@ -41,6 +44,14 @@ type LeadRecord = DemoCase & {
   company: string;
   email: string;
   phone: string;
+  enrichment: {
+    linkedin: string;
+    instagram: string;
+    facebook: string;
+    publicWeb: string;
+    summary: string;
+    confidence: string;
+  };
 };
 
 const FALLBACK_CASES: DemoCase[] = [
@@ -86,6 +97,14 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
         company: "Nair Luxury Escapes",
         email: "meera@nairluxury.com",
         phone: "+91 98765 11001",
+        enrichment: {
+          linkedin: "Luxury founder profile detected",
+          instagram: "@meera.escapejournal",
+          facebook: "Private profile with Maldives interest clusters",
+          publicWeb: "Travel and lifestyle blog mentions honeymoon content",
+          summary: "High-affinity luxury traveler with strong visual preference and premium-experience bias.",
+          confidence: "91%",
+        },
       };
     }
     if (item.slug === "dubai-bleisure") {
@@ -101,6 +120,14 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
         company: "Velocity Corporate Travel",
         email: "arjun.mehta@velocitycorp.in",
         phone: "+91 98110 33003",
+        enrichment: {
+          linkedin: "Senior corporate decision-maker profile",
+          instagram: "@arjun.globalroutes",
+          facebook: "Sparse activity, mostly business travel check-ins",
+          publicWeb: "Conference speaker references and executive travel footprint",
+          summary: "Corporate traveler with premium efficiency preference and business-leisure blending pattern.",
+          confidence: "88%",
+        },
       };
     }
     return {
@@ -115,6 +142,14 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
       company: "Sharma Family Travels",
       email: "booking@sharmafamilytravels.in",
       phone: "+91 98989 22002",
+      enrichment: {
+        linkedin: "Family business operator reference",
+        instagram: "@sharmafamilyweekends",
+        facebook: "Active family-travel planning groups detected",
+        publicWeb: "Kid-friendly itinerary searches and Kerala interest signals",
+        summary: "Value-conscious family planner with strong convenience and pacing sensitivity.",
+        confidence: "84%",
+      },
     };
   });
 }
@@ -123,6 +158,7 @@ export default function LeadsPage() {
   const [activeView, setActiveView] = useState<"kanban" | "list">("kanban");
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [query, setQuery] = useState("");
+  const [enrichedLead, setEnrichedLead] = useState<LeadRecord | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,6 +258,69 @@ export default function LeadsPage() {
         <MetricCard label="Search Matches" value={`${filteredLeads.length}`} sub="Name, company, phone, or email retrieval" icon={<CheckCircle2 size={14} />} />
       </div>
 
+      {enrichedLead && (
+        <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-[#C9A84C]" />
+                <h2 className="text-lg font-black text-[#F5F0E8]">Profile Enrichment</h2>
+              </div>
+              <p className="text-sm text-[#B8B0A0] leading-relaxed">
+                Demo-safe enrichment from public social and web context. This strengthens the contact profile without claiming authenticated live social integrations.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEnrichedLead(null)}
+              className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+            >
+              Clear enrichment
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-black text-[#F5F0E8]">{enrichedLead.guest_name}</div>
+                  <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">
+                    {enrichedLead.company} · Enrichment confidence {enrichedLead.enrichment.confidence}
+                  </div>
+                </div>
+                <span className="rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#1D9E75]">
+                  Strengthened profile
+                </span>
+              </div>
+              <div className="mt-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+                {enrichedLead.enrichment.summary}
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <EnrichmentTile icon={<Linkedin size={14} />} label="LinkedIn" value={enrichedLead.enrichment.linkedin} />
+                <EnrichmentTile icon={<Instagram size={14} />} label="Instagram" value={enrichedLead.enrichment.instagram} />
+                <EnrichmentTile icon={<Users size={14} />} label="Facebook" value={enrichedLead.enrichment.facebook} />
+                <EnrichmentTile icon={<Globe2 size={14} />} label="Public Web" value={enrichedLead.enrichment.publicWeb} />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">How to say it on Monday</div>
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#B8B0A0]">
+                <p>
+                  “If we know just the customer identity, NAMA can strengthen the contact profile from public context and improve the quality of the commercial response.”
+                </p>
+                <p>
+                  “This is demo-safe enrichment, not a claim of live authenticated social ingestion. The point is the operator can see a smarter contact, faster.”
+                </p>
+                <p>
+                  “That affects follow-up tone, itinerary style, urgency, and even which salesperson should own the case.”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <section className="xl:col-span-8 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="flex items-center gap-2 mb-4">
@@ -281,7 +380,7 @@ export default function LeadsPage() {
           {stageBuckets.map((bucket) => (
             <Column key={bucket.stage} title={bucket.stage} count={String(bucket.leads.length).padStart(2, "0")} color={stageColor(bucket.stage)}>
               {bucket.leads.length ? (
-                bucket.leads.map((item) => <LeadCard key={item.slug} item={item} />)
+                bucket.leads.map((item) => <LeadCard key={item.slug} item={item} onEnrich={() => setEnrichedLead(item)} />)
               ) : (
                 <div className="rounded-xl border border-dashed border-white/5 p-6 text-center text-[#4A453E] text-xs font-mono uppercase tracking-widest">
                   No leads here now
@@ -302,25 +401,28 @@ export default function LeadsPage() {
           </div>
           <div className="divide-y divide-[#C9A84C]/10">
             {filteredLeads.map((item) => (
-              <Link
-                key={item.slug}
-                href={`/dashboard/deals?case=${item.slug}`}
-                className="grid grid-cols-[1.1fr_0.7fr_0.7fr_0.9fr_1fr_1fr] gap-4 px-6 py-5 hover:bg-[#0A0A0A] transition-colors"
-              >
-                <div>
+              <div key={item.slug} className="grid grid-cols-[1.1fr_0.7fr_0.7fr_0.9fr_1fr_1fr_auto] gap-4 px-6 py-5 hover:bg-[#0A0A0A] transition-colors">
+                <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
                   <div className="text-sm font-black text-[#F5F0E8]">{item.guest_name}</div>
                   <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.contactLabel}</div>
                   <div className="mt-1 text-[10px] text-[#4A453E]">{item.company}</div>
-                </div>
-                <div className="text-sm text-[#B8B0A0]">{item.source}</div>
-                <div><StagePill stage={item.stage} /></div>
-                <div className="text-sm text-[#B8B0A0]">{item.owner}</div>
-                <div>
+                </Link>
+                <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.source}</Link>
+                <div className="flex items-center"><StagePill stage={item.stage} /></div>
+                <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.owner}</Link>
+                <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
                   <div className="text-sm text-[#F5F0E8]">{item.nextAction}</div>
                   <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.nextActionAt}</div>
-                </div>
-                <div className="text-sm text-[#B8B0A0]">{item.status}</div>
-              </Link>
+                </Link>
+                <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.status}</Link>
+                <button
+                  type="button"
+                  onClick={() => setEnrichedLead(item)}
+                  className="self-center rounded-full border border-[#C9A84C]/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10"
+                >
+                  Enrich profile
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -372,37 +474,52 @@ function Column({
   );
 }
 
-function LeadCard({ item }: { item: LeadRecord }) {
+function LeadCard({ item, onEnrich }: { item: LeadRecord; onEnrich: () => void }) {
   return (
-    <Link href={`/dashboard/deals?case=${item.slug}`} className="block bg-[#1A1A1A] p-4 rounded-xl border border-transparent hover:border-[#C9A84C]/30 transition-all group cursor-pointer relative overflow-hidden shadow-sm">
+    <div className="bg-[#1A1A1A] p-4 rounded-xl border border-transparent hover:border-[#C9A84C]/30 transition-all group relative overflow-hidden shadow-sm">
       <div className="flex justify-between items-start gap-3 mb-3">
         <StagePill stage={item.stage} />
-        <ChevronRight size={14} className="text-[#B8B0A0] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onEnrich}
+            className="rounded-full border border-[#C9A84C]/20 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10"
+          >
+            Enrich
+          </button>
+          <Link href={`/dashboard/deals?case=${item.slug}`}>
+            <ChevronRight size={14} className="text-[#B8B0A0] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          </Link>
+        </div>
       </div>
-      <h3 className="font-black text-sm tracking-tight mb-1 text-[#F5F0E8] font-headline uppercase">{item.guest_name}</h3>
-      <p className="text-[10px] font-mono text-[#B8B0A0] uppercase tracking-tighter">{item.destination} · {item.source}</p>
+      <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
+        <h3 className="font-black text-sm tracking-tight mb-1 text-[#F5F0E8] font-headline uppercase">{item.guest_name}</h3>
+        <p className="text-[10px] font-mono text-[#B8B0A0] uppercase tracking-tighter">{item.destination} · {item.source}</p>
+      </Link>
       <p className="mt-3 text-xs text-[#B8B0A0] leading-relaxed">{item.contactLabel}</p>
       <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3 text-[10px] text-[#B8B0A0] space-y-1">
         <div>{item.company}</div>
         <div>{item.email}</div>
         <div>{item.phone}</div>
       </div>
-      <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
-        <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Next action</div>
-        <div className="mt-1 text-sm font-black text-[#F5F0E8]">{item.nextAction}</div>
-        <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.nextActionAt}</div>
-      </div>
-      <div className="mt-3 flex items-center justify-between border-t border-[#C9A84C]/5 pt-3">
-        <div>
-          <div className="text-sm font-mono font-black text-[#C9A84C]">₹{item.quote_total.toLocaleString("en-IN")}</div>
-          <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{item.owner}</div>
+      <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
+        <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+          <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Next action</div>
+          <div className="mt-1 text-sm font-black text-[#F5F0E8]">{item.nextAction}</div>
+          <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.nextActionAt}</div>
         </div>
-        <div className="text-right">
-          <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Last touch</div>
-          <div className="text-[10px] text-[#B8B0A0]">{item.lastTouch}</div>
+        <div className="mt-3 flex items-center justify-between border-t border-[#C9A84C]/5 pt-3">
+          <div>
+            <div className="text-sm font-mono font-black text-[#C9A84C]">₹{item.quote_total.toLocaleString("en-IN")}</div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{item.owner}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Last touch</div>
+            <div className="text-[10px] text-[#B8B0A0]">{item.lastTouch}</div>
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 
@@ -426,5 +543,17 @@ function StagePill({ stage }: { stage: LeadStage }) {
       {(stage === "New" || stage === "Quoted") && <Clock3 size={10} />}
       {stage}
     </span>
+  );
+}
+
+function EnrichmentTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+      <div className="flex items-center gap-2 text-[#C9A84C]">
+        {icon}
+        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+      </div>
+      <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{value}</div>
+    </div>
   );
 }
