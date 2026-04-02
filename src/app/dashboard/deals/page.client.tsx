@@ -66,6 +66,13 @@ type DemoCase = {
     status: string;
     note: string;
   };
+  capture: {
+    website: string;
+    whatsapp: string;
+    email: string;
+    phone: string;
+    transcript: string[];
+  };
 };
 
 const LEAD_FALLBACK_MAP: Record<string, string> = {
@@ -160,6 +167,17 @@ const LOCAL_CASES: Record<string, DemoCase> = {
       status: "Counter accepted",
       note: "Negotiated honeymoon add-ons while protecting 19.4% margin.",
     },
+    capture: {
+      website: "Landing page enquiry",
+      whatsapp: "WhatsApp follow-up from the sales team",
+      email: "Confirmation thread stored in CRM",
+      phone: "Call transcript linked after discovery call",
+      transcript: [
+        "Sales: I’ve captured the honeymoon request and I’m moving it into CRM now.",
+        "Client: Great, please keep the private dinner and seaplane transfer.",
+        "Sales: Noted. The whole conversation stays attached to the deal card for the team.",
+      ],
+    },
   },
   "dubai-bleisure": {
     slug: "dubai-bleisure",
@@ -243,6 +261,17 @@ const LOCAL_CASES: Record<string, DemoCase> = {
       status: "Rate held for 18 hours",
       note: "Secured executive rate with breakfast inclusion and flexible cancellation.",
     },
+    capture: {
+      website: "Corporate enquiry form",
+      whatsapp: "WhatsApp recap from client",
+      email: "Executive email thread",
+      phone: "Call notes synced from sales",
+      transcript: [
+        "Sales: I’ve captured the Dubai request from your email and WhatsApp recap.",
+        "Client: Perfect, we need a premium business plus leisure balance.",
+        "Sales: I’ll keep the transcript with the CRM record so the next handoff is seamless.",
+      ],
+    },
   },
   "kerala-family": {
     slug: "kerala-family",
@@ -318,6 +347,17 @@ const LOCAL_CASES: Record<string, DemoCase> = {
       status: "Pending confirmation",
       note: "Alternate operator already staged in case primary vendor doesn’t respond.",
     },
+    capture: {
+      website: "Family holiday form",
+      whatsapp: "WhatsApp family follow-up",
+      email: "Email with dates and children count",
+      phone: "Discovery call transcript",
+      transcript: [
+        "Sales: I’ve captured the Kerala family trip and attached the call notes to the lead.",
+        "Client: We want it calm, simple, and easy for our child.",
+        "Sales: Understood. The CRM now has the whole conversation and the houseboat preference.",
+      ],
+    },
   },
 };
 
@@ -337,7 +377,10 @@ export default function DealsClientPage() {
       try {
         const res = await fetch(apiUrl(`/demo/case/${slugParam}`));
         const json = await res.json();
-        if (!cancelled) setData(json?.slug ? json : LOCAL_CASES[slugParam]);
+        if (!cancelled) {
+          const fallback = LOCAL_CASES[slugParam];
+          setData(json?.slug ? { ...fallback, ...json, capture: fallback.capture } : fallback);
+        }
       } catch {
         if (!cancelled) setData(LOCAL_CASES[slugParam]);
       } finally {
@@ -393,6 +436,36 @@ export default function DealsClientPage() {
         <StatCard label="Margin" value={`${data.finance.margin_percent}%`} icon={<CheckCircle2 size={16} />} />
         <StatCard label="Deposit Due" value={`₹${data.finance.deposit_due.toLocaleString("en-IN")}`} icon={<Shield size={16} />} />
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles size={14} className="text-[#C9A84C]" />
+          <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel CRM Intake</h2>
+        </div>
+        <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">
+          Website, WhatsApp, email, and phone-call transcripts are captured into the same CRM record so the handoff never loses context.
+        </p>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Website", value: data.capture.website },
+            { label: "WhatsApp", value: data.capture.whatsapp },
+            { label: "Email", value: data.capture.email },
+            { label: "Phone", value: data.capture.phone },
+          ].map((item) => (
+            <div key={item.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-1">{item.label}</div>
+              <div className="text-sm text-[#F5F0E8] leading-relaxed">{item.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 grid gap-3">
+          {data.capture.transcript.map((line, index) => (
+            <div key={index} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 text-sm text-[#F5F0E8] leading-relaxed">
+              {line}
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="grid lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">

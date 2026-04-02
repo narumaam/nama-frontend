@@ -16,6 +16,14 @@ type DemoCase = {
   status: string;
 };
 
+type CaptureSignal = {
+  channel: string;
+  source: string;
+  lead: string;
+  note: string;
+  tone: string;
+};
+
 const FALLBACK_CASES: DemoCase[] = [
   {
     slug: "maldives-honeymoon",
@@ -47,6 +55,43 @@ const FALLBACK_CASES: DemoCase[] = [
     quote_total: 124000,
     status: "Payment reminder queued",
   },
+];
+
+const CAPTURE_SIGNALS: CaptureSignal[] = [
+  {
+    channel: "Website",
+    source: "Website enquiry form",
+    lead: "Meera Nair",
+    note: "Luxury honeymoon request captured from the public demo site and routed to CRM instantly.",
+    tone: "High intent",
+  },
+  {
+    channel: "WhatsApp",
+    source: "WhatsApp Business",
+    lead: "Arjun Mehta",
+    note: "Inbound executive brief converted from chat into a structured lead and deal card.",
+    tone: "Fast response",
+  },
+  {
+    channel: "Email",
+    source: "Sales inbox",
+    lead: "Sharma Family",
+    note: "Family itinerary request arrives with subject, sender, and dates parsed into the pipeline.",
+    tone: "Threaded context",
+  },
+  {
+    channel: "Phone",
+    source: "Call transcript",
+    lead: "Corporate lead",
+    note: "Voice note and call transcript are stored alongside the lead so the sales team can pick up where the call ended.",
+    tone: "Call-to-CRM",
+  },
+];
+
+const SALES_TRANSCRIPT = [
+  "Sales: Thanks for the brief, I’ve captured the Maldives honeymoon and I’m opening the quote now.",
+  "Client: Perfect, please keep the overwater villa and private dinner in the plan.",
+  "Sales: Noted. I’ll move this into CRM, hold the room window, and send the deposit follow-up.",
 ];
 
 export default function DashboardPage() {
@@ -108,6 +153,48 @@ export default function DashboardPage() {
         <MetricCard label="Avg Deal Size" value={`₹${avgQuote.toLocaleString("en-IN")}`} sub="Mean quote value" icon={<Target size={16} />} />
         <MetricCard label="Active Cases" value={`${cases.length}`} sub={`${criticalCount} marked critical`} icon={<Users size={16} />} />
         <MetricCard label="Automation Readiness" value="94%" sub="Backend + frontend verified" icon={<Wand2 size={16} />} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <section className="lg:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel Capture</h2>
+          </div>
+          <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">
+            Website forms, WhatsApp, email, and phone-call transcripts all land in the same CRM lane so the team sees one continuous customer story.
+          </p>
+          <div className="grid md:grid-cols-2 gap-3">
+            {CAPTURE_SIGNALS.map((signal) => (
+              <div key={signal.channel} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{signal.channel}</span>
+                  <span className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{signal.tone}</span>
+                </div>
+                <div className="text-sm font-black text-[#F5F0E8] mb-1">{signal.lead}</div>
+                <div className="text-xs text-[#B8B0A0] leading-relaxed">{signal.note}</div>
+                <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#1D9E75]">{signal.source}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <aside className="lg:col-span-2 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Wand2 size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Sales Transcript</h2>
+          </div>
+          <p className="text-sm text-[#B8B0A0] leading-relaxed mb-4">
+            Sales calls and follow-up notes are captured back into the CRM so the next rep sees the exact context without asking the customer to repeat themselves.
+          </p>
+          <div className="space-y-3">
+            {SALES_TRANSCRIPT.map((line, index) => (
+              <div key={index} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 text-sm text-[#F5F0E8] leading-relaxed">
+                {line}
+              </div>
+            ))}
+          </div>
+        </aside>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

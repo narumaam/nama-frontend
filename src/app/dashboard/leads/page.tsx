@@ -47,6 +47,12 @@ export default function LeadsPage() {
   const hotLeads = cases.slice(0, 2);
   const quotedLeads = cases.slice(1, 2);
   const paymentLeads = cases.slice(2, 3);
+  const captureSources = [
+    { label: "Website", note: "Public enquiry form", tone: "Fastest intake" },
+    { label: "WhatsApp", note: "Business chat handoff", tone: "High response" },
+    { label: "Email", note: "Inbox parsing + threading", tone: "Context rich" },
+    { label: "Phone", note: "Call transcript capture", tone: "CRM ready" },
+  ];
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
@@ -107,6 +113,25 @@ export default function LeadsPage() {
           <div className="text-sm text-[#B8B0A0] leading-relaxed">Open any card to show quote, itinerary, finance, and negotiation in one stable screen, then return to Autopilot.</div>
         </div>
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles size={14} className="text-[#C9A84C]" />
+          <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel Inbound Capture</h2>
+        </div>
+        <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">
+          Website, WhatsApp, email, and phone calls all become the same kind of lead in CRM. The team sees one case instead of chasing four different entry points.
+        </p>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {captureSources.map((item) => (
+            <div key={item.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-1">{item.label}</div>
+              <div className="text-sm text-[#F5F0E8] leading-relaxed mb-2">{item.note}</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{item.tone}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {activeView === "kanban" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start pb-28">
