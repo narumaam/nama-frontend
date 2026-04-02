@@ -159,6 +159,7 @@ export default function LeadsPage() {
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [query, setQuery] = useState("");
   const [enrichedLead, setEnrichedLead] = useState<LeadRecord | null>(null);
+  const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -422,10 +423,21 @@ export default function LeadsPage() {
                 >
                   Enrich profile
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedLead(item)}
+                  className="self-center rounded-full border border-white/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] hover:border-[#C9A84C]/20 hover:text-[#F5F0E8]"
+                >
+                  Open contact
+                </button>
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      {selectedLead && (
+        <ContactDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} onEnrich={() => setEnrichedLead(selectedLead)} />
       )}
     </div>
   );
@@ -554,6 +566,89 @@ function EnrichmentTile({ icon, label, value }: { icon: React.ReactNode; label: 
         <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
       </div>
       <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{value}</div>
+    </div>
+  );
+}
+
+function ContactDrawer({
+  lead,
+  onClose,
+  onEnrich,
+}: {
+  lead: LeadRecord;
+  onClose: () => void;
+  onEnrich: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[110] flex justify-end bg-black/50 backdrop-blur-sm">
+      <div className="h-full w-full max-w-xl overflow-y-auto border-l border-[#C9A84C]/10 bg-[#111111] p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Contact Profile</div>
+            <h2 className="mt-2 text-2xl font-black uppercase tracking-tight text-[#F5F0E8]">{lead.guest_name}</h2>
+            <div className="mt-2 text-sm text-[#B8B0A0]">{lead.company}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          <InfoCard label="Email" value={lead.email} />
+          <InfoCard label="Phone" value={lead.phone} />
+          <InfoCard label="Owner" value={lead.owner} />
+          <InfoCard label="Source" value={lead.source} />
+          <InfoCard label="Stage" value={lead.stage} />
+          <InfoCard label="Next Action" value={lead.nextActionAt} />
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Operator Summary</div>
+          <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">
+            {lead.contactLabel}. Last touch: {lead.lastTouch}. Current deal status: {lead.status}.
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Preferred Demo Actions</div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href={`/dashboard/deals?case=${lead.slug}`}
+              className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+            >
+              Open deal
+            </Link>
+            <button
+              type="button"
+              onClick={onEnrich}
+              className="rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#1D9E75]"
+            >
+              Strengthen profile
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Monday Talk Track</div>
+          <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#B8B0A0]">
+            <p>“This is the contact spine of the CRM. The team can retrieve the customer fast, see the current commercial context, and act without re-asking basic questions.”</p>
+            <p>“If needed, the contact can be strengthened from public context and routed to the right owner with the right next action immediately.”</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#4A453E]">{label}</div>
+      <div className="mt-2 text-sm font-black text-[#F5F0E8]">{value}</div>
     </div>
   );
 }
