@@ -10,13 +10,13 @@ Show NAMA as an AI-native travel operating system that can take a raw travel lea
 
 Use deterministic demo cases only. Do not present external supplier, payment, WhatsApp, or email integrations as live production connections.
 
-## Primary Demo URLs
+## Route Order
 
 1. Landing page  
    https://nama-frontend.vercel.app/
 
-2. Demo section on landing page  
-   https://nama-frontend.vercel.app/#demo
+2. Register  
+   https://nama-frontend.vercel.app/register
 
 3. Dashboard  
    https://nama-frontend.vercel.app/dashboard
@@ -33,6 +33,16 @@ Use deterministic demo cases only. Do not present external supplier, payment, Wh
 7. Kinetic command center  
    https://nama-frontend.vercel.app/kinetic
 
+## Fast Demo Timing
+
+- Homepage: 45-60 seconds
+- Register: 20-30 seconds
+- Dashboard: 30-45 seconds
+- Leads: 45-60 seconds
+- Deals: 2-3 minutes
+- Autopilot: 45-60 seconds
+- Kinetic close: 30-45 seconds
+
 ## Primary Demo Case
 
 Use `maldives-honeymoon` as the main storyline.
@@ -48,9 +58,27 @@ Fallback cases:
 - `dubai-bleisure`
 - `kerala-family`
 
+## Omnichannel Capture Talk Track
+
+Use this exactly on the homepage and leads sections.
+
+"NAMA captures demand from every commercial channel the travel team already uses. That includes the website form, phone conversations converted into a sales transcript, inbound email, WhatsApp as the messaging rail, and manually pasted sales transcripts from the team. The point is not the channel. The point is that every raw inquiry becomes one structured operating object."
+
+If asked to break that down:
+
+- Website: "A web inquiry enters the same operating flow immediately."
+- Phone: "A call summary or agent-entered transcript is treated as structured sales input."
+- Email: "An inbound email is parsed into destination, dates, budget, and intent."
+- WhatsApp placeholder: "WhatsApp is represented in the demo workflow, but not presented as a live production connection."
+- Sales transcript: "Any freeform transcript can be dropped into the same triage engine and normalized."
+
 ## Recommended 5-7 Minute Flow
 
 ### 1. Open on the landing page
+
+Route:
+
+`/`
 
 Message:
 
@@ -59,10 +87,16 @@ Message:
 Action:
 
 - open the homepage
+- point to the system status and core positioning
+- say the omnichannel capture talk track
 - scroll to the live demo section
-- point at the preset cases
+- select the `Maldives Honeymoon` preset
 
 ### 2. Show lead triage
+
+Route:
+
+`/#demo`
 
 Message:
 
@@ -73,7 +107,34 @@ Action:
 - use the Maldives preset
 - let the triage result populate
 
-### 3. Move into the dashboard
+Fallback if this section is slow:
+
+"The homepage triage widget is the lightest demo surface, so if it lags for a second the workflow is still the same: raw inquiry in, structured lead out. I’ll move into the operator workspace where the same case is already loaded."
+
+### 3. Open register
+
+Route:
+
+`/register`
+
+Message:
+
+"This is the controlled entry point into the demo workspace. For Monday, the goal is not account creation depth. The goal is to show how quickly a team moves from intake to execution."
+
+Action:
+
+- show the page briefly
+- do not spend time filling the form unless needed
+
+Fallback if unavailable:
+
+"Registration is just the front door. The important part is the operating workspace behind it, so I’ll move straight into the dashboard."
+
+### 4. Move into the dashboard
+
+Route:
+
+`/dashboard`
 
 Message:
 
@@ -84,18 +145,34 @@ Action:
 - show the dashboard briefly
 - keep moving
 
-### 4. Open leads
+Fallback if this section is slow:
+
+"The dashboard is the portfolio view. The real commercial depth is in the case workspace, so I’ll move directly into leads and the live deal."
+
+### 5. Open leads
+
+Route:
+
+`/dashboard/leads`
 
 Message:
 
-"This is where triaged demand becomes a working sales pipeline."
+"This is where omnichannel demand becomes a working sales pipeline. The same Maldives case now exists as a sales object instead of just a message."
 
 Action:
 
 - open the leads page
 - highlight the same case continuity
 
-### 5. Open the deal workspace
+Fallback if this section is slow:
+
+"The leads layer is mainly proving continuity. I’ll jump into the live deal where the commercial picture is fully assembled."
+
+### 6. Open the deal workspace
+
+Route:
+
+`/dashboard/deals?lead=1`
 
 Message:
 
@@ -109,7 +186,15 @@ Action:
 - show itinerary
 - show suggested follow-up
 
-### 6. Open autopilot
+Fallback if this section is slow:
+
+"The deal view is the most important screen in the system. If one panel is slow, the operating logic is still visible here: guest context, itinerary, commercials, and follow-up are unified in one workspace."
+
+### 7. Open autopilot
+
+Route:
+
+`/dashboard/autopilot`
 
 Message:
 
@@ -120,7 +205,15 @@ Action:
 - keep this section short
 - treat it like a control room
 
-### 7. Close on kinetic
+Fallback if this section is unavailable:
+
+"Autopilot is the orchestration layer, but the core idea is already visible in the deal workspace. I’ll close on the command-center view."
+
+### 8. Close on kinetic
+
+Route:
+
+`/kinetic`
 
 Message:
 
@@ -130,6 +223,10 @@ Action:
 
 - open the kinetic view
 - close on system orchestration and readiness
+
+Fallback if unavailable:
+
+"Kinetic is the visual command-center layer. The commercial story is already complete without it: NAMA captured the lead, structured it, turned it into an itinerary, priced it, and prepared the follow-up."
 
 ## Safe Language
 
@@ -161,14 +258,65 @@ If any page feels slow or awkward, return to:
 - deals page
 - kinetic page
 
+## Optional Admin Appendix
+
+Only show this if the main flow is already smooth and time remains.
+
+Route:
+
+`/dashboard/team`
+
+Use this message:
+
+"After the commercial workflow, the next question is usually admin control. This appendix shows how a customer admin can invite users one by one, preview bulk imports, assign roles, define hierarchy, and map ownership without changing the core operating flow."
+
+What to point at:
+
+- individual invite preview
+- bulk CSV import preview
+- role matrix
+- hierarchy from L1 to L5
+- assignment board tying owners to live demo leads
+
+Safe language:
+
+- "demo-safe admin workspace"
+- "customer admin control surface"
+- "credential-independent access model"
+
+Avoid:
+
+- "live identity provisioning is already active"
+- "bulk invites are sending in production right now"
+- "RBAC is fully audited for enterprise today"
+
+## Repeatable Smoke Check
+
+Run this before Monday if you want a fast route and API check from the repo:
+
+`bash scripts/monday_demo_smoke_check.sh`
+
 That is enough to still tell a complete story.
+
+## Fallback Matrix
+
+| Section | Primary Route | If Slow or Unavailable | Use This Language |
+|---|---|---|---|
+| Homepage | `/` | Stay on hero, then go to deals | "The homepage is framing the operating model. I’ll move into the live workspace where the same case is already loaded." |
+| Demo widget | `/#demo` | Skip to leads or deals | "The triage layer turns freeform demand into structure. That same output is already visible downstream, so I’ll move forward." |
+| Register | `/register` | Skip entirely | "Registration is not the product story. The operating workflow is." |
+| Dashboard | `/dashboard` | Skip to leads | "Dashboard is the portfolio layer. Leads and deals show the commercial depth more clearly." |
+| Leads | `/dashboard/leads` | Skip to deals | "Leads proves continuity. The real value is how that lead becomes a priced deal." |
+| Deals | `/dashboard/deals?lead=1` | Refresh once, then fall back to homepage preset + kinetic | "This is the key workspace. If one panel hangs, the operating logic remains the same: lead, itinerary, commercials, and follow-up in one place." |
+| Autopilot | `/dashboard/autopilot` | Skip to kinetic | "Autopilot is the orchestration view. I’ll close on the command layer instead." |
+| Kinetic | `/kinetic` | End on deals | "The command-center view is additive. The main business story is already complete in the deal workspace." |
 
 ## Live Validation Targets
 
 These should return successfully before demo time:
 
 - `/`
-- `/#demo`
+- `/register`
 - `/dashboard`
 - `/dashboard/leads`
 - `/dashboard/deals?lead=1`
@@ -176,4 +324,3 @@ These should return successfully before demo time:
 - `/kinetic`
 - backend `/api/v1/health`
 - backend `/api/v1/demo/cases`
-

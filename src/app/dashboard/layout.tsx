@@ -48,6 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       items: [
         { name: 'Overview',      href: '/dashboard',           icon: LayoutDashboard,  badge: null },
         { name: 'Leads',         href: '/dashboard/leads',     icon: Users,            badge: null },
+        { name: 'Team & Access', href: '/dashboard/team',      icon: Settings,         badge: null },
         { name: 'Itineraries',   href: '/dashboard/itineraries', icon: Map,            badge: null },
         { name: 'Bookings',      href: '/dashboard/bookings',  icon: Briefcase,        badge: null },
         { name: 'Comms',         href: '/dashboard/comms',     icon: MessageSquare,    badge: null },
