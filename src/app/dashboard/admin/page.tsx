@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -183,6 +183,25 @@ const LOCALIZATION_RULES = [
 ];
 
 export default function AdminPage() {
+  const [selectedMarket, setSelectedMarket] = useState(REGIONAL_COMMERCE[0]);
+  const [selectedPlan, setSelectedPlan] = useState(SUBSCRIPTION_PLANS[1]);
+  const [bufferEnabled, setBufferEnabled] = useState(true);
+  const [manualRateEnabled, setManualRateEnabled] = useState(false);
+  const simulatedPlanPrice = useMemo(() => {
+    const baseAmount =
+      selectedPlan.name === "Starter" ? 24000 : selectedPlan.name === "Growth" ? 49000 : 125000;
+    const localizedAmount =
+      selectedMarket.baseCurrency === "INR"
+        ? baseAmount
+        : selectedMarket.baseCurrency === "AED"
+          ? Math.round(baseAmount / 22.7)
+          : selectedMarket.baseCurrency === "EUR"
+            ? Math.round(baseAmount / 90)
+            : Math.round(baseAmount / 83);
+    const bufferedAmount = bufferEnabled ? Math.round(localizedAmount * 1.025) : localizedAmount;
+    return `${selectedMarket.baseCurrency} ${bufferedAmount.toLocaleString("en-IN")}`;
+  }, [bufferEnabled, selectedMarket.baseCurrency, selectedPlan.name]);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -292,7 +311,14 @@ export default function AdminPage() {
           </p>
           <div className="space-y-3">
             {REGIONAL_COMMERCE.map((region) => (
-              <div key={region.market} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <button
+                key={region.market}
+                type="button"
+                onClick={() => setSelectedMarket(region)}
+                className={`w-full rounded-2xl border bg-[#0A0A0A] p-4 text-left transition-colors ${
+                  selectedMarket.market === region.market ? "border-[#C9A84C]/30" : "border-[#C9A84C]/10 hover:border-[#C9A84C]/20"
+                }`}
+              >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="text-sm font-black text-[#F5F0E8]">{region.market}</div>
@@ -305,7 +331,7 @@ export default function AdminPage() {
                     <Chip icon={<Landmark size={10} />} text={region.gateway} />
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -371,6 +397,70 @@ export default function AdminPage() {
                 {BASE_CURRENCY_MODEL.enabled.map((currency) => (
                   <Chip key={currency} icon={<Sparkles size={10} />} text={currency} />
                 ))}
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <Sparkles size={14} className="text-[#C9A84C]" />
+                <h3 className="text-sm font-black text-[#F5F0E8]">Subscription Pricing Simulator</h3>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E] mb-2">Plan</div>
+                  <div className="flex flex-wrap gap-2">
+                    {SUBSCRIPTION_PLANS.map((plan) => (
+                      <button
+                        key={plan.name}
+                        type="button"
+                        onClick={() => setSelectedPlan(plan)}
+                        className={`rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${
+                          selectedPlan.name === plan.name
+                            ? "bg-[#C9A84C] text-[#0A0A0A]"
+                            : "bg-[#0A0A0A] text-[#B8B0A0] border border-[#C9A84C]/10"
+                        }`}
+                      >
+                        {plan.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E] mb-2">Switches</div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBufferEnabled((value) => !value)}
+                      className={`rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${
+                        bufferEnabled ? "bg-[#C9A84C] text-[#0A0A0A]" : "bg-[#0A0A0A] text-[#B8B0A0] border border-[#C9A84C]/10"
+                      }`}
+                    >
+                      FX Buffer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManualRateEnabled((value) => !value)}
+                      className={`rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${
+                        manualRateEnabled ? "bg-[#C9A84C] text-[#0A0A0A]" : "bg-[#0A0A0A] text-[#B8B0A0] border border-[#C9A84C]/10"
+                      }`}
+                    >
+                      Manual Rate Lock
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Selected market</div>
+                  <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{selectedMarket.market}</div>
+                  <div className="mt-1 text-[10px] text-[#B8B0A0]">{selectedMarket.language} · {selectedMarket.gateway}</div>
+                </div>
+                <div className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Projected plan price</div>
+                  <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{simulatedPlanPrice}</div>
+                  <div className="mt-1 text-[10px] text-[#B8B0A0]">
+                    {selectedPlan.name} · {manualRateEnabled ? "Manual override engaged" : "Live FX stack"}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
