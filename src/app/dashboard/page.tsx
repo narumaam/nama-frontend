@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
-import { BadgeIndianRupee, ChevronRight, Clock3, Sparkles, Target, Users, Wallet, Wand2 } from "lucide-react";
+import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet, Wand2 } from "lucide-react";
 
 type DemoCase = {
   slug: string;
@@ -204,9 +204,14 @@ export default function DashboardPage() {
               <h2 className="text-xl font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Demo Cases</h2>
               <p className="text-[#B8B0A0] text-sm mt-1">Tap any card to open the full deal view and walk the quote pipeline with deterministic demo data.</p>
             </div>
-            <Link href="/dashboard/autopilot" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
-              Open Autopilot <ChevronRight size={14} />
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href="/dashboard/ekla" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
+                Open Ekla <ChevronRight size={14} />
+              </Link>
+              <Link href="/dashboard/autopilot" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
+                Open Autopilot <ChevronRight size={14} />
+              </Link>
+            </div>
           </div>
           <div className="space-y-4">
             {cases.map((item) => (
@@ -240,10 +245,18 @@ export default function DashboardPage() {
           </div>
           <ol className="space-y-4 text-sm">
             <FlowStep title="1. Triage" body="Use the homepage playground to load Maldives, Dubai, or Kerala cases." />
-            <FlowStep title="2. Autopilot" body="Open the command center and jump directly into the high-priority deal cards." />
-            <FlowStep title="3. Deal View" body="Open a case and walk the quote, itinerary, finance, and vendor panels." />
-            <FlowStep title="4. Close" body="Show the consistent design, the seeded fallback, and the health indicators." />
+            <FlowStep title="2. Ekla" body="Show the autonomous agency operator layer that prepares routine work before a human touches it." />
+            <FlowStep title="3. Autopilot" body="Open the command center and jump directly into the high-priority deal cards." />
+            <FlowStep title="4. Deal View" body="Open a case and walk the quote, itinerary, finance, and vendor panels." />
+            <FlowStep title="5. Close" body="Show the consistent design, the seeded fallback, and the health indicators." />
           </ol>
+          <Link
+            href="/dashboard/ekla"
+            className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+          >
+            <Bot size={12} />
+            Ekla demo module
+          </Link>
         </aside>
       </div>
     </div>

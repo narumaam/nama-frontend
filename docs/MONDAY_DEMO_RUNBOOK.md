@@ -27,10 +27,13 @@ Use deterministic demo cases only. Do not present external supplier, payment, Wh
 5. Deal workspace  
    https://nama-frontend.vercel.app/dashboard/deals?lead=1
 
-6. Autopilot  
+6. Ekla autonomous operator
+   https://nama-frontend.vercel.app/dashboard/ekla
+
+7. Autopilot  
    https://nama-frontend.vercel.app/dashboard/autopilot
 
-7. Kinetic command center  
+8. Kinetic command center  
    https://nama-frontend.vercel.app/kinetic
 
 ## Optional Appendix
@@ -60,6 +63,7 @@ Why this matters:
 - Dashboard: 30-45 seconds
 - Leads: 45-60 seconds
 - Deals: 2-3 minutes
+- Ekla: 45-60 seconds
 - Autopilot: 45-60 seconds
 - Kinetic close: 30-45 seconds
 
@@ -238,6 +242,27 @@ Action:
 
 - keep this section short
 - treat it like a control room
+
+### 7A. Optional but recommended: show Ekla before Autopilot
+
+Route:
+
+`/dashboard/ekla`
+
+Message:
+
+"This is the impact statement behind NAMA. Ekla is the autonomous agency operator. It captures routine work, assembles the commercial response, sequences follow-up, and only escalates what still needs human judgment."
+
+Action:
+
+- open `/dashboard/ekla`
+- point to the four operating loops
+- use the phrase "human only where needed"
+- then move to Autopilot as the visible control room for what Ekla has prepared
+
+Fallback if time is short:
+
+"Ekla is the conceptual and operating layer that lets the agency run itself. Autopilot is the operator-facing surface of that same idea, so I’ll move there directly."
 
 Fallback if this section is unavailable:
 

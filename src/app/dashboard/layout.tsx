@@ -19,6 +19,7 @@ import {
   Search,
   Activity,
   Target,
+  Cpu,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -40,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       label: 'AI Control',
       items: [
+        { name: 'Ekla',          href: '/dashboard/ekla',      icon: Cpu,             badge: 'New', badgeColor: 'bg-[#C9A84C]' },
         { name: 'Autopilot OS',  href: '/dashboard/autopilot', icon: Zap,             badge: '2', badgeColor: 'bg-red-500' },
         { name: 'Deals',         href: '/dashboard/deals',     icon: Target,           badge: null },
       ],
