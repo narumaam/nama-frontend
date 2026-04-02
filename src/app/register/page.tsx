@@ -1,82 +1,299 @@
 "use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React, { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  ChevronRight,
+  Globe2,
+  Languages,
+  Shield,
+  Sparkles,
+  Users,
+} from "lucide-react";
+
+type BusinessRole = "Travel Agency" | "DMC" | "Tour Operator";
+type MarketPreset = {
+  country: string;
+  currency: string;
+  language: string;
+  gateway: string;
+};
+
+const BUSINESS_ROLES: BusinessRole[] = ["Travel Agency", "DMC", "Tour Operator"];
+
+const MARKET_PRESETS: MarketPreset[] = [
+  { country: "India", currency: "INR", language: "English + Hindi", gateway: "Razorpay" },
+  { country: "UAE", currency: "AED", language: "English + Arabic", gateway: "Stripe" },
+  { country: "Europe", currency: "EUR", language: "English + regional fallback", gateway: "Stripe" },
+  { country: "United States", currency: "USD", language: "English", gateway: "Stripe" },
+];
+
+const ONBOARDING_STEPS = [
+  "Identify the business model: travel agency, DMC, tour operator, or a hybrid of all three.",
+  "Default market controls: local currency, language, and billing gateway based on operating country.",
+  "Set up team structure, nomenclature, roles, designations, and reporting lines.",
+  "Enter the workspace with demo-safe data while keeping live credentials for later connection.",
+];
 
 export default function RegisterPage() {
   const router = useRouter();
   const [companyName, setCompanyName] = useState("");
   const [operatorName, setOperatorName] = useState("");
+  const [businessRoles, setBusinessRoles] = useState<BusinessRole[]>(["Travel Agency", "DMC"]);
+  const [selectedMarket, setSelectedMarket] = useState<MarketPreset>(MARKET_PRESETS[0]);
+
+  const profileLabel = useMemo(() => {
+    if (businessRoles.length === 0) return "Travel business";
+    if (businessRoles.length === 1) return businessRoles[0];
+    return businessRoles.join(" + ");
+  }, [businessRoles]);
+
+  function toggleRole(role: BusinessRole) {
+    setBusinessRoles((current) => {
+      if (current.includes(role)) {
+        if (current.length === 1) return current;
+        return current.filter((item) => item !== role);
+      }
+      return [...current, role];
+    });
+  }
 
   function enterDemoWorkspace() {
     if (typeof window !== "undefined") {
       window.localStorage.setItem("nama-demo-company", companyName.trim() || "Nair Luxury Escapes");
       window.localStorage.setItem("nama-demo-operator", operatorName.trim() || "Demo Operator");
+      window.localStorage.setItem("nama-demo-business-roles", JSON.stringify(businessRoles));
+      window.localStorage.setItem("nama-demo-market", JSON.stringify(selectedMarket));
     }
     router.push("/dashboard");
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
-      <div className="max-w-md w-full bg-white rounded-[32px] shadow-xl p-10 border border-slate-100">
-        <div className="mb-8 text-center text-left">
-          <div className="w-12 h-12 bg-[#0F172A] rounded-xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg shadow-[#0F172A]/20">N</div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A]">Enter the NAMA Demo Workspace</h1>
-          <p className="text-slate-500 mt-2 font-medium">This demo does not create a live account. Use optional labels so the workspace feels tailored during walkthroughs.</p>
-        </div>
-
-        <form
-          className="space-y-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-            enterDemoWorkspace();
-          }}
-        >
-          <div className="text-left">
-            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Demo Company Name</label>
-            <input 
-              type="text" 
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all font-medium text-[#0F172A]"
-              placeholder="e.g. Maldives Premier Journeys"
-            />
-          </div>
-          <div className="text-left">
-            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Demo Operator Name</label>
-            <input 
-              type="text"
-              value={operatorName}
-              onChange={(e) => setOperatorName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all font-medium text-[#0F172A]"
-              placeholder="e.g. Narayan Mallapur"
-            />
+    <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 font-body text-[#0F172A]">
+      <div className="mx-auto grid max-w-7xl gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="rounded-[36px] border border-[#C9A84C]/20 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)] xl:p-10">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0F172A] text-2xl font-black text-white shadow-lg shadow-[#0F172A]/20">
+              N
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.32em] text-[#C9A84C]">Monday Demo</div>
+              <h1 className="text-3xl font-black tracking-tight text-[#0F172A] xl:text-4xl">Demo Onboarding</h1>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            className="block w-full bg-[#0F172A] text-white py-4 rounded-xl font-bold text-center hover:bg-slate-800 transition-all shadow-lg shadow-[#0F172A]/10 active:scale-[0.98]"
-          >
-            Enter Demo Workspace
-          </button>
-        </form>
-
-        <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-left">
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Demo Note</p>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-            NAMA is showing a stable Monday demo with deterministic lead, itinerary, finance, and comms cases. External providers can be connected later with credentials.
+          <p className="max-w-3xl text-sm leading-relaxed text-slate-600 xl:text-[15px]">
+            This is the onboarding layer for Monday. It shows how a business enters NAMA before live credentials, subscriptions, or provider keys are connected:
+            company profile, business type, market defaults, and operating structure.
           </p>
-        </div>
 
-        <div className="mt-8 text-center text-sm text-slate-400 font-medium">
-          Want to review the live landing page first? <Link href="/" className="text-[#14B8A6] font-bold hover:underline">Back to homepage</Link>
-        </div>
+          <form
+            className="mt-8 space-y-8"
+            onSubmit={(e) => {
+              e.preventDefault();
+              enterDemoWorkspace();
+            }}
+          >
+            <div className="grid gap-5 lg:grid-cols-2">
+              <Field
+                label="Company Name"
+                value={companyName}
+                onChange={setCompanyName}
+                placeholder="e.g. Maldives Premier Journeys"
+              />
+              <Field
+                label="Workspace Operator"
+                value={operatorName}
+                onChange={setOperatorName}
+                placeholder="e.g. Narayan Mallapur"
+              />
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <Building2 size={15} className="text-[#C9A84C]" />
+                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Business Profile</span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {BUSINESS_ROLES.map((role) => {
+                  const active = businessRoles.includes(role);
+                  return (
+                    <button
+                      type="button"
+                      key={role}
+                      onClick={() => toggleRole(role)}
+                      className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                        active
+                          ? "border-[#C9A84C]/40 bg-[#C9A84C]/10"
+                          : "border-slate-200 bg-slate-50 hover:border-[#C9A84C]/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-black text-[#0F172A]">{role}</div>
+                        {active && <CheckCircle2 size={16} className="text-[#1D9E75]" />}
+                      </div>
+                      <div className="mt-2 text-xs leading-relaxed text-slate-500">
+                        {role === "Travel Agency" && "Lead intake, quotes, and customer relationship execution."}
+                        {role === "DMC" && "Contracts, supplier ops, and destination-side fulfilment workflow."}
+                        {role === "Tour Operator" && "Package logic, departures, and commercial inventory control."}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <Globe2 size={15} className="text-[#C9A84C]" />
+                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Market Defaults</span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {MARKET_PRESETS.map((market) => {
+                  const active = market.country === selectedMarket.country;
+                  return (
+                    <button
+                      type="button"
+                      key={market.country}
+                      onClick={() => setSelectedMarket(market)}
+                      className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                        active
+                          ? "border-[#C9A84C]/40 bg-[#C9A84C]/10"
+                          : "border-slate-200 bg-slate-50 hover:border-[#C9A84C]/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-black text-[#0F172A]">{market.country}</div>
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                          {market.currency}
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-1 text-xs text-slate-500">
+                        <div>Language: {market.language}</div>
+                        <div>Gateway: {market.gateway}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles size={15} className="text-[#C9A84C]" />
+                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Workspace Preview</span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <PreviewRow label="Business Profile" value={profileLabel} />
+                <PreviewRow label="Billing Currency" value={selectedMarket.currency} />
+                <PreviewRow label="Default Language" value={selectedMarket.language} />
+                <PreviewRow label="Payment Rail" value={selectedMarket.gateway} />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-[#0F172A]/10 transition-all hover:bg-slate-800"
+              >
+                Enter Demo Workspace
+                <ArrowRight size={14} />
+              </button>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-500 transition-all hover:border-[#C9A84C]/30 hover:text-[#0F172A]"
+              >
+                Back to homepage
+              </Link>
+            </div>
+          </form>
+        </section>
+
+        <aside className="space-y-6">
+          <div className="rounded-[36px] border border-[#C9A84C]/20 bg-[#0F172A] p-8 text-white shadow-[0_30px_80px_rgba(15,23,42,0.14)]">
+            <div className="mb-4 flex items-center gap-2 text-[#C9A84C]">
+              <Shield size={15} />
+              <span className="text-[11px] font-black uppercase tracking-[0.24em]">What onboarding proves</span>
+            </div>
+            <h2 className="text-2xl font-black tracking-tight">NAMA does not start with a payment form.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">
+              It starts with operating identity: who the business is, which roles it plays, which market it serves, and how the workspace should behave by default.
+            </p>
+            <div className="mt-6 space-y-3">
+              {ONBOARDING_STEPS.map((step) => (
+                <div key={step} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed text-slate-200">
+                  {step}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[36px] border border-[#C9A84C]/20 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+            <div className="mb-4 flex items-center gap-2 text-[#C9A84C]">
+              <Users size={15} />
+              <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Talk track for Monday</span>
+            </div>
+            <div className="space-y-4 text-sm leading-relaxed text-slate-600">
+              <p>
+                “Before subscriptions and credentials, NAMA onboards the business itself: what kind of operator it is, where it operates, which currency and language it defaults to, and how the workspace should behave.”
+              </p>
+              <p>
+                “One company can be a travel agency, DMC, and tour operator at the same time. This onboarding flow reflects that instead of forcing a single identity.”
+              </p>
+              <p>
+                “After this, the customer admin configures team structure, nomenclature, invites, hierarchy, and market-aware controls inside the platform.”
+              </p>
+            </div>
+            <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-slate-50 p-4">
+              <div className="mb-2 flex items-center gap-2 text-[#C9A84C]">
+                <Languages size={14} />
+                <span className="text-[10px] font-black uppercase tracking-[0.24em]">Demo-safe note</span>
+              </div>
+              <p className="text-sm leading-relaxed text-slate-600">
+                This screen is intentionally demo-safe. It proves the onboarding model without claiming live billing, live SSO, or live provider credentials.
+              </p>
+            </div>
+          </div>
+        </aside>
       </div>
-      
-      <div className="mt-12 text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">
-        Secure Enterprise Travel OS
-      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-[#0F172A] outline-none transition-all focus:border-[#14B8A6] focus:bg-white focus:ring-4 focus:ring-[#14B8A6]/10"
+      />
+    </div>
+  );
+}
+
+function PreviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white px-4 py-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{label}</div>
+      <div className="mt-1 text-sm font-black text-[#0F172A]">{value}</div>
     </div>
   );
 }

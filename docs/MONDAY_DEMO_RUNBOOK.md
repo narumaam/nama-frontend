@@ -157,12 +157,14 @@ Route:
 
 Message:
 
-"This is the controlled entry point into the demo workspace. For Monday, the goal is not account creation depth. The goal is to show how quickly a team moves from intake to execution."
+"This is not just a signup screen. It is the onboarding layer: what kind of business this is, which market it serves, and how the workspace should behave before live credentials are connected."
 
 Action:
 
-- show the page briefly
-- do not spend time filling the form unless needed
+- show the company name and operator fields
+- point to the hybrid business profile selection: travel agency, DMC, tour operator
+- point to country-aware defaults: language, billing currency, and gateway routing
+- keep it to 30-45 seconds, then enter the demo workspace
 
 Fallback if unavailable:
 
