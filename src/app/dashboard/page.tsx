@@ -263,6 +263,12 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/workspace/login"
+            className="rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+          >
+            Open tenant role login
+          </Link>
           {TENANT_ROLE_OPTIONS.map((option) => {
             const active = option.role === activeRole;
             return (

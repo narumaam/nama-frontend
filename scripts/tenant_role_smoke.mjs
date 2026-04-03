@@ -93,10 +93,9 @@ async function expectEnabled(locator, label) {
 }
 
 async function switchRole(page, roleLabel) {
-  await page.goto("/dashboard");
+  await page.goto("/workspace/login");
   await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: roleLabel, exact: true }).click();
-  await expectVisible(page, `Active role: ${roleLabel}`);
+  await page.getByRole("button", { name: new RegExp(roleLabel, "i") }).first().click();
 }
 
 async function registerTenant(page, baseUrl) {

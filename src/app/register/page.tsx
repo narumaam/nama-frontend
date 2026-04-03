@@ -452,6 +452,12 @@ export default function RegisterPage() {
               >
                 Back to homepage
               </Link>
+              <Link
+                href="/workspace/login"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-500 transition-all hover:border-[#C9A84C]/30 hover:text-[#0F172A]"
+              >
+                Team role login
+              </Link>
             </div>
           </form>
         </section>
