@@ -1,5 +1,6 @@
 import { DEMO_PLAN_PRICES, type DemoSubscriptionPlan, type DemoTenantRecord, writeDemoSubscriptionPlan, writeDemoTenantRegistry } from "@/lib/demo-admin";
 import { DEMO_PROFILE_STORAGE_KEYS, MARKET_PRESETS } from "@/lib/demo-config";
+import { replaceDemoEventLog, type DemoEventRecord } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE, type DemoProfile, writeDemoProfile } from "@/lib/demo-profile";
 import {
   createEmployeeRecord,
@@ -11,7 +12,7 @@ import {
   type DemoWorkflowState,
 } from "@/lib/demo-workflow";
 
-export type DemoScenarioKey = "founder" | "small-agency" | "ops-dmc";
+export type DemoScenarioKey = "founder" | "small-agency" | "ops-dmc" | "invite-backlog" | "finance-overdue";
 
 export type DemoScenarioDefinition = {
   key: DemoScenarioKey;
@@ -21,6 +22,8 @@ export type DemoScenarioDefinition = {
   plan: DemoSubscriptionPlan;
   market: string;
   operator: string;
+  launchPath: string;
+  launchLabel: string;
   roles: DemoProfile["roles"];
   employees: Array<Omit<DemoEmployeeRecord, "id">>;
   invites: DemoInviteRecord[];
@@ -70,6 +73,8 @@ export const DEMO_SCENARIOS: DemoScenarioDefinition[] = [
     plan: "Enterprise",
     market: "India",
     operator: "Radhika Founder",
+    launchPath: "/dashboard/team",
+    launchLabel: "Open team flow",
     roles: ["Travel Agency", "DMC"],
     whiteLabel: {
       enabled: true,
@@ -170,6 +175,8 @@ export const DEMO_SCENARIOS: DemoScenarioDefinition[] = [
     plan: "Starter",
     market: "UAE",
     operator: "Asha Khan",
+    launchPath: "/dashboard/bookings?case=maldives-honeymoon",
+    launchLabel: "Open booking handoff",
     roles: ["Travel Agency"],
     whiteLabel: {
       enabled: true,
@@ -238,6 +245,8 @@ export const DEMO_SCENARIOS: DemoScenarioDefinition[] = [
     plan: "Growth",
     market: "India",
     operator: "Rehan Malik",
+    launchPath: "/dashboard/bookings?case=europe-family-escape",
+    launchLabel: "Open ops handoff",
     roles: ["DMC", "Tour Operator"],
     whiteLabel: {
       enabled: true,
@@ -350,6 +359,184 @@ export const DEMO_SCENARIOS: DemoScenarioDefinition[] = [
       },
     },
   },
+  {
+    key: "invite-backlog",
+    label: "Invite Backlog QA",
+    note: "Negative-path tenant with stalled team onboarding and no accepted invite momentum.",
+    company: "Harborline Escapes",
+    plan: "Growth",
+    market: "India",
+    operator: "Mitali Sen",
+    launchPath: "/dashboard/team",
+    launchLabel: "Inspect invite backlog",
+    roles: ["Travel Agency"],
+    whiteLabel: {
+      enabled: true,
+      workspaceName: "Harborline",
+      badgeGlyph: "HB",
+      supportEmail: "ops@harborline.in",
+      customDomain: "harborline.nama.ai",
+      accentHex: "#7A4A1E",
+    },
+    employees: [
+      {
+        name: "Mitali Sen",
+        email: "mitali@harborline.in",
+        role: "Admin",
+        designation: "Founder",
+        team: "Control Desk",
+        reportsTo: "Founder",
+        responsibility: "Workspace setup and approvals",
+      },
+      {
+        name: "Aarav Bose",
+        email: "aarav@harborline.in",
+        role: "Sales",
+        designation: "Executive",
+        team: "Holiday Desk",
+        reportsTo: "Founder",
+        responsibility: "Lead response and qualification",
+      },
+      {
+        name: "Sana Gupta",
+        email: "sana@harborline.in",
+        role: "Operations",
+        designation: "Coordinator",
+        team: "Holiday Desk",
+        reportsTo: "Founder",
+        responsibility: "Booking follow-up",
+      },
+    ],
+    invites: [
+      {
+        id: "invite-aarav-bose",
+        name: "Aarav Bose",
+        email: "aarav@harborline.in",
+        role: "Sales",
+        designation: "Executive",
+        team: "Holiday Desk",
+        reportsTo: "Founder",
+        responsibility: "Lead response and qualification",
+        status: "Pending",
+        createdAt: "03 Apr 2026 · 09:00",
+        invitedAt: "03 Apr 2026 · 09:05",
+      },
+      {
+        id: "invite-sana-gupta",
+        name: "Sana Gupta",
+        email: "sana@harborline.in",
+        role: "Operations",
+        designation: "Coordinator",
+        team: "Holiday Desk",
+        reportsTo: "Founder",
+        responsibility: "Booking follow-up",
+        status: "Pending",
+        createdAt: "03 Apr 2026 · 09:02",
+        invitedAt: "03 Apr 2026 · 09:06",
+      },
+    ],
+    cases: {
+      "maldives-honeymoon": {
+        ...getLeadStagePreset("Quoted"),
+      },
+      "europe-family-escape": {
+        ...getLeadStagePreset("Follow Up"),
+      },
+    },
+  },
+  {
+    key: "finance-overdue",
+    label: "Finance Overdue QA",
+    note: "Negative-path tenant where sales won the case but collections and traveler release are still blocked.",
+    company: "Northstar Voyages",
+    plan: "Enterprise",
+    market: "United States",
+    operator: "Leena Kapoor",
+    launchPath: "/dashboard/finance",
+    launchLabel: "Inspect finance risk",
+    roles: ["Travel Agency", "DMC"],
+    whiteLabel: {
+      enabled: true,
+      workspaceName: "Northstar",
+      badgeGlyph: "NS",
+      supportEmail: "billing@northstarvoyages.com",
+      customDomain: "app.northstarvoyages.com",
+      accentHex: "#1D5B8F",
+    },
+    employees: [
+      {
+        name: "Leena Kapoor",
+        email: "leena@northstarvoyages.com",
+        role: "Admin",
+        designation: "Regional Lead",
+        team: "Control Tower",
+        reportsTo: "Founder",
+        responsibility: "Commercial approvals and escalation",
+      },
+      {
+        name: "Omar Khan",
+        email: "omar@northstarvoyages.com",
+        role: "Finance",
+        designation: "Collections Lead",
+        team: "Billing",
+        reportsTo: "Regional Lead",
+        responsibility: "Settlement and invoice follow-up",
+      },
+      {
+        name: "Tara Blake",
+        email: "tara@northstarvoyages.com",
+        role: "Operations",
+        designation: "Trip Lead",
+        team: "Guest Delivery",
+        reportsTo: "Regional Lead",
+        responsibility: "Traveler documentation and supplier handoff",
+      },
+    ],
+    invites: [
+      {
+        id: "invite-omar-khan",
+        name: "Omar Khan",
+        email: "omar@northstarvoyages.com",
+        role: "Finance",
+        designation: "Collections Lead",
+        team: "Billing",
+        reportsTo: "Regional Lead",
+        responsibility: "Settlement and invoice follow-up",
+        status: "Accepted",
+        createdAt: "03 Apr 2026 · 07:50",
+        invitedAt: "03 Apr 2026 · 08:00",
+        acceptedAt: "03 Apr 2026 · 08:18",
+      },
+      {
+        id: "invite-tara-blake",
+        name: "Tara Blake",
+        email: "tara@northstarvoyages.com",
+        role: "Operations",
+        designation: "Trip Lead",
+        team: "Guest Delivery",
+        reportsTo: "Regional Lead",
+        responsibility: "Traveler documentation and supplier handoff",
+        status: "Accepted",
+        createdAt: "03 Apr 2026 · 07:52",
+        invitedAt: "03 Apr 2026 · 08:00",
+        acceptedAt: "03 Apr 2026 · 08:20",
+      },
+    ],
+    cases: {
+      "maldives-honeymoon": {
+        ...getLeadStagePreset("Won"),
+        financeStatus: "Deposit overdue by 3 days and invoice reminder escalated",
+        paymentState: "Collections follow-up overdue",
+        bookingState: "Pending finance",
+        guestPackState: "Queued",
+        invoiceState: "Sent",
+        travelerPdfState: "Draft",
+      },
+      "europe-family-escape": {
+        ...getLeadStagePreset("Quoted"),
+      },
+    },
+  },
 ];
 
 export function getDemoScenarioDefinition(key: DemoScenarioKey) {
@@ -413,6 +600,98 @@ function buildScenarioRegistry(scenario: DemoScenarioDefinition): DemoTenantReco
   ];
 }
 
+function buildScenarioEvents(scenario: DemoScenarioDefinition): DemoEventRecord[] {
+  const baseEvents: DemoEventRecord[] = [
+    {
+      id: `seed-${scenario.key}-registered`,
+      type: "tenant_registered",
+      severity: "success",
+      tenant: scenario.company,
+      title: "Tenant registered",
+      detail: `${scenario.company} entered NAMA on the ${scenario.plan} plan for the ${scenario.market} market.`,
+      path: "/dashboard",
+      createdAt: "03 Apr 2026 · 08:00",
+    },
+  ];
+
+  const inviteEvents = scenario.invites.map((invite, index) => ({
+    id: `seed-${scenario.key}-invite-${invite.id}`,
+    type: invite.status === "Accepted" ? "invite_accepted" : "invite_sent",
+    severity: invite.status === "Pending" ? "warning" as const : "success" as const,
+    tenant: scenario.company,
+    title: invite.status === "Accepted" ? "Invite accepted" : "Invite sent",
+    detail:
+      invite.status === "Accepted"
+        ? `${invite.name} joined the workspace as ${invite.role}.`
+        : `${invite.name} is still pending acceptance for ${invite.team}.`,
+    path: "/dashboard/team",
+    createdAt: invite.acceptedAt || invite.invitedAt,
+  }));
+
+  const caseEvents = Object.entries(scenario.cases).flatMap(([slug, state], index) => {
+    const events: DemoEventRecord[] = [];
+    const titleBase = slug.replace(/-/g, " ");
+
+    if (state.leadStage) {
+      events.push({
+        id: `seed-${scenario.key}-lead-${slug}`,
+        type: "lead_stage_changed",
+        severity: state.leadStage === "Won" ? "success" : state.leadStage === "Follow Up" ? "warning" : "info",
+        tenant: scenario.company,
+        title: "Lead stage updated",
+        detail: `${titleBase} is currently in ${state.leadStage}.`,
+        path: "/dashboard/leads",
+        caseSlug: slug,
+        createdAt: `03 Apr 2026 · 0${8 + index}:30`,
+      });
+    }
+
+    if (state.invoiceState === "Paid") {
+      events.push({
+        id: `seed-${scenario.key}-invoice-${slug}`,
+        type: "invoice_state_changed",
+        severity: "success",
+        tenant: scenario.company,
+        title: "Invoice paid",
+        detail: `${titleBase} invoice is settled.`,
+        path: `/dashboard/invoices/${slug}`,
+        caseSlug: slug,
+        createdAt: `03 Apr 2026 · 1${index}:10`,
+      });
+    } else if (state.invoiceState === "Sent") {
+      events.push({
+        id: `seed-${scenario.key}-invoice-${slug}`,
+        type: "invoice_state_changed",
+        severity: "warning",
+        tenant: scenario.company,
+        title: "Invoice sent",
+        detail: `${titleBase} invoice is awaiting settlement.`,
+        path: `/dashboard/invoices/${slug}`,
+        caseSlug: slug,
+        createdAt: `03 Apr 2026 · 1${index}:10`,
+      });
+    }
+
+    if (state.travelerPdfState === "Shared") {
+      events.push({
+        id: `seed-${scenario.key}-traveler-${slug}`,
+        type: "traveler_pdf_state_changed",
+        severity: "success",
+        tenant: scenario.company,
+        title: "Traveler PDF shared",
+        detail: `${titleBase} traveler pack has been released.`,
+        path: `/dashboard/traveler-pdf/${slug}`,
+        caseSlug: slug,
+        createdAt: `03 Apr 2026 · 1${index}:35`,
+      });
+    }
+
+    return events;
+  });
+
+  return [...caseEvents.reverse(), ...inviteEvents.reverse(), ...baseEvents];
+}
+
 export function resetDemoState() {
   if (typeof window === "undefined") return;
 
@@ -424,6 +703,18 @@ export function resetDemoState() {
   writeDemoSubscriptionPlan(DEFAULT_DEMO_PROFILE.subscriptionPlan);
   replaceDemoWorkflowState({});
   writeDemoTenantRegistry(DEFAULT_REGISTRY);
+  replaceDemoEventLog([
+    {
+      id: "reset-default-snapshot",
+      type: "demo_reset",
+      severity: "info",
+      tenant: DEFAULT_DEMO_PROFILE.company,
+      title: "Demo state reset",
+      detail: "The workspace returned to the default platform snapshot for a fresh run.",
+      path: "/dashboard/admin",
+      createdAt: "03 Apr 2026 · 12:00",
+    },
+  ]);
 }
 
 export function seedDemoScenario(key: DemoScenarioKey) {
@@ -434,6 +725,7 @@ export function seedDemoScenario(key: DemoScenarioKey) {
   writeDemoSubscriptionPlan(scenario.plan);
   replaceDemoWorkflowState(buildScenarioWorkflow(scenario));
   writeDemoTenantRegistry(buildScenarioRegistry(scenario));
+  replaceDemoEventLog(buildScenarioEvents(scenario));
   window.dispatchEvent(new CustomEvent("nama-demo-scenario-seeded", { detail: scenario.key }));
 }
 

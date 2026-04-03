@@ -1,6 +1,8 @@
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
 import { DEMO_PROFILE_STORAGE_KEYS } from "@/lib/demo-config";
 import { DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
+import { appendDemoEvent } from "@/lib/demo-events";
+import { readDemoProfile } from "@/lib/demo-profile";
 
 export type DemoInviteStatus = "Draft" | "Pending" | "Accepted";
 export type DemoLeadStage = "New" | "Qualified" | "Quoted" | "Follow Up" | "Won";
@@ -74,6 +76,10 @@ function nowLabel() {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getCurrentTenantName() {
+  return readDemoProfile().company;
 }
 
 function readJson<T>(value: string | null, fallback: T): T {
@@ -444,9 +450,18 @@ export function createDemoInvite(input: Omit<DemoInviteRecord, "id" | "status" |
     invitedAt: input.status === "Draft" ? "Not sent yet" : nowLabel(),
   };
 
-  return writeDemoWorkflowState({
+  const nextState = writeDemoWorkflowState({
     invites: [invite, ...currentState.invites],
   });
+  appendDemoEvent({
+    type: "invite_sent",
+    severity: invite.status === "Draft" ? "info" : "success",
+    tenant: getCurrentTenantName(),
+    title: invite.status === "Draft" ? "Invite drafted" : "Invite sent",
+    detail: `${invite.name} (${invite.role}) ${invite.status === "Draft" ? "was staged as a draft" : "was invited"} for ${invite.team}.`,
+    path: "/dashboard/team",
+  });
+  return nextState;
 }
 
 export function upsertDemoEmployees(employees: DemoEmployeeRecord[]) {
@@ -505,10 +520,22 @@ export function updateDemoInvite(inviteId: string, patch: Partial<DemoInviteReco
 }
 
 export function acceptDemoInvite(inviteId: string) {
-  return updateDemoInvite(inviteId, {
+  const nextState = updateDemoInvite(inviteId, {
     status: "Accepted",
     acceptedAt: nowLabel(),
   });
+  const invite = nextState.invites.find((item) => item.id === inviteId);
+  if (invite) {
+    appendDemoEvent({
+      type: "invite_accepted",
+      severity: "success",
+      tenant: getCurrentTenantName(),
+      title: "Invite accepted",
+      detail: `${invite.name} joined the workspace as ${invite.role}.`,
+      path: `/invite/${invite.id}`,
+    });
+  }
+  return nextState;
 }
 
 export function updateDemoCaseWorkflow(slug: string, patch: Partial<DemoCaseWorkflowState>) {
@@ -523,9 +550,99 @@ export function updateDemoCaseWorkflow(slug: string, patch: Partial<DemoCaseWork
     }),
   };
 
-  return writeDemoWorkflowState({
+  const nextState = writeDemoWorkflowState({
     cases: nextCases,
   });
+  const tenant = getCurrentTenantName();
+  const route = DEMO_CASE_ROUTES.find((item) => item.slug === slug);
+  const destination = route?.destination ?? slug;
+  const nextCase = nextCases[slug];
+
+  if (nextCase.leadStage !== currentCase.leadStage) {
+    appendDemoEvent({
+      type: "lead_stage_changed",
+      severity: nextCase.leadStage === "Won" ? "success" : "info",
+      tenant,
+      caseSlug: slug,
+      title: "Lead stage updated",
+      detail: `${destination} moved from ${currentCase.leadStage} to ${nextCase.leadStage}.`,
+      path: "/dashboard/leads",
+    });
+  }
+
+  if (nextCase.paymentState !== currentCase.paymentState && nextCase.paymentState === "Deposit confirmed") {
+    appendDemoEvent({
+      type: "deposit_recorded",
+      severity: "success",
+      tenant,
+      caseSlug: slug,
+      title: "Deposit recorded",
+      detail: `${destination} cleared the deposit checkpoint and is ready for execution handoff.`,
+      path: "/dashboard/finance",
+    });
+  }
+
+  if (nextCase.bookingState !== currentCase.bookingState && nextCase.bookingState === "Guest pack released") {
+    appendDemoEvent({
+      type: "guest_pack_released",
+      severity: "success",
+      tenant,
+      caseSlug: slug,
+      title: "Guest pack released",
+      detail: `${destination} traveler documents were released from bookings.`,
+      path: `/dashboard/bookings?case=${slug}`,
+    });
+  }
+
+  if (nextCase.invoiceState !== currentCase.invoiceState) {
+    appendDemoEvent({
+      type: "invoice_state_changed",
+      severity: nextCase.invoiceState === "Paid" ? "success" : "info",
+      tenant,
+      caseSlug: slug,
+      title: `Invoice ${nextCase.invoiceState.toLowerCase()}`,
+      detail: `${destination} invoice moved from ${currentCase.invoiceState} to ${nextCase.invoiceState}.`,
+      path: `/dashboard/invoices/${slug}`,
+    });
+  }
+
+  if (nextCase.invoiceDownloadState !== currentCase.invoiceDownloadState && nextCase.invoiceDownloadState === "Downloaded") {
+    appendDemoEvent({
+      type: "invoice_downloaded",
+      severity: "info",
+      tenant,
+      caseSlug: slug,
+      title: "Invoice downloaded",
+      detail: `${destination} invoice was downloaded or saved as PDF.`,
+      path: `/dashboard/invoices/${slug}`,
+    });
+  }
+
+  if (nextCase.travelerApprovalState !== currentCase.travelerApprovalState && nextCase.travelerApprovalState === "Approved for send") {
+    appendDemoEvent({
+      type: "traveler_pdf_approved",
+      severity: "info",
+      tenant,
+      caseSlug: slug,
+      title: "Traveler PDF approved",
+      detail: `${destination} traveler pack was approved for release.`,
+      path: `/dashboard/traveler-pdf/${slug}`,
+    });
+  }
+
+  if (nextCase.travelerPdfState !== currentCase.travelerPdfState) {
+    appendDemoEvent({
+      type: "traveler_pdf_state_changed",
+      severity: nextCase.travelerPdfState === "Shared" ? "success" : "info",
+      tenant,
+      caseSlug: slug,
+      title: `Traveler PDF ${nextCase.travelerPdfState.toLowerCase()}`,
+      detail: `${destination} traveler PDF moved from ${currentCase.travelerPdfState} to ${nextCase.travelerPdfState}.`,
+      path: `/dashboard/traveler-pdf/${slug}`,
+    });
+  }
+
+  return nextState;
 }
 
 export function setDemoLeadStage(slug: string, stage: DemoLeadStage) {

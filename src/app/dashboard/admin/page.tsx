@@ -2,10 +2,12 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_PLAN_PRICES, readDemoSubscriptionPlan, readDemoTenantRegistry } from "@/lib/demo-admin";
 import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
 import { DEFAULT_DEMO_PROFILE } from "@/lib/demo-profile";
+import { useDemoEvents } from "@/lib/use-demo-events";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { DEMO_SCENARIOS, getScenarioProjectedMrr, resetDemoState, seedDemoScenario, type DemoScenarioKey } from "@/lib/demo-scenarios";
 import { SCREEN_HELP } from "@/lib/screen-help";
@@ -18,6 +20,7 @@ import {
   ChevronRight,
   CreditCard,
   DatabaseZap,
+  ExternalLink,
   Globe,
   Globe2,
   LayoutTemplate,
@@ -193,8 +196,10 @@ const LOCALIZATION_RULES = [
 ];
 
 export default function AdminPage() {
+  const router = useRouter();
   const profile = useDemoProfile();
   const workflow = useDemoWorkflow();
+  const events = useDemoEvents();
   const [selectedMarket, setSelectedMarket] = useState(REGIONAL_COMMERCE[0]);
   const [selectedPlan, setSelectedPlan] = useState(SUBSCRIPTION_PLANS[1]);
   const [bufferEnabled, setBufferEnabled] = useState(true);
@@ -310,6 +315,14 @@ export default function AdminPage() {
     setDemoLabMessage(`${scenario.label} seeded: ${scenario.company} on ${scenario.plan} with projected MRR ₹${getScenarioProjectedMrr(key).toLocaleString("en-IN")}.`);
   }
 
+  function handleRunScenario(key: DemoScenarioKey) {
+    const scenario = DEMO_SCENARIOS.find((item) => item.key === key);
+    if (!scenario) return;
+    seedDemoScenario(key);
+    setDemoLabMessage(`${scenario.label} launched for ${scenario.company}. Redirecting to ${scenario.launchLabel.toLowerCase()}.`);
+    router.push(scenario.launchPath);
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -389,6 +402,23 @@ export default function AdminPage() {
                   {scenario.plan} · ₹{getScenarioProjectedMrr(scenario.key).toLocaleString("en-IN")}
                 </div>
                 <div className="mt-2 text-xs leading-relaxed text-[#B8B0A0]">{scenario.note}</div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSeedScenario(scenario.key)}
+                    className="rounded-xl border border-white/10 bg-[#111111] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#F5F0E8]"
+                  >
+                    Seed Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRunScenario(scenario.key)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#0A0A0A]"
+                  >
+                    <ExternalLink size={11} />
+                    {scenario.launchLabel}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -571,6 +601,61 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+        <div className="mb-5 flex items-center gap-2">
+          <Waypoints size={14} className="text-[#C9A84C]" />
+          <h2 className="text-lg font-black text-[#F5F0E8]">Activity Timeline</h2>
+        </div>
+        <div className="space-y-3">
+          {events.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+              No event history yet. Register a tenant, send invites, or seed a scenario from Demo Lab to generate the audit trail.
+            </div>
+          ) : (
+            events.slice(0, 12).map((event) => (
+              <div key={event.id} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="text-sm font-black text-[#F5F0E8]">{event.title}</div>
+                    <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#4A453E]">
+                      {event.tenant} · {event.createdAt}
+                    </div>
+                    <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{event.detail}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {event.caseSlug && (
+                      <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+                        {event.caseSlug}
+                      </span>
+                    )}
+                    <span
+                      className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
+                        event.severity === "success"
+                          ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]"
+                          : event.severity === "warning"
+                            ? "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"
+                            : "border-white/10 bg-[#111111] text-[#B8B0A0]"
+                      }`}
+                    >
+                      {event.severity}
+                    </span>
+                    {event.path && (
+                      <Link
+                        href={event.path}
+                        className="inline-flex items-center gap-1 rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]"
+                      >
+                        Open
+                        <ExternalLink size={10} />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 

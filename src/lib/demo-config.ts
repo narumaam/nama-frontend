@@ -29,6 +29,7 @@ export const DEMO_PROFILE_STORAGE_KEYS = {
   invites: "nama-demo-invites",
   workflowCases: "nama-demo-workflow-cases",
   tenantRegistry: "nama-demo-tenant-registry",
+  events: "nama-demo-events",
 } as const;
 
 export const DEFAULT_SHELL_BRAND = {
