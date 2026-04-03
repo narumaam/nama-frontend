@@ -21,6 +21,7 @@ function AuditReportContent() {
   const searchParams = useSearchParams();
   const events = useDemoEvents();
   const profile = useMemo(() => readDemoProfile(), []);
+  const [reportState, setReportState] = useState<"Draft" | "Shared" | "Sent">("Draft");
   const [shareMessage, setShareMessage] = useState("Share this report as a founder-safe email handoff or copyable summary.");
   const tenant = searchParams.get("tenant") || "All";
   const category = (searchParams.get("category") || "All") as DemoEventCategory;
@@ -71,6 +72,7 @@ function AuditReportContent() {
       return;
     }
     await navigator.clipboard.writeText(shareSummary);
+    setReportState("Shared");
     setShareMessage("Audit summary copied for founder sharing.");
   }
 
@@ -104,6 +106,7 @@ function AuditReportContent() {
             </button>
             <a
               href={mailtoHref}
+              onClick={() => setReportState("Sent")}
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600"
             >
               <Mail size={14} />
@@ -141,6 +144,7 @@ function AuditReportContent() {
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <ReportNote title="Report state" detail={reportState} />
             <ReportNote
               title="Current view"
               detail={`This report focuses on ${tenant === "All" ? "all visible tenants" : tenant} and ${category === "All" ? "all activity types" : category} events.`}

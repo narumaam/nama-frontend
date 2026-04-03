@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from "@/lib/demo-profile";
+import { seedDemoScenario } from "@/lib/demo-scenarios";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet } from "lucide-react";
@@ -101,9 +103,11 @@ const PREVIEW_JOURNEY = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const profile = useDemoProfile();
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [loading, setLoading] = useState(true);
+  const [founderLaunchMessage, setFounderLaunchMessage] = useState("Seed the strongest scenario and jump directly into the founder-ready pack.");
   const demoCompany = profile.company;
   const demoOperator = profile.operator;
   const businessRoles = profile.roles;
@@ -142,6 +146,18 @@ export default function DashboardPage() {
   const criticalCount = cases.filter((item) => item.priority === "CRITICAL").length;
   const depositExposure = DEMO_CASE_ROUTES.reduce((sum, item) => sum + item.depositDue, 0);
 
+  function launchFounderPack() {
+    seedDemoScenario("founder");
+    setFounderLaunchMessage("Founder Golden Path seeded. Opening the demo pack for the Maldives honeymoon case.");
+    router.push(`/dashboard/demo-pack/${PRIMARY_CASE.slug}`);
+  }
+
+  function launchRiskReview() {
+    seedDemoScenario("finance-overdue");
+    setFounderLaunchMessage("Finance Overdue QA seeded. Opening the audit report for the risk case.");
+    router.push("/dashboard/admin/audit-report?tenant=Northstar%20Voyages&category=commercial&severity=warning&case=maldives-honeymoon");
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -174,6 +190,37 @@ export default function DashboardPage() {
         <MetricCard label="Active Cases" value={`${cases.length}`} sub={`${criticalCount} marked critical`} icon={<Users size={16} />} />
         <MetricCard label="Deposit Exposure" value={`₹${depositExposure.toLocaleString("en-IN")}`} sub="Needs finance follow-through" icon={<Wallet size={16} />} />
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Founder Shortcut</div>
+            <h2 className="text-xl font-black text-[#F5F0E8]">Launch the best demo path in one click</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              Seed a ready-made scenario and jump straight into either the strongest founder pack or the best risk-review proof artifact.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={launchFounderPack}
+              className="rounded-2xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+            >
+              Launch Founder Demo Pack
+            </button>
+            <button
+              type="button"
+              onClick={launchRiskReview}
+              className="rounded-2xl border border-white/10 bg-[#0A0A0A] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]"
+            >
+              Launch Risk Review
+            </button>
+          </div>
+        </div>
+        <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+          {founderLaunchMessage}
+        </div>
+      </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
