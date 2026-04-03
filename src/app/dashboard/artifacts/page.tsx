@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ChevronRight, Download, FileText, Receipt, Sparkles } from "lucide-react";
+import { ChevronRight, Download, FileText, PackageOpen, Receipt, Sparkles } from "lucide-react";
 
 import { DEMO_DEAL_CASES } from "@/lib/demo-case-profiles";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
@@ -67,6 +67,10 @@ export default function ArtifactHubPage() {
               <FileText size={14} />
               Open PDF
             </Link>
+            <Link href={`/dashboard/demo-pack/${selectedCase.slug}`} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]">
+              <PackageOpen size={14} />
+              Open Demo Pack
+            </Link>
           </div>
         </div>
       </section>
@@ -111,6 +115,16 @@ export default function ArtifactHubPage() {
                 <span className="flex items-center gap-2">
                   <FileText size={14} className="text-[#C9A84C]" />
                   Traveler PDF
+                </span>
+                <ChevronRight size={14} className="text-[#C9A84C]" />
+              </Link>
+              <Link
+                href={`/dashboard/demo-pack/${deal.slug}`}
+                className="flex items-center justify-between rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#F5F0E8] transition-colors hover:border-[#C9A84C]/20"
+              >
+                <span className="flex items-center gap-2">
+                  <PackageOpen size={14} className="text-[#C9A84C]" />
+                  Demo Pack
                 </span>
                 <ChevronRight size={14} className="text-[#C9A84C]" />
               </Link>

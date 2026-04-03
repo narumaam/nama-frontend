@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, FileDown, Printer, ShieldCheck } from "lucide-react";
+import { ArrowLeft, FileDown, Mail, Printer, Share2, ShieldCheck } from "lucide-react";
 
 import { filterDemoEvents, type DemoEventCategory, type DemoEventRange, type DemoEventSeverity } from "@/lib/demo-events";
 import { readDemoProfile } from "@/lib/demo-profile";
@@ -21,6 +21,7 @@ function AuditReportContent() {
   const searchParams = useSearchParams();
   const events = useDemoEvents();
   const profile = useMemo(() => readDemoProfile(), []);
+  const [shareMessage, setShareMessage] = useState("Share this report as a founder-safe email handoff or copyable summary.");
   const tenant = searchParams.get("tenant") || "All";
   const category = (searchParams.get("category") || "All") as DemoEventCategory;
   const caseSlug = searchParams.get("case") || "All";
@@ -47,11 +48,36 @@ function AuditReportContent() {
       tenants: new Set(filteredEvents.map((event) => event.tenant)).size,
     };
   }, [filteredEvents]);
+  const shareSummary = useMemo(() => {
+    return [
+      `Audit report for ${tenant === "All" ? profile.company : tenant}`,
+      `Events: ${summary.total}`,
+      `Success: ${summary.success}`,
+      `Warnings: ${summary.warning}`,
+      `Range: ${range}`,
+      `Category: ${category}`,
+      `Case: ${caseSlug}`,
+    ].join("\n");
+  }, [caseSlug, category, profile.company, range, summary.success, summary.total, summary.warning, tenant]);
+  const mailtoHref = useMemo(() => {
+    const subject = encodeURIComponent(`NAMA audit report - ${tenant === "All" ? profile.company : tenant}`);
+    const body = encodeURIComponent(`${shareSummary}\n\nOpen the printable report in-app for the full event list.`);
+    return `mailto:?subject=${subject}&body=${body}`;
+  }, [profile.company, shareSummary, tenant]);
+
+  async function handleCopySummary() {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      setShareMessage("Clipboard is unavailable in this environment.");
+      return;
+    }
+    await navigator.clipboard.writeText(shareSummary);
+    setShareMessage("Audit summary copied for founder sharing.");
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A] print:bg-white">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="print-hidden flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="print-hidden flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#8B6A1F]">
               <span>Super Admin</span>
@@ -68,6 +94,21 @@ function AuditReportContent() {
               <ArrowLeft size={14} />
               Back to Admin
             </Link>
+            <button
+              type="button"
+              onClick={handleCopySummary}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600"
+            >
+              <Share2 size={14} />
+              Copy Summary
+            </button>
+            <a
+              href={mailtoHref}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600"
+            >
+              <Mail size={14} />
+              Email Report
+            </a>
             <button
               type="button"
               onClick={() => window.print()}
@@ -112,6 +153,9 @@ function AuditReportContent() {
               title="Source"
               detail="The events shown here come from the same shared demo state that powers registration, invites, finance, bookings, invoices, and traveler artifacts."
             />
+          </div>
+          <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#FFF8E8] p-4 text-sm leading-relaxed text-slate-600 print-hidden">
+            {shareMessage}
           </div>
 
           <div className="mt-8 space-y-4">
