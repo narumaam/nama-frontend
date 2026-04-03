@@ -3,12 +3,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { AlertTriangle, ArrowRight, BadgeIndianRupee, Bot, CheckCircle2, Clock3, MessageSquare, Shield, Sparkles, Target } from "lucide-react";
 
 import { apiUrl } from "@/lib/api";
 import { dealHrefFromSlug } from "@/lib/demo-cases";
 import { DEMO_DEAL_CASES, DEMO_LEAD_FALLBACK_MAP, PRIMARY_DEMO_DEAL_CASE, type DemoDealCase } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
+import { SCREEN_HELP } from "@/lib/screen-help";
 
 export default function DealsClientPage() {
   const profile = useMemo(() => readDemoProfile(), []);
@@ -73,7 +75,10 @@ export default function DealsClientPage() {
             <Sparkles size={12} className="text-[#C9A84C]" />
             <span className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C]">Alpha Deal Intelligence</span>
           </div>
-          <h1 className="text-4xl font-black font-headline tracking-tight text-[#F5F0E8]">{data.guest_name}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black font-headline tracking-tight text-[#F5F0E8]">{data.guest_name}</h1>
+            <ScreenInfoTip content={SCREEN_HELP.deals} />
+          </div>
           <p className="text-[#B8B0A0] text-sm mt-2">{data.organization} · {data.triage.destination} · {data.triage.duration_days} days</p>
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">

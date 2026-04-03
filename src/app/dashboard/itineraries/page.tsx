@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
+import ScreenInfoTip from '@/components/screen-info-tip';
 import { DEMO_ITINERARY_WORKSPACE_CASE } from '@/lib/demo-case-profiles';
+import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
   Sparkles, 
   Eye, 
@@ -17,7 +19,6 @@ import {
   Ticket, 
   Plus,
   ChevronRight,
-  Info,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -38,9 +39,12 @@ export default function ItinerariesPage() {
             <ChevronRight size={10} />
             <span className="opacity-50">Trip Design Layer</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
-            {workspaceCase.itinerary.title}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
+              {workspaceCase.itinerary.title}
+            </h1>
+            <ScreenInfoTip content={SCREEN_HELP.itineraries} />
+          </div>
           <div className="flex items-center gap-6 mt-2 text-[#B8B0A0] font-mono text-[10px] uppercase tracking-widest">
             <span className="flex items-center gap-1.5"><Users size={12} className="text-[#C9A84C]" /> {travelerLabel}</span>
             <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#C9A84C]" /> {workspaceCase.triage.travel_dates}</span>

@@ -2,9 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   ArrowRight,
   Building2,
@@ -127,7 +129,10 @@ export default function DmcPage() {
             <ChevronRight size={10} />
             <span className="opacity-50">Contracts & Supplier Ops</span>
           </div>
-          <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">DMC Contract Hub</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">DMC Contract Hub</h1>
+            <ScreenInfoTip content={SCREEN_HELP.dmc} />
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is the supplier-side operating layer for DMCs: upload non-standard contracts, normalize messy formats, and keep travel-agent plus service-provider communication inside one controlled workspace.
           </p>

@@ -2,7 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   AlertTriangle,
   BadgeIndianRupee,
@@ -202,7 +204,10 @@ export default function AdminPage() {
             <ChevronRight size={10} />
             <span className="opacity-50">NAMA Control Tower</span>
           </div>
-          <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Platform Control</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Platform Control</h1>
+            <ScreenInfoTip content={SCREEN_HELP.admin} />
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is your NAMA-level governance workspace: subscriptions, platform rules, tenant status, template inheritance,
             and the commercial health of the system. It is staged as a preview-safe Super Admin surface, but it reflects the

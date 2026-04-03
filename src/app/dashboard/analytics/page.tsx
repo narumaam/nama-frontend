@@ -1,6 +1,8 @@
 "use client";
 
 import React from 'react';
+import ScreenInfoTip from '@/components/screen-info-tip';
+import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
   Download, 
   IndianRupee, 
@@ -28,9 +30,12 @@ export default function AnalyticsPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
-          <h1 className="text-3xl font-black font-headline tracking-tighter mb-1 uppercase">
-            CRM Analytics <span className="text-[#C9A84C]">&amp;</span> Lead ROI
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black font-headline tracking-tighter mb-1 uppercase">
+              CRM Analytics <span className="text-[#C9A84C]">&amp;</span> Lead ROI
+            </h1>
+            <ScreenInfoTip content={SCREEN_HELP.analytics} />
+          </div>
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-2">
             <span>Analytics Workspace</span>
             <ChevronRight size={10} />

@@ -1,6 +1,8 @@
 "use client";
 
 import React from 'react';
+import ScreenInfoTip from '@/components/screen-info-tip';
+import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
   FileText, 
   Image as ImageIcon, 
@@ -30,7 +32,10 @@ export default function ContentLibraryPage() {
             <ChevronRight size={10} />
             <span className="opacity-50 font-bold">Reusable Asset Library</span>
           </nav>
-          <h1 className="font-headline text-5xl font-black tracking-tighter text-[#F5F0E8] uppercase leading-none">Asset Library</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-headline text-5xl font-black tracking-tighter text-[#F5F0E8] uppercase leading-none">Asset Library</h1>
+            <ScreenInfoTip content={SCREEN_HELP.content} />
+          </div>
           <p className="font-mono text-xs text-[#B8B0A0] mt-4 flex items-center gap-3 font-bold uppercase tracking-widest">
             <span className="w-2 h-2 rounded-full bg-[#1D9E75] shadow-[0_0_10px_rgba(29,158,117,0.5)] animate-pulse"></span>
             ACTIVE PREVIEW SET: 1,248 ASSETS INDEXED

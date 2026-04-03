@@ -3,8 +3,10 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, type BusinessRole, type SupportedCurrency } from "@/lib/demo-config";
 import { DEFAULT_DEMO_PROFILE, writeDemoProfile } from "@/lib/demo-profile";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   ArrowRight,
   Building2,
@@ -104,7 +106,10 @@ export default function RegisterPage() {
             </div>
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.32em] text-[#C9A84C]">Alpha Preview</div>
-              <h1 className="text-3xl font-black tracking-tight text-[#0F172A] xl:text-4xl">Workspace Onboarding</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-black tracking-tight text-[#0F172A] xl:text-4xl">Workspace Onboarding</h1>
+                <ScreenInfoTip content={SCREEN_HELP.register} />
+              </div>
             </div>
           </div>
 

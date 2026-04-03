@@ -2,8 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
 import { dealHrefFromSlug } from "@/lib/demo-cases";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   ArrowRight,
   Bot,
@@ -116,7 +118,10 @@ export default function EklaPage() {
             <ChevronRight size={10} />
             <span className="opacity-50">Autonomous Agency Operator</span>
           </div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Run The Agency On Its Own</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Run The Agency On Its Own</h1>
+            <ScreenInfoTip content={SCREEN_HELP.ekla} />
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             Ekla is the preview expression of NAMA’s core idea: the travel agency should run like an operating system.
             It captures raw demand, assembles the commercial response, sequences follow-ups, and escalates only the parts that still need people.

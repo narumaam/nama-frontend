@@ -2,9 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
 import { DEMO_CASE_ASSIGNMENTS, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, writeDemoProfile } from "@/lib/demo-profile";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { ArrowRight, CheckCircle2, ClipboardList, FileUp, Filter, Mail, Palette, Plus, Shield, Users, UserPlus2 } from "lucide-react";
 
@@ -193,7 +195,10 @@ export default function TeamPage() {
             <ArrowRight size={10} />
             <span className="opacity-50">Team Workspace</span>
           </div>
-          <h1 className="text-[32px] sm:text-4xl font-black tracking-tighter uppercase text-[#F5F0E8] font-headline">Team & Access</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[32px] sm:text-4xl font-black tracking-tighter uppercase text-[#F5F0E8] font-headline">Team & Access</h1>
+            <ScreenInfoTip content={SCREEN_HELP.team} />
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             Preview-safe workspace for customer admins to create individual invites, preview bulk user uploads, assign roles, and show the hierarchy and team ownership model without touching live credentials.
           </p>

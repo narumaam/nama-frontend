@@ -3,8 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   CalendarClock,
   CheckCircle2,
@@ -216,6 +218,7 @@ export default function LeadsPage() {
           </div>
           <h1 className="text-4xl font-black tracking-tighter flex items-center gap-4 uppercase font-headline text-[#F5F0E8]">
             Leads & Contacts
+            <ScreenInfoTip content={SCREEN_HELP.leads} />
             <span className="text-[10px] font-mono font-bold tracking-[0.2em] bg-[#1D9E75]/10 px-3 py-1 rounded-full text-[#1D9E75] border border-[#1D9E75]/20 animate-pulse">
               ALPHA_READY
             </span>

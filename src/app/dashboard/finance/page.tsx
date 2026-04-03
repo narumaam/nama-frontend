@@ -2,8 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   Activity,
   AlertTriangle,
@@ -155,7 +157,10 @@ export default function FinancePage() {
             <ChevronRight size={10} />
             <span className="opacity-50">Collections & Margin Control</span>
           </div>
-          <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#F5F0E8]">Finance Control</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#F5F0E8]">Finance Control</h1>
+            <ScreenInfoTip content={SCREEN_HELP.finance} />
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is the alpha finance layer for the same live cases: margin visibility, deposit pressure, release readiness, and commercial control before execution starts.
           </p>

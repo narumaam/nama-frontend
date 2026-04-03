@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import ScreenInfoTip from '@/components/screen-info-tip';
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from '@/lib/demo-profile';
 import { DEMO_CASE_ROUTES, dealHrefFromLeadId, getPrimaryDemoCase } from '@/lib/demo-cases';
+import { SCREEN_HELP } from '@/lib/screen-help';
 import {
   Zap, AlertTriangle, CheckCircle, Clock, TrendingUp,
   ArrowRight, Play, Pause, Eye, Activity, Brain, Target,
@@ -224,9 +226,12 @@ export default function AutopilotPage() {
             <span className="w-px h-3 bg-[#C9A84C]/20" />
             <LiveTicker />
           </div>
-          <h1 className="text-3xl sm:text-[40px] font-black tracking-[-0.04em] text-[#F5F0E8] font-headline uppercase leading-none">
-            Command Center
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl sm:text-[40px] font-black tracking-[-0.04em] text-[#F5F0E8] font-headline uppercase leading-none">
+              Command Center
+            </h1>
+            <ScreenInfoTip content={SCREEN_HELP.autopilot} />
+          </div>
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
             Preview cases are driving the walkthrough · You only see what needs your attention
           </p>

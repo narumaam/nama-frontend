@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import ScreenInfoTip from '@/components/screen-info-tip';
+import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
   Zap, 
   Brain, 
@@ -38,9 +40,12 @@ export default function EvolutionPage() {
             <ChevronRight size={10} />
             <span className="opacity-50">Learning Feedback Loops</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
-            Agentic Evolution
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
+              Agentic Evolution
+            </h1>
+            <ScreenInfoTip content={SCREEN_HELP.evolution} />
+          </div>
           <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">
             Self-optimizing feedback loops · <span className="text-[#7B61FF] font-black uppercase">Active analysis</span> · Preview-safe learning view
           </p>

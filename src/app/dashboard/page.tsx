@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet } from "lucide-react";
 
@@ -142,7 +144,10 @@ export default function DashboardPage() {
             <ChevronRight size={10} />
             <span className="opacity-50">Walkthrough Spine</span>
           </div>
-          <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#F5F0E8]">Operations Overview</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#F5F0E8]">Operations Overview</h1>
+            <ScreenInfoTip content={SCREEN_HELP.overview} />
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This overview is the April 6 preview spine: one configured workspace, one coherent case set, and one guided path from capture through finance, supplier control, and execution.
           </p>

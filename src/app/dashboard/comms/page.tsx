@@ -2,8 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { DEMO_CASE_ROUTES, dealHrefFromCaseName, dealHrefFromSlug, getPrimaryDemoCase, normalizeDemoCaseSlug } from "@/lib/demo-cases";
+import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   ArrowRight,
   Bot,
@@ -129,7 +131,10 @@ export default function CommsPage() {
             <span className="opacity-50">Omnichannel CRM</span>
           </div>
           <h1 className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-3xl sm:text-4xl font-black uppercase tracking-tighter font-headline text-[#F5F0E8]">
-            Comms Command
+            <span className="flex items-center gap-3">
+              Comms Command
+              <ScreenInfoTip content={SCREEN_HELP.comms} />
+            </span>
             <span className="flex items-center gap-2 rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black font-mono uppercase tracking-widest text-[#1D9E75]">
               <Sparkles size={12} />
               Preview channels
