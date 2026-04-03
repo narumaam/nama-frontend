@@ -205,6 +205,10 @@ export default function AdminPage() {
   const [bufferEnabled, setBufferEnabled] = useState(true);
   const [manualRateEnabled, setManualRateEnabled] = useState(false);
   const [demoLabMessage, setDemoLabMessage] = useState("Use Demo Lab to reset the workspace or seed a tested scenario.");
+  const [timelineTenantFilter, setTimelineTenantFilter] = useState<"All" | string>("All");
+  const [timelineTypeFilter, setTimelineTypeFilter] = useState<"All" | "commercial" | "team" | "delivery">("All");
+  const [timelineCaseFilter, setTimelineCaseFilter] = useState<"All" | string>("All");
+  const [exportMessage, setExportMessage] = useState("Copy or download the filtered audit trail as a founder-safe proof artifact.");
   const currentPlan = readDemoSubscriptionPlan();
   const tenantRegistry = readDemoTenantRegistry();
   const acceptedInvites = workflow.invites.filter((invite) => invite.status === "Accepted").length;
@@ -302,6 +306,27 @@ export default function AdminPage() {
     const bufferedAmount = bufferEnabled ? Math.round(localizedAmount * 1.025) : localizedAmount;
     return `${selectedMarket.baseCurrency} ${bufferedAmount.toLocaleString("en-IN")}`;
   }, [bufferEnabled, selectedMarket.baseCurrency, selectedPlan.name]);
+  const timelineTenants = useMemo(() => ["All", ...Array.from(new Set(events.map((event) => event.tenant)))], [events]);
+  const timelineCases = useMemo(() => ["All", ...Array.from(new Set(events.map((event) => event.caseSlug).filter(Boolean) as string[]))], [events]);
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      const tenantMatch = timelineTenantFilter === "All" || event.tenant === timelineTenantFilter;
+      const caseMatch = timelineCaseFilter === "All" || event.caseSlug === timelineCaseFilter;
+      const typeMatch =
+        timelineTypeFilter === "All" ||
+        (timelineTypeFilter === "team" && event.type.includes("invite")) ||
+        (timelineTypeFilter === "commercial" &&
+          (event.type.includes("invoice") || event.type.includes("deposit") || event.type.includes("tenant_registered"))) ||
+        (timelineTypeFilter === "delivery" &&
+          (event.type.includes("traveler") || event.type.includes("guest_pack") || event.type.includes("lead_stage")));
+      return tenantMatch && caseMatch && typeMatch;
+    });
+  }, [events, timelineCaseFilter, timelineTenantFilter, timelineTypeFilter]);
+  const exportText = useMemo(() => {
+    return filteredEvents
+      .map((event) => `${event.createdAt} | ${event.tenant} | ${event.title} | ${event.detail}${event.caseSlug ? ` | case ${event.caseSlug}` : ""}`)
+      .join("\n");
+  }, [filteredEvents]);
 
   function handleResetDemo() {
     resetDemoState();
@@ -321,6 +346,27 @@ export default function AdminPage() {
     seedDemoScenario(key);
     setDemoLabMessage(`${scenario.label} launched for ${scenario.company}. Redirecting to ${scenario.launchLabel.toLowerCase()}.`);
     router.push(scenario.launchPath);
+  }
+
+  async function handleCopyExport() {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      setExportMessage("Clipboard is unavailable in this environment.");
+      return;
+    }
+    await navigator.clipboard.writeText(exportText || "No filtered audit events available.");
+    setExportMessage(`Copied ${filteredEvents.length} filtered audit event${filteredEvents.length === 1 ? "" : "s"} to the clipboard.`);
+  }
+
+  function handleDownloadExport() {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([exportText || "No filtered audit events available."], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "nama-audit-timeline.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+    setExportMessage(`Downloaded ${filteredEvents.length} filtered audit event${filteredEvents.length === 1 ? "" : "s"} as a text proof artifact.`);
   }
 
   return (
@@ -609,13 +655,64 @@ export default function AdminPage() {
           <Waypoints size={14} className="text-[#C9A84C]" />
           <h2 className="text-lg font-black text-[#F5F0E8]">Activity Timeline</h2>
         </div>
+        <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto_auto]">
+          <select
+            value={timelineTenantFilter}
+            onChange={(event) => setTimelineTenantFilter(event.target.value)}
+            className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-3 text-sm font-semibold text-[#F5F0E8] outline-none"
+          >
+            {timelineTenants.map((tenant) => (
+              <option key={tenant} value={tenant}>
+                {tenant === "All" ? "All tenants" : tenant}
+              </option>
+            ))}
+          </select>
+          <select
+            value={timelineTypeFilter}
+            onChange={(event) => setTimelineTypeFilter(event.target.value as typeof timelineTypeFilter)}
+            className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-3 text-sm font-semibold text-[#F5F0E8] outline-none"
+          >
+            <option value="All">All event types</option>
+            <option value="team">Team events</option>
+            <option value="commercial">Commercial events</option>
+            <option value="delivery">Delivery events</option>
+          </select>
+          <select
+            value={timelineCaseFilter}
+            onChange={(event) => setTimelineCaseFilter(event.target.value)}
+            className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-3 text-sm font-semibold text-[#F5F0E8] outline-none"
+          >
+            {timelineCases.map((caseSlug) => (
+              <option key={caseSlug} value={caseSlug}>
+                {caseSlug === "All" ? "All cases" : caseSlug}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleCopyExport}
+            className="rounded-xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]"
+          >
+            Copy Audit
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadExport}
+            className="rounded-xl bg-[#C9A84C] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+          >
+            Download Audit
+          </button>
+        </div>
+        <div className="mb-5 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+          {exportMessage}
+        </div>
         <div className="space-y-3">
-          {events.length === 0 ? (
+          {filteredEvents.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
               No event history yet. Register a tenant, send invites, or seed a scenario from Demo Lab to generate the audit trail.
             </div>
           ) : (
-            events.slice(0, 12).map((event) => (
+            filteredEvents.slice(0, 12).map((event) => (
               <div key={event.id} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
