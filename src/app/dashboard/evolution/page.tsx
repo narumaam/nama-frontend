@@ -33,16 +33,16 @@ export default function EvolutionPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-mono text-[#7B61FF] uppercase tracking-[0.3em] mb-2">
-            <span>Module M15</span>
+          <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
+            <span>Evolution Workspace</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">Recursive Evolution Engine</span>
+            <span className="opacity-50">Learning Feedback Loops</span>
           </div>
           <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
             Agentic Evolution
           </h1>
           <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">
-            Self-Optimizing Feedback Loops · <span className="text-[#7B61FF] font-black uppercase">Active Analysis</span> · <span className="text-pink-400 font-black animate-pulse">HAPPY BIRTHDAY NARAYAN! 🎂</span>
+            Self-optimizing feedback loops · <span className="text-[#7B61FF] font-black uppercase">Active analysis</span> · Preview-safe learning view
           </p>
         </div>
         <button 
@@ -50,7 +50,7 @@ export default function EvolutionPage() {
           disabled={isOptimizing}
           className={`flex items-center gap-2 px-8 py-3 bg-[#7B61FF] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(123,97,255,0.2)] ${isOptimizing ? 'animate-pulse opacity-80' : 'hover:scale-[1.02]'}`}
         >
-          {isOptimizing ? <><RefreshCcw size={16} className="animate-spin" /> Retraining Models...</> : <><Zap size={16} /> Run Manual Optimization</>}
+          {isOptimizing ? <><RefreshCcw size={16} className="animate-spin" /> Recalculating Learning Loop...</> : <><Zap size={16} /> Run Manual Learning Pass</>}
         </button>
       </div>
 
@@ -74,7 +74,7 @@ export default function EvolutionPage() {
             <div className="flex items-center justify-between mb-8 relative">
               <div className="flex items-center gap-3">
                 <Brain size={20} className="text-[#7B61FF]" />
-                <h4 className="font-black text-[14px] uppercase tracking-tighter text-[#F5F0E8]">Recursive Self-Improvement (RSI) Feed</h4>
+                <h4 className="font-black text-[14px] uppercase tracking-tighter text-[#F5F0E8]">Recursive Self-Improvement Feed</h4>
               </div>
               <span className={`px-3 py-1 ${isOptimizing ? 'bg-[#7B61FF]/20 text-[#7B61FF] animate-pulse' : 'bg-[#1D9E75]/20 text-[#1D9E75]'} text-[9px] font-black uppercase rounded-lg border border-current`}>
                 {isOptimizing ? 'Evolution Active' : 'Live Monitor'}
@@ -86,14 +86,14 @@ export default function EvolutionPage() {
                 <div className="py-20 flex flex-col items-center justify-center text-center">
                    <RefreshCcw size={40} className="text-[#7B61FF] animate-spin mb-6" />
                    <p className="text-[14px] font-black uppercase text-[#F5F0E8] mb-2">Analyzing Conversion Vectors</p>
-                   <p className="text-[10px] font-mono text-[#4A453E] uppercase tracking-widest max-w-sm">Recalculating agent weights based on 142 successful Bali itineraries...</p>
+                   <p className="text-[10px] font-mono text-[#4A453E] uppercase tracking-widest max-w-sm">Recalculating learning weights from recent itinerary, quote, and follow-up patterns...</p>
                 </div>
               ) : (
                 <>
                   <RSILogItem 
                     type="SUCCESS" 
                     agent="Itinerary Agent" 
-                    msg="Successfully converted 'Bali Luxury' query. Pattern detected: Emphasis on 'Private Pool' increased CTR by 24%." 
+                    msg="Recent luxury itineraries convert better when premium differentiators are surfaced earlier in the reply and pricing story." 
                     delta="+4.2% Weighting" 
                   />
                   <RSILogItem 
@@ -105,7 +105,7 @@ export default function EvolutionPage() {
                   <RSILogItem 
                     type="DISCOVERY" 
                     agent="Bidding Agent" 
-                    msg="New supplier cluster identified in North Bali. Response latency below 10 mins. Promoting to Tier-1 bidding group." 
+                    msg="A faster supplier-response cluster is outperforming slower fallback options and is being promoted for premium routing." 
                     delta="Cluster Updated" 
                   />
                   <RSILogItem 
@@ -152,11 +152,11 @@ export default function EvolutionPage() {
           <div className="bg-[#111111] border border-[#C9A84C]/15 rounded-3xl p-8 shadow-xl">
             <h4 className="font-black text-[11px] uppercase tracking-[0.2em] font-mono text-[#F5F0E8] mb-8">Model Configuration</h4>
             <div className="space-y-6">
-              <ModelParam label="Base Model" value="Claude 3.5 Sonnet" />
+              <ModelParam label="Learning Baseline" value="Preview operator model" />
               <ModelParam label="Fine-Tuning" value="NAMA Travel Instruct v3" />
               <ModelParam label="Temperature" value="0.4 (Optimized)" />
               <div className="pt-4 border-t border-[#C9A84C]/10">
-                <label className="text-[9px] font-black text-[#4A453E] uppercase tracking-widest font-mono mb-4 block">Evolution Threshold</label>
+                <label className="text-[9px] font-black text-[#4A453E] uppercase tracking-widest font-mono mb-4 block">Learning Threshold</label>
                 <div className="h-1.5 w-full bg-[#1A1A1A] rounded-full overflow-hidden border border-[#C9A84C]/5 mb-3">
                    <div className="h-full bg-[#7B61FF] w-[75%]" />
                 </div>
@@ -185,7 +185,7 @@ export default function EvolutionPage() {
           {/* RSI Explanation */}
           <div className="bg-[#7B61FF]/5 border border-[#7B61FF]/20 rounded-3xl p-6">
             <p className="text-[10px] text-[#B8B0A0] leading-relaxed italic">
-              &ldquo;The RSI Engine creates a state-aware architecture where the system autonomously improves its decision-making logic without human intervention, leading to compounding operational efficiency.&rdquo;
+              &ldquo;This view shows how NAMA improves prompts, routing, and operating decisions over time. Present it as a preview-safe learning layer, not as unchecked autonomous retraining in production.&rdquo;
             </p>
           </div>
         </div>

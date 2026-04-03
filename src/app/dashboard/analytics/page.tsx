@@ -31,9 +31,14 @@ export default function AnalyticsPage() {
           <h1 className="text-3xl font-black font-headline tracking-tighter mb-1 uppercase">
             CRM Analytics <span className="text-[#C9A84C]">&amp;</span> Lead ROI
           </h1>
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-2">
+            <span>Analytics Workspace</span>
+            <ChevronRight size={10} />
+            <span className="opacity-50">Pipeline Intelligence</span>
+          </div>
           <p className="text-[#B8B0A0] text-sm flex items-center gap-2 font-mono uppercase tracking-widest">
             <span className="w-2 h-2 rounded-full bg-[#1D9E75] animate-pulse shadow-[0_0_8px_#1D9E75]"></span>
-            Live operational intelligence cycle: Q3 2026
+            Preview intelligence cycle: April 2026
           </p>
         </div>
         <div className="flex gap-3">
@@ -43,7 +48,7 @@ export default function AnalyticsPage() {
           </div>
           <button className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-[#C9A84C]/15 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#222222] transition-all text-[#F5F0E8]">
             <Download size={14} className="text-[#C9A84C]" />
-            Export Intelligence
+            Export Snapshot
           </button>
         </div>
       </div>
@@ -54,7 +59,7 @@ export default function AnalyticsPage() {
           label="Total Lead Pipeline" 
           value="₹8,42,50,000" 
           change="+12.4%" 
-          comparison="vs prev. cycle" 
+          comparison="vs preview baseline" 
           icon={<IndianRupee className="text-6xl text-[#C9A84C] opacity-5 group-hover:opacity-10 transition-opacity" />}
           borderColor="border-[#C9A84C]"
           isPositive={true}
@@ -63,7 +68,7 @@ export default function AnalyticsPage() {
           label="Conversion Efficiency" 
           value="24.8%" 
           change="+3.1%" 
-          comparison="yield optimization" 
+          comparison="close-rate lift" 
           icon={<ArrowRightLeft className="text-6xl text-[#C9A84C] opacity-5 group-hover:opacity-10 transition-opacity" />}
           borderColor="border-[#1D9E75]"
           isPositive={true}
@@ -72,7 +77,7 @@ export default function AnalyticsPage() {
           label="Response Latency" 
           value="14m 22s" 
           change="-2m 10s" 
-          comparison="ops acceleration" 
+          comparison="faster first response" 
           icon={<Clock className="text-6xl text-[#C9A84C] opacity-5 group-hover:opacity-10 transition-opacity" />}
           borderColor="border-[#C9A84C]/40"
           isPositive={false}
@@ -82,7 +87,7 @@ export default function AnalyticsPage() {
           label="Primary Channel" 
           value="Instagram" 
           change="42% Share" 
-          comparison="market dominance" 
+          comparison="top source mix" 
           icon={<Network className="text-6xl text-[#C9A84C] opacity-5 group-hover:opacity-10 transition-opacity" />}
           borderColor="border-[#1D9E75]"
           isPositive={true}
@@ -135,7 +140,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="mt-8 p-4 bg-[#111111] rounded-lg border border-[#C9A84C]/10">
             <p className="text-[11px] text-[#B8B0A0] italic leading-relaxed">
-              <span className="text-[#1D9E75] font-black font-mono mr-2">CORE INSIGHT:</span> Referral leads convert 2.4x faster. Strategy: Reallocate 15% of meta-budget to Affiliate Incentives.
+              <span className="text-[#1D9E75] font-black font-mono mr-2">CORE INSIGHT:</span> Referral leads convert faster in the preview set. Strategy: shift acquisition spend toward higher-intent channels.
             </p>
           </div>
         </div>
@@ -147,7 +152,7 @@ export default function AnalyticsPage() {
         <div className="lg:col-span-7 bg-[#111111] p-6 rounded-xl border border-[#C9A84C]/10 shadow-xl">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-headline font-black text-lg tracking-tighter uppercase text-[#F5F0E8]">Agent Leaderboard</h3>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#C9A84C] border border-[#C9A84C]/30 px-2 py-1 rounded bg-[#C9A84C]/5">Active Operational Cycle</div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-[#C9A84C] border border-[#C9A84C]/30 px-2 py-1 rounded bg-[#C9A84C]/5">Active Preview Cycle</div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -206,8 +211,8 @@ export default function AnalyticsPage() {
             <Zap size={20} className="animate-pulse" />
           </div>
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#C9A84C] font-black">Hot Lead Vector</div>
-            <div className="text-xs font-bold text-[#F5F0E8] leading-tight font-headline uppercase tracking-tighter">High-yield Europe inquiry detected via Web.</div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-[#C9A84C] font-black">Priority Signal</div>
+            <div className="text-xs font-bold text-[#F5F0E8] leading-tight font-headline uppercase tracking-tighter">High-yield inquiry pattern detected in the active pipeline.</div>
           </div>
           <button className="text-[#4A453E] hover:text-[#C9A84C] transition-colors">
             <ChevronRight size={18} />
