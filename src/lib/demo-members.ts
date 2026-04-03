@@ -2,9 +2,10 @@ import { DEMO_PROFILE_STORAGE_KEYS } from "@/lib/demo-config";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { readDemoWorkflowState, type DemoEmployeeRecord, type DemoInviteRecord } from "@/lib/demo-workflow";
 import { normalizeTenantRole, type AppRole } from "@/lib/auth-session";
+import { fetchTenantMembers, promoteInviteMember, type TenantMemberApiRecord } from "@/lib/tenant-members-api";
 
 export type DemoMemberStatus = "Seeded" | "Invited" | "Active";
-export type DemoMemberSource = "tenant-profile" | "employee-directory" | "accepted-invite" | "manual";
+export type DemoMemberSource = "tenant-profile" | "employee-directory" | "accepted-invite" | "manual" | "backend-demo";
 
 export type DemoMemberRecord = {
   id: string;
@@ -155,6 +156,22 @@ function memberFromInvite(invite: DemoInviteRecord): DemoMemberRecord {
   });
 }
 
+function memberFromApiRecord(record: TenantMemberApiRecord): DemoMemberRecord {
+  return normalizeMemberRecord({
+    id: record.id,
+    tenantName: record.tenant_name,
+    name: record.name,
+    email: record.email,
+    role: normalizeTenantRole(record.role),
+    designation: record.designation,
+    team: record.team,
+    reportsTo: "Platform Sync",
+    responsibility: "Tenant member access provisioned through backend member contract",
+    status: record.status,
+    source: record.source,
+  });
+}
+
 function seedDemoMembers(): DemoMemberRecord[] {
   const profile = readDemoProfile();
   const workflow = readDemoWorkflowState();
@@ -227,6 +244,14 @@ export function writeDemoMemberRegistryState(input: Partial<DemoMemberRegistrySt
   return persistRegistryState(nextState);
 }
 
+export async function syncTenantMembersFromApi(tenantName = readDemoProfile().company) {
+  const response = await fetchTenantMembers(tenantName);
+  const backendMembers = response.members.map(memberFromApiRecord);
+  const seededMembers = seedDemoMembers();
+  const merged = mergeSeededMembers(backendMembers, seededMembers);
+  return writeDemoMemberRegistryState({ members: merged });
+}
+
 export function resetDemoMemberRegistryState() {
   return persistRegistryState({ members: seedDemoMembers() });
 }
@@ -261,6 +286,30 @@ export function promoteInviteToMember(invite: DemoInviteRecord) {
     invitedAt: invite.invitedAt,
     acceptedAt: invite.acceptedAt,
   });
+}
+
+export async function promoteInviteToMemberViaApi(invite: DemoInviteRecord) {
+  const tenantName = readDemoProfile().company;
+  const promoted = await promoteInviteMember({
+    tenant_name: tenantName,
+    invite_id: invite.id,
+    name: invite.name,
+    email: invite.email,
+    role: normalizeTenantRole(invite.role),
+    designation: invite.designation,
+    team: invite.team,
+  });
+
+  const member = memberFromApiRecord(promoted);
+  upsertDemoMember({
+    ...member,
+    reportsTo: member.reportsTo,
+    responsibility: member.responsibility,
+    inviteId: invite.id,
+    invitedAt: invite.invitedAt,
+    acceptedAt: invite.acceptedAt,
+  });
+  return member;
 }
 
 export function promoteInviteRecord(invite: DemoInviteRecord) {

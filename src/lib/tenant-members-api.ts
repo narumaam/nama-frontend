@@ -1,4 +1,4 @@
-import { apiUrl } from "@/lib/api";
+import { apiUrl, getApiBaseUrl } from "@/lib/api";
 
 export type TenantMemberApiRecord = {
   id: string;
@@ -28,7 +28,14 @@ export type PromoteInvitePayload = {
   team: string;
 };
 
+function ensureTenantMembersApiConfigured() {
+  if (!getApiBaseUrl()) {
+    throw new Error("Tenant members API is not configured");
+  }
+}
+
 export async function fetchTenantMembers(tenantName: string) {
+  ensureTenantMembersApiConfigured();
   const response = await fetch(`${apiUrl("/tenant-members")}?tenant_name=${encodeURIComponent(tenantName)}`, {
     method: "GET",
     headers: { Accept: "application/json" },
@@ -43,6 +50,7 @@ export async function fetchTenantMembers(tenantName: string) {
 }
 
 export async function promoteInviteMember(payload: PromoteInvitePayload) {
+  ensureTenantMembersApiConfigured();
   const response = await fetch(apiUrl("/tenant-members/promote"), {
     method: "POST",
     headers: {

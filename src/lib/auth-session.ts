@@ -83,6 +83,7 @@ type StoredMemberRecord = {
   name?: string;
   role?: string;
   tenantName?: string;
+  tenant_name?: string;
   status?: string;
   designation?: string;
   team?: string;
@@ -109,7 +110,7 @@ function findStoredMemberBySession(session: Pick<AppSession, "email" | "tenantNa
 
   return readStoredTenantMembers().find((member) => {
     const memberEmail = member.email?.trim().toLowerCase();
-    const memberTenant = member.tenantName?.trim().toLowerCase() ?? "";
+    const memberTenant = member.tenantName?.trim().toLowerCase() ?? member.tenant_name?.trim().toLowerCase() ?? "";
     return memberEmail === normalizedEmail && (!normalizedTenant || memberTenant === normalizedTenant);
   });
 }
@@ -124,7 +125,7 @@ function mergeSessionWithStoredMember(session: AppSession) {
     ...session,
     displayName: member.name?.trim() || session.displayName,
     role: normalizeTenantRole(member.role || session.role),
-    tenantName: member.tenantName?.trim() || session.tenantName,
+    tenantName: member.tenantName?.trim() || member.tenant_name?.trim() || session.tenantName,
     memberId: member.id?.trim() || session.memberId || null,
     memberStatus: member.status?.trim() || session.memberStatus || null,
     designation: member.designation?.trim() || session.designation || null,

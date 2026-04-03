@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Mail, Shield, Users } from "lucide-react";
 
 import { createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole } from "@/lib/auth-session";
-import { promoteInviteToMember, readDemoMemberRegistryState } from "@/lib/demo-members";
+import { promoteInviteToMember, promoteInviteToMemberViaApi, readDemoMemberRegistryState } from "@/lib/demo-members";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { acceptDemoInvite, getInvitePath } from "@/lib/demo-workflow";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
@@ -17,6 +17,7 @@ export default function InviteAcceptancePage() {
   const params = useParams<{ inviteId: string }>();
   const workflow = useDemoWorkflow();
   const profile = useMemo(() => readDemoProfile(), []);
+  const [isAccepting, setIsAccepting] = useState(false);
   const inviteId = Array.isArray(params.inviteId) ? params.inviteId[0] : params.inviteId;
   const invite = useMemo(() => workflow.invites.find((item) => item.id === inviteId), [inviteId, workflow.invites]);
 
@@ -40,34 +41,44 @@ export default function InviteAcceptancePage() {
 
   const resolvedInvite = invite;
 
-  function acceptAndEnterWorkspace() {
+  async function acceptAndEnterWorkspace() {
+    setIsAccepting(true);
     const nextWorkflow = acceptDemoInvite(resolvedInvite.id);
     const acceptedInvite = nextWorkflow.invites.find((item) => item.id === resolvedInvite.id) ?? {
       ...resolvedInvite,
       status: "Accepted" as const,
     };
 
-    promoteInviteToMember(acceptedInvite);
-    const member = readDemoMemberRegistryState().members.find(
-      (item) => item.email.trim().toLowerCase() === acceptedInvite.email.trim().toLowerCase()
-    );
+    try {
+      let member;
+      try {
+        member = await promoteInviteToMemberViaApi(acceptedInvite);
+      } catch {
+        promoteInviteToMember(acceptedInvite);
+        member = readDemoMemberRegistryState().members.find(
+          (item) => item.email.trim().toLowerCase() === acceptedInvite.email.trim().toLowerCase()
+        );
+      }
 
-    const tenantRole = normalizeTenantRole(member?.role || acceptedInvite.role);
-    const session =
-      member
-        ? createTenantMemberSession({
-            id: member.id,
-            email: member.email,
-            name: member.name,
-            role: member.role,
-            tenantName: member.tenantName,
-            status: member.status,
-            designation: member.designation,
-            team: member.team,
-          })
-        : createTenantRoleSession(acceptedInvite.name, profile.company, tenantRole);
+      const tenantRole = normalizeTenantRole(member?.role || acceptedInvite.role);
+      const session =
+        member
+          ? createTenantMemberSession({
+              id: member.id,
+              email: member.email,
+              name: member.name,
+              role: member.role,
+              tenantName: member.tenantName,
+              status: member.status,
+              designation: member.designation,
+              team: member.team,
+            })
+          : createTenantRoleSession(acceptedInvite.name, profile.company, tenantRole);
 
-    router.push(getDefaultRouteForRole(session?.role ?? tenantRole));
+      router.push(getDefaultRouteForRole(session?.role ?? tenantRole));
+    } finally {
+      setIsAccepting(false);
+    }
   }
 
   return (
@@ -97,10 +108,11 @@ export default function InviteAcceptancePage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             type="button"
+            disabled={isAccepting}
             onClick={acceptAndEnterWorkspace}
-            className="rounded-2xl bg-[#0F172A] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white"
+            className="rounded-2xl bg-[#0F172A] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Accept Invite & Enter Workspace
+            {isAccepting ? "Accepting Invite..." : "Accept Invite & Enter Workspace"}
           </button>
           <Link href="/workspace/login" className="rounded-2xl border border-[#0F172A]/10 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0F172A]">
             Role Login
