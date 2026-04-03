@@ -3,11 +3,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
+import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
 import { setDemoLeadStage } from "@/lib/demo-workflow";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useAppSession } from "@/lib/use-app-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   CalendarClock,
@@ -151,6 +153,7 @@ function buildLeadRecords(cases: DemoCase[], workflowCases: ReturnType<typeof us
 }
 
 export default function LeadsPage() {
+  const session = useAppSession();
   const workflow = useDemoWorkflow();
   const [activeView, setActiveView] = useState<"kanban" | "list">("kanban");
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
@@ -214,6 +217,8 @@ export default function LeadsPage() {
     ownerSummaryMap[item.owner] = current;
   });
   const ownerSummaries = Object.values(ownerSummaryMap);
+  const canManageLeads = canPerformAction(session, "lead.manage");
+  const canEnrichLead = canPerformAction(session, "lead.enrich");
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
@@ -604,11 +609,14 @@ export default function LeadsPage() {
         <ContactDrawer
           lead={drawerLead}
           onClose={() => setSelectedLead(null)}
-          onEnrich={() => setEnrichedLead(drawerLead)}
+          onEnrich={() => canEnrichLead && setEnrichedLead(drawerLead)}
           onStageChange={(stage) => {
+            if (!canManageLeads) return;
             setDemoLeadStage(drawerLead.slug, stage);
             setSelectedLead({ ...drawerLead, stage });
           }}
+          canEnrich={canEnrichLead}
+          canManageLeads={canManageLeads}
         />
       )}
     </div>
@@ -793,11 +801,15 @@ function ContactDrawer({
   onClose,
   onEnrich,
   onStageChange,
+  canEnrich,
+  canManageLeads,
 }: {
   lead: LeadRecord;
   onClose: () => void;
   onEnrich: () => void;
   onStageChange: (stage: LeadStage) => void;
+  canEnrich: boolean;
+  canManageLeads: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-[110] flex justify-end bg-black/50 backdrop-blur-sm">
@@ -845,7 +857,12 @@ function ContactDrawer({
             <button
               type="button"
               onClick={onEnrich}
-              className="rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#1D9E75]"
+              disabled={!canEnrich}
+              className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-widest ${
+                canEnrich
+                  ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]"
+                  : "border-white/10 bg-[#111111] text-[#4A453E]"
+              }`}
             >
               Strengthen profile
             </button>
@@ -860,16 +877,22 @@ function ContactDrawer({
                 key={stage}
                 type="button"
                 onClick={() => onStageChange(stage)}
+                disabled={!canManageLeads}
                 className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-widest ${
                   lead.stage === stage
                     ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]"
-                    : "border-white/10 text-[#B8B0A0]"
+                    : canManageLeads
+                      ? "border-white/10 text-[#B8B0A0]"
+                      : "border-white/10 text-[#4A453E]"
                 }`}
               >
                 {stage}
               </button>
             ))}
           </div>
+          {!canManageLeads && (
+            <div className="mt-3 text-xs text-[#4A453E]">This role can review the CRM, but only Sales or Customer Admin can change lead stages.</div>
+          )}
         </div>
 
         <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-5">

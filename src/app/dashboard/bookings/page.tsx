@@ -2,12 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
 import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useAppSession } from "@/lib/use-app-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   ArrowRight,
@@ -106,6 +108,7 @@ function resolveFlightSegments(slug: string) {
 
 export default function BookingsPage() {
   const profile = useMemo(() => readDemoProfile(), []);
+  const session = useAppSession();
   const workflow = useDemoWorkflow();
   const [activeTab, setActiveTab] = useState<(typeof EXECUTION_TABS)[number]>("Overview");
   const [selectedStep, setSelectedStep] = useState(EXECUTION_STEPS[0]);
@@ -130,6 +133,7 @@ export default function BookingsPage() {
     { lane: "Finance", owner: "Meera Shah", note: "Verifies deposits, balance due, and payout readiness." },
     { lane: "Supplier", owner: activeDeal.bidding.vendor, note: "Primary supplier aligned to the current case profile." },
   ];
+  const canReleaseGuestPack = canPerformAction(session, "booking.releaseGuestPack");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -171,14 +175,17 @@ export default function BookingsPage() {
           <button
             type="button"
             onClick={() =>
-              updateDemoCaseWorkflow(activeDeal.slug, {
+              canReleaseGuestPack && updateDemoCaseWorkflow(activeDeal.slug, {
                 bookingState: "Guest pack released",
                 guestPackState: "Released",
                 travelerApprovalState: "Approved for send",
                 travelerPdfState: "Shared",
               })
             }
-            className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95"
+            disabled={!canReleaseGuestPack}
+            className={`w-full sm:w-auto rounded-xl px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+              canReleaseGuestPack ? "bg-[#C9A84C] text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] hover:scale-105 active:scale-95" : "border border-white/10 bg-[#111111] text-[#4A453E]"
+            }`}
           >
             Release Guest Pack
           </button>
@@ -446,6 +453,7 @@ export default function BookingsPage() {
               <WorkspaceNote tone="neutral" text={`Guest profile stays attached to ${activeDeal.capture.phone.toLowerCase()} and final arrival brief release.`} />
               <WorkspaceNote tone="success" text={`${activeWorkflow?.financeStatus ?? activeDeal.finance.status} and execution control is visible on the same case.`} />
               <WorkspaceNote tone="neutral" text="DMC supplier thread is already linked so ops does not need to re-collect supplier terms." />
+              {!canReleaseGuestPack && <WorkspaceNote tone="neutral" text="This role can review execution, but only Operations or Customer Admin can release the guest pack." />}
             </div>
           </section>
 
@@ -458,14 +466,17 @@ export default function BookingsPage() {
               <button
                 type="button"
                 onClick={() =>
-                  updateDemoCaseWorkflow(activeDeal.slug, {
+                  canReleaseGuestPack && updateDemoCaseWorkflow(activeDeal.slug, {
                     bookingState: "Guest pack released",
                     guestPackState: "Released",
                     travelerApprovalState: "Approved for send",
                     travelerPdfState: "Shared",
                   })
                 }
-                className="flex w-full items-center justify-between rounded-2xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#1D9E75] transition-colors"
+                disabled={!canReleaseGuestPack}
+                className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${
+                  canReleaseGuestPack ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]" : "border-white/10 bg-[#111111] text-[#4A453E]"
+                }`}
               >
                 <span>Release guest pack now</span>
                 <ArrowRight size={14} />

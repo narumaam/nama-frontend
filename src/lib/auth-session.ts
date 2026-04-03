@@ -11,6 +11,17 @@ export type AppRole =
   | "viewer";
 
 export type AppScope = "platform" | "tenant";
+export type AppAction =
+  | "lead.manage"
+  | "lead.enrich"
+  | "finance.sendQuote"
+  | "finance.recordDeposit"
+  | "finance.export"
+  | "booking.releaseGuestPack"
+  | "team.invite"
+  | "team.bulkInvite"
+  | "team.employeeSave"
+  | "team.whiteLabel";
 
 export type AppSession = {
   email: string;
@@ -130,6 +141,24 @@ export function canAccessPath(session: AppSession, pathname: string) {
   const matchingRule = PATH_ACCESS_RULES.find((rule) => rule.matches.test(pathname));
   if (!matchingRule) return true;
   return matchingRule.roles.includes(session.role);
+}
+
+const ACTION_RULES: Record<AppAction, AppRole[]> = {
+  "lead.manage": ["customer-admin", "sales", "super-admin"],
+  "lead.enrich": ["customer-admin", "sales", "super-admin"],
+  "finance.sendQuote": ["customer-admin", "finance", "super-admin"],
+  "finance.recordDeposit": ["customer-admin", "finance", "super-admin"],
+  "finance.export": ["customer-admin", "finance", "super-admin"],
+  "booking.releaseGuestPack": ["customer-admin", "operations", "super-admin"],
+  "team.invite": ["customer-admin", "super-admin"],
+  "team.bulkInvite": ["customer-admin", "super-admin"],
+  "team.employeeSave": ["customer-admin", "super-admin"],
+  "team.whiteLabel": ["customer-admin", "super-admin"],
+};
+
+export function canPerformAction(session: AppSession | null, action: AppAction) {
+  if (!session) return false;
+  return ACTION_RULES[action].includes(session.role);
 }
 
 export function createTenantAdminSession(displayName: string, tenantName: string) {

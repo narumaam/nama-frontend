@@ -2,12 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
 import { DEMO_CASE_ASSIGNMENTS } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain, writeDemoProfile } from "@/lib/demo-profile";
 import { createDemoInvite, createEmployeeRecord, getInvitePath, upsertDemoEmployees, type DemoInviteRecord } from "@/lib/demo-workflow";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useAppSession } from "@/lib/use-app-session";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import { ArrowRight, CheckCircle2, ClipboardList, Copy, Download, FileUp, Filter, Mail, Palette, Plus, Send, Shield, Upload, Users, UserPlus2 } from "lucide-react";
@@ -102,6 +104,7 @@ const ORG_CHART = {
 };
 
 export default function TeamPage() {
+  const session = useAppSession();
   const profile = useDemoProfile();
   const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
@@ -153,6 +156,10 @@ export default function TeamPage() {
     designationTitle: designationLabel,
     reportingTitle: reportingLabel,
   };
+  const canInvite = canPerformAction(session, "team.invite");
+  const canBulkInvite = canPerformAction(session, "team.bulkInvite");
+  const canSaveEmployee = canPerformAction(session, "team.employeeSave");
+  const canManageWhiteLabel = canPerformAction(session, "team.whiteLabel");
 
   useEffect(() => {
     setWhiteLabelEnabled(profile.whiteLabel.enabled);
@@ -485,7 +492,10 @@ export default function TeamPage() {
                   <button
                     type="button"
                     onClick={sendInviteForCurrentForm}
-                    className="rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+                    disabled={!canInvite}
+                    className={`rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest ${
+                      canInvite ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#111111] text-[#4A453E]"
+                    }`}
                   >
                     Send Individual Invite
                   </button>
@@ -504,7 +514,10 @@ export default function TeamPage() {
                         }),
                       ])
                     }
-                    className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+                    disabled={!canSaveEmployee}
+                    className={`rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest ${
+                      canSaveEmployee ? "border-[#C9A84C]/15 bg-[#111111] text-[#C9A84C]" : "border-white/10 bg-[#111111] text-[#4A453E]"
+                    }`}
                   >
                     Save to Employee List
                   </button>
@@ -566,7 +579,10 @@ export default function TeamPage() {
                   <button
                     type="button"
                     onClick={sendInvitesToSelectedEmployees}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+                    disabled={!canBulkInvite}
+                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest ${
+                      canBulkInvite ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#111111] text-[#4A453E]"
+                    }`}
                   >
                     <Send size={12} />
                     Send to Selected
@@ -825,9 +841,14 @@ export default function TeamPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setWhiteLabelEnabled((value) => !value)}
+                      onClick={() => canManageWhiteLabel && setWhiteLabelEnabled((value) => !value)}
+                      disabled={!canManageWhiteLabel}
                       className={`relative h-7 w-14 rounded-full border transition-all ${
-                        whiteLabelEnabled ? "border-[#C9A84C]/40 bg-[#C9A84C]/10" : "border-white/10 bg-[#0A0A0A]"
+                        !canManageWhiteLabel
+                          ? "border-white/10 bg-[#0A0A0A] opacity-50"
+                          : whiteLabelEnabled
+                            ? "border-[#C9A84C]/40 bg-[#C9A84C]/10"
+                            : "border-white/10 bg-[#0A0A0A]"
                       }`}
                       aria-label="Toggle white label"
                     >
@@ -840,11 +861,11 @@ export default function TeamPage() {
                   </div>
                 </div>
                 <div className={`mt-4 grid gap-3 sm:grid-cols-2 ${whiteLabelEnabled ? "" : "opacity-50"}`}>
-                  <EditableField label="Workspace Name" value={workspaceName} onChange={setWorkspaceName} disabled={!whiteLabelEnabled} placeholder="Nair Luxury Escapes" hint="This is the name shown in the dashboard shell and overview." />
-                  <EditableField label="Badge Glyph" value={badgeGlyph} onChange={setBadgeGlyph} disabled={!whiteLabelEnabled} placeholder="NL" hint="Use 1-2 characters until logo upload is introduced." />
-                  <EditableField label="Support Email" value={supportEmail} onChange={setSupportEmail} disabled={!whiteLabelEnabled} placeholder="support@nairluxury.com" hint="This becomes the tenant-facing support contact." />
-                  <EditableField label="Subdomain or Domain" value={customDomain} onChange={setCustomDomain} disabled={!whiteLabelEnabled} placeholder="nairluxury or travel.nairluxury.com" hint="Short values become a NAMA subdomain. Full domains stay exactly as entered." />
-                  <EditableField label="Accent Hex" value={accentHex} onChange={setAccentHex} disabled={!whiteLabelEnabled} placeholder="#C9A84C" hint="Use a 6-digit hex color for buttons, highlights, and key brand moments." />
+                  <EditableField label="Workspace Name" value={workspaceName} onChange={setWorkspaceName} disabled={!whiteLabelEnabled || !canManageWhiteLabel} placeholder="Nair Luxury Escapes" hint="This is the name shown in the dashboard shell and overview." />
+                  <EditableField label="Badge Glyph" value={badgeGlyph} onChange={setBadgeGlyph} disabled={!whiteLabelEnabled || !canManageWhiteLabel} placeholder="NL" hint="Use 1-2 characters until logo upload is introduced." />
+                  <EditableField label="Support Email" value={supportEmail} onChange={setSupportEmail} disabled={!whiteLabelEnabled || !canManageWhiteLabel} placeholder="support@nairluxury.com" hint="This becomes the tenant-facing support contact." />
+                  <EditableField label="Subdomain or Domain" value={customDomain} onChange={setCustomDomain} disabled={!whiteLabelEnabled || !canManageWhiteLabel} placeholder="nairluxury or travel.nairluxury.com" hint="Short values become a NAMA subdomain. Full domains stay exactly as entered." />
+                  <EditableField label="Accent Hex" value={accentHex} onChange={setAccentHex} disabled={!whiteLabelEnabled || !canManageWhiteLabel} placeholder="#C9A84C" hint="Use a 6-digit hex color for buttons, highlights, and key brand moments." />
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <GuidanceCard
@@ -864,7 +885,10 @@ export default function TeamPage() {
                   <button
                     type="button"
                     onClick={saveWhiteLabelSettings}
-                    className="rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+                    disabled={!canManageWhiteLabel}
+                    className={`rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest ${
+                      canManageWhiteLabel ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#111111] text-[#4A453E]"
+                    }`}
                   >
                     Save White Label
                   </button>

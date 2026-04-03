@@ -2,11 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
+import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useAppSession } from "@/lib/use-app-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   Activity,
@@ -140,6 +142,7 @@ const FINANCE_GUARDRAILS = [
 
 export default function FinancePage() {
   const profile = readDemoProfile();
+  const session = useAppSession();
   const workflow = useDemoWorkflow();
   const financeCases = FINANCE_CASES.map((item) => ({
     ...item,
@@ -156,6 +159,9 @@ export default function FinancePage() {
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
   const visibleBank = profile.bankDetails;
+  const canSendQuote = canPerformAction(session, "finance.sendQuote");
+  const canRecordDeposit = canPerformAction(session, "finance.recordDeposit");
+  const canExportFinance = canPerformAction(session, "finance.export");
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -418,19 +424,22 @@ export default function FinancePage() {
               <button
                 type="button"
                 onClick={() =>
-                  updateDemoCaseWorkflow(item.slug, {
+                  canSendQuote && updateDemoCaseWorkflow(item.slug, {
                     financeStatus: "Quote approved and sent to the traveler",
                     paymentState: "Awaiting deposit confirmation",
                   })
                 }
-                className="flex-1 rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+                disabled={!canSendQuote}
+                className={`flex-1 rounded-xl border px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest ${
+                  canSendQuote ? "border-[#C9A84C]/15 bg-[#0A0A0A] text-[#C9A84C]" : "border-white/10 bg-[#111111] text-[#4A453E]"
+                }`}
               >
                 Send Quote
               </button>
               <button
                 type="button"
                 onClick={() =>
-                  updateDemoCaseWorkflow(item.slug, {
+                  canRecordDeposit && updateDemoCaseWorkflow(item.slug, {
                     leadStage: "Won",
                     nextAction: "Release the case into bookings",
                     nextActionAt: "Ready now",
@@ -439,7 +448,10 @@ export default function FinancePage() {
                     bookingState: "Ready for handoff",
                   })
                 }
-                className="flex-1 rounded-xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#1D9E75]"
+                disabled={!canRecordDeposit}
+                className={`flex-1 rounded-xl border px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest ${
+                  canRecordDeposit ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]" : "border-white/10 bg-[#111111] text-[#4A453E]"
+                }`}
               >
                 Record Deposit
               </button>
@@ -469,11 +481,21 @@ export default function FinancePage() {
             <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Recent preview transmissions</p>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 rounded-lg border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] transition-all hover:border-[#C9A84C]/30">
+            <button
+              disabled={!canExportFinance}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${
+                canExportFinance ? "border-[#C9A84C]/10 bg-[#0A0A0A] text-[#B8B0A0] hover:border-[#C9A84C]/30" : "border-white/10 bg-[#111111] text-[#4A453E]"
+              }`}
+            >
               <Filter size={12} className="text-[#C9A84C]" />
               Filter
             </button>
-            <button className="flex items-center gap-2 rounded-lg border border-[#C9A84C] bg-[#C9A84C] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#0A0A0A] transition-all hover:bg-[#B89840]">
+            <button
+              disabled={!canExportFinance}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all ${
+                canExportFinance ? "border-[#C9A84C] bg-[#C9A84C] text-[#0A0A0A] hover:bg-[#B89840]" : "border-white/10 bg-[#111111] text-[#4A453E]"
+              }`}
+            >
               <Download size={12} />
               Export CSV
             </button>
