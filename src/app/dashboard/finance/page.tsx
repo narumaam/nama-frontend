@@ -147,6 +147,7 @@ export default function FinancePage() {
   const depositCoverage = Math.round((totalDeposit / totalQuote) * 100);
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
+  const visibleBank = profile.bankDetails;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -309,6 +310,28 @@ export default function FinancePage() {
         </div>
 
         <div className="space-y-6">
+          <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+            <div className="mb-5 flex items-center gap-2">
+              <BadgeIndianRupee size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Settlement Profile</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FinanceDetail label="Beneficiary" value={visibleBank.beneficiaryName} />
+              <FinanceDetail label="Bank" value={visibleBank.bankName} />
+              <FinanceDetail label="Branch" value={visibleBank.branchName} />
+              <FinanceDetail label="Account Type" value={visibleBank.accountType} />
+              <FinanceDetail label="Account Number" value={visibleBank.accountNumber} />
+              <FinanceDetail label="IFSC / SWIFT" value={visibleBank.routingCode} />
+            </div>
+            <div className="mt-4 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Billing address</div>
+              <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{visibleBank.billingAddress}</div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+              These settlement details now come directly from onboarding, so finance, invoicing, and payout framing all start from the same tenant profile.
+            </div>
+          </div>
+
           <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
             <div className="mb-5 flex items-center gap-2">
               <Shield size={14} className="text-[#C9A84C]" />
@@ -526,6 +549,15 @@ function PositioningCard({ title, detail }: { title: string; detail: string }) {
     <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
       <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{title}</div>
       <div className="text-sm leading-relaxed text-[#B8B0A0]">{detail}</div>
+    </div>
+  );
+}
+
+function FinanceDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
     </div>
   );
 }

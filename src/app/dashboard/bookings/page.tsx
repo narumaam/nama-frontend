@@ -109,6 +109,7 @@ export default function BookingsPage() {
   const [activeSlug, setActiveSlug] = useState(PRIMARY_DEMO_DEAL_CASE.slug);
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
+  const visibleBank = profile.bankDetails;
   const activeCase = getDemoCaseRoute(activeSlug);
   const activeDeal = DEMO_DEAL_CASES[activeSlug] ?? PRIMARY_DEMO_DEAL_CASE;
   const paymentMeta = DEMO_LEAD_PROFILE_META[activeSlug] ?? DEMO_LEAD_PROFILE_META[PRIMARY_DEMO_DEAL_CASE.slug];
@@ -345,7 +346,7 @@ export default function BookingsPage() {
           )}
 
           {activeTab === "Documents" && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {DOCUMENT_STACK.map((doc) => (
                 <div key={doc.title} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -359,18 +360,46 @@ export default function BookingsPage() {
                   </div>
                 </div>
               ))}
+              <div className="rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4">
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Invoice footer source</div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <BookingDetail label="Beneficiary" value={visibleBank.beneficiaryName} />
+                  <BookingDetail label="Bank" value={visibleBank.bankName} />
+                  <BookingDetail label="Routing" value={visibleBank.routingCode} />
+                  <BookingDetail label="Billing Address" value={visibleBank.billingAddress} />
+                </div>
+              </div>
             </div>
           )}
 
           {activeTab === "Payments" && (
-            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-              <div className="space-y-3">
-                {paymentStack.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between border-b border-[#C9A84C]/5 pb-2">
-                    <span className="text-sm text-[#B8B0A0]">{item.label}</span>
-                    <span className="text-sm font-semibold text-[#F5F0E8]">{item.value}</span>
-                  </div>
-                ))}
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="space-y-3">
+                  {paymentStack.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between border-b border-[#C9A84C]/5 pb-2">
+                      <span className="text-sm text-[#B8B0A0]">{item.label}</span>
+                      <span className="text-sm font-semibold text-[#F5F0E8]">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="mb-3 flex items-center gap-2 text-[#C9A84C]">
+                  <Landmark size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Settlement Instructions</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <BookingDetail label="Beneficiary" value={visibleBank.beneficiaryName} />
+                  <BookingDetail label="Account Number" value={visibleBank.accountNumber} />
+                  <BookingDetail label="Bank / Branch" value={`${visibleBank.bankName} · ${visibleBank.branchName}`} />
+                  <BookingDetail label="Account Type" value={visibleBank.accountType} />
+                  <BookingDetail label="Routing" value={visibleBank.routingCode} />
+                  <BookingDetail label="Billing Address" value={visibleBank.billingAddress} />
+                </div>
+                <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+                  Payment reminders, invoice footers, and remittance guidance now inherit the same bank profile captured during onboarding.
+                </div>
               </div>
             </div>
           )}
@@ -470,5 +499,14 @@ function ActionLink({ href, label }: { href: string; label: string }) {
       <span>{label}</span>
       <ArrowRight size={14} className="text-[#C9A84C]" />
     </Link>
+  );
+}
+
+function BookingDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
+    </div>
   );
 }
