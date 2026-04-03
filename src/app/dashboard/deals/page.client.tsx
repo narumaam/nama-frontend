@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, BadgeIndianRupee, Bot, CheckCircle2, MessageSquare, Shield, Sparkles, Target } from "lucide-react";
 
 import { apiUrl } from "@/lib/api";
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 
 type DemoCase = {
   slug: string;
@@ -362,6 +363,7 @@ const LOCAL_CASES: Record<string, DemoCase> = {
 };
 
 export default function DealsClientPage() {
+  const profile = useMemo(() => readDemoProfile(), []);
   const params = useSearchParams();
   const leadParam = params.get("lead") ?? "1";
   const resolvedSlug = params.get("case") ?? LEAD_FALLBACK_MAP[leadParam] ?? "maldives-honeymoon";
@@ -424,11 +426,55 @@ export default function DealsClientPage() {
           </div>
           <h1 className="text-4xl font-black font-headline tracking-tight text-[#F5F0E8]">{data.guest_name}</h1>
           <p className="text-[#B8B0A0] text-sm mt-2">{data.organization} · {data.triage.destination} · {data.triage.duration_days} days</p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">
+              {profile.company || DEFAULT_DEMO_PROFILE.company}
+            </span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">
+              {profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ")}
+            </span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">
+              {profile.market.country} · {profile.baseCurrency} · {profile.market.gateway}
+            </span>
+          </div>
         </div>
         <Link href="/dashboard/autopilot" className="inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[#C9A84C] text-xs uppercase tracking-widest font-black">
           Back to Autopilot <ArrowRight size={12} />
         </Link>
       </header>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Case Orchestration</div>
+            <h2 className="text-xl font-black text-[#F5F0E8]">One deal, five coordinated layers</h2>
+            <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
+              This is the stitched operating view: CRM capture, itinerary intelligence, supplier normalization, finance control, and execution readiness around one traveler case.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/dmc"
+            className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
+          >
+            Open DMC Hub
+          </Link>
+        </div>
+        <div className="grid gap-3 md:grid-cols-5">
+          {[
+            { label: "CRM", detail: "Inbound source, contact context, transcript", state: "Ready" },
+            { label: "Itinerary", detail: data.itinerary.title, state: "Drafted" },
+            { label: "Supplier", detail: data.bidding.vendor, state: data.bidding.status },
+            { label: "Finance", detail: `Margin ${data.finance.margin_percent}%`, state: data.finance.status },
+            { label: "Execution", detail: "Awaiting deposit + ops release", state: "Staged" },
+          ].map((step) => (
+            <div key={step.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">{step.label}</div>
+              <div className="mt-2 text-sm font-semibold text-[#F5F0E8] leading-relaxed">{step.detail}</div>
+              <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{step.state}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard label="Quote Value" value={`₹${data.finance.quote_total.toLocaleString("en-IN")}`} icon={<BadgeIndianRupee size={16} />} />
