@@ -40,7 +40,7 @@ const ONBOARDING_STEPS = [
   "Identify the business model: travel agency, DMC, tour operator, or a hybrid of all three.",
   "Default market controls: base currency, additional selling currencies, language, and billing gateway based on operating country.",
   "Set up team structure, nomenclature, roles, designations, and reporting lines.",
-  "Enter the workspace with demo-safe data while keeping live credentials for later connection.",
+  "Enter the workspace with preview data while keeping live credentials for later connection.",
 ];
 
 const PLAN_PRESETS = [
@@ -91,7 +91,7 @@ export default function RegisterPage() {
     setShowConfetti(true);
     if (typeof window !== "undefined") {
       window.localStorage.setItem("nama-demo-company", companyName.trim() || "Nair Luxury Escapes");
-      window.localStorage.setItem("nama-demo-operator", operatorName.trim() || "Demo Operator");
+      window.localStorage.setItem("nama-demo-operator", operatorName.trim() || "Workspace Admin");
       window.localStorage.setItem("nama-demo-business-roles", JSON.stringify(businessRoles));
       window.localStorage.setItem("nama-demo-market", JSON.stringify(selectedMarket));
       window.localStorage.setItem("nama-demo-base-currency", selectedMarket.currency);
@@ -373,10 +373,10 @@ export default function RegisterPage() {
             <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-slate-50 p-4">
               <div className="mb-2 flex items-center gap-2 text-[#C9A84C]">
                 <Languages size={14} />
-                <span className="text-[10px] font-black uppercase tracking-[0.24em]">Demo-safe note</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.24em]">Preview-safe note</span>
               </div>
               <p className="text-sm leading-relaxed text-slate-600">
-                This screen is intentionally demo-safe. It proves the onboarding model without claiming live billing, live SSO, or live provider credentials.
+                This screen is intentionally preview-safe. It proves the onboarding model without claiming live billing, live SSO, or live provider credentials.
               </p>
             </div>
           </div>

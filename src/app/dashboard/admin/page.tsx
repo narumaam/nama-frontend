@@ -226,7 +226,7 @@ export default function AdminPage() {
           <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Platform Control</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is your NAMA-level governance workspace: subscriptions, platform rules, tenant status, template inheritance,
-            and the commercial health of the system. It is staged as a demo-safe Super Admin surface, but it reflects the
+            and the commercial health of the system. It is staged as a preview-safe Super Admin surface, but it reflects the
             exact operating questions a platform owner asks.
           </p>
         </div>
@@ -244,9 +244,9 @@ export default function AdminPage() {
       </header>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Active Tenants" value="03" sub="Growth-stage demo customers" icon={<Building2 size={16} />} />
+        <MetricCard label="Active Tenants" value="03" sub="Growth-stage preview tenants" icon={<Building2 size={16} />} />
         <MetricCard label="MRR Snapshot" value="₹1.98L" sub="Across Starter, Growth, Enterprise" icon={<BadgeIndianRupee size={16} />} />
-        <MetricCard label="Platform Health" value="Healthy" sub="Frontend, backend, and demo APIs verified" icon={<CheckCircle2 size={16} />} />
+        <MetricCard label="Platform Health" value="Healthy" sub="Frontend, backend, and preview APIs verified" icon={<CheckCircle2 size={16} />} />
         <MetricCard label="Global Rules" value="12" sub="Across comms, pricing, and ops policies" icon={<Waypoints size={16} />} />
       </section>
 
@@ -581,7 +581,7 @@ export default function AdminPage() {
             />
             <InfoTile
               title="Global visibility"
-              detail="You can see tenant readiness, route health, subscription state, and demo system status in one place."
+              detail="You can see tenant readiness, route health, subscription state, and preview system status in one place."
               icon={<Globe2 size={14} />}
             />
             <InfoTile
@@ -596,7 +596,7 @@ export default function AdminPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="mb-4 flex items-center gap-2">
           <AlertTriangle size={14} className="text-[#C9A84C]" />
-          <h2 className="text-lg font-black text-[#F5F0E8]">How to position this in the demo</h2>
+          <h2 className="text-lg font-black text-[#F5F0E8]">How to position this in the preview</h2>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
@@ -609,7 +609,7 @@ export default function AdminPage() {
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Safe wording</div>
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
-              Say “platform control tower” and “demo-safe Super Admin surface.” Do not imply that live billing, provisioning,
+              Say “platform control tower” and “preview-safe Super Admin surface.” Do not imply that live billing, provisioning,
               or provider controls are fully automated today unless they really are.
             </p>
           </div>

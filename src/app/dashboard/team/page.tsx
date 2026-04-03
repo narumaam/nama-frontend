@@ -168,7 +168,7 @@ export default function TeamPage() {
           </div>
           <h1 className="text-[32px] sm:text-4xl font-black tracking-tighter uppercase text-[#F5F0E8] font-headline">Team & Access</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
-            Demo-safe workspace for customer admins to create individual invites, preview bulk user uploads, assign roles, and show the hierarchy and team ownership model without touching live credentials.
+            Preview-safe workspace for customer admins to create individual invites, preview bulk user uploads, assign roles, and show the hierarchy and team ownership model without touching live credentials.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
@@ -470,7 +470,7 @@ export default function TeamPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Visible Hierarchy Diagram</span>
                 </div>
                 <p className="mb-4 text-xs leading-relaxed text-[#B8B0A0]">
-                  Drag the department cards to reorder the visible hierarchy for each business entity. This is a demo-safe interaction layer to show configurability on screen.
+                  Drag the department cards to reorder the visible hierarchy for each business entity. This is a preview-safe interaction layer to show configurability on screen.
                 </p>
                 <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
                   <div className="mx-auto w-full max-w-[260px] rounded-2xl border border-[#C9A84C]/20 bg-[#C9A84C]/10 px-4 py-4 text-center">
@@ -593,7 +593,7 @@ export default function TeamPage() {
               <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <CheckCircle2 size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Demo-safe Notes</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Preview-safe Notes</span>
                 </div>
                 <ul className="space-y-3 text-sm text-[#B8B0A0] leading-relaxed">
                   <li>Assignments are rendered as static preview work so the alpha stays stable while the workflow model is reviewed.</li>
@@ -614,7 +614,7 @@ export default function TeamPage() {
             A customer admin can create users one by one, preview a bulk CSV import, assign roles and designations, show a visible hierarchy diagram, and rename the business structure to match their own entity. This keeps the alpha focused on operational control without needing live auth provisioning.
           </p>
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Demo Positioning</div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Preview Positioning</div>
             <div className="text-sm text-[#F5F0E8] leading-relaxed">
               Use this page as the admin control-room appendix after the main lead-to-deal walkthrough. It is demo-ready, self-contained, and safe to show live.
             </div>

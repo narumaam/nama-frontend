@@ -418,14 +418,14 @@ export default function DealsClientPage() {
   }, [slugParam]);
 
   if (loading) {
-    return <div className="text-[#F5F0E8] font-mono text-sm">Loading demo deal...</div>;
+    return <div className="text-[#F5F0E8] font-mono text-sm">Loading alpha case...</div>;
   }
 
   if (!data) {
     const fallback = LOCAL_CASES["maldives-honeymoon"];
     return (
       <div className="space-y-4 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
-        <p className="text-red-400 font-mono text-sm">Demo deal unavailable. Loading the primary Maldives showcase instead.</p>
+        <p className="text-red-400 font-mono text-sm">Preview case unavailable. Loading the primary Maldives showcase instead.</p>
         <div className="flex flex-wrap gap-3">
           <Link href="/dashboard/deals?lead=1" className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
             Open {fallback.guest_name}
@@ -444,7 +444,7 @@ export default function DealsClientPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={12} className="text-[#C9A84C]" />
-            <span className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C]">Demo Deal Intelligence</span>
+            <span className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C]">Alpha Deal Intelligence</span>
           </div>
           <h1 className="text-4xl font-black font-headline tracking-tight text-[#F5F0E8]">{data.guest_name}</h1>
           <p className="text-[#B8B0A0] text-sm mt-2">{data.organization} · {data.triage.destination} · {data.triage.duration_days} days</p>
@@ -468,7 +468,7 @@ export default function DealsClientPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Resolved Demo Case</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Resolved Alpha Case</div>
             <h2 className="text-lg font-black text-[#F5F0E8]">{data.guest_name} · {data.triage.destination}</h2>
             <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
               This screen is the conversion layer in the alpha story: capture, triage, quote, supplier alignment, finance, then booking handoff.

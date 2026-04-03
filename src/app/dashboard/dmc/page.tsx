@@ -134,7 +134,7 @@ export default function DmcPage() {
             href="/dashboard/deals?lead=1"
             className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
-            Back to deal
+            Back to Deal
           </Link>
           <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
             Upload contract
@@ -259,7 +259,7 @@ export default function DmcPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">Contract Intake & Normalization</h2>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
-            Contracts do not arrive in one clean template. They come as PDFs, scanned images, emails, DOCX files, WhatsApp screenshots, and mixed vendor notes. The demo shows how NAMA turns those into structured commercial blocks.
+            Contracts do not arrive in one clean template. They come as PDFs, scanned images, emails, DOCX files, WhatsApp screenshots, and mixed vendor notes. This preview shows how NAMA turns those into structured commercial blocks.
           </p>
           <div className="space-y-3">
             {CONTRACT_INBOX.map((contract) => (
@@ -315,7 +315,7 @@ export default function DmcPage() {
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Safe wording</div>
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
-              Present this as “AI-assisted contract normalization in a demo-safe flow,” not as a claim that every vendor format is already fully automated in production.
+              Present this as “AI-assisted contract normalization in a preview-safe flow,” not as a claim that every vendor format is already fully automated in production.
             </p>
           </div>
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
@@ -409,7 +409,7 @@ export default function DmcPage() {
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">What not to imply</div>
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
-              Don’t claim every upload is live OCR with no review. Position it as a demo-safe DMC operating flow that shows intake, normalization, and supplier communication clearly.
+              Don’t claim every upload is live OCR with no review. Position it as a preview-safe DMC operating flow that shows intake, normalization, and supplier communication clearly.
             </p>
           </div>
         </div>
