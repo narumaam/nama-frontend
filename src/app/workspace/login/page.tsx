@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Briefcase, CreditCard, Eye, Shield, Sparkles, Users } from "lucide-react";
 
-import { createTenantRoleSession, getDefaultRouteForRole, type AppRole } from "@/lib/auth-session";
+import { createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { readDemoWorkflowState, type DemoEmployeeRecord, type DemoInviteRecord } from "@/lib/demo-workflow";
 
@@ -31,16 +31,6 @@ const TENANT_ROLE_OPTIONS: TenantRoleOption[] = [
   { role: "operations", heading: "Operations", detail: "Bookings, confirmations, traveler dispatch, and fulfilment-side execution control.", icon: Briefcase },
   { role: "viewer", heading: "Viewer", detail: "Read-only reporting and artifact review without workspace mutation access.", icon: Eye },
 ];
-
-function normalizeRole(role: string): Exclude<AppRole, "super-admin"> | null {
-  const normalized = role.trim().toLowerCase();
-  if (normalized === "customer admin" || normalized === "customer-admin") return "customer-admin";
-  if (normalized === "sales") return "sales";
-  if (normalized === "finance") return "finance";
-  if (normalized === "operations" || normalized === "ops") return "operations";
-  if (normalized === "viewer") return "viewer";
-  return null;
-}
 
 function fallbackPersona(
   role: Exclude<AppRole, "super-admin">,
@@ -76,7 +66,7 @@ function resolvePersona(
     return { ...option, ...fallbackPersona(option.role, company, operator) };
   }
 
-  const employee = employees.find((item) => normalizeRole(item.role) === option.role);
+  const employee = employees.find((item) => normalizeTenantRole(item.role) === option.role);
   if (employee) {
     return {
       ...option,
@@ -88,7 +78,7 @@ function resolvePersona(
     };
   }
 
-  const acceptedInvite = invites.find((item) => normalizeRole(item.role) === option.role && item.status === "Accepted");
+  const acceptedInvite = invites.find((item) => normalizeTenantRole(item.role) === option.role && item.status === "Accepted");
   if (acceptedInvite) {
     return {
       ...option,

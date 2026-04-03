@@ -43,6 +43,16 @@ export const TENANT_ROLE_OPTIONS: Array<{ role: AppRole; label: string }> = [
   { role: "viewer", label: "Viewer" },
 ];
 
+export function normalizeTenantRole(input: string): Exclude<AppRole, "super-admin"> {
+  const normalized = input.trim().toLowerCase();
+  if (normalized === "customer admin" || normalized === "customer-admin") return "customer-admin";
+  if (normalized === "sales") return "sales";
+  if (normalized === "operations" || normalized === "ops") return "operations";
+  if (normalized === "finance") return "finance";
+  if (normalized === "viewer") return "viewer";
+  return "viewer";
+}
+
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }

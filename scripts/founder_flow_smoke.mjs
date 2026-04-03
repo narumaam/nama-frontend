@@ -56,6 +56,14 @@ const SCENARIOS = {
   },
 };
 
+function getExpectedInviteRoute(employeeLabel) {
+  const normalized = employeeLabel.toLowerCase();
+  if (normalized.includes("sales")) return "/dashboard/leads";
+  if (normalized.includes("finance")) return "/dashboard/finance";
+  if (normalized.includes("operations")) return "/dashboard/bookings";
+  return "/dashboard/artifacts";
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -171,15 +179,20 @@ async function main() {
     await employeeDirectorySelect.selectOption({ label: scenario.employeeToAccept });
     await page.getByRole("button", { name: /Send Individual Invite/i }).click();
 
-    const openAcceptance = page.getByRole("link", { name: /Open acceptance/i }).last();
+    const openAcceptance = page.getByRole("link", { name: /Open acceptance/i }).first();
     const inviteHref = await openAcceptance.getAttribute("href");
     if (!inviteHref) throw new Error("Invite acceptance link was not generated");
 
     await page.goto(`${baseUrl}${inviteHref}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("heading", { name: /Join the workspace/i }).waitFor({ state: "visible", timeout: 20000 });
-    await page.getByRole("button", { name: /Accept Invite/i }).click();
-    await expectVisible(page, "Invite accepted");
+    await page.getByRole("button", { name: /Accept Invite & Enter Workspace/i }).click();
+    await page.waitForURL(`**${getExpectedInviteRoute(scenario.employeeToAccept)}`);
+
+    await page.goto(`${baseUrl}/workspace/login`);
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /Customer Admin/i }).first().click();
+    await page.waitForURL("**/dashboard");
 
     await page.goto(`${baseUrl}/dashboard/leads`);
     await page.waitForLoadState("networkidle");
