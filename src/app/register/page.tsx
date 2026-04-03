@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { upsertDemoTenantRegistration, writeDemoSubscriptionPlan, type DemoSubscriptionPlan } from "@/lib/demo-admin";
-import { createIssuedTenantSession, createTenantAdminSession } from "@/lib/auth-session";
+import { createIssuedTenantSession } from "@/lib/auth-session";
+import { createTenantMemberAccessCode } from "@/lib/demo-credentials";
 import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, findMarketPreset, type BusinessRole, type DemoPlan, type SupportedCurrency } from "@/lib/demo-config";
 import { appendDemoEvent } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, readDemoProfile, writeDemoProfile } from "@/lib/demo-profile";
 import { issueTenantSession } from "@/lib/session-api";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { upsertTenantMember } from "@/lib/tenant-members-api";
 import {
   ArrowRight,
   Building2,
@@ -72,6 +74,7 @@ export default function RegisterPage() {
   const [routingCode, setRoutingCode] = useState(DEFAULT_DEMO_PROFILE.bankDetails.routingCode);
   const [billingAddress, setBillingAddress] = useState(DEFAULT_DEMO_PROFILE.bankDetails.billingAddress);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [submissionMessage, setSubmissionMessage] = useState("");
 
   useEffect(() => {
     const profile = readDemoProfile();
@@ -110,6 +113,7 @@ export default function RegisterPage() {
 
   async function enterDemoWorkspace() {
     setShowConfetti(true);
+    setSubmissionMessage("");
     const nextProfile = writeDemoProfile({
       company: companyName.trim() || DEFAULT_DEMO_PROFILE.company,
       operator: operatorName.trim() || DEFAULT_DEMO_PROFILE.operator,
@@ -144,16 +148,36 @@ export default function RegisterPage() {
       detail: `${nextProfile.company} entered NAMA on the ${subscriptionPlan} plan for the ${nextProfile.market.country} market.`,
       path: "/dashboard",
     });
+    const adminEmail = `${nextProfile.operator.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "") || "workspace.operator"}@${nextProfile.company
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 24) || "tenant"}.demo`;
     try {
+      await upsertTenantMember({
+        tenant_name: nextProfile.company,
+        member: {
+          id: "",
+          tenant_name: nextProfile.company,
+          name: nextProfile.operator,
+          email: adminEmail,
+          role: "customer-admin",
+          designation: "Workspace Admin",
+          team: "Leadership",
+          reports_to: "Platform",
+          responsibility: "Workspace ownership, governance, and team access",
+          status: "Active",
+          source: "tenant-profile",
+        },
+      });
+
       const issuedSession = await issueTenantSession({
-        email: `${nextProfile.operator.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "") || "workspace.operator"}@${nextProfile.company
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "")
-          .slice(0, 24) || "tenant"}.demo`,
-        display_name: nextProfile.operator,
-        role: "customer-admin",
+        email: adminEmail,
         scope: "tenant",
         tenant_name: nextProfile.company,
+        access_code: createTenantMemberAccessCode({
+          tenantName: nextProfile.company,
+          role: "customer-admin",
+        }),
       });
 
       createIssuedTenantSession({
@@ -167,8 +191,10 @@ export default function RegisterPage() {
         designation: issuedSession.designation,
         team: issuedSession.team,
       });
-    } catch {
-      createTenantAdminSession(nextProfile.operator, nextProfile.company);
+    } catch (error) {
+      setShowConfetti(false);
+      setSubmissionMessage(error instanceof Error ? error.message : "Workspace onboarding failed.");
+      return;
     }
     window.setTimeout(() => {
       router.push("/dashboard");
@@ -485,6 +511,11 @@ export default function RegisterPage() {
                 Team role login
               </Link>
             </div>
+            {submissionMessage ? (
+              <p className="mt-4 rounded-2xl border border-[#D9485F]/20 bg-[#D9485F]/10 px-4 py-3 text-sm text-[#7A1325]">
+                {submissionMessage}
+              </p>
+            ) : null}
           </form>
         </section>
 

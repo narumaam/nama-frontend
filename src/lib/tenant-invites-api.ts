@@ -80,5 +80,6 @@ export async function acceptTenantInvite(payload: TenantInviteAcceptPayload) {
     tenant_name: string;
     invite: TenantInviteApiRecord;
     member: import("@/lib/tenant-contracts").TenantMemberContract;
+    credential_access_code: string;
   };
 }

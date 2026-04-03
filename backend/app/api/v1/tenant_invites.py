@@ -4,6 +4,7 @@ from typing import Any, Literal, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.v1.demo_credentials import ensure_tenant_member_credential
 from app.api.v1.tenant_members import upsert_tenant_member
 
 router = APIRouter()
@@ -287,6 +288,7 @@ def accept_tenant_invite(payload: AcceptTenantInviteRequest):
         raise HTTPException(status_code=404, detail="Tenant invite not found")
     accepted_invite = _accept_invite(invite, payload)
     _upsert_invite(accepted_invite)
+    credential = ensure_tenant_member_credential(accepted_invite.tenant_name, accepted_invite.email, accepted_invite.role)
     return {
         "tenant_name": tenant_key,
         "invite": accepted_invite,
@@ -306,6 +308,7 @@ def accept_tenant_invite(payload: AcceptTenantInviteRequest):
             "invited_at": accepted_invite.invited_at,
             "accepted_at": accepted_invite.accepted_at,
         },
+        "credential_access_code": credential["preview_code"],
     }
 
 

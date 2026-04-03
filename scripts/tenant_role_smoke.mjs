@@ -14,6 +14,28 @@ const COMPANY_NAME = "Beta Role Labs";
 const OPERATOR_NAME = "Radhika Beta";
 const PLAN_NAME = "Growth";
 
+function tenantToken(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function tenantAccessCode(role) {
+  const codeTenant = tenantToken(COMPANY_NAME).slice(0, 8).toUpperCase() || "TENANT";
+  const codeRole = role === "customer-admin" ? "ADMIN" : role.toUpperCase();
+  return `NAMA-${codeTenant}-${codeRole}`;
+}
+
+function tenantEmailForRole(role) {
+  const token = tenantToken(COMPANY_NAME);
+  const roleToken = {
+    "customer-admin": "admin",
+    sales: "sales",
+    finance: "finance",
+    operations: "ops",
+    viewer: "viewer",
+  }[role];
+  return `${roleToken}@${token}.demo`;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -92,10 +114,21 @@ async function expectEnabled(locator, label) {
   }
 }
 
-async function switchRole(page, roleLabel) {
+async function switchRole(page, role) {
   await page.goto("/workspace/login");
   await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: new RegExp(roleLabel, "i") }).first().click();
+  await page.getByRole("textbox", { name: /Workspace email/i }).fill(tenantEmailForRole(role));
+  await page.getByLabel(/Access code/i).fill(tenantAccessCode(role));
+  await page.getByRole("button", { name: /Enter Workspace/i }).click();
+}
+
+async function verifyWorkspaceLoginFailure(page) {
+  await page.goto("/workspace/login");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("textbox", { name: /Workspace email/i }).fill(tenantEmailForRole("sales"));
+  await page.getByLabel(/Access code/i).fill("NAMA-BAD-CODE");
+  await page.getByRole("button", { name: /Enter Workspace/i }).click();
+  await expectVisible(page, "Invalid tenant member credentials");
 }
 
 async function registerTenant(page, baseUrl) {
@@ -110,7 +143,7 @@ async function registerTenant(page, baseUrl) {
 }
 
 async function verifySalesRole(page) {
-  await switchRole(page, "Sales");
+  await switchRole(page, "sales");
 
   await page.goto("/dashboard/finance");
   await page.waitForURL("**/dashboard/leads");
@@ -124,7 +157,7 @@ async function verifySalesRole(page) {
 }
 
 async function verifyFinanceRole(page) {
-  await switchRole(page, "Finance");
+  await switchRole(page, "finance");
 
   await page.goto("/dashboard/team");
   await page.waitForURL("**/dashboard/finance");
@@ -146,7 +179,7 @@ async function verifyFinanceRole(page) {
 }
 
 async function verifyOperationsRole(page) {
-  await switchRole(page, "Operations");
+  await switchRole(page, "operations");
 
   await page.goto("/dashboard/leads");
   await page.waitForURL("**/dashboard/bookings");
@@ -163,7 +196,7 @@ async function verifyOperationsRole(page) {
 }
 
 async function verifyViewerRole(page) {
-  await switchRole(page, "Viewer");
+  await switchRole(page, "viewer");
 
   await page.goto("/dashboard/leads");
   await page.waitForURL("**/dashboard/artifacts");
@@ -193,6 +226,7 @@ async function main() {
     const page = await browser.newPage({ baseURL: baseUrl });
 
     await registerTenant(page, baseUrl);
+    await verifyWorkspaceLoginFailure(page);
     await verifySalesRole(page);
     await verifyFinanceRole(page);
     await verifyOperationsRole(page);

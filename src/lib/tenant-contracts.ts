@@ -95,14 +95,15 @@ export type TenantInviteAcceptPayload = {
 
 export type TenantSessionCreatePayload = {
   email: string;
-  display_name: string;
-  role: TenantRole | "super-admin";
+  display_name?: string;
+  role?: TenantRole | "super-admin";
   scope: TenantSessionScope;
   tenant_name: string | null;
   member_id?: string | null;
   member_status?: string | null;
   designation?: string | null;
   team?: string | null;
+  access_code?: string | null;
 };
 
 export function normalizeTenantName(tenantName: string) {

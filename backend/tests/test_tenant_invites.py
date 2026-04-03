@@ -121,9 +121,11 @@ def test_accept_tenant_invite_promotes_member() -> None:
         },
     )
     assert accept_response.status_code == 200
-    invite_body = accept_response.json()["invite"]
+    accept_body = accept_response.json()
+    invite_body = accept_body["invite"]
     assert invite_body["status"] == "Accepted"
     assert invite_body["accepted_at"]
+    assert accept_body["credential_access_code"] == "NAMA-AURORARE-SALES"
 
     member_response = client.get(
         "/api/v1/tenant-members",

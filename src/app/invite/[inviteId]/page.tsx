@@ -6,11 +6,10 @@ import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Mail, Shield, Users } from "lucide-react";
 
-import { createIssuedTenantSession, createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole } from "@/lib/auth-session";
-import { promoteInviteToMember, promoteInviteToMemberViaApi, readDemoMemberRegistryState } from "@/lib/demo-members";
+import { createTenantMemberAccessCode } from "@/lib/demo-credentials";
+import { normalizeTenantRole } from "@/lib/auth-session";
 import { readDemoProfile } from "@/lib/demo-profile";
-import { acceptDemoInvite, acceptDemoInviteViaApi, getInvitePath, type DemoInviteRecord } from "@/lib/demo-workflow";
-import { issueTenantSession } from "@/lib/session-api";
+import { acceptDemoInviteViaApi, getInvitePath, type DemoInviteRecord } from "@/lib/demo-workflow";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 export default function InviteAcceptancePage() {
@@ -19,6 +18,7 @@ export default function InviteAcceptancePage() {
   const workflow = useDemoWorkflow();
   const profile = useMemo(() => readDemoProfile(), []);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [message, setMessage] = useState("Accept the invite to provision member access and continue through workspace login.");
   const inviteId = Array.isArray(params.inviteId) ? params.inviteId[0] : params.inviteId;
   const invite = useMemo(() => workflow.invites.find((item) => item.id === inviteId), [inviteId, workflow.invites]);
 
@@ -46,71 +46,21 @@ export default function InviteAcceptancePage() {
     setIsAccepting(true);
 
     try {
-      let acceptedInvite: DemoInviteRecord = {
-        ...resolvedInvite,
-        status: "Accepted" as const,
-      };
-      try {
-        const response = await acceptDemoInviteViaApi(resolvedInvite.id);
-        acceptedInvite = response.invite;
-      } catch {
-        const nextWorkflow = acceptDemoInvite(resolvedInvite.id);
-        acceptedInvite = nextWorkflow.invites.find((item) => item.id === resolvedInvite.id) ?? acceptedInvite;
-      }
+      const response = await acceptDemoInviteViaApi(resolvedInvite.id);
+      const acceptedInvite: DemoInviteRecord = response.invite;
+      const member = response.member;
+      const tenantRole = normalizeTenantRole(member.role || acceptedInvite.role);
+      const accessCode = response.credential_access_code || createTenantMemberAccessCode({
+        tenantName: member.tenant_name || profile.company,
+        role: tenantRole,
+      });
 
-      let member;
-      try {
-        member = await promoteInviteToMemberViaApi(acceptedInvite);
-      } catch {
-        promoteInviteToMember(acceptedInvite);
-        member = readDemoMemberRegistryState().members.find(
-          (item) => item.email.trim().toLowerCase() === acceptedInvite.email.trim().toLowerCase()
-        );
-      }
-
-      const tenantRole = normalizeTenantRole(member?.role || acceptedInvite.role);
-      let session;
-      try {
-        const issuedSession = await issueTenantSession({
-          email: member?.email || acceptedInvite.email,
-          display_name: member?.name || acceptedInvite.name,
-          role: member?.role || tenantRole,
-          scope: "tenant",
-          tenant_name: member?.tenantName || profile.company,
-          member_id: member?.id || null,
-          member_status: member?.status || "Active",
-          designation: member?.designation || acceptedInvite.designation,
-          team: member?.team || acceptedInvite.team,
-        });
-
-        session = createIssuedTenantSession({
-          accessToken: issuedSession.id,
-          email: issuedSession.email,
-          displayName: issuedSession.display_name,
-          role: issuedSession.role === "super-admin" ? tenantRole : issuedSession.role,
-          tenantName: issuedSession.tenant_name || profile.company,
-          memberId: issuedSession.member_id,
-          memberStatus: issuedSession.member_status,
-          designation: issuedSession.designation,
-          team: issuedSession.team,
-        });
-      } catch {
-        session =
-          member
-            ? createTenantMemberSession({
-                id: member.id,
-                email: member.email,
-                name: member.name,
-                role: member.role,
-                tenantName: member.tenantName,
-                status: member.status,
-                designation: member.designation,
-                team: member.team,
-              })
-            : createTenantRoleSession(acceptedInvite.name, profile.company, tenantRole);
-      }
-
-      router.push(getDefaultRouteForRole(session?.role ?? tenantRole));
+      setMessage("Invite accepted. Forwarding to workspace login with issued member credentials.");
+      router.push(
+        `/workspace/login?email=${encodeURIComponent(member.email)}&access_code=${encodeURIComponent(accessCode)}&invite_accepted=1`
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Invite acceptance failed.");
     } finally {
       setIsAccepting(false);
     }
@@ -155,6 +105,9 @@ export default function InviteAcceptancePage() {
           <Link href={getInvitePath(resolvedInvite.id)} className="rounded-2xl border border-[#C9A84C]/15 bg-[#FFF8E8] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#8B6A1F]">
             Refresh Invite
           </Link>
+        </div>
+        <div className="mt-6 rounded-2xl border border-[#0F172A]/10 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+          {message}
         </div>
 
         {resolvedInvite.acceptedAt && (

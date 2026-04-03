@@ -89,6 +89,11 @@ async function main() {
     await expectVisible(page, "/super-admin/login");
 
     await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
+    await page.getByLabel("Access code").fill("WRONG-CODE");
+    await page.getByRole("button", { name: /Open Super Admin/i }).click();
+    await expectVisible(page, "Invalid Super Admin credentials");
+
+    await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
     await page.getByLabel("Access code").fill("NAMA-ALPHA");
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await page.waitForURL("**/dashboard/admin?entry=super-admin");

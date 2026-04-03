@@ -56,6 +56,28 @@ const SCENARIOS = {
   },
 };
 
+function tenantToken(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function tenantAccessCode(companyName, role) {
+  const codeTenant = tenantToken(companyName).slice(0, 8).toUpperCase() || "TENANT";
+  const codeRole = role === "customer-admin" ? "ADMIN" : role.toUpperCase();
+  return `NAMA-${codeTenant}-${codeRole}`;
+}
+
+function tenantEmailForRole(companyName, role) {
+  const token = tenantToken(companyName);
+  const roleToken = {
+    "customer-admin": "admin",
+    sales: "sales",
+    finance: "finance",
+    operations: "ops",
+    viewer: "viewer",
+  }[role];
+  return `${roleToken}@${token}.demo`;
+}
+
 function getExpectedInviteRoute(employeeLabel) {
   const normalized = employeeLabel.toLowerCase();
   if (normalized.includes("sales")) return "/dashboard/leads";
@@ -187,11 +209,18 @@ async function main() {
     await page.waitForLoadState("networkidle");
     await page.getByRole("heading", { name: /Join the workspace/i }).waitFor({ state: "visible", timeout: 20000 });
     await page.getByRole("button", { name: /Accept Invite & Enter Workspace/i }).click();
+    await page.waitForURL(/\/workspace\/login/);
+    await expectVisible(page, "Invite accepted");
+    await page.getByRole("button", { name: /Enter Workspace/i }).click();
     await page.waitForURL(`**${getExpectedInviteRoute(scenario.employeeToAccept)}`);
 
     await page.goto(`${baseUrl}/workspace/login`);
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /Customer Admin/i }).first().click();
+    await page.getByRole("textbox", { name: /Workspace email/i }).fill(
+      tenantEmailForRole(scenario.companyName, "customer-admin")
+    );
+    await page.getByLabel(/Access code/i).fill(tenantAccessCode(scenario.companyName, "customer-admin"));
+    await page.getByRole("button", { name: /Enter Workspace/i }).click();
     await page.waitForURL("**/dashboard");
 
     await page.goto(`${baseUrl}/dashboard/leads`);

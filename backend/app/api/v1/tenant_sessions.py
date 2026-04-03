@@ -4,6 +4,9 @@ from typing import Literal, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.v1.demo_credentials import ensure_super_admin_credentials, verify_super_admin_credential, verify_tenant_member_credential
+from app.api.v1.tenant_members import _seed_if_needed
+
 router = APIRouter()
 
 TenantSessionRole = Literal["super-admin", "customer-admin", "sales", "finance", "operations", "viewer"]
@@ -30,14 +33,15 @@ class TenantSessionRecord(BaseModel):
 
 class TenantSessionCreateRequest(BaseModel):
     email: str = Field(..., min_length=3)
-    display_name: str = Field(..., min_length=1)
-    role: TenantSessionRole
+    display_name: Optional[str] = None
+    role: Optional[TenantSessionRole] = None
     scope: TenantSessionScope
     tenant_name: Optional[str] = None
     member_id: Optional[str] = None
     member_status: Optional[str] = None
     designation: Optional[str] = None
     team: Optional[str] = None
+    access_code: Optional[str] = None
 
 
 def _now_iso() -> str:
@@ -74,6 +78,35 @@ def issue_tenant_session(payload: TenantSessionCreateRequest):
         raise HTTPException(status_code=400, detail="Use super-admin session route for super-admin issuance")
 
     tenant_key = _tenant_key(payload.tenant_name)
+    if payload.access_code:
+        member = next(
+            (item for item in _seed_if_needed(tenant_key) if item.email == payload.email.strip().lower()),
+            None,
+        )
+        if not member:
+            raise HTTPException(status_code=404, detail="Tenant member not found for that email")
+        if not verify_tenant_member_credential(member.tenant_name, member.email, payload.access_code):
+            raise HTTPException(status_code=401, detail="Invalid tenant member credentials")
+
+        session = TenantSessionRecord(
+            id=_session_id("tenant", member.email),
+            email=member.email,
+            display_name=member.name,
+            role=member.role,
+            scope="tenant",
+            tenant_name=member.tenant_name,
+            member_id=member.id,
+            member_status=member.status,
+            designation=member.designation,
+            team=member.team,
+            granted_at=_now_iso(),
+        )
+        _TENANT_SESSION_STORE.setdefault(tenant_key, []).insert(0, session)
+        return session
+
+    if not payload.display_name or not payload.role:
+        raise HTTPException(status_code=400, detail="display_name and role are required when access_code is not provided")
+
     session = TenantSessionRecord(
         id=_session_id("tenant", payload.email),
         email=payload.email.strip().lower(),
@@ -100,13 +133,19 @@ def list_super_admin_sessions():
 
 @router.post("/super-admin", response_model=TenantSessionRecord)
 def issue_super_admin_session(payload: TenantSessionCreateRequest):
-    if payload.role != "super-admin" or payload.scope != "platform":
+    if payload.scope != "platform":
+        raise HTTPException(status_code=400, detail="Super admin session requires platform scope")
+    if payload.access_code:
+        ensure_super_admin_credentials()
+        if not verify_super_admin_credential(payload.email, payload.access_code):
+            raise HTTPException(status_code=401, detail="Invalid Super Admin credentials")
+    elif payload.role != "super-admin":
         raise HTTPException(status_code=400, detail="Super admin session requires platform scope and super-admin role")
 
     session = TenantSessionRecord(
         id=_session_id("platform", payload.email),
         email=payload.email.strip().lower(),
-        display_name=payload.display_name.strip(),
+        display_name=(payload.display_name or "NAMA Super Admin").strip(),
         role="super-admin",
         scope="platform",
         granted_at=_now_iso(),

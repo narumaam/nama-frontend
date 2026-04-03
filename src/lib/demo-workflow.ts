@@ -629,7 +629,12 @@ export async function acceptDemoInviteViaApi(inviteId: string) {
     acceptedAt: response.invite.accepted_at,
     invitedAt: response.invite.invited_at,
   });
-  return { invite: inviteFromApiRecord(response.invite), workflow: nextState };
+  return {
+    invite: inviteFromApiRecord(response.invite),
+    member: response.member,
+    workflow: nextState,
+    credential_access_code: response.credential_access_code,
+  };
 }
 
 export function updateDemoCaseWorkflow(slug: string, patch: Partial<DemoCaseWorkflowState>) {

@@ -4,6 +4,8 @@ from typing import Any, Literal, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.v1.demo_credentials import ensure_tenant_member_credential
+
 router = APIRouter()
 
 TenantMemberRole = Literal["customer-admin", "sales", "finance", "operations", "viewer"]
@@ -165,6 +167,8 @@ def _seed_if_needed(tenant_name: str) -> list[TenantMemberRecord]:
     tenant_key = _normalize_tenant_name(tenant_name)
     if tenant_key not in _MEMBER_STORE:
         _MEMBER_STORE[tenant_key] = _default_members(tenant_key)
+        for member in _MEMBER_STORE[tenant_key]:
+            ensure_tenant_member_credential(tenant_key, member.email, member.role)
     return _MEMBER_STORE[tenant_key]
 
 
@@ -179,6 +183,7 @@ def _upsert_member(member: TenantMemberRecord) -> TenantMemberRecord:
     next_members = [item for item in existing_members if _member_key(item) != _member_key(next_member) and item.id != next_member.id]
     next_members.insert(0, next_member)
     _MEMBER_STORE[tenant_key] = next_members
+    ensure_tenant_member_credential(tenant_key, next_member.email, next_member.role)
     return next_member
 
 

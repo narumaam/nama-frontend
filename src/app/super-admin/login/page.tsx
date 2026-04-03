@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, Shield, Sparkles } from "lucide-react";
-import { SUPER_ADMIN_DEMO_CODE, SUPER_ADMIN_DEMO_EMAIL, validateSuperAdminCredentials } from "@/lib/super-admin-session";
-import { createIssuedSuperAdminSession, createSuperAdminSession } from "@/lib/auth-session";
+import { SUPER_ADMIN_DEMO_CODE, SUPER_ADMIN_DEMO_EMAIL } from "@/lib/super-admin-session";
+import { createIssuedSuperAdminSession } from "@/lib/auth-session";
 import { issueSuperAdminSession } from "@/lib/session-api";
 
 const ACCESS_NOTES = [
@@ -19,6 +19,7 @@ export default function SuperAdminLoginPage() {
   const [email, setEmail] = useState(SUPER_ADMIN_DEMO_EMAIL);
   const [accessCode, setAccessCode] = useState(SUPER_ADMIN_DEMO_CODE);
   const [message, setMessage] = useState("Use the dedicated Super Admin route for platform control access.");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const helperCopy = useMemo(
     () => [`Demo email: ${SUPER_ADMIN_DEMO_EMAIL}`, `Demo access code: ${SUPER_ADMIN_DEMO_CODE}`],
     [],
@@ -26,27 +27,25 @@ export default function SuperAdminLoginPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!validateSuperAdminCredentials(email, accessCode)) {
-      setMessage("Access denied. Use the Super Admin demo credentials on this separate route.");
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
       const issuedSession = await issueSuperAdminSession({
         email,
-        display_name: "NAMA Super Admin",
+        access_code: accessCode,
       });
       createIssuedSuperAdminSession({
         accessToken: issuedSession.id,
         email: issuedSession.email,
         displayName: issuedSession.display_name,
       });
-    } catch {
-      createSuperAdminSession("NAMA Super Admin", email);
+      setMessage("Super Admin session granted. Opening the control tower.");
+      router.push("/dashboard/admin?entry=super-admin");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Access denied. Use the Super Admin demo credentials on this separate route.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setMessage("Super Admin session granted. Opening the control tower.");
-    router.push("/dashboard/admin?entry=super-admin");
   }
 
   return (
@@ -98,9 +97,10 @@ export default function SuperAdminLoginPage() {
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 rounded-full bg-[#C9A84C] px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-[#0A0A0A] transition hover:opacity-90"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-full bg-[#C9A84C] px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-[#0A0A0A] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Open Super Admin
+                {isSubmitting ? "Checking Access" : "Open Super Admin"}
                 <ArrowRight size={14} />
               </button>
               <Link

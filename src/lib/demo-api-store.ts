@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   createTenantInviteId,
   createTenantMemberId,
@@ -17,20 +19,45 @@ import {
   type TenantSessionContract,
   type TenantSessionCreatePayload,
 } from "@/lib/tenant-contracts";
+import {
+  SUPER_ADMIN_DEMO_CODE,
+  SUPER_ADMIN_DEMO_EMAIL,
+  createTenantMemberAccessCode,
+} from "@/lib/demo-credentials";
 
 type DemoTenantApiState = {
   tenant_name: string;
   members: TenantMemberContract[];
   invites: TenantInviteContract[];
   sessions: TenantSessionContract[];
+  credentials: Record<string, DemoCredentialRecord>;
 };
 
 type DemoApiStoreState = {
   tenants: Record<string, DemoTenantApiState>;
   super_admin_sessions: TenantSessionContract[];
+  super_admin_credentials: Record<string, DemoCredentialRecord>;
+};
+
+type DemoCredentialRecord = {
+  subject_email: string;
+  secret_hash: string;
+  preview_code: string;
+  issued_at: string;
+  updated_at: string;
 };
 
 const DEFAULT_TENANT_NAME = "NAMA Demo";
+
+class DemoApiStoreError extends Error {
+  status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = "DemoApiStoreError";
+    this.status = status;
+  }
+}
 
 declare global {
   // eslint-disable-next-line no-var
@@ -39,6 +66,25 @@ declare global {
 
 function normalizeTenantNameInput(tenantName?: string | null) {
   return tenantName?.trim() || DEFAULT_TENANT_NAME;
+}
+
+function normalizeCredentialEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function hashCredentialSecret(secret: string) {
+  return createHash("sha256").update(secret).digest("hex");
+}
+
+function createCredentialRecord(email: string, previewCode: string): DemoCredentialRecord {
+  const now = nowIso();
+  return {
+    subject_email: normalizeCredentialEmail(email),
+    secret_hash: hashCredentialSecret(previewCode),
+    preview_code: previewCode,
+    issued_at: now,
+    updated_at: now,
+  };
 }
 
 function createSeedMembers(tenantName: string): TenantMemberContract[] {
@@ -185,7 +231,35 @@ function createTenantState(tenantName: string): DemoTenantApiState {
     members: createSeedMembers(resolvedTenant),
     invites: createSeedInvites(resolvedTenant),
     sessions: [],
+    credentials: {},
   };
+}
+
+function ensureTenantCredential(tenant: DemoTenantApiState, member: Pick<TenantMemberContract, "tenant_name" | "email" | "role">) {
+  const email = normalizeCredentialEmail(member.email);
+  const existing = tenant.credentials[email];
+  if (existing) {
+    return existing;
+  }
+
+  const previewCode = createTenantMemberAccessCode({ tenantName: member.tenant_name, role: member.role });
+  const created = createCredentialRecord(email, previewCode);
+  tenant.credentials[email] = created;
+  return created;
+}
+
+function ensureTenantCredentialForMembers(tenant: DemoTenantApiState) {
+  tenant.members.forEach((member) => {
+    ensureTenantCredential(tenant, member);
+  });
+}
+
+function ensureSuperAdminCredentials(store: DemoApiStoreState) {
+  const email = normalizeCredentialEmail(SUPER_ADMIN_DEMO_EMAIL);
+  if (!store.super_admin_credentials[email]) {
+    store.super_admin_credentials[email] = createCredentialRecord(email, SUPER_ADMIN_DEMO_CODE);
+  }
+  return store.super_admin_credentials;
 }
 
 function getStoreState() {
@@ -193,10 +267,13 @@ function getStoreState() {
     globalThis.__NAMA_DEMO_API_STORE__ = {
       tenants: {},
       super_admin_sessions: [],
+      super_admin_credentials: {},
     };
   }
 
-  return globalThis.__NAMA_DEMO_API_STORE__;
+  const store = globalThis.__NAMA_DEMO_API_STORE__;
+  ensureSuperAdminCredentials(store);
+  return store;
 }
 
 function getTenantState(tenantName?: string | null) {
@@ -207,6 +284,8 @@ function getTenantState(tenantName?: string | null) {
   if (!store.tenants[key]) {
     store.tenants[key] = createTenantState(resolvedTenant);
   }
+
+  ensureTenantCredentialForMembers(store.tenants[key]);
 
   return store.tenants[key];
 }
@@ -299,7 +378,9 @@ function upsertMemberIntoTenant(tenant: DemoTenantApiState, member: TenantMember
     tenant.members.unshift(member);
   }
   tenant.members = sortMembers(tenant.members);
-  return tenant.members.find((item) => item.id === member.id || item.email.toLowerCase() === member.email.toLowerCase()) ?? member;
+  const resolvedMember = tenant.members.find((item) => item.id === member.id || item.email.toLowerCase() === member.email.toLowerCase()) ?? member;
+  ensureTenantCredential(tenant, resolvedMember);
+  return resolvedMember;
 }
 
 function upsertInviteIntoTenant(tenant: DemoTenantApiState, invite: TenantInviteContract) {
@@ -439,18 +520,54 @@ export function acceptTenantInvite(payload: TenantInviteAcceptPayload) {
   invite.invited_at = invite.invited_at || invite.accepted_at;
   upsertInviteIntoTenant(tenant, invite);
 
-  const member = buildMemberFromInvite(invite);
-  upsertMemberIntoTenant(tenant, member);
+  const member = upsertMemberIntoTenant(tenant, buildMemberFromInvite(invite));
+  const credential = ensureTenantCredential(tenant, member);
 
   return {
     tenant_name: tenant.tenant_name,
     invite,
     member,
+    credential_access_code: credential.preview_code,
   };
 }
 
 export function issueTenantSession(payload: TenantSessionCreatePayload) {
   const tenant = getTenantState(payload.tenant_name);
+
+  if (payload.access_code) {
+    const member = tenant.members.find((item) => item.email.toLowerCase() === payload.email.trim().toLowerCase());
+    if (!member) {
+      throw new DemoApiStoreError("Tenant member not found for that email", 404);
+    }
+
+    const credential = ensureTenantCredential(tenant, member);
+    if (credential.secret_hash !== hashCredentialSecret(payload.access_code)) {
+      throw new DemoApiStoreError("Invalid tenant member credentials", 401);
+    }
+
+    const session: TenantSessionContract = {
+      id: createTenantSessionId("tenant", member.email),
+      email: member.email.trim().toLowerCase(),
+      display_name: member.name.trim(),
+      role: member.role,
+      scope: "tenant",
+      tenant_name: member.tenant_name,
+      member_id: member.id,
+      member_status: member.status,
+      designation: member.designation,
+      team: member.team,
+      source: "demo-api",
+      granted_at: nowIso(),
+    };
+
+    tenant.sessions.unshift(session);
+    return session;
+  }
+
+  if (!payload.display_name || !payload.role) {
+    throw new DemoApiStoreError("display_name and role are required when access_code is not provided", 400);
+  }
+
   const session: TenantSessionContract = {
     id: createTenantSessionId("tenant", payload.email),
     email: payload.email.trim().toLowerCase(),
@@ -474,12 +591,22 @@ export function listTenantSessions(tenantName?: string | null) {
   return [...getTenantState(tenantName).sessions];
 }
 
-export function issueSuperAdminSession(payload: Pick<TenantSessionCreatePayload, "email" | "display_name">) {
+export function issueSuperAdminSession(payload: Pick<TenantSessionCreatePayload, "email" | "display_name" | "access_code">) {
   const store = getStoreState();
+
+  if (payload.access_code) {
+    const credential = store.super_admin_credentials[normalizeCredentialEmail(payload.email)];
+    if (!credential || credential.secret_hash !== hashCredentialSecret(payload.access_code)) {
+      throw new DemoApiStoreError("Invalid Super Admin credentials", 401);
+    }
+  } else if (!payload.display_name) {
+    throw new DemoApiStoreError("display_name is required when access_code is not provided", 400);
+  }
+
   const session: TenantSessionContract = {
     id: createTenantSessionId("platform", payload.email),
     email: payload.email.trim().toLowerCase(),
-    display_name: payload.display_name.trim(),
+    display_name: payload.display_name?.trim() || "NAMA Super Admin",
     role: "super-admin",
     scope: "platform",
     tenant_name: null,
@@ -493,4 +620,8 @@ export function issueSuperAdminSession(payload: Pick<TenantSessionCreatePayload,
 
 export function listSuperAdminSessions() {
   return [...getStoreState().super_admin_sessions];
+}
+
+export function isDemoApiStoreError(error: unknown): error is DemoApiStoreError {
+  return error instanceof DemoApiStoreError;
 }

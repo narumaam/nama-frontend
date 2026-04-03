@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { issueSuperAdminSession, listSuperAdminSessions } from "@/lib/demo-api-store";
+import { isDemoApiStoreError, issueSuperAdminSession, listSuperAdminSessions } from "@/lib/demo-api-store";
 
 export async function GET() {
   return NextResponse.json({
@@ -9,11 +9,19 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const payload = (await request.json()) as { email: string; display_name: string };
+  try {
+    const payload = (await request.json()) as { email: string; display_name?: string; access_code?: string };
 
-  if (!payload.email || !payload.display_name) {
-    return NextResponse.json({ detail: "email and display_name are required" }, { status: 400 });
+    if (!payload.email) {
+      return NextResponse.json({ detail: "email is required" }, { status: 400 });
+    }
+
+    return NextResponse.json(issueSuperAdminSession(payload));
+  } catch (error) {
+    if (isDemoApiStoreError(error)) {
+      return NextResponse.json({ detail: error.message }, { status: error.status });
+    }
+
+    return NextResponse.json({ detail: "Super admin session issuance failed" }, { status: 500 });
   }
-
-  return NextResponse.json(issueSuperAdminSession(payload));
 }

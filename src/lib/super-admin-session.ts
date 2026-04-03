@@ -1,14 +1,12 @@
 "use client";
 
-export const SUPER_ADMIN_DEMO_EMAIL = "control@nama.internal";
-export const SUPER_ADMIN_DEMO_CODE = "NAMA-ALPHA";
-
 import {
   canAccessSuperAdmin,
   clearAppSession,
   createSuperAdminSession as createSharedSuperAdminSession,
   readAppSession,
 } from "@/lib/auth-session";
+export { SUPER_ADMIN_DEMO_CODE, SUPER_ADMIN_DEMO_EMAIL, validateSuperAdminCredentials } from "@/lib/demo-credentials";
 
 export function readSuperAdminSession() {
   const session = readAppSession();
@@ -30,8 +28,4 @@ export function createSuperAdminSession(email: string) {
 
 export function clearSuperAdminSession() {
   clearAppSession();
-}
-
-export function validateSuperAdminCredentials(email: string, accessCode: string) {
-  return email.trim().toLowerCase() === SUPER_ADMIN_DEMO_EMAIL && accessCode.trim() === SUPER_ADMIN_DEMO_CODE;
 }

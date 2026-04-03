@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Briefcase, CreditCard, Eye, Shield, Sparkles, Users } from "lucide-react";
 
-import { createIssuedTenantSession, createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
+import { createIssuedTenantSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
+import { createTenantMemberAccessCode } from "@/lib/demo-credentials";
 import { type DemoMemberRecord } from "@/lib/demo-members";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { readDemoWorkflowState, type DemoEmployeeRecord, type DemoInviteRecord } from "@/lib/demo-workflow";
@@ -124,15 +125,29 @@ export default function WorkspaceLoginPage() {
   const router = useRouter();
   const profile = useMemo(() => readDemoProfile(), []);
   const memberRegistry = useDemoMembers();
-  const [message, setMessage] = useState("Choose a tenant member to enter the workspace from the route that matches their scope.");
+  const [email, setEmail] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [message, setMessage] = useState("Enter tenant member credentials or use a member card to prefill the login form.");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const personas = useMemo(() => {
+    const sourceRank = {
+      "tenant-profile": 0,
+      "demo-api": 1,
+      "backend-demo": 2,
+      "accepted-invite": 3,
+      manual: 4,
+      "employee-directory": 5,
+    } as const;
     const tenantMembers = memberRegistry.members
       .filter((member) => member.tenantName === profile.company)
+      .filter((member) => member.status !== "Invited")
+      .filter((member) => member.source in sourceRank)
       .sort((left, right) => {
         const statusRank = { Active: 0, Invited: 1, Seeded: 2 } as const;
         return (
           statusRank[left.status] - statusRank[right.status] ||
           left.role.localeCompare(right.role) ||
+          sourceRank[left.source] - sourceRank[right.source] ||
           left.name.localeCompare(right.name)
         );
       });
@@ -145,50 +160,61 @@ export default function WorkspaceLoginPage() {
     return TENANT_ROLE_OPTIONS.map((option) => resolvePersona(option, workflow.employees, workflow.invites, profile.company, profile.operator));
   }, [memberRegistry.members, profile.company, profile.operator]);
 
-  async function enterWorkspace(persona: PersonaCard) {
-    const member = memberRegistry.members.find((item) => item.id === persona.id);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get("email");
+    const accessCodeParam = params.get("access_code");
+    const inviteAccepted = params.get("invite_accepted");
+
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+    if (accessCodeParam) {
+      setAccessCode(accessCodeParam);
+    }
+    if (inviteAccepted === "1" && emailParam && accessCodeParam) {
+      setMessage("Invite accepted. Confirm the issued credentials below to enter the workspace.");
+    }
+  }, []);
+
+  function applyPersona(persona: PersonaCard) {
+    setEmail(persona.email);
+    setAccessCode(createTenantMemberAccessCode({ tenantName: profile.company, role: persona.role }));
+    setMessage(`${persona.heading} credentials loaded for ${persona.displayName}. Submit to verify and enter.`);
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+
     try {
       const issuedSession = await issueTenantSession({
-        email: member?.email || persona.email,
-        display_name: member?.name || persona.displayName,
-        role: member?.role || persona.role,
+        email,
         scope: "tenant",
-        tenant_name: member?.tenantName || profile.company,
-        member_id: member?.id || null,
-        member_status: member?.status || null,
-        designation: member?.designation || persona.designation,
-        team: member?.team || persona.team,
+        tenant_name: profile.company,
+        access_code: accessCode,
       });
 
+      const nextRole = issuedSession.role === "super-admin" ? "customer-admin" : issuedSession.role;
       createIssuedTenantSession({
         accessToken: issuedSession.id,
         email: issuedSession.email,
         displayName: issuedSession.display_name,
-        role: issuedSession.role === "super-admin" ? persona.role : issuedSession.role,
+        role: nextRole,
         tenantName: issuedSession.tenant_name || profile.company,
         memberId: issuedSession.member_id,
         memberStatus: issuedSession.member_status,
         designation: issuedSession.designation,
         team: issuedSession.team,
       });
-    } catch {
-      if (member) {
-        createTenantMemberSession({
-          id: member.id,
-          email: member.email,
-          name: member.name,
-          role: member.role,
-          tenantName: member.tenantName,
-          status: member.status,
-          designation: member.designation,
-          team: member.team,
-        });
-      } else {
-        createTenantRoleSession(persona.displayName, profile.company, persona.role);
-      }
+      setMessage(`${issuedSession.display_name} verified. Opening the workspace route for ${nextRole}.`);
+      router.push(getDefaultRouteForRole(nextRole));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Tenant member login failed.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setMessage(`${persona.heading} entry granted for ${persona.displayName}. Opening the workspace route for that member now.`);
-    router.push(getDefaultRouteForRole(persona.role));
   }
 
   return (
@@ -206,6 +232,41 @@ export default function WorkspaceLoginPage() {
             This route now prefers the member registry for the current tenant. Operators, imported employees, and accepted invitees can enter through their own member card and still land on the route that matches their role scope.
           </p>
 
+          <form onSubmit={handleSubmit} className="mt-8 rounded-[28px] border border-white/10 bg-black/20 p-5">
+            <div className="grid gap-4">
+              <label className="grid gap-2 text-sm text-[#D6D0C4]">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9F9788]">Workspace email</span>
+                <input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="rounded-2xl border border-white/10 bg-[#111111] px-4 py-3 text-sm text-white outline-none transition focus:border-[#C9A84C]/40"
+                  type="email"
+                  autoComplete="username"
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[#D6D0C4]">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9F9788]">Access code</span>
+                <input
+                  value={accessCode}
+                  onChange={(event) => setAccessCode(event.target.value)}
+                  className="rounded-2xl border border-white/10 bg-[#111111] px-4 py-3 text-sm text-white outline-none transition focus:border-[#C9A84C]/40"
+                  type="password"
+                  autoComplete="current-password"
+                />
+              </label>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-full bg-[#C9A84C] px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-[#0A0A0A] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? "Verifying Access" : "Enter Workspace"}
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </form>
+
           <div className="mt-8 grid gap-4 xl:grid-cols-2">
             {personas.map((persona) => {
               const Icon = persona.icon;
@@ -213,7 +274,7 @@ export default function WorkspaceLoginPage() {
                 <button
                   key={persona.id}
                   type="button"
-                  onClick={() => void enterWorkspace(persona)}
+                  onClick={() => applyPersona(persona)}
                   className="rounded-[28px] border border-white/10 bg-black/20 p-6 text-left transition hover:border-[#C9A84C]/30 hover:bg-black/30"
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -242,6 +303,9 @@ export default function WorkspaceLoginPage() {
                       <div className="mt-2 break-all font-mono text-white">{persona.email}</div>
                       <div className="mt-2 text-xs text-[#B8B0A0]">
                         {persona.status} via {persona.source}
+                      </div>
+                      <div className="mt-3 font-mono text-xs text-[#C9A84C]">
+                        {createTenantMemberAccessCode({ tenantName: profile.company, role: persona.role })}
                       </div>
                     </div>
                   </div>
@@ -275,7 +339,7 @@ export default function WorkspaceLoginPage() {
                 <p className="mt-2 font-mono text-[#F5F0E8]">/super-admin/login</p>
               </div>
               <p>
-                Member cards are resolved from the tenant registry first. If that roster has not been populated yet, this route stays ready with seeded fallback personas so the login surface does not break while the member import flow catches up.
+                Member cards are resolved from the tenant registry first. Each card now shows the demo access code that the session contract verifies before issuing a tenant session.
               </p>
             </div>
 

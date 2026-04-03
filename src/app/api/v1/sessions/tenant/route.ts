@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { issueTenantSession, listTenantSessions } from "@/lib/demo-api-store";
+import { isDemoApiStoreError, issueTenantSession, listTenantSessions } from "@/lib/demo-api-store";
 import { type TenantSessionCreatePayload } from "@/lib/tenant-contracts";
 
 export async function GET(request: NextRequest) {
@@ -12,11 +12,19 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
-  const payload = (await request.json()) as TenantSessionCreatePayload;
+  try {
+    const payload = (await request.json()) as TenantSessionCreatePayload;
 
-  if (!payload.email || !payload.display_name || !payload.role || !payload.scope) {
-    return NextResponse.json({ detail: "email, display_name, role, and scope are required" }, { status: 400 });
+    if (!payload.email || !payload.scope) {
+      return NextResponse.json({ detail: "email and scope are required" }, { status: 400 });
+    }
+
+    return NextResponse.json(issueTenantSession(payload));
+  } catch (error) {
+    if (isDemoApiStoreError(error)) {
+      return NextResponse.json({ detail: error.message }, { status: error.status });
+    }
+
+    return NextResponse.json({ detail: "Tenant session issuance failed" }, { status: 500 });
   }
-
-  return NextResponse.json(issueTenantSession(payload));
 }

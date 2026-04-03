@@ -15,13 +15,20 @@ export async function issueTenantSession(payload: TenantSessionCreatePayload) {
   });
 
   if (!response.ok) {
-    throw new Error(`Tenant session issuance failed: ${response.status}`);
+    let detail = `Tenant session issuance failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as TenantSessionContract;
 }
 
-export async function issueSuperAdminSession(payload: { email: string; display_name: string }) {
+export async function issueSuperAdminSession(payload: { email: string; display_name?: string; access_code?: string }) {
   const response = await fetch(apiUrl("/sessions/super-admin"), {
     method: "POST",
     headers: {
@@ -30,14 +37,20 @@ export async function issueSuperAdminSession(payload: { email: string; display_n
     },
     body: JSON.stringify({
       ...payload,
-      role: "super-admin",
       scope: "platform",
       tenant_name: null,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`Super admin session issuance failed: ${response.status}`);
+    let detail = `Super admin session issuance failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as TenantSessionContract;
