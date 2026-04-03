@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0"
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0",
+    "smoke:founder": "node scripts/founder_flow_smoke.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",

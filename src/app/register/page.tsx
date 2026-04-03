@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
@@ -513,10 +513,15 @@ function Field({
   onChange: (value: string) => void;
   placeholder: string;
 }) {
+  const fieldId = useId();
+
   return (
     <div>
-      <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">{label}</label>
+      <label htmlFor={fieldId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">
+        {label}
+      </label>
       <input
+        id={fieldId}
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -547,10 +552,15 @@ function TextAreaField({
   onChange: (value: string) => void;
   placeholder: string;
 }) {
+  const fieldId = useId();
+
   return (
     <div>
-      <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">{label}</label>
+      <label htmlFor={fieldId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">
+        {label}
+      </label>
       <textarea
+        id={fieldId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
