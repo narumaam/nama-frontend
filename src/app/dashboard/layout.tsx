@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
 import { DEFAULT_SHELL_BRAND } from '@/lib/demo-config';
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from '@/lib/demo-profile';
+import { clearSuperAdminSession, hasSuperAdminSession } from '@/lib/super-admin-session';
 import { useDemoProfile } from '@/lib/use-demo-profile';
 import {
   LayoutDashboard,
@@ -39,6 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
   const [artifactCaseSlug, setArtifactCaseSlug] = useState(primaryCase.slug);
+  const [superAdminAccess, setSuperAdminAccess] = useState(false);
   const pathname = usePathname();
   const demoCompany = profile.company;
   const demoOperator = profile.operator;
@@ -64,6 +66,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     .map((item) => item[0]?.toUpperCase())
     .join("") || shellBrand.badgeGlyph;
 
+  useEffect(() => {
+    setSuperAdminAccess(hasSuperAdminSession());
+  }, [pathname]);
+
   const navGroups = [
     {
       label: 'AI Control',
@@ -88,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       label: 'Intelligence',
       items: [
-        { name: 'Super Admin',   href: '/dashboard/admin',     icon: Shield,           badge: null },
+        ...(superAdminAccess ? [{ name: 'Super Admin', href: '/dashboard/admin', icon: Shield, badge: null }] : []),
         { name: 'Analytics',     href: '/dashboard/analytics', icon: Activity,         badge: null },
         { name: 'Finance',       href: '/dashboard/finance',   icon: CreditCard,       badge: null },
         { name: 'Content',       href: '/dashboard/content',   icon: FileText,         badge: null },
@@ -103,6 +109,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   function handleNavigate() {
     setMobileNavOpen(false);
+  }
+
+  function handleExitSuperAdmin() {
+    clearSuperAdminSession();
+    setSuperAdminAccess(false);
+    router.push('/super-admin/login');
   }
 
   return (
@@ -226,6 +238,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <p className="text-[8px] truncate uppercase tracking-widest font-mono" style={{ color: accentHex }}>
                   {domainMode === "nama-subdomain" ? "NAMA Subdomain" : "Custom Domain"} · {workspaceDomain}
                 </p>
+              )}
+              {superAdminAccess && (
+                <button
+                  type="button"
+                  onClick={handleExitSuperAdmin}
+                  className="mt-2 text-left text-[9px] font-black uppercase tracking-[0.2em] text-[#C9A84C]"
+                >
+                  Exit Super Admin
+                </button>
               )}
             </div>
           )}

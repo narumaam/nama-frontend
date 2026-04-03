@@ -203,8 +203,12 @@ async function main() {
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Mark shared/i }).click();
 
-    await page.goto(`${baseUrl}/dashboard/admin`);
+    await page.goto(`${baseUrl}/super-admin/login`);
     await page.waitForLoadState("networkidle");
+    await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
+    await page.getByLabel("Access code").fill("NAMA-ALPHA");
+    await page.getByRole("button", { name: /Open Super Admin/i }).click();
+    await page.waitForURL("**/dashboard/admin?entry=super-admin");
     await expectVisible(page, scenario.companyName);
     await expectVisible(page, scenario.planName);
     await expectVisible(page, "Logged-in Users");

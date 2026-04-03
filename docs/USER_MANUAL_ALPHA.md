@@ -75,7 +75,13 @@ These routes reflect the active tenant’s brand, support details, workspace dom
 
 ## 6. Use Super Admin
 
-Open `/dashboard/admin`.
+Start from `/super-admin/login`.
+
+This is the separate platform-control entry URL for NAMA internal operators. Customer users should continue through `/register` and tenant workspace routes.
+
+From there, continue into `/dashboard/admin`.
+
+In the current alpha, the Super Admin route uses a lightweight session gate designed for demo separation. It is not the final production auth model.
 
 Use this page to:
 

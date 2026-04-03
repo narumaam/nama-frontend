@@ -17,6 +17,7 @@ The current alpha is designed to prove:
 - a shared case flow from lead through finance and booking
 - branded traveler and finance artifacts
 - a Super Admin view that can observe tenant health and lifecycle progress
+- a separate Super Admin access path distinct from customer registration and tenant routes
 - seeded scenarios and smoke-testable demos
 
 ## Primary User Types

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
@@ -12,6 +12,7 @@ import { useDemoEvents } from "@/lib/use-demo-events";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { DEMO_SCENARIOS, getScenarioProjectedMrr, resetDemoState, seedDemoScenario, type DemoScenarioKey } from "@/lib/demo-scenarios";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { clearSuperAdminSession, hasSuperAdminSession, readSuperAdminSession } from "@/lib/super-admin-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   AlertTriangle,
@@ -213,6 +214,8 @@ export default function AdminPage() {
   const [timelineSeverityFilter, setTimelineSeverityFilter] = useState<"All" | DemoEventSeverity>("All");
   const [timelineRangeFilter, setTimelineRangeFilter] = useState<DemoEventRange>("All");
   const [exportMessage, setExportMessage] = useState("Copy or download the filtered audit trail as a founder-safe proof artifact.");
+  const [accessReady, setAccessReady] = useState(false);
+  const [superAdminEmail, setSuperAdminEmail] = useState("");
   const currentPlan = readDemoSubscriptionPlan();
   const tenantRegistry = readDemoTenantRegistry();
   const acceptedInvites = workflow.invites.filter((invite) => invite.status === "Accepted").length;
@@ -258,6 +261,22 @@ export default function AdminPage() {
   const totalMrr = tenantHealth.reduce((sum, tenant) => sum + Number(tenant.mrr.replace(/[^\d]/g, "")), 0);
   const totalSystemActiveUsers = tenantHealth.reduce((sum, tenant) => sum + (tenant.activeUsers ?? tenant.users), 0);
   const totalSystemPendingInvites = tenantHealth.reduce((sum, tenant) => sum + (tenant.pendingInvites ?? 0), 0);
+  useEffect(() => {
+    if (!hasSuperAdminSession()) {
+      router.replace("/super-admin/login");
+      return;
+    }
+
+    const session = readSuperAdminSession();
+    setSuperAdminEmail(session?.email ?? "");
+    setAccessReady(true);
+  }, [router]);
+
+  function handleExitControlTower() {
+    clearSuperAdminSession();
+    router.push("/super-admin/login");
+  }
+
   const systemHealthLabel = pendingInvites > 0 ? "Monitoring" : releasedArtifacts > 0 || settledInvoices > 0 ? "Live demo active" : "Healthy";
   const totalRegisteredUsers = tenantHealth.reduce((sum, tenant) => sum + tenant.users, 0);
   const totalAcceptedInvites = tenantHealth.reduce((sum, tenant) => sum + Math.max((tenant.activeUsers ?? tenant.users) - 1, 0), 0);
@@ -350,6 +369,14 @@ export default function AdminPage() {
     return `/dashboard/admin/audit-report${query ? `?${query}` : ""}`;
   }, [timelineCaseFilter, timelineRangeFilter, timelineSeverityFilter, timelineTenantFilter, timelineTypeFilter]);
 
+  if (!accessReady) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-8 text-center text-sm text-[#B8B0A0]">
+        Checking Super Admin access...
+      </div>
+    );
+  }
+
   function handleResetDemo() {
     resetDemoState();
     setDemoLabMessage("Demo state reset to the default platform snapshot.");
@@ -409,14 +436,30 @@ export default function AdminPage() {
             and the commercial health of the system. It is staged as a preview-safe Super Admin surface, but it reflects the
             exact operating questions a platform owner asks.
           </p>
+          <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#9F9788]">
+            Access route: /super-admin/login {superAdminEmail ? `• Active session: ${superAdminEmail}` : ""}
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <Link
+            href="/register"
+            className="w-full sm:w-auto text-center rounded-xl border border-white/10 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]"
+          >
+            Customer entry
+          </Link>
           <Link
             href="/dashboard/team"
             className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Team appendix
           </Link>
+          <button
+            type="button"
+            onClick={handleExitControlTower}
+            className="w-full sm:w-auto rounded-xl border border-[#C9A84C]/25 bg-[#C9A84C]/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+          >
+            Exit Super Admin
+          </button>
           <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
             Create subscription
           </button>

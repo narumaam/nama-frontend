@@ -24,6 +24,7 @@ This document closes the April alpha branch from product, engineering, QA, and h
 - [x] Demo pack route bundles invoice, traveler PDF, and audit context.
 - [x] Super Admin includes tenant registry, MRR snapshot, active user approximation, invite backlog, lifecycle board, and system audit views.
 - [x] Super Admin Demo Lab can seed healthy and negative-path scenarios.
+- [x] Super Admin now has a distinct entry URL separate from tenant onboarding and workspace routes.
 - [x] Founder smoke harness validates the golden path.
 - [x] Small-agency and ops-heavy smoke scenarios validate additional seeded states.
 - [x] Audit timeline supports filters, export, copy, printable report, and share-ready summary.
@@ -39,6 +40,7 @@ This document closes the April alpha branch from product, engineering, QA, and h
 - Leads to finance to bookings continuity: shared workflow state and downstream artifact connections.
 - Finance, invoice, traveler PDF, artifacts, and demo pack: founder-facing output path is present.
 - Super Admin control tower: seeded tenants, audit timeline, lifecycle board, and exports.
+- Super Admin entry path: separated from customer and tenant-facing routes through `/super-admin/login`.
 - Demo test scaffolding: smoke scenarios and Demo Lab seed/reset tools.
 
 ### Partial
@@ -127,6 +129,7 @@ Command used: `lsof -nP -iTCP -sTCP:LISTEN`
 - `backend/app/api/v1/auth.py` explicitly notes password hashing is not implemented in the prototype login flow.
 - `backend/app/main.py` runs `Base.metadata.create_all(bind=engine)` on startup.
 - `backend/main.py` launches the older backend entrypoint on `0.0.0.0`, which is acceptable for local development but should be reviewed for deployment discipline.
+- Super Admin access is separated by URL and an alpha-only client-side session gate. This helps demo audience separation, but it is not a production security control.
 
 ### Alpha Risk Summary
 
