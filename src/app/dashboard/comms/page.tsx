@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import {
   ArrowRight,
   Bot,
@@ -119,6 +120,11 @@ const SOURCE_SUMMARY = [
 ];
 
 export default function CommsPage() {
+  const profile = useMemo(() => readDemoProfile(), []);
+  const [selectedThread, setSelectedThread] = useState(THREADS[0]);
+  const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
+  const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -138,6 +144,13 @@ export default function CommsPage() {
           <p className="mt-2 max-w-3xl text-xs uppercase tracking-wide font-mono text-[#B8B0A0]">
             Website, phone, email, and a WhatsApp placeholder all resolve into the same CRM story for the Monday demo.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">{visibleRoles}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">
+              {profile.market.country} · {profile.market.language}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -169,7 +182,16 @@ export default function CommsPage() {
           </p>
           <div className="space-y-3">
             {THREADS.map((thread) => (
-              <div key={thread.channel} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <button
+                key={`${thread.channel}-${thread.guest}`}
+                type="button"
+                onClick={() => setSelectedThread(thread)}
+                className={`w-full rounded-2xl border bg-[#0A0A0A] p-4 text-left transition-colors ${
+                  selectedThread.channel === thread.channel && selectedThread.guest === thread.guest
+                    ? "border-[#C9A84C]/30"
+                    : "border-[#C9A84C]/10 hover:border-[#C9A84C]/20"
+                }`}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{thread.channel}</div>
@@ -181,7 +203,7 @@ export default function CommsPage() {
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{thread.note}</p>
                 <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{thread.source}</div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -194,6 +216,25 @@ export default function CommsPage() {
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
             The Monday demo uses a deterministic transcript so the rep can show how voice, message, and CRM context stay attached to the same lead.
           </p>
+          <div className="mb-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Current thread focus</div>
+                <div className="mt-1 text-sm font-black text-[#F5F0E8]">{selectedThread.guest} · {selectedThread.caseName}</div>
+              </div>
+              <Link
+                href={selectedThread.caseName.includes("Maldives") ? "/dashboard/deals?lead=1" : selectedThread.caseName.includes("Dubai") ? "/dashboard/deals?lead=3" : "/dashboard/deals?lead=2"}
+                className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
+              >
+                Open case
+              </Link>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <FocusField label="Channel" value={selectedThread.channel} />
+              <FocusField label="Tone" value={selectedThread.tone} />
+              <FocusField label="Status" value={selectedThread.status} />
+            </div>
+          </div>
           <div className="space-y-4">
             {ACTIVE_TRANSCRIPT.map((line, index) => (
               <div key={`${line.speaker}-${index}`} className={`flex gap-4 ${index % 2 === 1 ? "flex-row-reverse" : ""}`}>
@@ -285,6 +326,15 @@ function Avatar({
   return (
     <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${accent}`}>
       <Icon size={18} />
+    </div>
+  );
+}
+
+function FocusField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
     </div>
   );
 }
