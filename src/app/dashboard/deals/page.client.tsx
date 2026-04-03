@@ -9,11 +9,13 @@ import { AlertTriangle, ArrowRight, BadgeIndianRupee, Bot, CheckCircle2, Clock3,
 import { apiUrl } from "@/lib/api";
 import { dealHrefFromSlug } from "@/lib/demo-cases";
 import { DEMO_DEAL_CASES, DEMO_LEAD_FALLBACK_MAP, PRIMARY_DEMO_DEAL_CASE, type DemoDealCase } from "@/lib/demo-case-profiles";
-import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
+import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
 
 export default function DealsClientPage() {
   const profile = useMemo(() => readDemoProfile(), []);
+  const brandTheme = getDemoBrandTheme(profile);
+  const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const params = useSearchParams();
   const leadParam = params.get("lead") ?? "1";
   const resolvedSlug = params.get("case") ?? DEMO_LEAD_FALLBACK_MAP[leadParam] ?? PRIMARY_DEMO_DEAL_CASE.slug;
@@ -363,6 +365,66 @@ export default function DealsClientPage() {
           </div>
         </div>
       </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Customer-Facing Quote Shell</div>
+            <h2 className="text-lg font-black text-[#F5F0E8]">What the traveler-facing quote carries forward</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This quote preview uses the same tenant identity, support contact, domain, and settlement profile captured earlier in onboarding.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-3">
+            <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">Powered by</div>
+            <div className="mt-1 text-sm font-black text-[#F5F0E8]">{brandTheme.enabled ? brandTheme.workspaceName : profile.company || DEFAULT_DEMO_PROFILE.company}</div>
+            <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{workspaceDomain}</div>
+          </div>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Quote Header</div>
+                <div className="mt-2 text-xl font-black text-[#F5F0E8]">{data.guest_name} · {data.triage.destination}</div>
+                <div className="mt-1 text-sm text-[#B8B0A0]">{data.triage.duration_days} days · {data.triage.travelers_count} travelers · {data.triage.style}</div>
+              </div>
+              <div className="rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-3 text-right">
+                <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Quoted Value</div>
+                <div className="mt-1 text-lg font-black text-[#C9A84C]">₹{data.finance.quote_total.toLocaleString("en-IN")}</div>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <QuoteField label="Workspace Brand" value={brandTheme.enabled ? brandTheme.workspaceName : profile.company || DEFAULT_DEMO_PROFILE.company} />
+              <QuoteField label="Support Contact" value={brandTheme.supportEmail} />
+              <QuoteField label="Workspace Domain" value={workspaceDomain} />
+              <QuoteField label="Payment Rail" value={profile.market.gateway} />
+            </div>
+            <div className="mt-5 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+              Footer copy, payment instructions, and customer support details can now inherit from the tenant profile instead of being hard-coded page text.
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Invoice & Remittance Footer</div>
+              <div className="mt-4 grid gap-3">
+                <QuoteField label="Beneficiary" value={profile.bankDetails.beneficiaryName} />
+                <QuoteField label="Bank / Branch" value={`${profile.bankDetails.bankName} · ${profile.bankDetails.branchName}`} />
+                <QuoteField label="Account / Routing" value={`${profile.bankDetails.accountNumber} · ${profile.bankDetails.routingCode}`} />
+                <QuoteField label="Billing Address" value={profile.bankDetails.billingAddress} />
+              </div>
+            </div>
+            <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Release Checklist</div>
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#B8B0A0]">
+                <div>Traveler sees the tenant brand, not the default platform shell.</div>
+                <div>Support email matches the configured customer-facing contact.</div>
+                <div>Quote footer and payment instructions carry the same settlement profile shown in Finance and Bookings.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -414,6 +476,15 @@ function GuardrailRow({ label, state, note }: { label: string; state: string; no
         <Clock3 size={14} className="text-[#C9A84C]" />
       </div>
       <div className="mt-3 text-xs leading-relaxed text-[#B8B0A0]">{note}</div>
+    </div>
+  );
+}
+
+function QuoteField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
     </div>
   );
 }

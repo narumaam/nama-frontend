@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ScreenInfoTip from "@/components/screen-info-tip";
-import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
+import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { DEMO_CASE_ROUTES, dealHrefFromCaseName, dealHrefFromSlug, getPrimaryDemoCase, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import {
@@ -109,6 +109,8 @@ const SOURCE_SUMMARY = [
 
 export default function CommsPage() {
   const profile = useMemo(() => readDemoProfile(), []);
+  const brandTheme = getDemoBrandTheme(profile);
+  const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const [selectedThread, setSelectedThread] = useState(THREADS[0]);
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
@@ -298,6 +300,50 @@ export default function CommsPage() {
           </div>
         </div>
       </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Mail size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Outbound Quote Email Shell</h2>
+          </div>
+          <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">From</div>
+                <div className="mt-1 text-sm font-black text-[#F5F0E8]">{brandTheme.supportEmail}</div>
+                <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{workspaceDomain}</div>
+              </div>
+              <div className="rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-3">
+                <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Brand</div>
+                <div className="mt-1 text-sm font-black text-[#F5F0E8]">{brandTheme.enabled ? brandTheme.workspaceName : visibleCompany}</div>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3">
+              <CommsField label="Subject" value={`${selectedThread.caseName} · curated quote from ${brandTheme.enabled ? brandTheme.workspaceName : visibleCompany}`} />
+              <CommsField label="Reply-to" value={brandTheme.supportEmail} />
+              <CommsField label="Attachment" value={`${selectedThread.caseName} quote PDF · branded footer + settlement details`} />
+            </div>
+            <div className="mt-5 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+              The outbound quote now inherits the configured tenant brand, support inbox, workspace domain, and billing identity instead of a generic platform signature.
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Customer-Facing Footer</h2>
+          </div>
+          <div className="space-y-3">
+            <CommsField label="Support" value={brandTheme.supportEmail} />
+            <CommsField label="Workspace Domain" value={workspaceDomain} />
+            <CommsField label="Beneficiary" value={profile.bankDetails.beneficiaryName} />
+            <CommsField label="Bank / Routing" value={`${profile.bankDetails.bankName} · ${profile.bankDetails.routingCode}`} />
+            <CommsField label="Billing Address" value={profile.bankDetails.billingAddress} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -325,6 +371,15 @@ function Avatar({
   return (
     <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${accent}`}>
       <Icon size={18} />
+    </div>
+  );
+}
+
+function CommsField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold leading-relaxed text-[#F5F0E8]">{value}</div>
     </div>
   );
 }
