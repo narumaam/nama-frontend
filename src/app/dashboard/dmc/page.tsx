@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
-import { dealHrefFromSlug } from "@/lib/demo-cases";
+import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import {
   ArrowRight,
   Building2,
@@ -105,9 +105,17 @@ export default function DmcPage() {
   const profile = useMemo(() => readDemoProfile(), []);
   const [selectedContract, setSelectedContract] = useState(CONTRACT_INBOX[0]);
   const [serviceFilter, setServiceFilter] = useState<"All" | "Hotel" | "Activity" | "Transport" | "Stay + Activity">("All");
+  const [activeSlug, setActiveSlug] = useState("maldives-honeymoon");
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
   const visibleSuppliers = SUPPLIER_DIRECTORY.filter((supplier) => serviceFilter === "All" || supplier.service === serviceFilter);
+  const activeCase = getDemoCaseRoute(activeSlug);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setActiveSlug(normalizeDemoCaseSlug(params.get("case")));
+  }, []);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -132,7 +140,7 @@ export default function DmcPage() {
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           <Link
-            href={dealHrefFromSlug("maldives-honeymoon")}
+            href={dealHrefFromSlug(activeCase.slug)}
             className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Back to Deal
@@ -159,7 +167,7 @@ export default function DmcPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
-            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Case Maldives honeymoon</span>
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Case {activeCase.caseName}</span>
             <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">Feeds quote blocks + ops notes</span>
           </div>
         </div>

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
-import { dealHrefFromSlug } from "@/lib/demo-cases";
+import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import {
   ArrowRight,
   BadgeIndianRupee,
@@ -101,8 +101,16 @@ export default function BookingsPage() {
   const profile = useMemo(() => readDemoProfile(), []);
   const [activeTab, setActiveTab] = useState<(typeof EXECUTION_TABS)[number]>("Overview");
   const [selectedStep, setSelectedStep] = useState(EXECUTION_STEPS[0]);
+  const [activeSlug, setActiveSlug] = useState("maldives-honeymoon");
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
+  const activeCase = getDemoCaseRoute(activeSlug);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setActiveSlug(normalizeDemoCaseSlug(params.get("case")));
+  }, []);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-12">
@@ -127,7 +135,7 @@ export default function BookingsPage() {
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           <Link
-            href={dealHrefFromSlug("maldives-honeymoon")}
+            href={dealHrefFromSlug(activeCase.slug)}
             className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Back to Deal
@@ -149,13 +157,13 @@ export default function BookingsPage() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Active Execution Case</div>
-            <h2 className="text-lg font-black text-[#F5F0E8]">Meera Nair · Maldives honeymoon · post-quote handoff</h2>
+            <h2 className="text-lg font-black text-[#F5F0E8]">{activeCase.guest} · {activeCase.caseName} · post-quote handoff</h2>
             <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed max-w-3xl">
               This is the execution consequence of the deal approval: deposit verified, supplier confirmed, documents queued, and ops ownership made explicit.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
-            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Backed by deal #1</span>
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Backed by deal #{String(activeCase.leadId)}</span>
             <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">Ready for guest pack release</span>
           </div>
         </div>

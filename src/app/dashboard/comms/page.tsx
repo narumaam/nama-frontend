@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
-import { dealHrefFromCaseName, dealHrefFromSlug } from "@/lib/demo-cases";
+import { dealHrefFromCaseName, dealHrefFromSlug, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import {
   ArrowRight,
   Bot,
@@ -125,6 +125,14 @@ export default function CommsPage() {
   const [selectedThread, setSelectedThread] = useState(THREADS[0]);
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const slug = normalizeDemoCaseSlug(params.get("case"));
+    const matchedThread = THREADS.find((thread) => dealHrefFromCaseName(thread.caseName) === dealHrefFromSlug(slug));
+    if (matchedThread) setSelectedThread(matchedThread);
+  }, []);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -281,10 +289,10 @@ export default function CommsPage() {
       </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <MessageSquare size={14} className="text-[#C9A84C]" />
-          <h2 className="text-lg font-black text-[#F5F0E8]">Demo Positioning</h2>
-        </div>
+          <div className="mb-4 flex items-center gap-2">
+            <MessageSquare size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Preview Positioning</h2>
+          </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">What this proves</div>
@@ -295,7 +303,7 @@ export default function CommsPage() {
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Safe wording</div>
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
-              Use “deterministic CRM intake” and “demo-safe capture” instead of implying the messaging rails are already live in production.
+              Use “deterministic CRM intake” and “preview-safe capture” instead of implying the messaging rails are already live in production.
             </p>
           </div>
         </div>
