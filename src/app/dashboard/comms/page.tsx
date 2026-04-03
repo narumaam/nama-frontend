@@ -128,13 +128,13 @@ export default function CommsPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
             <span>Intelligence Hub</span>
             <ChevronRight size={10} />
             <span className="opacity-50">Omnichannel CRM</span>
           </div>
-          <h1 className="flex items-center gap-4 text-4xl font-black uppercase tracking-tighter font-headline text-[#F5F0E8]">
+          <h1 className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-3xl sm:text-4xl font-black uppercase tracking-tighter font-headline text-[#F5F0E8]">
             Comms Command
             <span className="flex items-center gap-2 rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black font-mono uppercase tracking-widest text-[#1D9E75]">
               <Sparkles size={12} />
@@ -152,14 +152,14 @@ export default function CommsPage() {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <Link
             href="/dashboard/deals?lead=1"
-            className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Open Maldives case
           </Link>
-          <button className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
+          <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
             Demo reply queued
           </button>
         </div>

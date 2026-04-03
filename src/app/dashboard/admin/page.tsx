@@ -204,28 +204,28 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
             <span>Super Admin</span>
             <ChevronRight size={10} />
             <span className="opacity-50">NAMA Control Tower</span>
           </div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Platform Control</h1>
+          <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Platform Control</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is your NAMA-level governance workspace: subscriptions, platform rules, tenant status, template inheritance,
             and the commercial health of the system. It is staged as a demo-safe Super Admin surface, but it reflects the
             exact operating questions a platform owner asks.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
           <Link
             href="/dashboard/team"
-            className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Team appendix
           </Link>
-          <button className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
+          <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
             Create subscription
           </button>
         </div>
@@ -239,7 +239,7 @@ export default function AdminPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <Building2 size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Tenant & Subscription Health</h2>
@@ -277,7 +277,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <aside className="xl:col-span-5 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <aside className="xl:col-span-5 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <Shield size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Global Controls</h2>
@@ -301,7 +301,7 @@ export default function AdminPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <Globe size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Regional Commerce Routing</h2>
@@ -324,7 +324,7 @@ export default function AdminPage() {
                     <div className="text-sm font-black text-[#F5F0E8]">{region.market}</div>
                     <div className="mt-1 text-xs leading-relaxed text-[#B8B0A0]">{region.note}</div>
                   </div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:justify-start lg:justify-end">
                     <Chip icon={<BadgeIndianRupee size={10} />} text={`Base ${region.baseCurrency}`} />
                     <Chip icon={<Sparkles size={10} />} text={`Extras ${region.extraCurrencies}`} />
                     <Chip icon={<Languages size={10} />} text={region.language} />
@@ -336,7 +336,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <Globe2 size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Localization & FX Controls</h2>
@@ -468,7 +468,7 @@ export default function AdminPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <CreditCard size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Subscription Plans</h2>
@@ -476,7 +476,7 @@ export default function AdminPage() {
           <div className="space-y-3">
             {SUBSCRIPTION_PLANS.map((plan) => (
               <div key={plan.name} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <div className="text-sm font-black text-[#F5F0E8]">{plan.name}</div>
                     <div className="mt-1 text-xs leading-relaxed text-[#B8B0A0]">{plan.note}</div>
@@ -488,7 +488,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <LayoutTemplate size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Rules, Templates & Trust</h2>

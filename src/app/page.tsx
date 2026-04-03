@@ -184,9 +184,9 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5F0E8] font-body selection:bg-[#C9A84C] selection:text-[#0A0A0A]">
 
       {/* ── Navbar ─────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#C9A84C]/10 px-6 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2.5">
+      <nav className="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-[#C9A84C]/10 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 whitespace-nowrap">
             <div className="w-7 h-7 bg-[#C9A84C] rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.3)]">N</div>
             <span className="text-base font-black tracking-tighter font-headline text-[#F5F0E8] uppercase">NAMA</span>
           </Link>
@@ -202,14 +202,14 @@ export default function LandingPage() {
         </div>
         <Link
           href="/dashboard/autopilot"
-          className="bg-[#C9A84C] text-[#0A0A0A] text-[11px] px-5 py-2.5 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(201,168,76,0.2)] uppercase tracking-widest"
+          className="w-full sm:w-auto text-center bg-[#C9A84C] text-[#0A0A0A] text-[11px] px-5 py-2.5 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(201,168,76,0.2)] uppercase tracking-widest"
         >
           Open Demo OS
         </Link>
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────────── */}
-      <section id="vision" className="relative px-6 pt-28 pb-32 max-w-7xl mx-auto text-center overflow-hidden">
+      <section id="vision" className="relative px-4 sm:px-6 pt-24 sm:pt-28 pb-24 sm:pb-32 max-w-7xl mx-auto text-center overflow-hidden">
         {/* Ambient background */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#C9A84C]/4 rounded-full blur-[120px]" />
@@ -222,7 +222,7 @@ export default function LandingPage() {
             <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">AI-Native Travel Operating System · Demo Ready</span>
           </div>
 
-          <h1 className="text-[64px] md:text-[88px] font-black tracking-[-0.04em] leading-none mb-8 font-headline">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[88px] font-black tracking-[-0.04em] leading-[0.95] mb-8 font-headline">
             Travel companies<br />
             <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(90deg, #C9A84C, #1D9E75, #C9A84C)' }}>
               don&apos;t run software.
@@ -234,31 +234,31 @@ export default function LandingPage() {
             NAMA turns travel leads into structured demo cases, itineraries, quotes, and operator views. This build is designed to show the workflow clearly, fast, and safely.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-20">
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-center mb-20">
             <Link
               href="/dashboard/autopilot"
-              className="flex items-center gap-2 bg-[#C9A84C] text-[#0A0A0A] text-sm px-8 py-4 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(201,168,76,0.2)] uppercase tracking-widest"
+              className="flex w-full sm:w-auto items-center justify-center gap-2 bg-[#C9A84C] text-[#0A0A0A] text-sm px-8 py-4 rounded-full font-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(201,168,76,0.2)] uppercase tracking-widest"
             >
               <Zap size={14} fill="currentColor" /> Open Demo OS
             </Link>
             <Link
               href="/kinetic"
-              className="flex items-center gap-2 bg-transparent border border-[#C9A84C]/20 text-[#C9A84C] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/40 transition-all uppercase tracking-widest"
+              className="flex w-full sm:w-auto items-center justify-center gap-2 bg-transparent border border-[#C9A84C]/20 text-[#C9A84C] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/40 transition-all uppercase tracking-widest"
             >
               View Control Room <ChevronRight size={14} />
             </Link>
             <Link
               href="/dashboard/deals?case=maldives-honeymoon"
-              className="flex items-center gap-2 bg-transparent border border-white/10 text-[#F5F0E8] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/25 transition-all uppercase tracking-widest"
+              className="flex w-full sm:w-auto items-center justify-center gap-2 bg-transparent border border-white/10 text-[#F5F0E8] text-sm px-8 py-4 rounded-full font-black hover:border-[#C9A84C]/25 transition-all uppercase tracking-widest"
             >
               Open Maldives Case <ChevronRight size={14} />
             </Link>
           </div>
 
           {/* Stats strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#C9A84C]/10 rounded-3xl overflow-hidden border border-[#C9A84C]/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-px bg-[#C9A84C]/10 rounded-3xl overflow-hidden border border-[#C9A84C]/10">
             {STATS.map(s => (
-              <div key={s.label} className="bg-[#111111] py-8 px-6">
+              <div key={s.label} className="bg-[#111111] py-6 sm:py-8 px-4 sm:px-6">
                 <div className="text-3xl font-black font-mono text-[#C9A84C] mb-1">{s.value}</div>
                 <div className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#4A453E]">{s.label}</div>
               </div>

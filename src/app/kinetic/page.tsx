@@ -76,7 +76,11 @@ function AgentOrbit({ selected, onSelect }: { selected: string | null; onSelect:
   }
 
   return (
-    <svg width="360" height="360" viewBox="0 0 360 360" className="mx-auto">
+    <svg
+      viewBox="0 0 360 360"
+      preserveAspectRatio="xMidYMid meet"
+      className="mx-auto h-auto w-full max-w-[360px] aspect-square"
+    >
       {/* Orbit rings */}
       {[110, 80].map(r => (
         <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="#C9A84C" strokeWidth="0.5" strokeOpacity="0.08" />
@@ -166,18 +170,18 @@ export default function KineticPage() {
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5F0E8] font-mono flex flex-col overflow-hidden">
 
       {/* ── Top bar ──────────────────────────────────────────────────── */}
-      <div className="h-14 border-b border-[#C9A84C]/10 flex items-center justify-between px-6 bg-[#0A0A0A]/95 backdrop-blur-xl sticky top-0 z-50">
-        <div className="flex items-center gap-5">
+      <div className="min-h-14 border-b border-[#C9A84C]/10 flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-4 sm:px-6 py-3 bg-[#0A0A0A]/95 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex items-center justify-between gap-4 w-full md:w-auto">
           <Link href="/dashboard" className="text-[#4A453E] hover:text-[#C9A84C] transition-colors">
             <ChevronLeft size={18} />
           </Link>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <Zap size={14} fill="currentColor" className="text-[#C9A84C]" />
-            <span className="font-black tracking-[0.25em] text-xs uppercase text-[#C9A84C]">Kinetic Demo OS</span>
+            <span className="font-black tracking-[0.2em] text-[10px] sm:text-xs uppercase text-[#C9A84C] truncate">Kinetic Demo OS</span>
             <span className="text-[#4A453E] text-[9px] font-mono">v4.0</span>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-[8px] font-black tracking-widest uppercase">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[8px] font-black tracking-widest uppercase">
           <div className="flex items-center gap-1.5 text-[#1D9E75] bg-[#1D9E75]/10 px-3 py-1.5 rounded-full border border-[#1D9E75]/20">
             <ShieldCheck size={11} /> Seeded Health
           </div>
@@ -191,10 +195,10 @@ export default function KineticPage() {
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col xl:flex-row overflow-hidden">
 
         {/* LEFT: Live log stream */}
-        <div className="w-[28%] border-r border-[#C9A84C]/10 flex flex-col bg-[#0A0A0A]">
+        <div className="w-full xl:w-[28%] border-b xl:border-b-0 xl:border-r border-[#C9A84C]/10 flex flex-col bg-[#0A0A0A] max-h-[38vh] xl:max-h-none">
           <div className="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between bg-[#111111]/50 shrink-0">
             <div className="flex items-center gap-2">
               <Terminal size={12} className="text-[#C9A84C]" />
@@ -230,32 +234,32 @@ export default function KineticPage() {
         </div>
 
         {/* CENTER: Orbital visualization */}
-        <div className="flex-1 flex flex-col bg-[#0A0A0A] relative overflow-hidden">
+        <div className="flex-1 flex flex-col bg-[#0A0A0A] relative overflow-hidden min-h-0">
           {/* Ambient glow */}
           <div className="absolute inset-0 bg-gradient-radial from-[#C9A84C]/3 via-transparent to-transparent pointer-events-none" />
 
           {/* KPI row */}
-          <div className="grid grid-cols-3 gap-0 border-b border-[#C9A84C]/10 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border-b border-[#C9A84C]/10 shrink-0">
             {[
               { label: 'Demo GMV', value: `₹${(liveGMV / 100000).toFixed(1)}L`, color: 'text-[#C9A84C]' },
               { label: 'Seeded Leads', value: `${liveLeads} LPM`, color: 'text-blue-400' },
               { label: 'Review Load', value: 'LOW', color: 'text-[#1D9E75]' },
             ].map((stat, i) => (
-              <div key={i} className="py-5 px-6 border-r border-[#C9A84C]/10 last:border-r-0">
+              <div key={i} className="py-4 sm:py-5 px-4 sm:px-6 border-b sm:border-b-0 sm:border-r border-[#C9A84C]/10 last:border-r-0">
                 <div className="text-[8px] font-black uppercase tracking-[0.2em] text-[#4A453E] mb-2">{stat.label}</div>
-                <div className={`text-2xl font-black tracking-tighter tabular-nums ${stat.color}`}>{stat.value}</div>
+                <div className={`text-xl sm:text-2xl font-black tracking-tighter tabular-nums ${stat.color}`}>{stat.value}</div>
               </div>
             ))}
           </div>
 
           {/* Orbital canvas */}
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="relative">
+          <div className="flex-1 flex items-center justify-center p-4 sm:p-6 xl:p-8 min-h-0">
+            <div className="relative w-full max-w-[420px] sm:max-w-[520px] xl:max-w-none">
               <AgentOrbit selected={selected} onSelect={id => setSelected(selected === id ? null : id)} />
 
               {/* Selected node detail popup */}
               {selectedNode && (
-                <div className="absolute top-0 right-0 translate-x-full ml-4 w-48 bg-[#111111] rounded-2xl border border-[#C9A84C]/20 p-4 animate-in fade-in slide-in-from-left-2 duration-200">
+                <div className="absolute left-1/2 top-full mt-4 w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 xl:left-auto xl:right-0 xl:top-0 xl:mt-0 xl:ml-4 xl:translate-x-full bg-[#111111] rounded-2xl border border-[#C9A84C]/20 p-4 animate-in fade-in slide-in-from-left-2 duration-200">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C] font-mono">{selectedNode.name} Agent</span>
                     <button onClick={() => setSelected(null)} className="text-[#4A453E] hover:text-[#B8B0A0]">
@@ -276,17 +280,17 @@ export default function KineticPage() {
           </div>
 
           {/* Bottom: Revenue forecast bars */}
-          <div className="border-t border-[#C9A84C]/10 px-8 py-6 shrink-0">
-            <div className="flex items-end justify-between mb-3">
+          <div className="border-t border-[#C9A84C]/10 px-4 sm:px-6 xl:px-8 py-4 sm:py-6 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-3">
               <div>
                 <div className="text-[8px] font-mono uppercase tracking-[0.2em] text-[#4A453E] mb-0.5">Projected Monthly GMV</div>
-                <div className="text-xl font-black text-[#C9A84C] font-mono tracking-tighter">₹1,25,00,000</div>
+                <div className="text-lg sm:text-xl font-black text-[#C9A84C] font-mono tracking-tighter">₹1,25,00,000</div>
               </div>
               <div className="text-[8px] font-mono text-[#1D9E75] flex items-center gap-1">
                 <TrendingUp size={10} /> Demo forecast from seeded pipeline
               </div>
             </div>
-            <div className="h-14 flex items-end gap-1.5">
+            <div className="h-12 sm:h-14 flex items-end gap-1 sm:gap-1.5">
               {[38, 52, 45, 68, 62, 81, 76, 92, 88, 100, 95, 100].map((h, i) => (
                 <div key={i} className="flex-1 bg-[#1A1A1A] rounded-t overflow-hidden relative group">
                   <div
@@ -300,16 +304,16 @@ export default function KineticPage() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-1">
+            <div className="grid grid-cols-6 sm:flex sm:justify-between mt-2 gap-x-1 gap-y-1 overflow-hidden">
               {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m => (
-                <span key={m} className="text-[7px] font-mono text-[#4A453E] tracking-widest">{m}</span>
+                <span key={m} className="text-[7px] font-mono text-[#4A453E] tracking-widest text-center sm:text-left">{m}</span>
               ))}
             </div>
           </div>
         </div>
 
         {/* RIGHT: System metrics */}
-        <div className="w-[22%] border-l border-[#C9A84C]/10 flex flex-col bg-[#0A0A0A] overflow-y-auto no-scrollbar">
+        <div className="w-full xl:w-[22%] border-t xl:border-t-0 xl:border-l border-[#C9A84C]/10 flex flex-col bg-[#0A0A0A] overflow-y-auto no-scrollbar max-h-[52vh] xl:max-h-none">
           <div className="px-5 py-4 border-b border-[#C9A84C]/10 bg-[#111111]/50 shrink-0">
             <div className="flex items-center gap-2">
               <Activity size={12} className="text-[#C9A84C]" />
@@ -317,7 +321,7 @@ export default function KineticPage() {
             </div>
           </div>
 
-          <div className="p-5 space-y-5">
+          <div className="p-4 sm:p-5 space-y-5">
             {/* Agent status grid */}
             <div className="space-y-2.5">
               {NODES.map(node => {
