@@ -24,11 +24,13 @@ import {
   Globe2,
   Landmark,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Menu
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
   const [demoCompany, setDemoCompany] = useState(DEFAULT_DEMO_PROFILE.company);
   const [demoOperator, setDemoOperator] = useState(DEFAULT_DEMO_PROFILE.operator);
@@ -84,28 +86,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return pathname.startsWith(href);
   }
 
+  function handleNavigate() {
+    setMobileNavOpen(false);
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex font-body text-left text-[#F5F0E8]">
 
+      {mobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation overlay"
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+        />
+      )}
+
       {/* ── Sidebar ───────────────────────────────────────────────────── */}
-      <aside className={`${collapsed ? 'w-[68px]' : 'w-60'} bg-[#111111] transition-all duration-300 flex flex-col fixed inset-y-0 z-50 border-r border-[#C9A84C]/10 shrink-0`}>
+      <aside className={`${collapsed ? 'md:w-[68px]' : 'md:w-60'} ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 w-[82vw] max-w-[320px] bg-[#111111] transition-all duration-300 flex flex-col fixed inset-y-0 left-0 z-50 border-r border-[#C9A84C]/10 shrink-0`}>
 
         {/* Logo */}
-        <div className={`h-[60px] flex items-center border-b border-[#C9A84C]/10 ${collapsed ? 'px-4 justify-center' : 'px-5 justify-between'}`}>
+        <div className={`h-[60px] flex items-center border-b border-[#C9A84C]/10 ${collapsed ? 'md:px-4 md:justify-center' : 'px-5 justify-between'}`}>
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 bg-[#C9A84C] rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.25)] shrink-0">N</div>
-            {!collapsed && <span className="text-base font-black tracking-tighter font-headline text-[#C9A84C] uppercase">NAMA OS</span>}
+            {(!collapsed || mobileNavOpen) && <span className="text-base font-black tracking-tighter font-headline text-[#C9A84C] uppercase">NAMA OS</span>}
           </div>
-          {!collapsed && (
-            <button onClick={() => setCollapsed(true)} className="text-[#4A453E] hover:text-[#C9A84C] transition-colors">
-              <ChevronLeft size={15} />
+          <div className="flex items-center gap-2">
+            {!collapsed && (
+              <button onClick={() => setCollapsed(true)} className="hidden md:block text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+                <ChevronLeft size={15} />
+              </button>
+            )}
+            <button onClick={() => setMobileNavOpen(false)} className="text-[#4A453E] hover:text-[#C9A84C] transition-colors md:hidden">
+              <X size={16} />
             </button>
-          )}
+          </div>
         </div>
 
         {/* Collapse expand button when collapsed */}
         {collapsed && (
-          <button onClick={() => setCollapsed(false)} className="mx-auto mt-3 text-[#4A453E] hover:text-[#C9A84C] transition-colors">
+          <button onClick={() => setCollapsed(false)} className="mx-auto mt-3 text-[#4A453E] hover:text-[#C9A84C] transition-colors hidden md:block">
             <ChevronRight size={15} />
           </button>
         )}
@@ -114,7 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 px-3 py-4 overflow-y-auto no-scrollbar">
           {navGroups.map(group => (
             <div key={group.label} className="mb-5">
-              {!collapsed && (
+              {(!collapsed || mobileNavOpen) && (
                 <div className="text-[7px] font-black uppercase tracking-[0.25em] text-[#4A453E] font-mono px-3 mb-2">{group.label}</div>
               )}
               <div className="space-y-0.5">
@@ -124,21 +144,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Link
                       key={item.name}
                       href={item.href}
+                      onClick={handleNavigate}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative group ${
                         active
                           ? 'bg-[#C9A84C]/10 text-[#C9A84C]'
                           : 'text-[#4A453E] hover:text-[#B8B0A0] hover:bg-white/3'
-                      } ${collapsed ? 'justify-center' : ''}`}
+                      } ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}
                     >
                       {/* Active indicator */}
                       {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A84C] rounded-r-full" />}
                       <item.icon size={17} className={active ? 'text-[#C9A84C]' : 'text-[#4A453E] group-hover:text-[#B8B0A0] transition-colors'} />
-                      {!collapsed && (
+                      {(!collapsed || mobileNavOpen) && (
                         <span className={`text-[11px] font-semibold tracking-wide ${active ? 'text-[#C9A84C]' : 'text-[#B8B0A0] group-hover:text-[#F5F0E8]'}`}>
                           {item.name}
                         </span>
                       )}
-                      {!collapsed && item.badge && (
+                      {(!collapsed || mobileNavOpen) && item.badge && (
                         <span className={`ml-auto text-[7px] font-black px-1.5 py-0.5 rounded-full text-white ${item.badgeColor}`}>
                           {item.badge}
                         </span>
@@ -158,17 +179,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className={`p-3 border-t border-[#C9A84C]/10 ${collapsed ? 'flex justify-center' : ''}`}>
           <Link
             href="/kinetic"
-            className={`flex items-center gap-3 px-3 py-3 rounded-2xl bg-[#C9A84C]/8 border border-[#C9A84C]/15 text-[#C9A84C] hover:bg-[#C9A84C]/15 transition-all shadow-[0_0_16px_rgba(201,168,76,0.06)] ${collapsed ? 'justify-center' : ''}`}
+            onClick={handleNavigate}
+            className={`flex items-center gap-3 px-3 py-3 rounded-2xl bg-[#C9A84C]/8 border border-[#C9A84C]/15 text-[#C9A84C] hover:bg-[#C9A84C]/15 transition-all shadow-[0_0_16px_rgba(201,168,76,0.06)] ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}
           >
             <Zap size={16} fill="currentColor" />
-            {!collapsed && <span className="font-black tracking-widest uppercase text-[9px]">Kinetic Engine</span>}
+            {(!collapsed || mobileNavOpen) && <span className="font-black tracking-widest uppercase text-[9px]">Kinetic Engine</span>}
           </Link>
         </div>
 
         {/* User profile */}
-        <div className={`p-3 border-t border-[#C9A84C]/10 flex items-center gap-3 bg-[#0A0A0A]/30 ${collapsed ? 'justify-center' : ''}`}>
+        <div className={`p-3 border-t border-[#C9A84C]/10 flex items-center gap-3 bg-[#0A0A0A]/30 ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}>
           <div className="w-8 h-8 rounded-full bg-[#1A1A1A] flex items-center justify-center font-bold border border-[#C9A84C]/20 text-[#C9A84C] text-xs shrink-0">RI</div>
-          {!collapsed && (
+          {(!collapsed || mobileNavOpen) && (
             <div className="overflow-hidden">
               <p className="text-[11px] font-bold truncate text-[#F5F0E8]">{demoOperator}</p>
               <p className="text-[8px] text-[#4A453E] truncate uppercase tracking-widest font-mono">{demoCompany}</p>
@@ -181,17 +203,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────────── */}
-      <main className={`${collapsed ? 'ml-[68px]' : 'ml-60'} flex-1 flex flex-col transition-all duration-300`}>
+      <main className={`${collapsed ? 'md:ml-[68px]' : 'md:ml-60'} ml-0 flex-1 flex flex-col transition-all duration-300`}>
 
         {/* Top header */}
-        <header className="h-[60px] bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#C9A84C]/10 px-7 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center bg-[#111111] rounded-full px-4 py-2 w-80 border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/30 transition-all">
-            <Search size={14} className="text-[#4A453E] mr-2.5 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search leads, deals, itineraries..."
-              className="bg-transparent border-none outline-none text-[11px] w-full text-[#F5F0E8] font-body placeholder:text-[#4A453E]"
-            />
+        <header className="bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#C9A84C]/10 px-4 md:px-7 py-3 md:h-[60px] flex flex-col md:flex-row md:items-center md:justify-between gap-3 sticky top-0 z-40">
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="md:hidden rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-2 text-[#C9A84C]"
+              aria-label="Open navigation"
+            >
+              <Menu size={16} />
+            </button>
+            <div className="flex items-center bg-[#111111] rounded-full px-4 py-2 flex-1 md:w-80 border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/30 transition-all min-w-0">
+              <Search size={14} className="text-[#4A453E] mr-2.5 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search leads, deals, itineraries..."
+                className="bg-transparent border-none outline-none text-[11px] w-full min-w-0 text-[#F5F0E8] font-body placeholder:text-[#4A453E]"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-5">
             <button
@@ -212,7 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <div className="p-8 bg-[#0A0A0A] min-h-[calc(100vh-60px)]">
+        <div className="p-4 md:p-8 bg-[#0A0A0A] min-h-[calc(100vh-60px)]">
           {showHeaderNotice && (
             <div className="mb-6 rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-5 py-4">
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">

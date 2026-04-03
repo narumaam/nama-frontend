@@ -244,15 +244,15 @@ export default function AutopilotPage() {
     <div className="space-y-7 animate-in fade-in duration-700 pb-16">
 
       {/* ── Top header ──────────────────────────────────────────────────── */}
-      <div className="flex items-end justify-between">
-        <div>
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
           <div className="flex items-center gap-3 mb-2">
             <Zap size={12} className="text-[#C9A84C]" fill="currentColor" />
             <span className="text-[9px] font-mono font-black uppercase tracking-[0.25em] text-[#C9A84C]">NAMA Autopilot OS</span>
             <span className="w-px h-3 bg-[#C9A84C]/20" />
             <LiveTicker />
           </div>
-          <h1 className="text-[40px] font-black tracking-[-0.04em] text-[#F5F0E8] font-headline uppercase leading-none">
+          <h1 className="text-3xl sm:text-[40px] font-black tracking-[-0.04em] text-[#F5F0E8] font-headline uppercase leading-none">
             Command Center
           </h1>
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
@@ -299,7 +299,7 @@ export default function AutopilotPage() {
         </div>
 
         {/* Autopilot toggle */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between xl:justify-end gap-4">
           <div className="text-right">
             <div className="text-[8px] font-mono uppercase tracking-[0.2em] text-[#4A453E] mb-0.5">System Mode</div>
             <div className={`text-[10px] font-black font-mono uppercase tracking-widest ${autopilot ? 'text-[#1D9E75]' : 'text-[#C9A84C]'}`}>
@@ -325,7 +325,7 @@ export default function AutopilotPage() {
       </div>
 
       {/* ── KPI Strip ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
           { label: 'Pipeline Value',    value: '₹32,10,000', Icon: TrendingUp,   glow: 'shadow-[0_0_20px_rgba(201,168,76,0.06)]',  color: 'text-[#C9A84C]' },
           { label: "Today's Revenue",   value: '₹8,40,000',  Icon: DollarSign,   glow: 'shadow-[0_0_20px_rgba(29,158,117,0.06)]',  color: 'text-[#1D9E75]' },
@@ -343,10 +343,10 @@ export default function AutopilotPage() {
       </div>
 
       {/* ── Main 2-col layout ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-7">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-7">
 
         {/* Attention Feed ── 2 cols */}
-        <div className="col-span-2 space-y-4">
+        <div className="xl:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <Activity size={13} className="text-[#C9A84C]" />
@@ -376,7 +376,7 @@ export default function AutopilotPage() {
                 Open Case
               </Link>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               <FocusTile label="What autopilot sees" value={selectedFocus.headline} />
               <FocusTile label="Why it matters" value={selectedFocus.subtext} />
               <FocusTile label="Next operator move" value={selectedFocus.cta} />
