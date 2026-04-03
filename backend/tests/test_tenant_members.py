@@ -22,21 +22,56 @@ def test_tenant_members_list_contract() -> None:
     assert any(member["role"] == "customer-admin" for member in body["members"])
 
 
-def test_promote_invite_returns_active_member() -> None:
+def test_upsert_tenant_member() -> None:
     response = client.post(
-        "/api/v1/tenant-members/promote",
+        "/api/v1/tenant-members/upsert",
         json={
             "tenant_name": "Aurora Reserve Travel",
-            "invite_id": "invite-ritika",
             "name": "Ritika Sen",
             "email": "ritika@aurora.example",
             "role": "sales",
             "designation": "Senior Executive",
             "team": "Sales Desk",
+            "status": "Invited",
+            "source": "manual",
         },
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "Active"
-    assert body["source"] == "accepted-invite"
+    assert body["status"] == "Invited"
+    assert body["source"] == "manual"
     assert body["role"] == "sales"
+
+
+def test_bulk_upsert_tenant_members() -> None:
+    response = client.post(
+        "/api/v1/tenant-members/bulk",
+        json={
+            "tenant_name": "Aurora Reserve Travel",
+            "members": [
+                {
+                    "tenant_name": "Aurora Reserve Travel",
+                    "name": "Asha Rao",
+                    "email": "asha@aurora.example",
+                    "role": "operations",
+                    "designation": "Trip Designer",
+                    "team": "Luxury Desk",
+                    "status": "Seeded",
+                },
+                {
+                    "tenant_name": "Aurora Reserve Travel",
+                    "name": "Farah Khan",
+                    "email": "farah@aurora.example",
+                    "role": "finance",
+                    "designation": "Accounts Lead",
+                    "team": "Billing",
+                    "status": "Active",
+                },
+            ],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tenant_name"] == "Aurora Reserve Travel"
+    assert len(body["members"]) >= 4
+    assert any(member["email"] == "asha@aurora.example" for member in body["members"])
