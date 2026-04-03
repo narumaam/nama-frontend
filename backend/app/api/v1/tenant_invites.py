@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.api.v1.tenant_members import TenantMemberUpsertRequest, upsert_tenant_member
+from app.api.v1.tenant_members import upsert_tenant_member
 
 router = APIRouter()
 
@@ -64,6 +64,23 @@ class AcceptTenantInviteRequest(BaseModel):
     team: Optional[str] = None
     reports_to: Optional[str] = None
     responsibility: Optional[str] = None
+
+
+def _payload_to_invite_request(payload: dict[str, Any]) -> CreateTenantInviteRequest:
+    nested = payload.get("invite") if isinstance(payload.get("invite"), dict) else None
+    source = nested or payload
+    tenant_name = source.get("tenant_name") or payload.get("tenant_name")
+    return CreateTenantInviteRequest(
+        tenant_name=tenant_name,
+        name=source.get("name", ""),
+        email=source.get("email", ""),
+        role=source.get("role", "viewer"),
+        designation=source.get("designation", "Workspace Member"),
+        team=source.get("team", "Operations"),
+        reports_to=source.get("reports_to", "Customer Admin"),
+        responsibility=source.get("responsibility", "Workspace participation"),
+        status=_normalize_status(source.get("status", "Pending")),
+    )
 
 
 def _normalize_tenant_name(tenant_name: str) -> str:
@@ -195,22 +212,25 @@ def _accept_invite(invite: TenantInviteRecord, payload: AcceptTenantInviteReques
         }
     )
     upsert_tenant_member(
-        TenantMemberUpsertRequest(
-            tenant_name=updated_invite.tenant_name,
-            id=updated_invite.id,
-            name=updated_invite.name,
-            email=updated_invite.email,
-            role=updated_invite.role,
-            designation=updated_invite.designation,
-            team=updated_invite.team,
-            status="Active",
-            source="accepted-invite",
-            reports_to=updated_invite.reports_to,
-            responsibility=updated_invite.responsibility,
-            invite_id=updated_invite.id,
-            invited_at=updated_invite.invited_at,
-            accepted_at=updated_invite.accepted_at,
-        )
+        {
+            "tenant_name": updated_invite.tenant_name,
+            "member": {
+                "id": updated_invite.id,
+                "tenant_name": updated_invite.tenant_name,
+                "name": updated_invite.name,
+                "email": updated_invite.email,
+                "role": updated_invite.role,
+                "designation": updated_invite.designation,
+                "team": updated_invite.team,
+                "status": "Active",
+                "source": "accepted-invite",
+                "reports_to": updated_invite.reports_to,
+                "responsibility": updated_invite.responsibility,
+                "invite_id": updated_invite.id,
+                "invited_at": updated_invite.invited_at,
+                "accepted_at": updated_invite.accepted_at,
+            },
+        }
     )
     return updated_invite
 
@@ -231,23 +251,26 @@ def list_tenant_invites(tenant_name: str = "Nair Luxury Escapes"):
 
 
 @router.post("", response_model=TenantInviteRecord)
-def create_tenant_invite(payload: CreateTenantInviteRequest):
-    if "@" not in payload.email:
+def create_tenant_invite(payload: dict[str, Any]):
+    request_model = _payload_to_invite_request(payload)
+    if "@" not in request_model.email:
         raise HTTPException(status_code=400, detail="Valid email required for tenant invite creation")
-    invite = _invite_from_payload(payload)
+    invite = _invite_from_payload(request_model)
     return _upsert_invite(invite)
 
 
 @router.post("/bulk", response_model=TenantInvitesResponse)
-def bulk_create_tenant_invites(payload: BulkCreateTenantInvitesRequest):
-    if not payload.invites:
+def bulk_create_tenant_invites(payload: dict[str, Any]):
+    tenant_name = payload.get("tenant_name", "Nair Luxury Escapes")
+    raw_invites = payload.get("invites", [])
+    if not raw_invites:
         raise HTTPException(status_code=400, detail="At least one invite is required for bulk create")
 
-    created_invites = [_invite_from_payload(invite, accepted_at=None) for invite in payload.invites]
+    created_invites = [_invite_from_payload(_payload_to_invite_request({"tenant_name": tenant_name, "invite": invite}), accepted_at=None) for invite in raw_invites]
     for invite in created_invites:
         _upsert_invite(invite)
 
-    tenant_key = _normalize_tenant_name(payload.tenant_name)
+    tenant_key = _normalize_tenant_name(tenant_name)
     return TenantInvitesResponse(
         tenant_name=tenant_key,
         source="backend-demo",
@@ -255,7 +278,7 @@ def bulk_create_tenant_invites(payload: BulkCreateTenantInvitesRequest):
     )
 
 
-@router.post("/accept", response_model=TenantInviteRecord)
+@router.post("/accept")
 def accept_tenant_invite(payload: AcceptTenantInviteRequest):
     tenant_key = _normalize_tenant_name(payload.tenant_name)
     invites = _seed_if_needed(tenant_key)
@@ -264,7 +287,26 @@ def accept_tenant_invite(payload: AcceptTenantInviteRequest):
         raise HTTPException(status_code=404, detail="Tenant invite not found")
     accepted_invite = _accept_invite(invite, payload)
     _upsert_invite(accepted_invite)
-    return accepted_invite
+    return {
+        "tenant_name": tenant_key,
+        "invite": accepted_invite,
+        "member": {
+            "id": accepted_invite.id,
+            "tenant_name": accepted_invite.tenant_name,
+            "name": accepted_invite.name,
+            "email": accepted_invite.email,
+            "role": accepted_invite.role,
+            "designation": accepted_invite.designation,
+            "team": accepted_invite.team,
+            "status": "Active",
+            "source": "accepted-invite",
+            "reports_to": accepted_invite.reports_to,
+            "responsibility": accepted_invite.responsibility,
+            "invite_id": accepted_invite.id,
+            "invited_at": accepted_invite.invited_at,
+            "accepted_at": accepted_invite.accepted_at,
+        },
+    }
 
 
 @router.get("/contract")

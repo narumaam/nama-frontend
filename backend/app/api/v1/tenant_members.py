@@ -201,6 +201,28 @@ def _member_from_payload(payload: Any) -> TenantMemberRecord:
     )
 
 
+def _payload_to_member_request(payload: dict[str, Any]) -> TenantMemberUpsertRequest:
+    nested = payload.get("member") if isinstance(payload.get("member"), dict) else None
+    source = nested or payload
+    tenant_name = source.get("tenant_name") or payload.get("tenant_name")
+    return TenantMemberUpsertRequest(
+        tenant_name=tenant_name,
+        id=source.get("id"),
+        name=source.get("name", ""),
+        email=source.get("email", ""),
+        role=source.get("role", "viewer"),
+        designation=source.get("designation", "Workspace Member"),
+        team=source.get("team", "Operations"),
+        status=source.get("status", "Seeded"),
+        source=source.get("source", "manual"),
+        reports_to=source.get("reports_to", "Customer Admin"),
+        responsibility=source.get("responsibility", "Workspace participation"),
+        invite_id=source.get("invite_id"),
+        invited_at=source.get("invited_at"),
+        accepted_at=source.get("accepted_at"),
+    )
+
+
 @router.get("/health")
 def health_check():
     return {"status": "ready", "module": "TENANT_MEMBERS"}
@@ -217,22 +239,25 @@ def list_tenant_members(tenant_name: str = "Nair Luxury Escapes"):
 
 
 @router.post("/upsert", response_model=TenantMemberRecord)
-def upsert_tenant_member(payload: TenantMemberUpsertRequest):
-    if "@" not in payload.email:
+def upsert_tenant_member(payload: dict[str, Any]):
+    request_model = _payload_to_member_request(payload)
+    if "@" not in request_model.email:
         raise HTTPException(status_code=400, detail="Valid email required for tenant member upsert")
-    return _upsert_member(_member_from_payload(payload))
+    return _upsert_member(_member_from_payload(request_model))
 
 
 @router.post("/bulk", response_model=TenantMembersResponse)
-def bulk_upsert_tenant_members(payload: TenantMemberBulkUpsertRequest):
-    if not payload.members:
+def bulk_upsert_tenant_members(payload: dict[str, Any]):
+    tenant_name = payload.get("tenant_name", "Nair Luxury Escapes")
+    raw_members = payload.get("members", [])
+    if not raw_members:
         raise HTTPException(status_code=400, detail="At least one member is required for bulk upsert")
 
-    normalized_members = [_member_from_payload(member) for member in payload.members]
+    normalized_members = [_member_from_payload(_payload_to_member_request({"tenant_name": tenant_name, "member": member})) for member in raw_members]
     for member in normalized_members:
         _upsert_member(member)
 
-    tenant_key = _normalize_tenant_name(payload.tenant_name)
+    tenant_key = _normalize_tenant_name(tenant_name)
     return TenantMembersResponse(
         tenant_name=tenant_key,
         source="backend-demo",

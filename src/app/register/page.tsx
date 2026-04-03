@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { upsertDemoTenantRegistration, writeDemoSubscriptionPlan, type DemoSubscriptionPlan } from "@/lib/demo-admin";
-import { createTenantAdminSession } from "@/lib/auth-session";
+import { createIssuedTenantSession, createTenantAdminSession } from "@/lib/auth-session";
 import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, findMarketPreset, type BusinessRole, type DemoPlan, type SupportedCurrency } from "@/lib/demo-config";
 import { appendDemoEvent } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, readDemoProfile, writeDemoProfile } from "@/lib/demo-profile";
+import { issueTenantSession } from "@/lib/session-api";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   ArrowRight,
@@ -107,7 +108,7 @@ export default function RegisterPage() {
     });
   }
 
-  function enterDemoWorkspace() {
+  async function enterDemoWorkspace() {
     setShowConfetti(true);
     const nextProfile = writeDemoProfile({
       company: companyName.trim() || DEFAULT_DEMO_PROFILE.company,
@@ -143,7 +144,32 @@ export default function RegisterPage() {
       detail: `${nextProfile.company} entered NAMA on the ${subscriptionPlan} plan for the ${nextProfile.market.country} market.`,
       path: "/dashboard",
     });
-    createTenantAdminSession(nextProfile.operator, nextProfile.company);
+    try {
+      const issuedSession = await issueTenantSession({
+        email: `${nextProfile.operator.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "") || "workspace.operator"}@${nextProfile.company
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "")
+          .slice(0, 24) || "tenant"}.demo`,
+        display_name: nextProfile.operator,
+        role: "customer-admin",
+        scope: "tenant",
+        tenant_name: nextProfile.company,
+      });
+
+      createIssuedTenantSession({
+        accessToken: issuedSession.id,
+        email: issuedSession.email,
+        displayName: issuedSession.display_name,
+        role: issuedSession.role === "super-admin" ? "customer-admin" : issuedSession.role,
+        tenantName: issuedSession.tenant_name || nextProfile.company,
+        memberId: issuedSession.member_id,
+        memberStatus: issuedSession.member_status,
+        designation: issuedSession.designation,
+        team: issuedSession.team,
+      });
+    } catch {
+      createTenantAdminSession(nextProfile.operator, nextProfile.company);
+    }
     window.setTimeout(() => {
       router.push("/dashboard");
     }, 900);
@@ -183,7 +209,7 @@ export default function RegisterPage() {
             className="mt-8 space-y-8"
             onSubmit={(e) => {
               e.preventDefault();
-              enterDemoWorkspace();
+              void enterDemoWorkspace();
             }}
           >
             <div className="grid gap-5 lg:grid-cols-2">

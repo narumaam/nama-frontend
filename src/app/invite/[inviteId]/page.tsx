@@ -6,10 +6,11 @@ import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Mail, Shield, Users } from "lucide-react";
 
-import { createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole } from "@/lib/auth-session";
+import { createIssuedTenantSession, createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole } from "@/lib/auth-session";
 import { promoteInviteToMember, promoteInviteToMemberViaApi, readDemoMemberRegistryState } from "@/lib/demo-members";
 import { readDemoProfile } from "@/lib/demo-profile";
-import { acceptDemoInvite, getInvitePath } from "@/lib/demo-workflow";
+import { acceptDemoInvite, acceptDemoInviteViaApi, getInvitePath, type DemoInviteRecord } from "@/lib/demo-workflow";
+import { issueTenantSession } from "@/lib/session-api";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 export default function InviteAcceptancePage() {
@@ -43,13 +44,20 @@ export default function InviteAcceptancePage() {
 
   async function acceptAndEnterWorkspace() {
     setIsAccepting(true);
-    const nextWorkflow = acceptDemoInvite(resolvedInvite.id);
-    const acceptedInvite = nextWorkflow.invites.find((item) => item.id === resolvedInvite.id) ?? {
-      ...resolvedInvite,
-      status: "Accepted" as const,
-    };
 
     try {
+      let acceptedInvite: DemoInviteRecord = {
+        ...resolvedInvite,
+        status: "Accepted" as const,
+      };
+      try {
+        const response = await acceptDemoInviteViaApi(resolvedInvite.id);
+        acceptedInvite = response.invite;
+      } catch {
+        const nextWorkflow = acceptDemoInvite(resolvedInvite.id);
+        acceptedInvite = nextWorkflow.invites.find((item) => item.id === resolvedInvite.id) ?? acceptedInvite;
+      }
+
       let member;
       try {
         member = await promoteInviteToMemberViaApi(acceptedInvite);
@@ -61,19 +69,46 @@ export default function InviteAcceptancePage() {
       }
 
       const tenantRole = normalizeTenantRole(member?.role || acceptedInvite.role);
-      const session =
-        member
-          ? createTenantMemberSession({
-              id: member.id,
-              email: member.email,
-              name: member.name,
-              role: member.role,
-              tenantName: member.tenantName,
-              status: member.status,
-              designation: member.designation,
-              team: member.team,
-            })
-          : createTenantRoleSession(acceptedInvite.name, profile.company, tenantRole);
+      let session;
+      try {
+        const issuedSession = await issueTenantSession({
+          email: member?.email || acceptedInvite.email,
+          display_name: member?.name || acceptedInvite.name,
+          role: member?.role || tenantRole,
+          scope: "tenant",
+          tenant_name: member?.tenantName || profile.company,
+          member_id: member?.id || null,
+          member_status: member?.status || "Active",
+          designation: member?.designation || acceptedInvite.designation,
+          team: member?.team || acceptedInvite.team,
+        });
+
+        session = createIssuedTenantSession({
+          accessToken: issuedSession.id,
+          email: issuedSession.email,
+          displayName: issuedSession.display_name,
+          role: issuedSession.role === "super-admin" ? tenantRole : issuedSession.role,
+          tenantName: issuedSession.tenant_name || profile.company,
+          memberId: issuedSession.member_id,
+          memberStatus: issuedSession.member_status,
+          designation: issuedSession.designation,
+          team: issuedSession.team,
+        });
+      } catch {
+        session =
+          member
+            ? createTenantMemberSession({
+                id: member.id,
+                email: member.email,
+                name: member.name,
+                role: member.role,
+                tenantName: member.tenantName,
+                status: member.status,
+                designation: member.designation,
+                team: member.team,
+              })
+            : createTenantRoleSession(acceptedInvite.name, profile.company, tenantRole);
+      }
 
       router.push(getDefaultRouteForRole(session?.role ?? tenantRole));
     } finally {

@@ -3,6 +3,14 @@ import { DEMO_PROFILE_STORAGE_KEYS } from "@/lib/demo-config";
 import { DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
 import { appendDemoEvent } from "@/lib/demo-events";
 import { readDemoProfile } from "@/lib/demo-profile";
+import { normalizeTenantRole } from "@/lib/auth-session";
+import {
+  acceptTenantInvite,
+  bulkCreateTenantInvites,
+  createTenantInvite,
+  fetchTenantInvites,
+  type TenantInviteApiRecord,
+} from "@/lib/tenant-invites-api";
 
 export type DemoInviteStatus = "Draft" | "Pending" | "Accepted";
 export type DemoLeadStage = "New" | "Qualified" | "Quoted" | "Follow Up" | "Won";
@@ -333,6 +341,23 @@ function normalizeInviteRecord(invite: Partial<DemoInviteRecord>, fallback: Demo
   };
 }
 
+function inviteFromApiRecord(invite: TenantInviteApiRecord): DemoInviteRecord {
+  return {
+    id: invite.id,
+    name: invite.name,
+    email: invite.email,
+    role: invite.role,
+    designation: invite.designation,
+    team: invite.team,
+    reportsTo: invite.reports_to,
+    responsibility: invite.responsibility,
+    status: invite.status,
+    createdAt: invite.created_at,
+    invitedAt: invite.invited_at,
+    acceptedAt: invite.accepted_at,
+  };
+}
+
 function normalizeEmployeeRecord(employee: Partial<DemoEmployeeRecord>, fallback: DemoEmployeeRecord): DemoEmployeeRecord {
   return {
     ...fallback,
@@ -419,6 +444,14 @@ export function writeDemoWorkflowState(input: Partial<DemoWorkflowState>): DemoW
   return nextState;
 }
 
+export async function syncTenantInvitesFromApi(tenantName = getCurrentTenantName()) {
+  const response = await fetchTenantInvites(tenantName);
+  const nextState = writeDemoWorkflowState({
+    invites: response.invites.map(inviteFromApiRecord),
+  });
+  return nextState;
+}
+
 export function replaceDemoWorkflowState(state: DemoWorkflowInput) {
   const nextState = normalizeWorkflowState(state);
   persistWorkflowState(nextState);
@@ -462,6 +495,57 @@ export function createDemoInvite(input: Omit<DemoInviteRecord, "id" | "status" |
     path: "/dashboard/team",
   });
   return nextState;
+}
+
+export async function createDemoInviteViaApi(input: Omit<DemoInviteRecord, "id" | "status" | "createdAt" | "invitedAt"> & { status?: DemoInviteStatus }) {
+  const invite = await createTenantInvite({
+    tenant_name: getCurrentTenantName(),
+    invite: {
+      id: "",
+      tenant_name: getCurrentTenantName(),
+      name: input.name.trim(),
+      email: input.email.trim(),
+      role: normalizeTenantRole(input.role),
+      designation: input.designation.trim(),
+      team: input.team.trim(),
+      reports_to: input.reportsTo.trim(),
+      responsibility: input.responsibility.trim(),
+      status: input.status ?? "Pending",
+      source: "manual",
+    },
+  });
+
+  return writeDemoWorkflowState({
+    invites: [inviteFromApiRecord(invite), ...readDemoWorkflowState().invites.filter((item) => item.id !== invite.id)],
+  });
+}
+
+export async function createBulkDemoInvitesViaApi(employees: DemoEmployeeRecord[]) {
+  const response = await bulkCreateTenantInvites({
+    tenant_name: getCurrentTenantName(),
+    invites: employees.map((employee) => ({
+      id: "",
+      tenant_name: getCurrentTenantName(),
+      name: employee.name,
+      email: employee.email,
+      role: normalizeTenantRole(employee.role),
+      designation: employee.designation,
+      team: employee.team,
+      reports_to: employee.reportsTo,
+      responsibility: employee.responsibility,
+      status: "Pending" as const,
+      source: "employee-directory" as const,
+    })),
+  });
+
+  const existingInvites = readDemoWorkflowState().invites;
+  const responseIds = new Set(response.invites.map((invite) => invite.id));
+  return writeDemoWorkflowState({
+    invites: [
+      ...response.invites.map(inviteFromApiRecord),
+      ...existingInvites.filter((invite) => !responseIds.has(invite.id)),
+    ],
+  });
 }
 
 export function upsertDemoEmployees(employees: DemoEmployeeRecord[]) {
@@ -536,6 +620,16 @@ export function acceptDemoInvite(inviteId: string) {
     });
   }
   return nextState;
+}
+
+export async function acceptDemoInviteViaApi(inviteId: string) {
+  const response = await acceptTenantInvite({ tenant_name: getCurrentTenantName(), invite_id: inviteId });
+  const nextState = updateDemoInvite(response.invite.id, {
+    status: response.invite.status,
+    acceptedAt: response.invite.accepted_at,
+    invitedAt: response.invite.invited_at,
+  });
+  return { invite: inviteFromApiRecord(response.invite), workflow: nextState };
 }
 
 export function updateDemoCaseWorkflow(slug: string, patch: Partial<DemoCaseWorkflowState>) {

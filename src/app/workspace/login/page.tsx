@@ -5,10 +5,11 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Briefcase, CreditCard, Eye, Shield, Sparkles, Users } from "lucide-react";
 
-import { createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
+import { createIssuedTenantSession, createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
 import { type DemoMemberRecord } from "@/lib/demo-members";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { readDemoWorkflowState, type DemoEmployeeRecord, type DemoInviteRecord } from "@/lib/demo-workflow";
+import { issueTenantSession } from "@/lib/session-api";
 import { useDemoMembers } from "@/lib/use-demo-members";
 
 type TenantRoleOption = {
@@ -144,21 +145,47 @@ export default function WorkspaceLoginPage() {
     return TENANT_ROLE_OPTIONS.map((option) => resolvePersona(option, workflow.employees, workflow.invites, profile.company, profile.operator));
   }, [memberRegistry.members, profile.company, profile.operator]);
 
-  function enterWorkspace(persona: PersonaCard) {
+  async function enterWorkspace(persona: PersonaCard) {
     const member = memberRegistry.members.find((item) => item.id === persona.id);
-    if (member) {
-      createTenantMemberSession({
-        id: member.id,
-        email: member.email,
-        name: member.name,
-        role: member.role,
-        tenantName: member.tenantName,
-        status: member.status,
-        designation: member.designation,
-        team: member.team,
+    try {
+      const issuedSession = await issueTenantSession({
+        email: member?.email || persona.email,
+        display_name: member?.name || persona.displayName,
+        role: member?.role || persona.role,
+        scope: "tenant",
+        tenant_name: member?.tenantName || profile.company,
+        member_id: member?.id || null,
+        member_status: member?.status || null,
+        designation: member?.designation || persona.designation,
+        team: member?.team || persona.team,
       });
-    } else {
-      createTenantRoleSession(persona.displayName, profile.company, persona.role);
+
+      createIssuedTenantSession({
+        accessToken: issuedSession.id,
+        email: issuedSession.email,
+        displayName: issuedSession.display_name,
+        role: issuedSession.role === "super-admin" ? persona.role : issuedSession.role,
+        tenantName: issuedSession.tenant_name || profile.company,
+        memberId: issuedSession.member_id,
+        memberStatus: issuedSession.member_status,
+        designation: issuedSession.designation,
+        team: issuedSession.team,
+      });
+    } catch {
+      if (member) {
+        createTenantMemberSession({
+          id: member.id,
+          email: member.email,
+          name: member.name,
+          role: member.role,
+          tenantName: member.tenantName,
+          status: member.status,
+          designation: member.designation,
+          team: member.team,
+        });
+      } else {
+        createTenantRoleSession(persona.displayName, profile.company, persona.role);
+      }
     }
     setMessage(`${persona.heading} entry granted for ${persona.displayName}. Opening the workspace route for that member now.`);
     router.push(getDefaultRouteForRole(persona.role));
@@ -186,7 +213,7 @@ export default function WorkspaceLoginPage() {
                 <button
                   key={persona.id}
                   type="button"
-                  onClick={() => enterWorkspace(persona)}
+                  onClick={() => void enterWorkspace(persona)}
                   className="rounded-[28px] border border-white/10 bg-black/20 p-6 text-left transition hover:border-[#C9A84C]/30 hover:bg-black/30"
                 >
                   <div className="flex items-start justify-between gap-4">

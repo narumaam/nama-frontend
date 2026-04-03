@@ -2,10 +2,16 @@ import { DEMO_PROFILE_STORAGE_KEYS } from "@/lib/demo-config";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { readDemoWorkflowState, type DemoEmployeeRecord, type DemoInviteRecord } from "@/lib/demo-workflow";
 import { normalizeTenantRole, type AppRole } from "@/lib/auth-session";
-import { fetchTenantMembers, promoteInviteMember, type TenantMemberApiRecord } from "@/lib/tenant-members-api";
+import {
+  bulkUpsertTenantMembers,
+  fetchTenantMembers,
+  promoteInviteMember,
+  upsertTenantMember,
+  type TenantMemberApiRecord,
+} from "@/lib/tenant-members-api";
 
 export type DemoMemberStatus = "Seeded" | "Invited" | "Active";
-export type DemoMemberSource = "tenant-profile" | "employee-directory" | "accepted-invite" | "manual" | "backend-demo";
+export type DemoMemberSource = "tenant-profile" | "employee-directory" | "accepted-invite" | "manual" | "backend-demo" | "demo-api";
 
 export type DemoMemberRecord = {
   id: string;
@@ -250,6 +256,58 @@ export async function syncTenantMembersFromApi(tenantName = readDemoProfile().co
   const seededMembers = seedDemoMembers();
   const merged = mergeSeededMembers(backendMembers, seededMembers);
   return writeDemoMemberRegistryState({ members: merged });
+}
+
+export async function upsertDemoMemberViaApi(input: DemoMemberInput & { tenantName?: string }) {
+  const tenantName = input.tenantName?.trim() || readDemoProfile().company;
+  const record = await upsertTenantMember({
+    tenant_name: tenantName,
+    member: {
+      id: input.id || "",
+      tenant_name: tenantName,
+      name: input.name.trim(),
+      email: input.email.trim(),
+      role: normalizeTenantRole(input.role || "viewer"),
+      designation: input.designation.trim(),
+      team: input.team.trim(),
+      reports_to: input.reportsTo?.trim() || "Customer Admin",
+      responsibility: input.responsibility?.trim() || "Workspace participation",
+      status: input.status ?? "Active",
+      source: input.source ?? "employee-directory",
+    },
+  });
+
+  return upsertDemoMember({
+    ...memberFromApiRecord(record),
+    reportsTo: input.reportsTo?.trim() || "Customer Admin",
+    responsibility: input.responsibility?.trim() || "Workspace participation",
+  });
+}
+
+export async function bulkUpsertDemoMembersViaApi(inputs: DemoMemberInput[], tenantName = readDemoProfile().company) {
+  const response = await bulkUpsertTenantMembers({
+    tenant_name: tenantName,
+    members: inputs.map((input) => ({
+      id: input.id || "",
+      tenant_name: tenantName,
+      name: input.name.trim(),
+      email: input.email.trim(),
+      role: normalizeTenantRole(input.role || "viewer"),
+      designation: input.designation.trim(),
+      team: input.team.trim(),
+      reports_to: input.reportsTo?.trim() || "Customer Admin",
+      responsibility: input.responsibility?.trim() || "Workspace participation",
+      status: input.status ?? "Active",
+      source: input.source ?? "employee-directory",
+    })),
+  });
+
+  const apiMembers = response.members.map(memberFromApiRecord);
+  const currentState = readDemoMemberRegistryState();
+  const responseIds = new Set(apiMembers.map((member) => member.id));
+  return writeDemoMemberRegistryState({
+    members: [...apiMembers, ...currentState.members.filter((member) => !responseIds.has(member.id))],
+  });
 }
 
 export function resetDemoMemberRegistryState() {

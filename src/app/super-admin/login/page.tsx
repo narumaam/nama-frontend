@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, Shield, Sparkles } from "lucide-react";
 import { SUPER_ADMIN_DEMO_CODE, SUPER_ADMIN_DEMO_EMAIL, validateSuperAdminCredentials } from "@/lib/super-admin-session";
-import { createSuperAdminSession } from "@/lib/auth-session";
+import { createIssuedSuperAdminSession, createSuperAdminSession } from "@/lib/auth-session";
+import { issueSuperAdminSession } from "@/lib/session-api";
 
 const ACCESS_NOTES = [
   "Use this route only for NAMA platform-control access.",
@@ -23,7 +24,7 @@ export default function SuperAdminLoginPage() {
     [],
   );
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validateSuperAdminCredentials(email, accessCode)) {
@@ -31,7 +32,19 @@ export default function SuperAdminLoginPage() {
       return;
     }
 
-    createSuperAdminSession("NAMA Super Admin", email);
+    try {
+      const issuedSession = await issueSuperAdminSession({
+        email,
+        display_name: "NAMA Super Admin",
+      });
+      createIssuedSuperAdminSession({
+        accessToken: issuedSession.id,
+        email: issuedSession.email,
+        displayName: issuedSession.display_name,
+      });
+    } catch {
+      createSuperAdminSession("NAMA Super Admin", email);
+    }
     setMessage("Super Admin session granted. Opening the control tower.");
     router.push("/dashboard/admin?entry=super-admin");
   }

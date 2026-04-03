@@ -2,12 +2,21 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { canPerformAction } from "@/lib/auth-session";
+import { canPerformAction, normalizeTenantRole } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
 import { DEMO_CASE_ASSIGNMENTS } from "@/lib/demo-case-profiles";
+import { bulkUpsertDemoMembersViaApi, syncTenantMembersFromApi, upsertDemoMemberViaApi } from "@/lib/demo-members";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain, writeDemoProfile } from "@/lib/demo-profile";
-import { createDemoInvite, createEmployeeRecord, getInvitePath, upsertDemoEmployees, type DemoInviteRecord } from "@/lib/demo-workflow";
+import {
+  createBulkDemoInvitesViaApi,
+  createDemoInvite,
+  createDemoInviteViaApi,
+  createEmployeeRecord,
+  getInvitePath,
+  upsertDemoEmployees,
+  type DemoInviteRecord,
+} from "@/lib/demo-workflow";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useAppSession } from "@/lib/use-app-session";
 import { useDemoProfile } from "@/lib/use-demo-profile";
@@ -136,6 +145,7 @@ export default function TeamPage() {
   const [inviteResponsibility, setInviteResponsibility] = useState(DEMO_CASE_ROUTES.slice(0, 2).map((item) => item.destination).join(", "));
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [inviteMessage, setInviteMessage] = useState("Invites are ready to send.");
+  const [isWorking, setIsWorking] = useState(false);
 
   const filteredInvites = useMemo(
     () => workflow.invites.filter((invite) => invite.role === selectedRole || selectedRole === "All"),
@@ -208,23 +218,40 @@ export default function TeamPage() {
     setInviteMessage(`Loaded ${employee.name} from the employee directory.`);
   }
 
-  function sendInviteForCurrentForm() {
+  async function sendInviteForCurrentForm() {
     if (!inviteName.trim() || !inviteEmail.trim()) {
       setInviteMessage("Name and email are required before an invite can be sent.");
       return;
     }
-
-    createDemoInvite({
-      name: inviteName,
-      email: inviteEmail,
-      role: inviteRole,
-      designation: inviteDesignation,
-      team: inviteTeam,
-      reportsTo: inviteReportsTo,
-      responsibility: inviteResponsibility,
-      status: "Pending",
-    });
-    setInviteMessage(`Invite sent to ${inviteName}.`);
+    setIsWorking(true);
+    try {
+      try {
+        await createDemoInviteViaApi({
+          name: inviteName,
+          email: inviteEmail,
+          role: inviteRole,
+          designation: inviteDesignation,
+          team: inviteTeam,
+          reportsTo: inviteReportsTo,
+          responsibility: inviteResponsibility,
+          status: "Pending",
+        });
+      } catch {
+        createDemoInvite({
+          name: inviteName,
+          email: inviteEmail,
+          role: inviteRole,
+          designation: inviteDesignation,
+          team: inviteTeam,
+          reportsTo: inviteReportsTo,
+          responsibility: inviteResponsibility,
+          status: "Pending",
+        });
+      }
+      setInviteMessage(`Invite sent to ${inviteName}.`);
+    } finally {
+      setIsWorking(false);
+    }
   }
 
   function toggleSelectedEmployee(employeeId: string) {
@@ -233,27 +260,35 @@ export default function TeamPage() {
     );
   }
 
-  function sendInvitesToSelectedEmployees() {
+  async function sendInvitesToSelectedEmployees() {
     const selectedEmployees = workflow.employees.filter((employee) => selectedEmployeeIds.includes(employee.id));
     if (!selectedEmployees.length) {
       setInviteMessage("Select at least one employee before sending invites in bulk.");
       return;
     }
-
-    selectedEmployees.forEach((employee) => {
-      createDemoInvite({
-        name: employee.name,
-        email: employee.email,
-        role: employee.role,
-        designation: employee.designation,
-        team: employee.team,
-        reportsTo: employee.reportsTo,
-        responsibility: employee.responsibility,
-        status: "Pending",
-      });
-    });
-    setInviteMessage(`Sent ${selectedEmployees.length} employee invite${selectedEmployees.length > 1 ? "s" : ""}.`);
-    setSelectedEmployeeIds([]);
+    setIsWorking(true);
+    try {
+      try {
+        await createBulkDemoInvitesViaApi(selectedEmployees);
+      } catch {
+        selectedEmployees.forEach((employee) => {
+          createDemoInvite({
+            name: employee.name,
+            email: employee.email,
+            role: employee.role,
+            designation: employee.designation,
+            team: employee.team,
+            reportsTo: employee.reportsTo,
+            responsibility: employee.responsibility,
+            status: "Pending",
+          });
+        });
+      }
+      setInviteMessage(`Sent ${selectedEmployees.length} employee invite${selectedEmployees.length > 1 ? "s" : ""}.`);
+      setSelectedEmployeeIds([]);
+    } finally {
+      setIsWorking(false);
+    }
   }
 
   function downloadEmployeeTemplate() {
@@ -294,8 +329,35 @@ export default function TeamPage() {
         return;
       }
 
-      upsertDemoEmployees(employees);
-      setInviteMessage(`Imported ${employees.length} employee${employees.length > 1 ? "s" : ""} into the directory.`);
+      setIsWorking(true);
+      void (async () => {
+        try {
+          try {
+            await bulkUpsertDemoMembersViaApi(
+              employees.map((employee) => ({
+                tenantName: visibleCompany,
+                name: employee.name,
+                email: employee.email,
+                role: normalizeTenantRole(employee.role),
+                designation: employee.designation,
+                team: employee.team,
+                reportsTo: employee.reportsTo,
+                responsibility: employee.responsibility,
+                status: "Active",
+                source: "employee-directory",
+              }))
+            );
+            await syncTenantMembersFromApi(visibleCompany);
+          } catch {
+            // Local fallback remains the safety net for frontend-only demos.
+          }
+
+          upsertDemoEmployees(employees);
+          setInviteMessage(`Imported ${employees.length} employee${employees.length > 1 ? "s" : ""} into the directory.`);
+        } finally {
+          setIsWorking(false);
+        }
+      })();
     };
     reader.readAsText(file);
     event.target.value = "";
@@ -344,11 +406,12 @@ export default function TeamPage() {
             type="button"
             onClick={() => {
               setSelectedMode("invite");
-              sendInviteForCurrentForm();
+              void sendInviteForCurrentForm();
             }}
-            className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.18)]"
+            disabled={isWorking}
+            className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Send Invite
+            {isWorking ? "Working..." : "Send Invite"}
           </button>
         </div>
       </div>
@@ -491,35 +554,61 @@ export default function TeamPage() {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={sendInviteForCurrentForm}
-                    disabled={!canInvite}
+                    onClick={() => void sendInviteForCurrentForm()}
+                    disabled={!canInvite || isWorking}
                     className={`rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest ${
-                      canInvite ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#111111] text-[#4A453E]"
+                      canInvite && !isWorking ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#111111] text-[#4A453E]"
                     }`}
                   >
-                    Send Individual Invite
+                    {isWorking ? "Sending..." : "Send Individual Invite"}
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      upsertDemoEmployees([
-                        createEmployeeRecord({
-                          name: inviteName,
-                          email: inviteEmail,
-                          role: inviteRole,
-                          designation: inviteDesignation,
-                          team: inviteTeam,
-                          reportsTo: inviteReportsTo,
-                          responsibility: inviteResponsibility,
-                        }),
-                      ])
-                    }
-                    disabled={!canSaveEmployee}
+                    onClick={() => {
+                      const employee = createEmployeeRecord({
+                        name: inviteName,
+                        email: inviteEmail,
+                        role: inviteRole,
+                        designation: inviteDesignation,
+                        team: inviteTeam,
+                        reportsTo: inviteReportsTo,
+                        responsibility: inviteResponsibility,
+                      });
+
+                      setIsWorking(true);
+                      void (async () => {
+                        try {
+                          try {
+                            await upsertDemoMemberViaApi({
+                              id: employee.id,
+                              tenantName: visibleCompany,
+                              name: employee.name,
+                              email: employee.email,
+                              role: normalizeTenantRole(employee.role),
+                              designation: employee.designation,
+                              team: employee.team,
+                              reportsTo: employee.reportsTo,
+                              responsibility: employee.responsibility,
+                              status: "Active",
+                              source: "employee-directory",
+                            });
+                            await syncTenantMembersFromApi(visibleCompany);
+                          } catch {
+                            // Local employee directory remains available when the API path is unavailable.
+                          }
+                          upsertDemoEmployees([employee]);
+                          setInviteMessage(`${employee.name} saved to the employee directory.`);
+                        } finally {
+                          setIsWorking(false);
+                        }
+                      })();
+                    }}
+                    disabled={!canSaveEmployee || isWorking}
                     className={`rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest ${
-                      canSaveEmployee ? "border-[#C9A84C]/15 bg-[#111111] text-[#C9A84C]" : "border-white/10 bg-[#111111] text-[#4A453E]"
+                      canSaveEmployee && !isWorking ? "border-[#C9A84C]/15 bg-[#111111] text-[#C9A84C]" : "border-white/10 bg-[#111111] text-[#4A453E]"
                     }`}
                   >
-                    Save to Employee List
+                    {isWorking ? "Saving..." : "Save to Employee List"}
                   </button>
                 </div>
                 <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm text-[#B8B0A0]">
@@ -578,14 +667,14 @@ export default function TeamPage() {
                   </label>
                   <button
                     type="button"
-                    onClick={sendInvitesToSelectedEmployees}
-                    disabled={!canBulkInvite}
+                    onClick={() => void sendInvitesToSelectedEmployees()}
+                    disabled={!canBulkInvite || isWorking}
                     className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest ${
-                      canBulkInvite ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#111111] text-[#4A453E]"
+                      canBulkInvite && !isWorking ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#111111] text-[#4A453E]"
                     }`}
                   >
                     <Send size={12} />
-                    Send to Selected
+                    {isWorking ? "Sending..." : "Send to Selected"}
                   </button>
                 </div>
                 <div className="overflow-hidden rounded-2xl border border-[#C9A84C]/10">

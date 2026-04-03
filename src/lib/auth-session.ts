@@ -35,6 +35,8 @@ export type AppSession = {
   memberStatus?: string | null;
   designation?: string | null;
   team?: string | null;
+  accessToken?: string | null;
+  issuedBy?: "local-demo" | "api-issued" | null;
   source: "alpha-demo" | "beta-foundation";
   grantedAt: string;
 };
@@ -161,6 +163,8 @@ export function createAppSession(session: Omit<AppSession, "grantedAt" | "source
   if (!canUseStorage()) return null;
   const nextSession: AppSession = {
     ...session,
+    accessToken: session.accessToken ?? null,
+    issuedBy: session.issuedBy ?? "local-demo",
     source: session.source ?? "beta-foundation",
     grantedAt: new Date().toISOString(),
   };
@@ -271,6 +275,7 @@ export function createTenantRoleSession(displayName: string, tenantName: string,
     role,
     scope: "tenant",
     tenantName: normalizedTenant,
+    issuedBy: "local-demo",
   });
 }
 
@@ -285,6 +290,7 @@ export function createTenantMemberSession(member: TenantMemberSessionRecord) {
     memberStatus: member.status?.trim() || null,
     designation: member.designation?.trim() || null,
     team: member.team?.trim() || null,
+    issuedBy: "local-demo",
   });
 }
 
@@ -295,5 +301,44 @@ export function createSuperAdminSession(displayName: string, email: string) {
     role: "super-admin",
     scope: "platform",
     tenantName: null,
+    issuedBy: "local-demo",
+  });
+}
+
+export function createIssuedTenantSession(input: {
+  accessToken: string;
+  email: string;
+  displayName: string;
+  role: Exclude<AppRole, "super-admin">;
+  tenantName: string;
+  memberId?: string | null;
+  memberStatus?: string | null;
+  designation?: string | null;
+  team?: string | null;
+}) {
+  return createAppSession({
+    email: input.email.trim(),
+    displayName: input.displayName.trim(),
+    role: normalizeTenantRole(input.role),
+    scope: "tenant",
+    tenantName: input.tenantName.trim(),
+    memberId: input.memberId?.trim() || null,
+    memberStatus: input.memberStatus?.trim() || null,
+    designation: input.designation?.trim() || null,
+    team: input.team?.trim() || null,
+    accessToken: input.accessToken,
+    issuedBy: "api-issued",
+  });
+}
+
+export function createIssuedSuperAdminSession(input: { accessToken: string; email: string; displayName: string }) {
+  return createAppSession({
+    email: input.email.trim(),
+    displayName: input.displayName.trim(),
+    role: "super-admin",
+    scope: "platform",
+    tenantName: null,
+    accessToken: input.accessToken,
+    issuedBy: "api-issued",
   });
 }
