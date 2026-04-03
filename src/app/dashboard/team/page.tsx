@@ -55,6 +55,20 @@ const ASSIGNMENTS = [
   { lead: "Sharma Family", owner: "Farah", role: "Finance", note: "Payment reminder and deposit monitoring." },
 ];
 
+const PERMISSION_MATRIX = [
+  { role: "Admin", view: "All modules", act: "Users, rules, workspace configuration", escalation: "Tenant-wide authority" },
+  { role: "Sales", view: "Leads, deals, customer timeline", act: "Owns follow-up, quoting, and pipeline movement", escalation: "Escalates pricing and exceptions" },
+  { role: "Operations", view: "Itineraries, bookings, suppliers", act: "Owns execution, handoff, and guest pack release", escalation: "Escalates supplier and delivery risks" },
+  { role: "Finance", view: "Deposits, balances, payouts", act: "Owns payment release and reconciliation checks", escalation: "Escalates commercial and cash risks" },
+  { role: "Sub-agent", view: "Assigned leads only", act: "Restricted response and assigned-customer work", escalation: "Needs higher-role approval for protected actions" },
+];
+
+const ROLE_TEMPLATES = [
+  { title: "Inbound Sales Pod", note: "Fast lead intake, first response, and commercial follow-up.", stack: "Sales Manager + Executives + Sub-agent support" },
+  { title: "Luxury Ops Cell", note: "High-touch itinerary, booking, and supplier coordination.", stack: "Operations Lead + Trip Designer + Finance checkpoint" },
+  { title: "Collections Desk", note: "Deposit, balance reminders, and payout protection.", stack: "Finance Lead + Billing Coordinator" },
+];
+
 const NOMENCLATURE = [
   {
     label: "Business Entity",
@@ -184,6 +198,71 @@ export default function TeamPage() {
         <Metric label="Bulk Import" value="CSV Preview" sub="Imported rows staged before send" icon={<FileUp size={16} />} />
         <Metric label="Hierarchy" value="L1-L5" sub="From super admin to sub-agent" icon={<Shield size={16} />} />
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Shield size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Access Control Layer</h2>
+            </div>
+            <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This is the alpha governance view behind Team: who can see what, who acts where, and which team templates the customer admin can use before inviting real users.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Permission Matrix</div>
+            <div className="mt-4 space-y-3">
+              {PERMISSION_MATRIX.map((item) => (
+                <div key={item.role} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="text-sm font-black text-[#F5F0E8]">{item.role}</div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3 text-sm">
+                    <div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">View</div>
+                      <div className="mt-1 text-[#B8B0A0]">{item.view}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Act</div>
+                      <div className="mt-1 text-[#B8B0A0]">{item.act}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Escalation</div>
+                      <div className="mt-1 text-[#B8B0A0]">{item.escalation}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Role Templates</div>
+              <div className="mt-4 space-y-3">
+                {ROLE_TEMPLATES.map((item) => (
+                  <div key={item.title} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                    <div className="text-sm font-black text-[#F5F0E8]">{item.title}</div>
+                    <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{item.note}</div>
+                    <div className="mt-3 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.stack}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Admin Summary</div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <PreviewField label="Visible entity" value={entityLabel} />
+                <PreviewField label="Reporting line" value={reportingLabel} />
+                <PreviewField label="Primary team" value={teamLabel} />
+                <PreviewField label="Designation default" value={designationLabel} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
         <section className="min-w-0 xl:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
@@ -517,7 +596,7 @@ export default function TeamPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Demo-safe Notes</span>
                 </div>
                 <ul className="space-y-3 text-sm text-[#B8B0A0] leading-relaxed">
-                  <li>Assignments are rendered as static demo work so the Monday demo stays stable.</li>
+                  <li>Assignments are rendered as static preview work so the alpha stays stable while the workflow model is reviewed.</li>
                   <li>The screen shows how ownership, team, and designation mapping would look for a customer admin.</li>
                   <li>Real provisioning can be connected later without changing the visible flow.</li>
                 </ul>
@@ -532,7 +611,7 @@ export default function TeamPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">What This Proves</h2>
           </div>
           <p className="text-sm leading-relaxed text-[#B8B0A0]">
-            A customer admin can create users one by one, preview a bulk CSV import, assign roles and designations, show a visible hierarchy diagram, and rename the business structure to match their own entity. This keeps the Monday story focused on operational control without needing live auth provisioning.
+            A customer admin can create users one by one, preview a bulk CSV import, assign roles and designations, show a visible hierarchy diagram, and rename the business structure to match their own entity. This keeps the alpha focused on operational control without needing live auth provisioning.
           </p>
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Demo Positioning</div>

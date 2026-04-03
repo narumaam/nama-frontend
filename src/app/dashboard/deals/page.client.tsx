@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, BadgeIndianRupee, Bot, CheckCircle2, MessageSquare, Shield, Sparkles, Target } from "lucide-react";
+import { AlertTriangle, ArrowRight, BadgeIndianRupee, Bot, CheckCircle2, Clock3, MessageSquare, Shield, Sparkles, Target } from "lucide-react";
 
 import { apiUrl } from "@/lib/api";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
@@ -66,6 +66,12 @@ type DemoCase = {
     vendor: string;
     status: string;
     note: string;
+    options: Array<{
+      vendor: string;
+      net_rate: number;
+      position: string;
+      decision: string;
+    }>;
   };
   capture: {
     website: string;
@@ -167,6 +173,11 @@ const LOCAL_CASES: Record<string, DemoCase> = {
       vendor: "Soneva Jani",
       status: "Counter accepted",
       note: "Negotiated honeymoon add-ons while protecting 19.4% margin.",
+      options: [
+        { vendor: "Soneva Jani", net_rate: 391500, position: "Primary", decision: "Best romance fit and strongest close probability" },
+        { vendor: "Joali Maldives", net_rate: 428000, position: "Premium fallback", decision: "Beautiful alternative, but pushes quote above comfort band" },
+        { vendor: "Ozen Reserve Bolifushi", net_rate: 404500, position: "Commercial fallback", decision: "Good value, slightly weaker honeymoon wow factor" },
+      ],
     },
     capture: {
       website: "Landing page enquiry",
@@ -261,6 +272,11 @@ const LOCAL_CASES: Record<string, DemoCase> = {
       vendor: "Address Boulevard",
       status: "Rate held for 18 hours",
       note: "Secured executive rate with breakfast inclusion and flexible cancellation.",
+      options: [
+        { vendor: "Address Boulevard", net_rate: 169500, position: "Primary", decision: "Best downtown proximity with executive comfort" },
+        { vendor: "JW Marriott Marquis", net_rate: 176000, position: "Fallback", decision: "Strong brand, but weaker airport-to-meeting convenience" },
+        { vendor: "Sofitel Downtown", net_rate: 171250, position: "Fallback", decision: "Competitive but slightly softer premium perception" },
+      ],
     },
     capture: {
       website: "Corporate enquiry form",
@@ -347,6 +363,11 @@ const LOCAL_CASES: Record<string, DemoCase> = {
       vendor: "Private Houseboat Operator",
       status: "Pending confirmation",
       note: "Alternate operator already staged in case primary vendor doesn’t respond.",
+      options: [
+        { vendor: "Private Houseboat Operator", net_rate: 98750, position: "Primary", decision: "Best pacing and family-fit narrative" },
+        { vendor: "Lake & Palm Cruises", net_rate: 101500, position: "Fallback", decision: "Reliable, but lowers margin slightly" },
+        { vendor: "Backwater Comfort Fleet", net_rate: 96000, position: "Backup", decision: "Cheaper option, but less premium family positioning" },
+      ],
     },
     capture: {
       website: "Family holiday form",
@@ -450,7 +471,7 @@ export default function DealsClientPage() {
             <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Resolved Demo Case</div>
             <h2 className="text-lg font-black text-[#F5F0E8]">{data.guest_name} · {data.triage.destination}</h2>
             <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
-              This screen is the conversion layer in the Monday story: capture, triage, quote, supplier alignment, finance, then booking handoff.
+              This screen is the conversion layer in the alpha story: capture, triage, quote, supplier alignment, finance, then booking handoff.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
@@ -518,6 +539,73 @@ export default function DealsClientPage() {
         <StatCard label="Margin" value={`${data.finance.margin_percent}%`} icon={<CheckCircle2 size={16} />} />
         <StatCard label="Deposit Due" value={`₹${data.finance.deposit_due.toLocaleString("en-IN")}`} icon={<Shield size={16} />} />
       </div>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr_0.9fr]">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Target size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Commercial Rationale</h2>
+          </div>
+          <div className="space-y-4 text-sm leading-relaxed">
+            <DealNarrativeCard label="Why this case is attractive" value={data.triage.reasoning} />
+            <DealNarrativeCard label="Why this itinerary should convert" value={data.itinerary.agent_reasoning ?? "AI itinerary reasoning not available for this case."} />
+            <DealNarrativeCard label="What the human should say next" value={data.communications.suggested_follow_up} />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Vendor Comparison</h2>
+          </div>
+          <div className="space-y-3">
+            {data.bidding.options.map((option) => (
+              <div key={option.vendor} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-black text-[#F5F0E8]">{option.vendor}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{option.position}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-black text-[#C9A84C]">₹{option.net_rate.toLocaleString("en-IN")}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">Net rate</div>
+                  </div>
+                </div>
+                <div className="mt-3 text-xs leading-relaxed text-[#B8B0A0]">{option.decision}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Approval Guardrails</h2>
+          </div>
+          <div className="space-y-3">
+            <GuardrailRow
+              label="Confidence threshold"
+              state={`${Math.round(data.triage.confidence_score * 100)}% ready`}
+              note="Triage quality is high enough to send the case into quote review."
+            />
+            <GuardrailRow
+              label="Margin check"
+              state={data.finance.margin_percent >= 18 ? "Within target" : "Needs approval"}
+              note="Commercial guardrail keeps the quote from slipping below protected margin."
+            />
+            <GuardrailRow
+              label="Vendor position"
+              state={data.bidding.status}
+              note={data.bidding.note}
+            />
+            <GuardrailRow
+              label="Next deadline"
+              state={data.finance.status}
+              note={`Deposit due: ₹${data.finance.deposit_due.toLocaleString("en-IN")} before release into execution.`}
+            />
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -663,6 +751,30 @@ function LineItem({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between border-b border-[#C9A84C]/5 pb-2">
       <span className="text-[#B8B0A0]">{label}</span>
       <span className="text-[#F5F0E8] font-semibold">{value}</span>
+    </div>
+  );
+}
+
+function DealNarrativeCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[10px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{value}</div>
+    </div>
+  );
+}
+
+function GuardrailRow({ label, state, note }: { label: string; state: string; note: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+          <div className="mt-2 text-sm font-black text-[#F5F0E8]">{state}</div>
+        </div>
+        <Clock3 size={14} className="text-[#C9A84C]" />
+      </div>
+      <div className="mt-3 text-xs leading-relaxed text-[#B8B0A0]">{note}</div>
     </div>
   );
 }

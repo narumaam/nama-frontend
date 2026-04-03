@@ -32,11 +32,16 @@ type DemoCase = {
 };
 
 type LeadStage = "New" | "Qualified" | "Quoted" | "Follow Up" | "Won";
+type LeadSourceFilter = "All" | "Website" | "WhatsApp" | "Email" | "Phone";
 
 type LeadRecord = DemoCase & {
   owner: string;
   source: string;
   stage: LeadStage;
+  fitScore: number;
+  urgency: "High" | "Medium";
+  sla: string;
+  risk: string;
   nextAction: string;
   nextActionAt: string;
   contactLabel: string;
@@ -130,6 +135,10 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
         owner: "Aisha Khan",
         source: "Website",
         stage: "Follow Up",
+        fitScore: 94,
+        urgency: "High",
+        sla: "18 min to next touch",
+        risk: "Deposit hold expires today",
         nextAction: "Deposit follow-up call",
         nextActionAt: "Today · 09:30",
         contactLabel: "High-intent honeymoon lead",
@@ -153,6 +162,10 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
         owner: "Ravi Menon",
         source: "Phone",
         stage: "Quoted",
+        fitScore: 88,
+        urgency: "Medium",
+        sla: "42 min to quote send",
+        risk: "Corporate approver summary pending",
         nextAction: "Send executive quote PDF",
         nextActionAt: "Today · 11:00",
         contactLabel: "Corporate bleisure traveler",
@@ -175,6 +188,10 @@ function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
       owner: "Farah Khan",
       source: "Email",
       stage: "Qualified",
+      fitScore: 81,
+      urgency: "High",
+      sla: "1 hr to payment reminder",
+      risk: "Fare tier may move if delayed",
       nextAction: "Payment reminder sequence",
       nextActionAt: "Today · 14:30",
       contactLabel: "Family pacing and budget case",
@@ -198,6 +215,7 @@ export default function LeadsPage() {
   const [activeView, setActiveView] = useState<"kanban" | "list">("kanban");
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [query, setQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<LeadSourceFilter>("All");
   const [enrichedLead, setEnrichedLead] = useState<LeadRecord | null>(null);
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState(schedulerItems[0]);
@@ -224,20 +242,37 @@ export default function LeadsPage() {
   const leads = useMemo(() => buildLeadRecords(cases), [cases]);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredLeads = useMemo(() => {
-    if (!normalizedQuery) return leads;
-    return leads.filter((item) =>
-      item.guest_name.toLowerCase().includes(normalizedQuery) ||
-      item.company.toLowerCase().includes(normalizedQuery) ||
-      item.email.toLowerCase().includes(normalizedQuery) ||
-      item.phone.toLowerCase().includes(normalizedQuery)
-    );
-  }, [leads, normalizedQuery]);
+    return leads.filter((item) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        item.guest_name.toLowerCase().includes(normalizedQuery) ||
+        item.company.toLowerCase().includes(normalizedQuery) ||
+        item.email.toLowerCase().includes(normalizedQuery) ||
+        item.phone.toLowerCase().includes(normalizedQuery);
+      const matchesSource = sourceFilter === "All" || item.source === sourceFilter;
+      return matchesQuery && matchesSource;
+    });
+  }, [leads, normalizedQuery, sourceFilter]);
   const stages: LeadStage[] = ["New", "Qualified", "Quoted", "Follow Up", "Won"];
   const pipelineValue = filteredLeads.reduce((sum, item) => sum + item.quote_total, 0);
+  const highUrgencyCount = filteredLeads.filter((item) => item.urgency === "High").length;
+  const averageFitScore = filteredLeads.length
+    ? Math.round(filteredLeads.reduce((sum, item) => sum + item.fitScore, 0) / filteredLeads.length)
+    : 0;
   const stageBuckets = stages.map((stage) => ({
     stage,
     leads: filteredLeads.filter((item) => item.stage === stage),
   }));
+  const sourceFilters: LeadSourceFilter[] = ["All", "Website", "WhatsApp", "Email", "Phone"];
+  const ownerSummaryMap: Record<string, { owner: string; count: number; value: number; hot: number }> = {};
+  filteredLeads.forEach((item) => {
+    const current = ownerSummaryMap[item.owner] ?? { owner: item.owner, count: 0, value: 0, hot: 0 };
+    current.count += 1;
+    current.value += item.quote_total;
+    if (item.urgency === "High") current.hot += 1;
+    ownerSummaryMap[item.owner] = current;
+  });
+  const ownerSummaries = Object.values(ownerSummaryMap);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
@@ -251,7 +286,7 @@ export default function LeadsPage() {
           <h1 className="text-4xl font-black tracking-tighter flex items-center gap-4 uppercase font-headline text-[#F5F0E8]">
             Leads & Contacts
             <span className="text-[10px] font-mono font-bold tracking-[0.2em] bg-[#1D9E75]/10 px-3 py-1 rounded-full text-[#1D9E75] border border-[#1D9E75]/20 animate-pulse">
-              MONDAY_READY
+              ALPHA_READY
             </span>
           </h1>
           <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">Stages, owners, follow-up scheduler, and omnichannel context in one CRM surface</p>
@@ -300,6 +335,64 @@ export default function LeadsPage() {
         <MetricCard label="Search Matches" value={`${filteredLeads.length}`} sub="Name, company, phone, or email retrieval" icon={<CheckCircle2 size={14} />} />
       </div>
 
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Target size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">AI Lead Control Layer</h2>
+            </div>
+            <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This is the denser operating view behind the alpha CRM story: source-level filtering, fit scoring, owner load, and urgency control before the team opens a deal.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {sourceFilters.map((source) => (
+              <button
+                key={source}
+                type="button"
+                onClick={() => setSourceFilter(source)}
+                className={`rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
+                  sourceFilter === source
+                    ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]"
+                    : "border-white/10 bg-[#0A0A0A] text-[#B8B0A0] hover:border-[#C9A84C]/20 hover:text-[#F5F0E8]"
+                }`}
+              >
+                {source}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <ControlTile label="High urgency" value={`${highUrgencyCount}`} note="Likely to slip without fast follow-up" tone="gold" />
+            <ControlTile label="Average fit" value={`${averageFitScore}%`} note="How well the current pipeline matches ideal conversion profile" tone="green" />
+            <ControlTile label="Live source filter" value={sourceFilter} note="Tighten the queue by inbound channel before assignment" tone="neutral" />
+          </div>
+
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Owner Load</div>
+            <div className="mt-4 space-y-3">
+              {ownerSummaries.map((owner) => (
+                <div key={owner.owner} className="flex items-center justify-between gap-3 rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+                  <div>
+                    <div className="text-sm font-black text-[#F5F0E8]">{owner.owner}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">
+                      {owner.count} active leads · {owner.hot} urgent
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-black text-[#C9A84C]">₹{owner.value.toLocaleString("en-IN")}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#B8B0A0]">Owned pipeline</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {enrichedLead && (
         <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -346,7 +439,7 @@ export default function LeadsPage() {
             </div>
 
             <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
-              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">How to say it on Monday</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">How to frame it</div>
               <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#B8B0A0]">
                 <p>
                   “If we know just the customer identity, NAMA can strengthen the contact profile from public context and improve the quality of the commercial response.”
@@ -593,6 +686,33 @@ function MetricCard({ label, value, sub, icon }: { label: string; value: string;
   );
 }
 
+function ControlTile({
+  label,
+  value,
+  note,
+  tone,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  tone: "gold" | "green" | "neutral";
+}) {
+  const toneClass =
+    tone === "gold"
+      ? "text-[#C9A84C]"
+      : tone === "green"
+      ? "text-[#1D9E75]"
+      : "text-[#F5F0E8]";
+
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[10px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className={`mt-3 text-2xl font-black ${toneClass}`}>{value}</div>
+      <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{note}</div>
+    </div>
+  );
+}
+
 function Column({
   title,
   count,
@@ -638,6 +758,10 @@ function LeadCard({ item, onEnrich }: { item: LeadRecord; onEnrich: () => void }
         <p className="text-[10px] font-mono text-[#B8B0A0] uppercase tracking-tighter">{item.destination} · {item.source}</p>
       </Link>
       <p className="mt-3 text-xs text-[#B8B0A0] leading-relaxed">{item.contactLabel}</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <SignalPill label="Fit" value={`${item.fitScore}%`} tone="gold" />
+        <SignalPill label="SLA" value={item.sla} tone={item.urgency === "High" ? "gold" : "green"} />
+      </div>
       <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3 text-[10px] text-[#B8B0A0] space-y-1">
         <div>{item.company}</div>
         <div>{item.email}</div>
@@ -659,7 +783,22 @@ function LeadCard({ item, onEnrich }: { item: LeadRecord; onEnrich: () => void }
             <div className="text-[10px] text-[#B8B0A0]">{item.lastTouch}</div>
           </div>
         </div>
+        <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+          <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Primary risk</div>
+          <div className="mt-1 text-[11px] leading-relaxed text-[#B8B0A0]">{item.risk}</div>
+        </div>
       </Link>
+    </div>
+  );
+}
+
+function SignalPill({ label, value, tone }: { label: string; value: string; tone: "gold" | "green" }) {
+  const classes = tone === "gold" ? "text-[#C9A84C] border-[#C9A84C]/15 bg-[#C9A84C]/10" : "text-[#1D9E75] border-[#1D9E75]/15 bg-[#1D9E75]/10";
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${classes}`}>
+      <div className="text-[8px] font-black uppercase tracking-widest">{label}</div>
+      <div className="mt-1 text-[10px] font-mono uppercase tracking-widest">{value}</div>
     </div>
   );
 }
@@ -762,7 +901,7 @@ function ContactDrawer({
         </div>
 
         <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-5">
-          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Monday Talk Track</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Alpha Talk Track</div>
           <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#B8B0A0]">
             <p>“This is the contact spine of the CRM. The team can retrieve the customer fast, see the current commercial context, and act without re-asking basic questions.”</p>
             <p>“If needed, the contact can be strengthened from public context and routed to the right owner with the right next action immediately.”</p>

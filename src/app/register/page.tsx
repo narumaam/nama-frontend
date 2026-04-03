@@ -43,6 +43,24 @@ const ONBOARDING_STEPS = [
   "Enter the workspace with demo-safe data while keeping live credentials for later connection.",
 ];
 
+const PLAN_PRESETS = [
+  {
+    name: "Starter",
+    note: "For smaller teams validating NAMA across leads, deals, and execution.",
+    modules: "CRM, deals, bookings",
+  },
+  {
+    name: "Growth",
+    note: "For agencies and DMCs that need multi-team coordination and richer operating controls.",
+    modules: "CRM, DMC, team, admin",
+  },
+  {
+    name: "Enterprise",
+    note: "For multi-market operators that want governance, hierarchy, and platform-level control.",
+    modules: "Hierarchy, advanced governance, regional controls",
+  },
+];
+
 export default function RegisterPage() {
   const router = useRouter();
   const [companyName, setCompanyName] = useState("");
@@ -50,6 +68,7 @@ export default function RegisterPage() {
   const [businessRoles, setBusinessRoles] = useState<BusinessRole[]>(["Travel Agency", "DMC"]);
   const [selectedMarket, setSelectedMarket] = useState<MarketPreset>(MARKET_PRESETS[0]);
   const [enabledCurrencies, setEnabledCurrencies] = useState<SupportedCurrency[]>(["INR", "AED", "USD"]);
+  const [selectedPlan, setSelectedPlan] = useState(PLAN_PRESETS[1]);
   const [showConfetti, setShowConfetti] = useState(false);
 
   const profileLabel = useMemo(() => {
@@ -100,13 +119,13 @@ export default function RegisterPage() {
               N
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.32em] text-[#C9A84C]">Monday Demo</div>
-              <h1 className="text-3xl font-black tracking-tight text-[#0F172A] xl:text-4xl">Demo Onboarding</h1>
+              <div className="text-[10px] font-black uppercase tracking-[0.32em] text-[#C9A84C]">Alpha Preview</div>
+              <h1 className="text-3xl font-black tracking-tight text-[#0F172A] xl:text-4xl">Workspace Onboarding</h1>
             </div>
           </div>
 
           <p className="max-w-3xl text-sm leading-relaxed text-slate-600 xl:text-[15px]">
-            This is the onboarding layer for Monday. It shows how a business enters NAMA before live credentials, subscriptions, or provider keys are connected:
+            This is the onboarding layer for the alpha preview. It shows how a business enters NAMA before live credentials, subscriptions, or provider keys are connected:
             company profile, business type, market defaults, and operating structure.
           </p>
 
@@ -257,6 +276,38 @@ export default function RegisterPage() {
                 <PreviewRow label="Additional Currencies" value={enabledCurrencies.filter((item) => item !== selectedMarket.currency).join(", ") || "None"} />
                 <PreviewRow label="Default Language" value={selectedMarket.language} />
                 <PreviewRow label="Payment Rail" value={selectedMarket.gateway} />
+                <PreviewRow label="Recommended Plan" value={selectedPlan.name} />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Shield size={15} className="text-[#C9A84C]" />
+                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Plan Fit</span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {PLAN_PRESETS.map((plan) => {
+                  const active = selectedPlan.name === plan.name;
+                  return (
+                    <button
+                      type="button"
+                      key={plan.name}
+                      onClick={() => setSelectedPlan(plan)}
+                      className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                        active
+                          ? "border-[#C9A84C]/40 bg-[#C9A84C]/10"
+                          : "border-slate-200 bg-white hover:border-[#C9A84C]/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-black text-[#0F172A]">{plan.name}</div>
+                        {active && <CheckCircle2 size={16} className="text-[#1D9E75]" />}
+                      </div>
+                      <div className="mt-2 text-xs leading-relaxed text-slate-500">{plan.note}</div>
+                      <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{plan.modules}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -300,7 +351,7 @@ export default function RegisterPage() {
           <div className="rounded-[36px] border border-[#C9A84C]/20 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
             <div className="mb-4 flex items-center gap-2 text-[#C9A84C]">
               <Users size={15} />
-              <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Talk track for Monday</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Alpha Talk Track</span>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-slate-600">
               <p>
@@ -314,6 +365,9 @@ export default function RegisterPage() {
               </p>
               <p>
                 “After this, the customer admin configures team structure, nomenclature, invites, hierarchy, and market-aware controls inside the platform.”
+              </p>
+              <p>
+                “The plan recommendation is just a guided fit signal for the alpha. It helps the buyer understand which operating model they’re stepping into before full billing is connected.”
               </p>
             </div>
             <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-slate-50 p-4">

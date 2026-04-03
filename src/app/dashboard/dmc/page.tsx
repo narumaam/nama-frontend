@@ -80,11 +80,33 @@ const SERVICE_STACK = [
   { label: "Activities", value: "17 operator rate sheets", icon: Sparkles },
 ];
 
+const SUPPLIER_DIRECTORY = [
+  { name: "Atlantis The Palm", service: "Hotel", status: "Preferred", location: "Dubai", strength: "Luxury honeymoon fit with strong room conversion logic." },
+  { name: "Royal Desert Safaris", service: "Activity", status: "Reviewing", location: "Dubai", strength: "Fast turnaround with premium and family-safe variants." },
+  { name: "Kerala Houseboat Collective", service: "Stay + Activity", status: "Approved", location: "Alleppey", strength: "High family-fit and strong seasonal inventory coverage." },
+  { name: "DXB Executive Transfers", service: "Transport", status: "Ready", location: "Dubai", strength: "Reliable airport and executive transfer handling." },
+];
+
+const NORMALIZED_FIELDS = [
+  { label: "Rate validity", value: "15 Apr - 30 Sep 2026", note: "Seasonal pricing mapped from supplier slabs into quote-safe windows." },
+  { label: "Cancellation", value: "14-day partial penalty", note: "Flagged because the honeymoon hold has a shorter release deadline." },
+  { label: "Inclusions", value: "Breakfast + seaplane + welcome dinner", note: "Lifted into reusable quote and ops components." },
+  { label: "Ops issue", value: "Child policy missing in one safari slab", note: "Requires human review before using in the family fallback case." },
+];
+
+const DMC_REVIEW_QUEUE = [
+  { title: "Child policy missing", severity: "Review", note: "Royal Desert Safaris omitted child pricing in the WhatsApp tariff card." },
+  { title: "Blackout dates normalized", severity: "Resolved", note: "Atlantis festive blackout windows are now embedded in quote guardrails." },
+  { title: "Driver escalation pending", severity: "Queued", note: "Airport nameboard and emergency contact still need final ops confirmation." },
+];
+
 export default function DmcPage() {
   const profile = useMemo(() => readDemoProfile(), []);
   const [selectedContract, setSelectedContract] = useState(CONTRACT_INBOX[0]);
+  const [serviceFilter, setServiceFilter] = useState<"All" | "Hotel" | "Activity" | "Transport" | "Stay + Activity">("All");
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
+  const visibleSuppliers = SUPPLIER_DIRECTORY.filter((supplier) => serviceFilter === "All" || supplier.service === serviceFilter);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -138,6 +160,94 @@ export default function DmcPage() {
           <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Case Maldives honeymoon</span>
             <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">Feeds quote blocks + ops notes</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Building2 size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Supplier Control Layer</h2>
+            </div>
+            <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This is the denser MVP operating view behind the DMC story: which suppliers are active, which contracts are ready to publish, and what still needs human review before moving back into quoting or execution.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["All", "Hotel", "Activity", "Transport", "Stay + Activity"].map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setServiceFilter(item as "All" | "Hotel" | "Activity" | "Transport" | "Stay + Activity")}
+                className={`rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
+                  serviceFilter === item
+                    ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]"
+                    : "border-white/10 bg-[#0A0A0A] text-[#B8B0A0] hover:border-[#C9A84C]/20 hover:text-[#F5F0E8]"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Supplier Directory</div>
+            <div className="mt-4 space-y-3">
+              {visibleSuppliers.map((supplier) => (
+                <div key={supplier.name} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-[#F5F0E8]">{supplier.name}</div>
+                      <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">
+                        {supplier.service} · {supplier.location}
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+                      {supplier.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{supplier.strength}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Normalized Fields</div>
+              <div className="mt-4 grid gap-3">
+                {NORMALIZED_FIELDS.map((field) => (
+                  <div key={field.label} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{field.label}</div>
+                    <div className="mt-1 text-sm font-black text-[#F5F0E8]">{field.value}</div>
+                    <div className="mt-2 text-[11px] leading-relaxed text-[#B8B0A0]">{field.note}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Review Queue</div>
+              <div className="mt-4 space-y-3">
+                {DMC_REVIEW_QUEUE.map((item) => (
+                  <div key={item.title} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-black text-[#F5F0E8]">{item.title}</div>
+                        <div className="mt-2 text-[11px] leading-relaxed text-[#B8B0A0]">{item.note}</div>
+                      </div>
+                      <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                        {item.severity}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -287,7 +397,7 @@ export default function DmcPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="mb-4 flex items-center gap-2">
           <Sparkles size={14} className="text-[#C9A84C]" />
-          <h2 className="text-lg font-black text-[#F5F0E8]">How to frame this on Monday</h2>
+          <h2 className="text-lg font-black text-[#F5F0E8]">How to frame this in the alpha</h2>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">

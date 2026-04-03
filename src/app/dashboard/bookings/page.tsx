@@ -83,6 +83,19 @@ const PAYMENT_STACK = [
   { label: "Gross Profit", value: "₹94,500" },
 ];
 
+const EXECUTION_EXCEPTIONS = [
+  { title: "Return flight still on hold", tone: "watch", detail: "Ops needs to convert the held return segment into a ticketed segment before final traveler release." },
+  { title: "Arrival brief queued", tone: "queued", detail: "Guest-facing arrival guidance still needs the final supplier phone number merge." },
+  { title: "Deposit reconciled", tone: "good", detail: "Finance has already cleared the deposit and released the booking into execution." },
+];
+
+const DISPATCH_CHECKLIST = [
+  { label: "Voucher pack generated", state: "Done" },
+  { label: "Supplier confirmations attached", state: "Done" },
+  { label: "Arrival WhatsApp draft prepared", state: "Pending" },
+  { label: "Balance reminder staged", state: "Pending" },
+];
+
 export default function BookingsPage() {
   const profile = useMemo(() => readDemoProfile(), []);
   const [activeTab, setActiveTab] = useState<(typeof EXECUTION_TABS)[number]>("Overview");
@@ -154,7 +167,7 @@ export default function BookingsPage() {
             <h2 className="text-lg sm:text-xl font-black text-[#F5F0E8]">From quote approval to traveler-ready delivery</h2>
           </div>
           <span className="rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#1D9E75]">
-            Monday-safe workflow
+            Alpha workflow
           </span>
         </div>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
@@ -184,6 +197,57 @@ export default function BookingsPage() {
             </span>
           </div>
           <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{selectedStep.detail}</div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock3 size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Execution Risk Strip</h2>
+          </div>
+          <div className="space-y-3">
+            {EXECUTION_EXCEPTIONS.map((item) => (
+              <div
+                key={item.title}
+                className={`rounded-2xl border p-4 ${
+                  item.tone === "good"
+                    ? "border-[#1D9E75]/20 bg-[#1D9E75]/10"
+                    : item.tone === "watch"
+                      ? "border-[#C9A84C]/20 bg-[#C9A84C]/10"
+                      : "border-white/10 bg-[#0A0A0A]"
+                }`}
+              >
+                <div className="text-sm font-black text-[#F5F0E8]">{item.title}</div>
+                <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{item.detail}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Dispatch Checklist</h2>
+          </div>
+          <div className="space-y-3">
+            {DISPATCH_CHECKLIST.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-black text-[#F5F0E8]">{item.label}</div>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
+                      item.state === "Done"
+                        ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]"
+                        : "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"
+                    }`}
+                  >
+                    {item.state}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

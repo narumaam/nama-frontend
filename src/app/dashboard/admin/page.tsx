@@ -174,6 +174,18 @@ const BASE_CURRENCY_MODEL = {
   note: "One accounting currency powers reporting and billing, while additional selling currencies stay available for quotes and checkout.",
 };
 
+const TENANT_ACTIONS = [
+  { title: "Renewal watch", note: "Velocity Corporate Travel renews on 18 Apr 2026 and needs commercial attention." },
+  { title: "Plan upgrade candidate", note: "Nair Luxury Escapes is using multi-team workflows that justify a Growth-to-Enterprise review." },
+  { title: "Starter retention risk", note: "BluePalm Holidays has healthy usage but a narrow module footprint." },
+];
+
+const TEMPLATE_INHERITANCE = [
+  { scope: "Comms", source: "Master WhatsApp + email starter pack", tenant: "Inherited until overridden" },
+  { scope: "Quote framing", source: "Global margin-safe summary block", tenant: "Protected by Super Admin" },
+  { scope: "White-label starter", source: "Default tenant visual kit", tenant: "Tenant can customize later" },
+];
+
 const LOCALIZATION_RULES = [
   "Detect billing country at tenant onboarding and default the subscription currency from that market.",
   "Use browser locale as a hint, but allow the tenant admin to lock language and currency manually.",
@@ -236,6 +248,54 @@ export default function AdminPage() {
         <MetricCard label="MRR Snapshot" value="₹1.98L" sub="Across Starter, Growth, Enterprise" icon={<BadgeIndianRupee size={16} />} />
         <MetricCard label="Platform Health" value="Healthy" sub="Frontend, backend, and demo APIs verified" icon={<CheckCircle2 size={16} />} />
         <MetricCard label="Global Rules" value="12" sub="Across comms, pricing, and ops policies" icon={<Waypoints size={16} />} />
+      </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Shield size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Platform Governance Layer</h2>
+            </div>
+            <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This is the alpha control model behind Super Admin: where tenant action, inherited templates, and platform-level commercial oversight all come together in one safe summary.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Tenant Action Queue</div>
+            <div className="mt-4 space-y-3">
+              {TENANT_ACTIONS.map((item) => (
+                <div key={item.title} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="text-sm font-black text-[#F5F0E8]">{item.title}</div>
+                  <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{item.note}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Template Inheritance</div>
+            <div className="mt-4 space-y-3">
+              {TEMPLATE_INHERITANCE.map((item) => (
+                <div key={item.scope} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="text-sm font-black text-[#F5F0E8]">{item.scope}</div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
+                    <div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Platform source</div>
+                      <div className="mt-1 text-[#B8B0A0]">{item.source}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Tenant behavior</div>
+                      <div className="mt-1 text-[#B8B0A0]">{item.tenant}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
