@@ -89,13 +89,13 @@ export default function DmcPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
             <span>DMC Workspace</span>
             <ChevronRight size={10} />
             <span className="opacity-50">Contracts & Supplier Ops</span>
           </div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">DMC Contract Hub</h1>
+          <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">DMC Contract Hub</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is the supplier-side operating layer for DMCs: upload non-standard contracts, normalize messy formats, and keep travel-agent plus service-provider communication inside one controlled workspace.
           </p>
@@ -107,27 +107,27 @@ export default function DmcPage() {
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           <Link
             href="/dashboard/deals?lead=1"
-            className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Back to deal
           </Link>
-          <button className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
+          <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
             Upload contract
           </button>
         </div>
       </header>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {SERVICE_STACK.map((item) => (
           <MetricCard key={item.label} label={item.label} value={item.value} icon={<item.icon size={16} />} />
         ))}
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <FileStack size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Contract Intake & Normalization</h2>
@@ -146,7 +146,7 @@ export default function DmcPage() {
                 }`}
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-sm font-black text-[#F5F0E8]">{contract.supplier}</div>
                     <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{contract.format}</div>
                     <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{contract.note}</div>
@@ -168,7 +168,7 @@ export default function DmcPage() {
           </div>
         </div>
 
-        <aside className="xl:col-span-5 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <aside className="xl:col-span-5 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">
             <ScanSearch size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">What the AI extracts</h2>

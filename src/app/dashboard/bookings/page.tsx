@@ -93,13 +93,13 @@ export default function BookingsPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-12">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
             <span>Execution Workspace</span>
             <ChevronRight size={10} />
             <span className="opacity-50">Bookings & Handoffs</span>
           </div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Booking Execution Hub</h1>
+          <h1 className="text-[32px] sm:text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Booking Execution Hub</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is the post-sale operating layer: confirmations, documents, payments, and responsibility handoff once a case moves beyond quoting.
           </p>
@@ -111,14 +111,14 @@ export default function BookingsPage() {
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           <Link
             href="/dashboard/deals?lead=1"
-            className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Back to Deal
           </Link>
-          <button className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
+          <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
             Release Guest Pack
           </button>
         </div>
@@ -131,17 +131,17 @@ export default function BookingsPage() {
         <MetricCard label="Ops Owner" value="Rohan Iyer" sub="Live case owner for execution" icon={<Users size={16} />} />
       </section>
 
-      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
-        <div className="flex items-center justify-between gap-4 mb-5">
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
           <div>
             <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Execution Continuity</div>
-            <h2 className="text-xl font-black text-[#F5F0E8]">From quote approval to traveler-ready delivery</h2>
+            <h2 className="text-lg sm:text-xl font-black text-[#F5F0E8]">From quote approval to traveler-ready delivery</h2>
           </div>
           <span className="rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#1D9E75]">
             Monday-safe workflow
           </span>
         </div>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {EXECUTION_STEPS.map((step) => (
             <button
               key={step.label}
@@ -176,7 +176,7 @@ export default function BookingsPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+            className={`whitespace-nowrap rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
               activeTab === tab ? "bg-[#C9A84C] text-[#0A0A0A]" : "text-[#B8B0A0] hover:text-[#F5F0E8]"
             }`}
           >
@@ -186,7 +186,7 @@ export default function BookingsPage() {
       </nav>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <section className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-4 flex items-center gap-2">
             <Ticket size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">
@@ -199,7 +199,7 @@ export default function BookingsPage() {
           </div>
 
           {activeTab === "Overview" && (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <ReadinessCard icon={<MapPin size={16} />} title="Flights + transfers" detail="Outbound ticketed, return held, airport transfer instructions staged." />
               <ReadinessCard icon={<Landmark size={16} />} title="Supplier confirmation" detail="Hotel and transfer vendors aligned to the same guest profile and arrival window." />
               <ReadinessCard icon={<Receipt size={16} />} title="Finance release" detail="Deposit confirmed, balance due visible, and payout timing protected." />
@@ -212,7 +212,7 @@ export default function BookingsPage() {
               {FLIGHT_SEGMENTS.map((segment) => (
                 <div key={segment.route} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-sm font-black text-[#F5F0E8]">{segment.route}</div>
                       <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{segment.airline}</div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2 text-sm">
@@ -281,7 +281,7 @@ export default function BookingsPage() {
         </section>
 
         <aside className="xl:col-span-5 space-y-6">
-          <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
               <Users size={14} className="text-[#C9A84C]" />
               <h2 className="text-lg font-black text-[#F5F0E8]">Execution Notes</h2>
@@ -293,7 +293,7 @@ export default function BookingsPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
               <Sparkles size={14} className="text-[#C9A84C]" />
               <h2 className="text-lg font-black text-[#F5F0E8]">Next Actions</h2>

@@ -146,13 +146,13 @@ export default function TeamPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
             <span>Customer Admin</span>
             <ArrowRight size={10} />
             <span className="opacity-50">Team Workspace</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase text-[#F5F0E8] font-headline">Team & Access</h1>
+          <h1 className="text-[32px] sm:text-4xl font-black tracking-tighter uppercase text-[#F5F0E8] font-headline">Team & Access</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             Demo-safe workspace for customer admins to create individual invites, preview bulk user uploads, assign roles, and show the hierarchy and team ownership model without touching live credentials.
           </p>
@@ -165,20 +165,20 @@ export default function TeamPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           <Link
             href="/dashboard/leads"
-            className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Back to Leads
           </Link>
-          <button className="rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.18)]">
+          <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.18)]">
             Create Invite
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Active Users" value="14" sub="Across Sales, Ops, Finance" icon={<Users size={16} />} />
         <Metric label="Pending Invites" value="4" sub="Ready for customer admin send" icon={<UserPlus2 size={16} />} />
         <Metric label="Bulk Import" value="CSV Preview" sub="Imported rows staged before send" icon={<FileUp size={16} />} />
@@ -186,7 +186,7 @@ export default function TeamPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-        <section className="xl:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <section className="min-w-0 xl:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div>
               <h2 className="text-xl font-black uppercase tracking-tight text-[#F5F0E8] font-headline">Workflow Modes</h2>
@@ -197,7 +197,7 @@ export default function TeamPage() {
                 <button
                   key={mode}
                   onClick={() => setSelectedMode(mode)}
-                  className={`rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${
+                  className={`rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
                     selectedMode === mode
                       ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]"
                       : "border-[#C9A84C]/10 bg-[#0A0A0A] text-[#B8B0A0] hover:text-[#F5F0E8]"
@@ -211,7 +211,7 @@ export default function TeamPage() {
 
           {selectedMode === "invite" && (
             <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <Mail size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Individual Invite</span>
@@ -228,7 +228,7 @@ export default function TeamPage() {
                   Preview: invitation email, access role, and reporting line are prepared before the customer admin clicks send.
                 </div>
               </div>
-              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-black uppercase tracking-widest text-[#F5F0E8]">Recent Invites</h3>
                   <span className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Filter: {selectedRole}</span>
@@ -299,7 +299,7 @@ export default function TeamPage() {
 
           {selectedMode === "roles" && (
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <Filter size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Role Matrix</span>
@@ -321,7 +321,7 @@ export default function TeamPage() {
                   ))}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <CheckCircle2 size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Responsibilities</span>
@@ -385,7 +385,7 @@ export default function TeamPage() {
 
           {selectedMode === "structure" && (
             <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <Users size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Visible Hierarchy Diagram</span>
@@ -393,13 +393,13 @@ export default function TeamPage() {
                 <p className="mb-4 text-xs leading-relaxed text-[#B8B0A0]">
                   Drag the department cards to reorder the visible hierarchy for each business entity. This is a demo-safe interaction layer to show configurability on screen.
                 </p>
-                <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
-                  <div className="mx-auto w-fit rounded-2xl border border-[#C9A84C]/20 bg-[#C9A84C]/10 px-5 py-4 text-center">
+                <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
+                  <div className="mx-auto w-full max-w-[260px] rounded-2xl border border-[#C9A84C]/20 bg-[#C9A84C]/10 px-4 py-4 text-center">
                     <div className="text-sm font-black text-[#F5F0E8]">{hierarchyPreview.adminTitle}</div>
                     <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{hierarchyPreview.adminSubtitle}</div>
                   </div>
                   <div className="mx-auto h-6 w-px bg-[#C9A84C]/20" />
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {orgDepartments.map((dept) => (
                       <div
                         key={dept.title}
@@ -429,12 +429,12 @@ export default function TeamPage() {
                     ))}
                   </div>
                   <div className="mx-auto h-6 w-px bg-[#C9A84C]/20" />
-                  <div className="mx-auto w-fit rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3 text-center">
+                  <div className="mx-auto w-full max-w-[260px] rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3 text-center">
                     <div className="text-[10px] font-black uppercase tracking-widest text-[#B8B0A0]">{ORG_CHART.bottom}</div>
                   </div>
                 </div>
               </div>
-              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <Shield size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Configurable Nomenclature</span>
@@ -489,7 +489,7 @@ export default function TeamPage() {
 
           {selectedMode === "assign" && (
             <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <Plus size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Assignment Board</span>

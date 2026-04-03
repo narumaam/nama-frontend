@@ -418,7 +418,7 @@ export default function DealsClientPage() {
 
   return (
     <div className="space-y-8 pb-12">
-      <header className="flex items-end justify-between gap-6">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={12} className="text-[#C9A84C]" />
@@ -438,7 +438,7 @@ export default function DealsClientPage() {
             </span>
           </div>
         </div>
-        <Link href="/dashboard/autopilot" className="inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[#C9A84C] text-xs uppercase tracking-widest font-black">
+        <Link href="/dashboard/autopilot" className="inline-flex w-fit items-center gap-2 rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[#C9A84C] text-xs uppercase tracking-widest font-black">
           Back to Autopilot <ArrowRight size={12} />
         </Link>
       </header>
@@ -459,7 +459,7 @@ export default function DealsClientPage() {
             Open DMC Hub
           </Link>
         </div>
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {[
             { label: "CRM", detail: "Inbound source, contact context, transcript", state: "Ready" },
             { label: "Itinerary", detail: data.itinerary.title, state: "Drafted" },
@@ -476,7 +476,7 @@ export default function DealsClientPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label="Quote Value" value={`₹${data.finance.quote_total.toLocaleString("en-IN")}`} icon={<BadgeIndianRupee size={16} />} />
         <StatCard label="Gross Profit" value={`₹${data.finance.gross_profit.toLocaleString("en-IN")}`} icon={<Target size={16} />} />
         <StatCard label="Margin" value={`${data.finance.margin_percent}%`} icon={<CheckCircle2 size={16} />} />
@@ -491,7 +491,7 @@ export default function DealsClientPage() {
         <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">
           Website, WhatsApp, email, and phone-call transcripts are captured into the same CRM record so the handoff never loses context.
         </p>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Website", value: data.capture.website },
             { label: "WhatsApp", value: data.capture.whatsapp },
@@ -513,14 +513,14 @@ export default function DealsClientPage() {
         </div>
       </section>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <section className="lg:col-span-2 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="flex items-center gap-2 mb-4">
             <Bot size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Lead Understanding</h2>
           </div>
           <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">{data.query}</p>
-          <div className="grid md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <InfoPill label="Style" value={data.triage.style} />
             <InfoPill label="Travelers" value={`${data.triage.travelers_count}`} />
             <InfoPill label="Travel Dates" value={data.triage.travel_dates} />
@@ -555,7 +555,7 @@ export default function DealsClientPage() {
           <h2 className="text-lg font-black text-[#F5F0E8]">Itinerary Snapshot</h2>
           <div className="text-sm font-mono text-[#C9A84C]">{data.itinerary.currency} {data.itinerary.total_price.toLocaleString("en-IN")}</div>
         </div>
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.itinerary.days.map((day) => (
             <div key={day.day_number} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
               <div className="text-[10px] uppercase tracking-widest text-[#C9A84C] font-mono mb-2">Day {day.day_number}</div>
@@ -575,7 +575,7 @@ export default function DealsClientPage() {
         </div>
       </section>
 
-      <section className="grid md:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <h2 className="text-lg font-black text-[#F5F0E8] mb-4">Finance Summary</h2>
           <div className="space-y-3 text-sm">

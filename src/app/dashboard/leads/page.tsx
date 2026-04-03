@@ -241,7 +241,7 @@ export default function LeadsPage() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
             <span>Sales Operations</span>
@@ -256,20 +256,20 @@ export default function LeadsPage() {
           </h1>
           <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">Stages, owners, follow-up scheduler, and omnichannel context in one CRM surface</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 min-w-[300px]">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap md:w-auto md:items-center">
+          <div className="flex w-full min-w-0 items-center gap-2 rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 sm:flex-1 sm:min-w-[260px] md:min-w-[300px]">
             <Search size={14} className="text-[#4A453E]" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by 3 letters, company, phone, or email"
-              className="w-full bg-transparent text-[11px] font-medium text-[#F5F0E8] placeholder:text-[#4A453E] outline-none"
+              className="w-full min-w-0 bg-transparent text-[11px] font-medium text-[#F5F0E8] placeholder:text-[#4A453E] outline-none"
             />
           </div>
-          <div className="flex items-center gap-1 bg-[#111111] p-1 rounded-xl border border-[#C9A84C]/15 shadow-inner">
+          <div className="flex items-center gap-1 rounded-xl border border-[#C9A84C]/15 bg-[#111111] p-1 shadow-inner">
             <button
               onClick={() => setActiveView("kanban")}
-              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2 ${
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all sm:px-4 ${
                 activeView === "kanban" ? "bg-[#C9A84C] text-[#0A0A0A] shadow-lg" : "text-[#B8B0A0] hover:text-[#F5F0E8]"
               }`}
             >
@@ -277,7 +277,7 @@ export default function LeadsPage() {
             </button>
             <button
               onClick={() => setActiveView("list")}
-              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2 ${
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all sm:px-4 ${
                 activeView === "list" ? "bg-[#C9A84C] text-[#0A0A0A] shadow-lg" : "text-[#B8B0A0] hover:text-[#F5F0E8]"
               }`}
             >
@@ -293,7 +293,7 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Pipeline Value" value={`₹${pipelineValue.toLocaleString("en-IN")}`} sub="Across active CRM leads" icon={<Sparkles size={14} />} />
         <MetricCard label="Critical Contacts" value={`${filteredLeads.filter((item) => item.priority === "CRITICAL").length}`} sub="Needs human attention today" icon={<Target size={14} />} />
         <MetricCard label="Scheduled Touches" value={`${schedulerItems.length}`} sub="Calls, quote sends, reminders" icon={<CalendarClock size={14} />} />
@@ -337,7 +337,7 @@ export default function LeadsPage() {
               <div className="mt-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
                 {enrichedLead.enrichment.summary}
               </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <EnrichmentTile icon={<Linkedin size={14} />} label="LinkedIn" value={enrichedLead.enrichment.linkedin} />
                 <EnrichmentTile icon={<Instagram size={14} />} label="Instagram" value={enrichedLead.enrichment.instagram} />
                 <EnrichmentTile icon={<Users size={14} />} label="Facebook" value={enrichedLead.enrichment.facebook} />
@@ -363,7 +363,7 @@ export default function LeadsPage() {
         </section>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <section className="xl:col-span-8 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles size={14} className="text-[#C9A84C]" />
@@ -372,7 +372,7 @@ export default function LeadsPage() {
           <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">
             Website, WhatsApp, email, and phone calls all become the same kind of contact and lead in CRM. The team sees one commercial object instead of scattered follow-ups.
           </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {captureSources.map((item) => (
               <div key={item.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
                 <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-1">{item.label}</div>
@@ -391,7 +391,7 @@ export default function LeadsPage() {
           <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">
             The scheduler keeps the sales team honest: callbacks, quote sends, deposit reminders, and manager reviews stay visible on the same CRM surface.
           </p>
-          <div className="grid grid-cols-5 gap-2 mb-4">
+          <div className="grid grid-cols-2 gap-2 mb-4 sm:grid-cols-5">
             {calendarDays.map((day) => (
               <div key={day.date} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-3 text-center">
                 <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{day.day}</div>
@@ -456,7 +456,7 @@ export default function LeadsPage() {
       </div>
 
       {activeView === "kanban" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 items-start pb-20">
+        <div className="grid grid-cols-1 gap-6 pb-20 sm:grid-cols-2 xl:grid-cols-5">
           {stageBuckets.map((bucket) => (
             <Column key={bucket.stage} title={bucket.stage} count={String(bucket.leads.length).padStart(2, "0")} color={stageColor(bucket.stage)}>
               {bucket.leads.length ? (
@@ -471,7 +471,7 @@ export default function LeadsPage() {
         </div>
       ) : (
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] overflow-hidden pb-8">
-          <div className="grid grid-cols-[1.1fr_0.7fr_0.7fr_0.9fr_1fr_1fr] gap-4 border-b border-[#C9A84C]/10 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[#4A453E]">
+          <div className="hidden grid-cols-[1.1fr_0.7fr_0.7fr_0.9fr_1fr_1fr] gap-4 border-b border-[#C9A84C]/10 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-[#4A453E] md:grid">
             <span>Contact</span>
             <span>Source</span>
             <span>Stage</span>
@@ -479,36 +479,86 @@ export default function LeadsPage() {
             <span>Next Action</span>
             <span>Status</span>
           </div>
-          <div className="divide-y divide-[#C9A84C]/10">
+          <div className="divide-y divide-[#C9A84C]/10 md:divide-y">
             {filteredLeads.map((item) => (
-              <div key={item.slug} className="grid grid-cols-[1.1fr_0.7fr_0.7fr_0.9fr_1fr_1fr_auto] gap-4 px-6 py-5 hover:bg-[#0A0A0A] transition-colors">
-                <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
-                  <div className="text-sm font-black text-[#F5F0E8]">{item.guest_name}</div>
-                  <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.contactLabel}</div>
-                  <div className="mt-1 text-[10px] text-[#4A453E]">{item.company}</div>
-                </Link>
-                <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.source}</Link>
-                <div className="flex items-center"><StagePill stage={item.stage} /></div>
-                <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.owner}</Link>
-                <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
-                  <div className="text-sm text-[#F5F0E8]">{item.nextAction}</div>
-                  <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.nextActionAt}</div>
-                </Link>
-                <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.status}</Link>
-                <button
-                  type="button"
-                  onClick={() => setEnrichedLead(item)}
-                  className="self-center rounded-full border border-[#C9A84C]/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10"
-                >
-                  Enrich profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedLead(item)}
-                  className="self-center rounded-full border border-white/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] hover:border-[#C9A84C]/20 hover:text-[#F5F0E8]"
-                >
-                  Open contact
-                </button>
+              <div key={item.slug} className="px-4 py-4 hover:bg-[#0A0A0A] transition-colors md:px-6 md:py-5">
+                <div className="grid gap-4 md:hidden">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link href={`/dashboard/deals?case=${item.slug}`} className="block min-w-0">
+                      <div className="text-sm font-black text-[#F5F0E8]">{item.guest_name}</div>
+                      <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.contactLabel}</div>
+                      <div className="mt-1 text-[10px] text-[#4A453E]">{item.company}</div>
+                    </Link>
+                    <StagePill stage={item.stage} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs text-[#B8B0A0]">
+                    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Source</div>
+                      <div className="mt-1 text-sm text-[#F5F0E8]">{item.source}</div>
+                    </div>
+                    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Owner</div>
+                      <div className="mt-1 text-sm text-[#F5F0E8]">{item.owner}</div>
+                    </div>
+                    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3 col-span-2">
+                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Next Action</div>
+                      <div className="mt-1 text-sm text-[#F5F0E8]">{item.nextAction}</div>
+                      <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.nextActionAt}</div>
+                    </div>
+                    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3 col-span-2">
+                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Status</div>
+                      <div className="mt-1 text-sm text-[#F5F0E8] leading-relaxed">{item.status}</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEnrichedLead(item)}
+                      className="rounded-full border border-[#C9A84C]/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10"
+                    >
+                      Enrich profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLead(item)}
+                      className="rounded-full border border-white/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] hover:border-[#C9A84C]/20 hover:text-[#F5F0E8]"
+                    >
+                      Open contact
+                    </button>
+                  </div>
+                </div>
+
+                <div className="hidden grid-cols-[1.1fr_0.7fr_0.7fr_0.9fr_1fr_1fr_auto] gap-4 md:grid">
+                  <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
+                    <div className="text-sm font-black text-[#F5F0E8]">{item.guest_name}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#C9A84C]">{item.contactLabel}</div>
+                    <div className="mt-1 text-[10px] text-[#4A453E]">{item.company}</div>
+                  </Link>
+                  <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.source}</Link>
+                  <div className="flex items-center"><StagePill stage={item.stage} /></div>
+                  <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.owner}</Link>
+                  <Link href={`/dashboard/deals?case=${item.slug}`} className="block">
+                    <div className="text-sm text-[#F5F0E8]">{item.nextAction}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.nextActionAt}</div>
+                  </Link>
+                  <Link href={`/dashboard/deals?case=${item.slug}`} className="text-sm text-[#B8B0A0] flex items-center">{item.status}</Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEnrichedLead(item)}
+                      className="self-center rounded-full border border-[#C9A84C]/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10"
+                    >
+                      Enrich profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLead(item)}
+                      className="self-center rounded-full border border-white/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] hover:border-[#C9A84C]/20 hover:text-[#F5F0E8]"
+                    >
+                      Open contact
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
