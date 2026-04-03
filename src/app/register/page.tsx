@@ -3,6 +3,8 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, type BusinessRole, type SupportedCurrency } from "@/lib/demo-config";
+import { DEFAULT_DEMO_PROFILE, writeDemoProfile } from "@/lib/demo-profile";
 import {
   ArrowRight,
   Building2,
@@ -15,26 +17,6 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-
-type BusinessRole = "Travel Agency" | "DMC" | "Tour Operator";
-type MarketPreset = {
-  country: string;
-  currency: string;
-  language: string;
-  gateway: string;
-};
-
-const BUSINESS_ROLES: BusinessRole[] = ["Travel Agency", "DMC", "Tour Operator"];
-
-const MARKET_PRESETS: MarketPreset[] = [
-  { country: "India", currency: "INR", language: "English + Hindi", gateway: "Razorpay" },
-  { country: "UAE", currency: "AED", language: "English + Arabic", gateway: "Stripe" },
-  { country: "Europe", currency: "EUR", language: "English + regional fallback", gateway: "Stripe" },
-  { country: "United States", currency: "USD", language: "English", gateway: "Stripe" },
-];
-
-const SUPPORTED_CURRENCIES = ["INR", "AED", "USD", "EUR", "GBP"] as const;
-type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
 const ONBOARDING_STEPS = [
   "Identify the business model: travel agency, DMC, tour operator, or a hybrid of all three.",
@@ -65,9 +47,11 @@ export default function RegisterPage() {
   const router = useRouter();
   const [companyName, setCompanyName] = useState("");
   const [operatorName, setOperatorName] = useState("");
-  const [businessRoles, setBusinessRoles] = useState<BusinessRole[]>(["Travel Agency", "DMC"]);
-  const [selectedMarket, setSelectedMarket] = useState<MarketPreset>(MARKET_PRESETS[0]);
-  const [enabledCurrencies, setEnabledCurrencies] = useState<SupportedCurrency[]>(["INR", "AED", "USD"]);
+  const [businessRoles, setBusinessRoles] = useState<BusinessRole[]>(DEFAULT_DEMO_PROFILE.roles as BusinessRole[]);
+  const [selectedMarket, setSelectedMarket] = useState(MARKET_PRESETS[0]);
+  const [enabledCurrencies, setEnabledCurrencies] = useState<SupportedCurrency[]>(
+    DEFAULT_DEMO_PROFILE.enabledCurrencies as SupportedCurrency[]
+  );
   const [selectedPlan, setSelectedPlan] = useState(PLAN_PRESETS[1]);
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -89,14 +73,14 @@ export default function RegisterPage() {
 
   function enterDemoWorkspace() {
     setShowConfetti(true);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("nama-demo-company", companyName.trim() || "Nair Luxury Escapes");
-      window.localStorage.setItem("nama-demo-operator", operatorName.trim() || "Workspace Admin");
-      window.localStorage.setItem("nama-demo-business-roles", JSON.stringify(businessRoles));
-      window.localStorage.setItem("nama-demo-market", JSON.stringify(selectedMarket));
-      window.localStorage.setItem("nama-demo-base-currency", selectedMarket.currency);
-      window.localStorage.setItem("nama-demo-enabled-currencies", JSON.stringify(enabledCurrencies));
-    }
+    writeDemoProfile({
+      company: companyName.trim() || DEFAULT_DEMO_PROFILE.company,
+      operator: operatorName.trim() || DEFAULT_DEMO_PROFILE.operator,
+      roles: businessRoles,
+      market: selectedMarket,
+      baseCurrency: selectedMarket.currency,
+      enabledCurrencies,
+    });
     window.setTimeout(() => {
       router.push("/dashboard");
     }, 900);

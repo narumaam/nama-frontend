@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
-import { DEFAULT_DEMO_PROFILE, readDemoProfile } from '@/lib/demo-profile';
+import { DEFAULT_SHELL_BRAND } from '@/lib/demo-config';
+import { useDemoProfile } from '@/lib/use-demo-profile';
 import {
   LayoutDashboard,
   Users,
@@ -31,25 +32,28 @@ import {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const primaryCase = getPrimaryDemoCase();
+  const profile = useDemoProfile();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
-  const [demoCompany, setDemoCompany] = useState(DEFAULT_DEMO_PROFILE.company);
-  const [demoOperator, setDemoOperator] = useState(DEFAULT_DEMO_PROFILE.operator);
-  const [demoRoles, setDemoRoles] = useState<string[]>(DEFAULT_DEMO_PROFILE.roles);
-  const [demoMarket, setDemoMarket] = useState(DEFAULT_DEMO_PROFILE.market);
-  const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>(DEFAULT_DEMO_PROFILE.enabledCurrencies);
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const profile = readDemoProfile();
-    setDemoCompany(profile.company);
-    setDemoOperator(profile.operator);
-    setDemoRoles(profile.roles);
-    setDemoMarket(profile.market);
-    setEnabledCurrencies(profile.enabledCurrencies);
-  }, []);
+  const demoCompany = profile.company;
+  const demoOperator = profile.operator;
+  const demoRoles = profile.roles;
+  const demoMarket = profile.market;
+  const enabledCurrencies = profile.enabledCurrencies;
+  const shellBrand = profile.whiteLabel.enabled
+    ? {
+        shortName: profile.whiteLabel.workspaceName,
+        badgeGlyph: profile.whiteLabel.badgeGlyph,
+      }
+    : DEFAULT_SHELL_BRAND;
+  const operatorInitials = demoOperator
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((item) => item[0]?.toUpperCase())
+    .join("") || shellBrand.badgeGlyph;
 
   const navGroups = [
     {
@@ -110,8 +114,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className={`h-[60px] flex items-center border-b border-[#C9A84C]/10 ${collapsed ? 'md:px-4 md:justify-center' : 'px-5 justify-between'}`}>
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-[#C9A84C] rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.25)] shrink-0">N</div>
-            {(!collapsed || mobileNavOpen) && <span className="text-base font-black tracking-tighter font-headline text-[#C9A84C] uppercase">NAMA OS</span>}
+            <div className="w-7 h-7 bg-[#C9A84C] rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.25)] shrink-0">{shellBrand.badgeGlyph}</div>
+            {(!collapsed || mobileNavOpen) && <span className="text-base font-black tracking-tighter font-headline text-[#C9A84C] uppercase">{shellBrand.shortName}</span>}
           </div>
           <div className="flex items-center gap-2">
             {!collapsed && (
@@ -191,7 +195,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User profile */}
         <div className={`p-3 border-t border-[#C9A84C]/10 flex items-center gap-3 bg-[#0A0A0A]/30 ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-[#1A1A1A] flex items-center justify-center font-bold border border-[#C9A84C]/20 text-[#C9A84C] text-xs shrink-0">RI</div>
+          <div className="w-8 h-8 rounded-full bg-[#1A1A1A] flex items-center justify-center font-bold border border-[#C9A84C]/20 text-[#C9A84C] text-xs shrink-0">{operatorInitials}</div>
           {(!collapsed || mobileNavOpen) && (
             <div className="overflow-hidden">
               <p className="text-[11px] font-bold truncate text-[#F5F0E8]">{demoOperator}</p>

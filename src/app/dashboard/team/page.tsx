@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
 import { DEMO_CASE_ASSIGNMENTS, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
-import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
-import { ArrowRight, CheckCircle2, ClipboardList, FileUp, Filter, Mail, Plus, Shield, Users, UserPlus2 } from "lucide-react";
+import { DEFAULT_DEMO_PROFILE, writeDemoProfile } from "@/lib/demo-profile";
+import { useDemoProfile } from "@/lib/use-demo-profile";
+import { ArrowRight, CheckCircle2, ClipboardList, FileUp, Filter, Mail, Palette, Plus, Shield, Users, UserPlus2 } from "lucide-react";
 
 type TeamRole = {
   name: string;
@@ -118,9 +119,9 @@ const ORG_CHART = {
 };
 
 export default function TeamPage() {
-  const profile = useMemo(() => readDemoProfile(), []);
+  const profile = useDemoProfile();
   const [selectedRole, setSelectedRole] = useState("Sales");
-  const [selectedMode, setSelectedMode] = useState<"invite" | "bulk" | "roles" | "hierarchy" | "structure" | "assign">("invite");
+  const [selectedMode, setSelectedMode] = useState<"invite" | "bulk" | "roles" | "hierarchy" | "structure" | "assign" | "brand">("invite");
   const [orgDepartments, setOrgDepartments] = useState(ORG_CHART.departments);
   const [draggingDept, setDraggingDept] = useState<string | null>(null);
   const [entityLabel, setEntityLabel] = useState(
@@ -129,6 +130,12 @@ export default function TeamPage() {
   const [teamLabel, setTeamLabel] = useState("Inbound Desk");
   const [designationLabel, setDesignationLabel] = useState("Senior Executive");
   const [reportingLabel, setReportingLabel] = useState("Reports to Sales Manager");
+  const [whiteLabelEnabled, setWhiteLabelEnabled] = useState(profile.whiteLabel.enabled);
+  const [workspaceName, setWorkspaceName] = useState(profile.whiteLabel.workspaceName);
+  const [badgeGlyph, setBadgeGlyph] = useState(profile.whiteLabel.badgeGlyph);
+  const [supportEmail, setSupportEmail] = useState(profile.whiteLabel.supportEmail);
+  const [customDomain, setCustomDomain] = useState(profile.whiteLabel.customDomain);
+  const [accentHex, setAccentHex] = useState(profile.whiteLabel.accentHex);
 
   const filteredInvites = useMemo(
     () => INVITES.filter((invite) => invite.role === selectedRole || selectedRole === "All"),
@@ -144,6 +151,15 @@ export default function TeamPage() {
     reportingTitle: reportingLabel,
   };
 
+  useEffect(() => {
+    setWhiteLabelEnabled(profile.whiteLabel.enabled);
+    setWorkspaceName(profile.whiteLabel.workspaceName);
+    setBadgeGlyph(profile.whiteLabel.badgeGlyph);
+    setSupportEmail(profile.whiteLabel.supportEmail);
+    setCustomDomain(profile.whiteLabel.customDomain);
+    setAccentHex(profile.whiteLabel.accentHex);
+  }, [profile]);
+
   function moveDepartment(targetTitle: string) {
     if (!draggingDept || draggingDept === targetTitle) return;
     const next = [...orgDepartments];
@@ -153,6 +169,19 @@ export default function TeamPage() {
     const [item] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, item);
     setOrgDepartments(next);
+  }
+
+  function saveWhiteLabelSettings() {
+    writeDemoProfile({
+      whiteLabel: {
+        enabled: whiteLabelEnabled,
+        workspaceName,
+        badgeGlyph,
+        supportEmail,
+        customDomain,
+        accentHex,
+      },
+    });
   }
 
   return (
@@ -270,7 +299,7 @@ export default function TeamPage() {
               <p className="mt-1 text-sm text-[#B8B0A0]">Switch between invite creation, bulk upload, role design, hierarchy, and assignments.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {(["invite", "bulk", "roles", "hierarchy", "structure", "assign"] as const).map((mode) => (
+              {(["invite", "bulk", "roles", "hierarchy", "structure", "assign", "brand"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setSelectedMode(mode)}
@@ -564,6 +593,87 @@ export default function TeamPage() {
             </div>
           )}
 
+          {selectedMode === "brand" && (
+            <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
+                <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
+                  <Palette size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">White-label Controls</span>
+                </div>
+                <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-black text-[#F5F0E8]">Enable white label</div>
+                      <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">
+                        Unlock tenant branding controls only when customer admin explicitly turns white-label on.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setWhiteLabelEnabled((value) => !value)}
+                      className={`relative h-7 w-14 rounded-full border transition-all ${
+                        whiteLabelEnabled ? "border-[#C9A84C]/40 bg-[#C9A84C]/10" : "border-white/10 bg-[#0A0A0A]"
+                      }`}
+                      aria-label="Toggle white label"
+                    >
+                      <span
+                        className={`absolute top-[3px] h-[20px] w-[20px] rounded-full transition-all ${
+                          whiteLabelEnabled ? "left-[30px] bg-[#C9A84C]" : "left-[3px] bg-[#4A453E]"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+                <div className={`mt-4 grid gap-3 sm:grid-cols-2 ${whiteLabelEnabled ? "" : "opacity-50"}`}>
+                  <EditableField label="Workspace Name" value={workspaceName} onChange={setWorkspaceName} disabled={!whiteLabelEnabled} />
+                  <EditableField label="Badge Glyph" value={badgeGlyph} onChange={setBadgeGlyph} disabled={!whiteLabelEnabled} />
+                  <EditableField label="Support Email" value={supportEmail} onChange={setSupportEmail} disabled={!whiteLabelEnabled} />
+                  <EditableField label="Custom Domain" value={customDomain} onChange={setCustomDomain} disabled={!whiteLabelEnabled} />
+                  <EditableField label="Accent Hex" value={accentHex} onChange={setAccentHex} disabled={!whiteLabelEnabled} />
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={saveWhiteLabelSettings}
+                    className="rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+                  >
+                    Save White Label
+                  </button>
+                  <div className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] px-4 py-2.5 text-[10px] uppercase tracking-widest text-[#B8B0A0]">
+                    {whiteLabelEnabled ? "Branding controls unlocked" : "Branding controls greyed out"}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">White-label Preview</div>
+                <div className="mt-4 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#C9A84C] text-sm font-black text-[#0A0A0A]">
+                      {whiteLabelEnabled ? (badgeGlyph.trim() || workspaceName[0] || "W").slice(0, 2).toUpperCase() : "N"}
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-[#F5F0E8]">
+                        {whiteLabelEnabled ? workspaceName || visibleCompany : "NAMA OS"}
+                      </div>
+                      <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">
+                        {whiteLabelEnabled ? customDomain || "tenant.preview" : "Platform shell locked"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <PreviewField label="State" value={whiteLabelEnabled ? "Enabled" : "Disabled"} />
+                    <PreviewField label="Support" value={whiteLabelEnabled ? supportEmail || "Not set" : "Platform default"} />
+                    <PreviewField label="Tenant" value={visibleCompany} />
+                    <PreviewField label="Accent" value={whiteLabelEnabled ? accentHex || "Not set" : "Platform gold"} />
+                  </div>
+                </div>
+                <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+                  This is the behavior we want: customer admin sees the white-label section, but its fields stay disabled until they explicitly enable white label for the tenant.
+                </div>
+              </div>
+            </div>
+          )}
+
           {selectedMode === "assign" && (
             <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
@@ -650,6 +760,30 @@ function Field({ label, value }: { label: string; value: string }) {
       <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
       <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
     </div>
+  );
+}
+
+function EditableField({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className={`rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4 ${disabled ? "cursor-not-allowed" : ""}`}>
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="mt-2 w-full bg-transparent text-sm font-semibold text-[#F5F0E8] outline-none disabled:cursor-not-allowed disabled:text-[#4A453E]"
+      />
+    </label>
   );
 }
 

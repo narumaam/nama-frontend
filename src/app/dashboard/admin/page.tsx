@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
 import {
   AlertTriangle,
   BadgeIndianRupee,
@@ -106,44 +107,22 @@ const CONTROL_PANELS = [
   },
 ];
 
-const REGIONAL_COMMERCE = [
-  {
-    market: "India",
-    language: "English + Hindi",
-    baseCurrency: "INR",
-    extraCurrencies: "AED, USD, EUR",
-    billingCurrency: "INR",
-    gateway: "Razorpay",
-    note: "Use GST-aware invoicing, INR subscription pricing, and domestic payment flow for Indian agencies.",
-  },
-  {
-    market: "UAE / Middle East",
-    language: "English + Arabic",
-    baseCurrency: "AED",
-    extraCurrencies: "INR, USD, EUR",
-    billingCurrency: "AED",
-    gateway: "Stripe",
-    note: "Present AED pricing, Arabic-ready customer copy, and a cross-border payment rail for faster checkout.",
-  },
-  {
-    market: "Europe",
-    language: "English + regional fallback",
-    baseCurrency: "EUR",
-    extraCurrencies: "USD, GBP, INR",
-    billingCurrency: "EUR",
-    gateway: "Stripe",
-    note: "Show EUR plans, VAT-aware billing, and region-appropriate policy wording.",
-  },
-  {
-    market: "US / Global",
-    language: "English",
-    baseCurrency: "USD",
-    extraCurrencies: "EUR, GBP, INR",
-    billingCurrency: "USD",
-    gateway: "Stripe",
-    note: "Use USD-led subscription pricing with global card routing and standard enterprise billing.",
-  },
-];
+const REGIONAL_COMMERCE = MARKET_PRESETS.map((market) => ({
+  market: market.country,
+  language: market.language,
+  baseCurrency: market.currency,
+  extraCurrencies: SUPPORTED_CURRENCIES.filter((item) => item !== market.currency).join(", "),
+  billingCurrency: market.currency,
+  gateway: market.gateway,
+  note:
+    market.country === "India"
+      ? "Use GST-aware invoicing, INR subscription pricing, and domestic payment flow for Indian agencies."
+      : market.country === "UAE"
+        ? "Present AED pricing, Arabic-ready customer copy, and a cross-border payment rail for faster checkout."
+        : market.country === "Europe"
+          ? "Show EUR plans, VAT-aware billing, and region-appropriate policy wording."
+          : "Use USD-led subscription pricing with global card routing and standard enterprise billing.",
+}));
 
 const FX_CONTROL_STACK = [
   {
@@ -169,8 +148,8 @@ const FX_CONTROL_STACK = [
 ];
 
 const BASE_CURRENCY_MODEL = {
-  base: "INR",
-  enabled: ["AED", "USD", "EUR", "GBP"],
+  base: MARKET_PRESETS[0].currency,
+  enabled: SUPPORTED_CURRENCIES.filter((currency) => currency !== MARKET_PRESETS[0].currency),
   note: "One accounting currency powers reporting and billing, while additional selling currencies stay available for quotes and checkout.",
 };
 

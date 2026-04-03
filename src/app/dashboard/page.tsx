@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
-import { readDemoProfile } from "@/lib/demo-profile";
+import { useDemoProfile } from "@/lib/use-demo-profile";
 import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet } from "lucide-react";
 
 type DemoCase = {
@@ -24,13 +24,6 @@ type CaptureSignal = {
   lead: string;
   note: string;
   tone: string;
-};
-
-type DemoMarket = {
-  country: string;
-  currency: string;
-  language: string;
-  gateway: string;
 };
 
 const PRIMARY_CASE = getPrimaryDemoCase();
@@ -105,18 +98,14 @@ const PREVIEW_JOURNEY = [
 ];
 
 export default function DashboardPage() {
+  const profile = useDemoProfile();
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [loading, setLoading] = useState(true);
-  const [demoCompany, setDemoCompany] = useState(readDemoProfile().company);
-  const [demoOperator, setDemoOperator] = useState(readDemoProfile().operator);
-  const [businessRoles, setBusinessRoles] = useState<string[]>(["Travel Agency", "DMC"]);
-  const [demoMarket, setDemoMarket] = useState<DemoMarket>({
-    country: "India",
-    currency: "INR",
-    language: "English + Hindi",
-    gateway: "Razorpay",
-  });
-  const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>(["INR", "AED", "USD"]);
+  const demoCompany = profile.company;
+  const demoOperator = profile.operator;
+  const businessRoles = profile.roles;
+  const demoMarket = profile.market;
+  const enabledCurrencies = profile.enabledCurrencies;
 
   useEffect(() => {
     let cancelled = false;
@@ -134,28 +123,6 @@ export default function DashboardPage() {
       }
     }
     load();
-    try {
-      const company = window.localStorage.getItem("nama-demo-company");
-      if (company) setDemoCompany(company);
-    } catch {}
-    try {
-      const operator = window.localStorage.getItem("nama-demo-operator");
-      if (operator) setDemoOperator(operator);
-    } catch {}
-    try {
-      const roles = JSON.parse(window.localStorage.getItem("nama-demo-business-roles") || "[]");
-      if (Array.isArray(roles) && roles.length) setBusinessRoles(roles);
-    } catch {}
-    try {
-      const market = JSON.parse(window.localStorage.getItem("nama-demo-market") || "{}");
-      if (market?.country && market?.currency && market?.language && market?.gateway) {
-        setDemoMarket(market);
-      }
-    } catch {}
-    try {
-      const currencies = JSON.parse(window.localStorage.getItem("nama-demo-enabled-currencies") || "[]");
-      if (Array.isArray(currencies) && currencies.length) setEnabledCurrencies(currencies);
-    } catch {}
     return () => {
       cancelled = true;
     };
