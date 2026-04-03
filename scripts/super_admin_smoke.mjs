@@ -97,6 +97,9 @@ async function main() {
     await page.getByLabel("Access code").fill("NAMA-ALPHA");
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await page.waitForURL("**/dashboard/admin?entry=super-admin");
+    await page.evaluate(() => window.localStorage.removeItem("nama.appSession"));
+    await page.goto(`${baseUrl}/dashboard/admin?entry=super-admin`);
+    await page.waitForURL("**/dashboard/admin?entry=super-admin");
 
     await expectVisible(page, "Platform Control");
     await expectVisible(page, "Customer entry");

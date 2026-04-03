@@ -173,6 +173,15 @@ export function createAppSession(session: Omit<AppSession, "grantedAt" | "source
   return nextSession;
 }
 
+export function writeAppSession(session: AppSession, options?: { dispatch?: boolean }) {
+  if (!canUseStorage()) return null;
+  window.localStorage.setItem(APP_SESSION_KEY, JSON.stringify(session));
+  if (options?.dispatch ?? true) {
+    dispatchSessionUpdate();
+  }
+  return session;
+}
+
 export function clearAppSession() {
   if (!canUseStorage()) return;
   window.localStorage.removeItem(APP_SESSION_KEY);

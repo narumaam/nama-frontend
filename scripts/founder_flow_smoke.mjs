@@ -222,6 +222,9 @@ async function main() {
     await page.getByLabel(/Access code/i).fill(tenantAccessCode(scenario.companyName, "customer-admin"));
     await page.getByRole("button", { name: /Enter Workspace/i }).click();
     await page.waitForURL("**/dashboard");
+    await page.evaluate(() => window.localStorage.removeItem("nama.appSession"));
+    await page.goto(`${baseUrl}/dashboard/finance`);
+    await page.waitForURL("**/dashboard/finance");
 
     await page.goto(`${baseUrl}/dashboard/leads`);
     await page.waitForLoadState("networkidle");

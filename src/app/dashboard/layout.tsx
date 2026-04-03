@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { canAccessPath, clearAppSession, getDefaultRouteForRole, getRoleLabel, readAppSession, type AppSession } from '@/lib/auth-session';
+import { appSessionFromContract, clearServerSession, fetchCurrentSession } from '@/lib/session-api';
+import { canAccessPath, clearAppSession, getDefaultRouteForRole, getRoleLabel, readAppSession, type AppSession, writeAppSession } from '@/lib/auth-session';
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
 import { DEFAULT_SHELL_BRAND } from '@/lib/demo-config';
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from '@/lib/demo-profile';
@@ -69,33 +70,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     .join("") || shellBrand.badgeGlyph;
 
   useEffect(() => {
-    function syncAccess() {
-      const nextSession = readAppSession();
-      if (!nextSession) {
-        setSession(null);
-        setAccessReady(false);
-        router.replace(pathname.startsWith('/dashboard/admin') ? '/super-admin/login' : '/register');
-        return;
-      }
+    let cancelled = false;
 
-      if (!canAccessPath(nextSession, pathname)) {
+    async function syncAccess() {
+      try {
+        const current = await fetchCurrentSession();
+        const nextSession = current ? writeAppSession(appSessionFromContract(current), { dispatch: false }) : readAppSession();
+        if (cancelled) return;
+
+        if (!nextSession) {
+          clearAppSession();
+          setSession(null);
+          setAccessReady(false);
+          router.replace(pathname.startsWith('/dashboard/admin') ? '/super-admin/login' : '/register');
+          return;
+        }
+
+        if (!canAccessPath(nextSession, pathname)) {
+          setSession(nextSession);
+          setSuperAdminAccess(nextSession.role === 'super-admin');
+          setAccessReady(false);
+          router.replace(getDefaultRouteForRole(nextSession.role));
+          return;
+        }
+
         setSession(nextSession);
         setSuperAdminAccess(nextSession.role === 'super-admin');
-        setAccessReady(false);
-        router.replace(getDefaultRouteForRole(nextSession.role));
-        return;
-      }
+        setAccessReady(true);
+      } catch {
+        const nextSession = readAppSession();
+        if (cancelled) return;
 
-      setSession(nextSession);
-      setSuperAdminAccess(nextSession.role === 'super-admin');
-      setAccessReady(true);
+        if (!nextSession) {
+          setSession(null);
+          setAccessReady(false);
+          router.replace(pathname.startsWith('/dashboard/admin') ? '/super-admin/login' : '/register');
+          return;
+        }
+
+        setSession(nextSession);
+        setSuperAdminAccess(nextSession.role === 'super-admin');
+        setAccessReady(canAccessPath(nextSession, pathname));
+      }
     }
 
-    syncAccess();
+    void syncAccess();
     window.addEventListener('storage', syncAccess);
     window.addEventListener('nama-app-session-updated', syncAccess as EventListener);
 
     return () => {
+      cancelled = true;
       window.removeEventListener('storage', syncAccess);
       window.removeEventListener('nama-app-session-updated', syncAccess as EventListener);
     };
@@ -142,11 +166,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMobileNavOpen(false);
   }
 
-  function handleExitSuperAdmin() {
-    clearAppSession();
-    setSession(null);
-    setSuperAdminAccess(false);
-    router.push('/super-admin/login');
+  async function handleExitSuperAdmin() {
+    try {
+      await clearServerSession();
+    } finally {
+      clearAppSession();
+      setSession(null);
+      setSuperAdminAccess(false);
+      router.push('/super-admin/login');
+    }
   }
 
   const visibleNavGroups = navGroups

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isDemoApiStoreError, issueSuperAdminSession, listSuperAdminSessions } from "@/lib/demo-api-store";
+import { APP_SESSION_COOKIE, serializeSessionCookie } from "@/lib/session-cookie";
 
 export async function GET() {
   return NextResponse.json({
@@ -16,7 +17,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ detail: "email is required" }, { status: 400 });
     }
 
-    return NextResponse.json(issueSuperAdminSession(payload));
+    const session = issueSuperAdminSession(payload);
+    const response = NextResponse.json(session);
+    response.cookies.set({
+      name: APP_SESSION_COOKIE,
+      value: serializeSessionCookie(session),
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 8,
+    });
+    return response;
   } catch (error) {
     if (isDemoApiStoreError(error)) {
       return NextResponse.json({ detail: error.message }, { status: error.status });

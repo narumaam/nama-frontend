@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isDemoApiStoreError, issueTenantSession, listTenantSessions } from "@/lib/demo-api-store";
+import { APP_SESSION_COOKIE, serializeSessionCookie } from "@/lib/session-cookie";
 import { type TenantSessionCreatePayload } from "@/lib/tenant-contracts";
 
 export async function GET(request: NextRequest) {
@@ -19,7 +20,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ detail: "email and scope are required" }, { status: 400 });
     }
 
-    return NextResponse.json(issueTenantSession(payload));
+    const session = issueTenantSession(payload);
+    const response = NextResponse.json(session);
+    response.cookies.set({
+      name: APP_SESSION_COOKIE,
+      value: serializeSessionCookie(session),
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 8,
+    });
+    return response;
   } catch (error) {
     if (isDemoApiStoreError(error)) {
       return NextResponse.json({ detail: error.message }, { status: error.status });

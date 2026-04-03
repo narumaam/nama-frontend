@@ -2,22 +2,40 @@
 
 import { useEffect, useState } from "react";
 
-import { readAppSession, type AppSession } from "@/lib/auth-session";
+import { clearAppSession, readAppSession, type AppSession, writeAppSession } from "@/lib/auth-session";
+import { appSessionFromContract, fetchCurrentSession } from "@/lib/session-api";
 
 export function useAppSession() {
   const [session, setSession] = useState<AppSession | null>(() => readAppSession());
 
   useEffect(() => {
-    function syncSession() {
+    async function syncSessionFromServer() {
+      try {
+        const current = await fetchCurrentSession();
+        if (!current) {
+          clearAppSession();
+          setSession(null);
+          return;
+        }
+
+        const nextSession = writeAppSession(appSessionFromContract(current), { dispatch: false });
+        setSession(nextSession);
+      } catch {
+        setSession(readAppSession());
+      }
+    }
+
+    function syncSessionFromStorage() {
       setSession(readAppSession());
     }
 
-    window.addEventListener("storage", syncSession);
-    window.addEventListener("nama-app-session-updated", syncSession as EventListener);
+    void syncSessionFromServer();
+    window.addEventListener("storage", syncSessionFromStorage);
+    window.addEventListener("nama-app-session-updated", syncSessionFromStorage as EventListener);
 
     return () => {
-      window.removeEventListener("storage", syncSession);
-      window.removeEventListener("nama-app-session-updated", syncSession as EventListener);
+      window.removeEventListener("storage", syncSessionFromStorage);
+      window.removeEventListener("nama-app-session-updated", syncSessionFromStorage as EventListener);
     };
   }, []);
 

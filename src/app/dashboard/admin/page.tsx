@@ -8,11 +8,13 @@ import { DEMO_PLAN_PRICES, readDemoSubscriptionPlan, readDemoTenantRegistry } fr
 import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
 import { filterDemoEvents, type DemoEventRange, type DemoEventSeverity } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE } from "@/lib/demo-profile";
+import { writeAppSession } from "@/lib/auth-session";
+import { appSessionFromContract, clearServerSession, fetchCurrentSession } from "@/lib/session-api";
 import { useDemoEvents } from "@/lib/use-demo-events";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { DEMO_SCENARIOS, getScenarioProjectedMrr, resetDemoState, seedDemoScenario, type DemoScenarioKey } from "@/lib/demo-scenarios";
 import { SCREEN_HELP } from "@/lib/screen-help";
-import { clearSuperAdminSession, hasSuperAdminSession, readSuperAdminSession } from "@/lib/super-admin-session";
+import { clearSuperAdminSession, readSuperAdminSession } from "@/lib/super-admin-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   AlertTriangle,
@@ -262,19 +264,52 @@ export default function AdminPage() {
   const totalSystemActiveUsers = tenantHealth.reduce((sum, tenant) => sum + (tenant.activeUsers ?? tenant.users), 0);
   const totalSystemPendingInvites = tenantHealth.reduce((sum, tenant) => sum + (tenant.pendingInvites ?? 0), 0);
   useEffect(() => {
-    if (!hasSuperAdminSession()) {
-      router.replace("/super-admin/login");
-      return;
+    let cancelled = false;
+
+    async function syncSuperAdminAccess() {
+      try {
+        const current = await fetchCurrentSession();
+        if (!current || current.role !== "super-admin") {
+          if (!cancelled) {
+            router.replace("/super-admin/login");
+          }
+          return;
+        }
+
+        writeAppSession(appSessionFromContract(current), { dispatch: false });
+        if (!cancelled) {
+          setSuperAdminEmail(current.email);
+          setAccessReady(true);
+        }
+      } catch {
+        const session = readSuperAdminSession();
+        if (!session) {
+          if (!cancelled) {
+            router.replace("/super-admin/login");
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setSuperAdminEmail(session.email ?? "");
+          setAccessReady(true);
+        }
+      }
     }
 
-    const session = readSuperAdminSession();
-    setSuperAdminEmail(session?.email ?? "");
-    setAccessReady(true);
+    void syncSuperAdminAccess();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
-  function handleExitControlTower() {
-    clearSuperAdminSession();
-    router.push("/super-admin/login");
+  async function handleExitControlTower() {
+    try {
+      await clearServerSession();
+    } finally {
+      clearSuperAdminSession();
+      router.push("/super-admin/login");
+    }
   }
 
   const systemHealthLabel = pendingInvites > 0 ? "Monitoring" : releasedArtifacts > 0 || settledInvoices > 0 ? "Live demo active" : "Healthy";
