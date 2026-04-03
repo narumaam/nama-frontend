@@ -101,31 +101,31 @@ const WALKTHROUGH_GUIDE = [
     title: "1. Onboarding fit",
     body: "Start with the configured business profile, market defaults, and operating identity so the workspace feels tailored from the first screen.",
     href: "/register",
-    cta: "Open onboarding",
+    cta: "Click into onboarding",
   },
   {
     title: "2. CRM urgency",
     body: "Move into Leads to show omnichannel capture, fit scoring, owner load, and urgency control before opening a case.",
     href: "/dashboard/leads",
-    cta: "Open leads",
+    cta: "Click into leads",
   },
   {
     title: "3. Deal conversion",
     body: "Use the Maldives case for triage, itinerary logic, quote framing, vendor position, and the conversion story.",
     href: "/dashboard/deals?case=maldives-honeymoon",
-    cta: "Open deal",
+    cta: "Open Maldives deal",
   },
   {
     title: "4. Finance-lite",
     body: "Show margin visibility, deposit pressure, and release readiness as a dedicated control layer instead of a hidden spreadsheet step.",
     href: "/dashboard/finance",
-    cta: "Open finance",
+    cta: "Open finance control",
   },
   {
     title: "5. Supplier to execution",
     body: "Close on DMC normalization and bookings handoff to prove the alpha runs as one operating system.",
     href: "/dashboard/bookings",
-    cta: "Open execution",
+    cta: "Open booking execution",
   },
 ];
 
@@ -242,7 +242,7 @@ export default function DashboardPage() {
             href="/dashboard/deals?case=maldives-honeymoon"
             className="w-full rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10 md:w-auto"
           >
-            Start with Maldives case
+            Start walkthrough with Maldives
           </Link>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 {String(index + 1).padStart(2, "0")} · {step.label}
               </div>
               <div className="mt-2 text-sm font-semibold text-[#F5F0E8]">{step.detail}</div>
-              <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Open layer</div>
+              <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Next click</div>
             </Link>
           ))}
         </div>
@@ -332,10 +332,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Link href="/dashboard/finance" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
-                Open Finance <ChevronRight size={14} />
+                Finance checkpoint <ChevronRight size={14} />
               </Link>
               <Link href="/dashboard/autopilot" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
-                Open Autopilot <ChevronRight size={14} />
+                Autopilot sidebar <ChevronRight size={14} />
               </Link>
             </div>
           </div>

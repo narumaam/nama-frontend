@@ -199,13 +199,13 @@ export default function FinancePage() {
             href="/dashboard/deals?case=maldives-honeymoon"
             className="w-full rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10 sm:w-auto"
           >
-            Open priority deal
+            Return to Maldives deal
           </Link>
           <Link
             href="/dashboard/bookings"
             className="w-full rounded-xl bg-[#C9A84C] px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95 sm:w-auto"
           >
-            Continue to execution
+            Continue into bookings
           </Link>
         </div>
       </header>
@@ -318,7 +318,7 @@ export default function FinancePage() {
                 <div className="mt-3 text-xl font-black text-[#C9A84C]">{item.amount}</div>
                 <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{item.note}</div>
                 <div className="mt-3 inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-[#4A453E]">
-                  Open linked case <ArrowRight size={12} />
+                  Open case from queue <ArrowRight size={12} />
                 </div>
               </Link>
             ))}
@@ -393,13 +393,13 @@ export default function FinancePage() {
                 href={`/dashboard/deals?case=${item.slug}`}
                 className="flex-1 rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
               >
-                Open Deal
+                Open Case
               </Link>
               <Link
                 href="/dashboard/bookings"
                 className="flex-1 rounded-xl border border-white/10 bg-[#111111] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#B8B0A0]"
               >
-                Open Execution
+                Open Bookings
               </Link>
             </div>
           </article>

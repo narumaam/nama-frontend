@@ -497,7 +497,7 @@ export default function DealsClientPage() {
             href="/dashboard/dmc"
             className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
           >
-            Open DMC Hub
+            Next: Open DMC Hub
           </Link>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -519,8 +519,9 @@ export default function DealsClientPage() {
           {[
             { label: "1 Capture", href: `/dashboard/leads?case=${slugParam}` },
             { label: "2 Deal", href: `/dashboard/deals?case=${slugParam}` },
-            { label: "3 DMC", href: "/dashboard/dmc" },
-            { label: "4 Execution", href: "/dashboard/bookings" },
+            { label: "3 Finance", href: "/dashboard/finance" },
+            { label: "4 DMC", href: "/dashboard/dmc" },
+            { label: "5 Execution", href: "/dashboard/bookings" },
           ].map((step) => (
             <Link
               key={step.label}
