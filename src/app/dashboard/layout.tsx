@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from '@/lib/demo-profile';
 import {
   LayoutDashboard,
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const primaryCase = getPrimaryDemoCase();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
@@ -252,7 +254,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </p>
               <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
                 {showHeaderNotice === "notifications"
-                  ? `Three high-priority actions are queued for ${demoCompany}: follow up on Maldives, confirm Kerala payment, and send the Dubai executive quote.`
+                  ? `Three high-priority actions are queued for ${demoCompany}: follow up on ${primaryCase.destination}, confirm ${DEMO_CASE_ROUTES[1].destination} payment, and send the ${DEMO_CASE_ROUTES[2].destination} executive quote.`
                   : `This workspace is branded for ${demoCompany}, operated by ${demoOperator}, with ${demoRoles.join(" + ")} enabled. Base market is ${demoMarket.country} with ${demoMarket.currency} as the control currency and ${enabledCurrencies.join(", ")} available across sales flows.`}
               </p>
               {showHeaderNotice === "settings" && (

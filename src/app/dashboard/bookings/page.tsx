@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import {
@@ -45,30 +46,26 @@ const EXECUTION_STEPS = [
 
 const EXECUTION_TABS = ["Overview", "Travel", "Documents", "Payments", "Operations"] as const;
 
-const FLIGHT_SEGMENTS = [
-  {
-    route: "DEL → MLE",
-    airline: "Vistara + Maldivian",
-    departure: "15 Apr · 07:45",
-    arrival: "15 Apr · 14:10",
-    status: "Ticketed",
-    reference: "VT-82QF",
-  },
-  {
-    route: "MLE → DEL",
-    airline: "Maldivian + Vistara",
-    departure: "21 Apr · 18:15",
-    arrival: "22 Apr · 02:05",
-    status: "Held",
-    reference: "ML-73PK",
-  },
-];
+const FLIGHT_SEGMENTS_BY_SLUG = {
+  "maldives-honeymoon": [
+    { route: "DEL → MLE", airline: "Vistara + Maldivian", departure: "15 Apr · 07:45", arrival: "15 Apr · 14:10", status: "Ticketed", reference: "VT-82QF" },
+    { route: "MLE → DEL", airline: "Maldivian + Vistara", departure: "21 Apr · 18:15", arrival: "22 Apr · 02:05", status: "Held", reference: "ML-73PK" },
+  ],
+  "dubai-bleisure": [
+    { route: "DEL → DXB", airline: "Emirates", departure: "12 May · 09:10", arrival: "12 May · 11:20", status: "Held", reference: "EK-44QX" },
+    { route: "DXB → DEL", airline: "Emirates", departure: "16 May · 22:40", arrival: "17 May · 03:15", status: "Queued", reference: "EK-91LT" },
+  ],
+  "kerala-family": [
+    { route: "DEL → COK", airline: "Air India", departure: "08 Jun · 06:30", arrival: "08 Jun · 09:35", status: "Held", reference: "AI-31KM" },
+    { route: "COK → DEL", airline: "Air India", departure: "13 Jun · 19:20", arrival: "13 Jun · 22:30", status: "Queued", reference: "AI-62PR" },
+  ],
+} as const;
 
 const EXECUTION_OWNERS = [
   { lane: "Sales", owner: "Aisha Khan", note: "Client promise keeper and final commercial owner." },
   { lane: "Operations", owner: "Rohan Iyer", note: "Owns confirmations, supplier checks, and guest pack release." },
   { lane: "Finance", owner: "Meera Shah", note: "Verifies deposits, balance due, and payout readiness." },
-  { lane: "Supplier", owner: "Soneva Jani Desk", note: "Hotel and transfer confirmations aligned to guest profile." },
+  { lane: "Supplier", owner: "Primary supplier desk", note: "Hotel and transfer confirmations aligned to the guest profile." },
 ];
 
 const DOCUMENT_STACK = [
@@ -97,14 +94,35 @@ const DISPATCH_CHECKLIST = [
   { label: "Balance reminder staged", state: "Pending" },
 ];
 
+function resolveFlightSegments(slug: string) {
+  return FLIGHT_SEGMENTS_BY_SLUG[
+    (slug in FLIGHT_SEGMENTS_BY_SLUG ? slug : PRIMARY_DEMO_DEAL_CASE.slug) as keyof typeof FLIGHT_SEGMENTS_BY_SLUG
+  ];
+}
+
 export default function BookingsPage() {
   const profile = useMemo(() => readDemoProfile(), []);
   const [activeTab, setActiveTab] = useState<(typeof EXECUTION_TABS)[number]>("Overview");
   const [selectedStep, setSelectedStep] = useState(EXECUTION_STEPS[0]);
-  const [activeSlug, setActiveSlug] = useState("maldives-honeymoon");
+  const [activeSlug, setActiveSlug] = useState(PRIMARY_DEMO_DEAL_CASE.slug);
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
   const activeCase = getDemoCaseRoute(activeSlug);
+  const activeDeal = DEMO_DEAL_CASES[activeSlug] ?? PRIMARY_DEMO_DEAL_CASE;
+  const paymentMeta = DEMO_LEAD_PROFILE_META[activeSlug] ?? DEMO_LEAD_PROFILE_META[PRIMARY_DEMO_DEAL_CASE.slug];
+  const flightSegments = resolveFlightSegments(activeSlug);
+  const paymentStack = [
+    { label: "Quote Total", value: `₹${activeDeal.finance.quote_total.toLocaleString("en-IN")}` },
+    { label: "Deposit Due", value: `₹${activeDeal.finance.deposit_due.toLocaleString("en-IN")}` },
+    { label: "Status", value: activeDeal.finance.status },
+    { label: "Gross Profit", value: `₹${activeDeal.finance.gross_profit.toLocaleString("en-IN")}` },
+  ];
+  const executionOwners = [
+    { lane: "Sales", owner: paymentMeta.owner, note: "Client promise keeper and final commercial owner." },
+    { lane: "Operations", owner: "Rohan Iyer", note: "Owns confirmations, supplier checks, and guest pack release." },
+    { lane: "Finance", owner: "Meera Shah", note: "Verifies deposits, balance due, and payout readiness." },
+    { lane: "Supplier", owner: activeDeal.bidding.vendor, note: "Primary supplier aligned to the current case profile." },
+  ];
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -147,10 +165,10 @@ export default function BookingsPage() {
       </header>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Execution State" value="Operational" sub="Booking is ready for handoff" icon={<ShieldCheck size={16} />} />
-        <MetricCard label="Deposit" value="Received" sub="Finance release approved" icon={<BadgeIndianRupee size={16} />} />
+        <MetricCard label="Execution State" value="Operational" sub={`${activeCase.destination} case is ready for handoff`} icon={<ShieldCheck size={16} />} />
+        <MetricCard label="Deposit" value={activeDeal.finance.status.includes("pending") ? "Pending" : "In motion"} sub="Finance checkpoint is visible" icon={<BadgeIndianRupee size={16} />} />
         <MetricCard label="Documents" value="3 staged" sub="Voucher, receipt, arrival brief" icon={<FileText size={16} />} />
-        <MetricCard label="Ops Owner" value="Rohan Iyer" sub="Live case owner for execution" icon={<Users size={16} />} />
+        <MetricCard label="Ops Owner" value="Rohan Iyer" sub={`Live owner for ${activeCase.guest}`} icon={<Users size={16} />} />
       </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
@@ -298,7 +316,7 @@ export default function BookingsPage() {
 
           {activeTab === "Travel" && (
             <div className="space-y-3">
-              {FLIGHT_SEGMENTS.map((segment) => (
+              {flightSegments.map((segment) => (
                 <div key={segment.route} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
@@ -342,7 +360,7 @@ export default function BookingsPage() {
           {activeTab === "Payments" && (
             <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
               <div className="space-y-3">
-                {PAYMENT_STACK.map((item) => (
+                {paymentStack.map((item) => (
                   <div key={item.label} className="flex items-center justify-between border-b border-[#C9A84C]/5 pb-2">
                     <span className="text-sm text-[#B8B0A0]">{item.label}</span>
                     <span className="text-sm font-semibold text-[#F5F0E8]">{item.value}</span>
@@ -354,7 +372,7 @@ export default function BookingsPage() {
 
           {activeTab === "Operations" && (
             <div className="space-y-3">
-              {EXECUTION_OWNERS.map((owner) => (
+              {executionOwners.map((owner) => (
                 <div key={owner.lane} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -376,9 +394,9 @@ export default function BookingsPage() {
               <h2 className="text-lg font-black text-[#F5F0E8]">Execution Notes</h2>
             </div>
             <div className="space-y-3">
-              <WorkspaceNote tone="neutral" text="Client prefers window seats and wants the final arrival brief on WhatsApp and email." />
-              <WorkspaceNote tone="success" text="Deposit received, finance release issued, and guest pack is safe to prepare." />
-              <WorkspaceNote tone="neutral" text="DMC supplier thread is already linked so ops does not need to re-collect hotel terms." />
+              <WorkspaceNote tone="neutral" text={`Guest profile stays attached to ${activeDeal.capture.phone.toLowerCase()} and final arrival brief release.`} />
+              <WorkspaceNote tone="success" text={`${activeDeal.finance.status} and execution control is visible on the same case.`} />
+              <WorkspaceNote tone="neutral" text="DMC supplier thread is already linked so ops does not need to re-collect supplier terms." />
             </div>
           </section>
 

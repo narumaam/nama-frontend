@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import {
@@ -50,8 +51,8 @@ const CONTRACT_INBOX = [
 const OPERATIONS_THREADS = [
   {
     lane: "Travel Agent",
-    partner: "Nair Luxury Escapes",
-    message: "Need the Maldives villa hold, private dinner note, and deposit deadline confirmed before 6 PM.",
+    partner: PRIMARY_DEMO_DEAL_CASE.organization,
+    message: `Need the ${PRIMARY_DEMO_DEAL_CASE.triage.destination} hold, experience note, and deposit deadline confirmed before 6 PM.`,
     channel: "Email + CRM note",
   },
   {
@@ -90,7 +91,7 @@ const SUPPLIER_DIRECTORY = [
 
 const NORMALIZED_FIELDS = [
   { label: "Rate validity", value: "15 Apr - 30 Sep 2026", note: "Seasonal pricing mapped from supplier slabs into quote-safe windows." },
-  { label: "Cancellation", value: "14-day partial penalty", note: "Flagged because the honeymoon hold has a shorter release deadline." },
+  { label: "Cancellation", value: "14-day partial penalty", note: `Flagged because the ${PRIMARY_DEMO_DEAL_CASE.triage.destination.toLowerCase()} hold has a shorter release deadline.` },
   { label: "Inclusions", value: "Breakfast + seaplane + welcome dinner", note: "Lifted into reusable quote and ops components." },
   { label: "Ops issue", value: "Child policy missing in one safari slab", note: "Requires human review before using in the family fallback case." },
 ];
@@ -105,7 +106,7 @@ export default function DmcPage() {
   const profile = useMemo(() => readDemoProfile(), []);
   const [selectedContract, setSelectedContract] = useState(CONTRACT_INBOX[0]);
   const [serviceFilter, setServiceFilter] = useState<"All" | "Hotel" | "Activity" | "Transport" | "Stay + Activity">("All");
-  const [activeSlug, setActiveSlug] = useState("maldives-honeymoon");
+  const [activeSlug, setActiveSlug] = useState(PRIMARY_DEMO_DEAL_CASE.slug);
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
   const visibleSuppliers = SUPPLIER_DIRECTORY.filter((supplier) => serviceFilter === "All" || supplier.service === serviceFilter);

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import {
   Activity,
@@ -24,6 +25,7 @@ import {
 type FinanceCase = {
   slug: string;
   guest: string;
+  case_name: string;
   destination: string;
   quote_total: number;
   cost_total: number;
@@ -34,76 +36,65 @@ type FinanceCase = {
   payment_state: string;
 };
 
-const FINANCE_CASES: FinanceCase[] = [
-  {
-    slug: "maldives-honeymoon",
-    guest: "Meera Nair",
-    destination: "Maldives",
-    quote_total: 486000,
+const PRIMARY_CASE = getPrimaryDemoCase();
+
+const FINANCE_CASE_DETAILS: Record<
+  string,
+  { cost_total: number; gross_profit: number; margin_percent: number; ledger_reference: string; ledger_status: string; ledger_status_class: string; amount_class: string }
+> = {
+  "maldives-honeymoon": {
     cost_total: 391500,
     gross_profit: 94500,
     margin_percent: 19.44,
-    deposit_due: 180000,
-    status: "Deposit pending within 24 hours",
-    payment_state: "Awaiting hold confirmation",
+    ledger_reference: "DEAL-MAL-001",
+    ledger_status: "Pipeline",
+    ledger_status_class: "text-[#C9A84C]",
+    amount_class: "text-[#C9A84C]",
   },
-  {
-    slug: "dubai-bleisure",
-    guest: "Arjun Mehta",
-    destination: "Dubai",
-    quote_total: 212000,
+  "dubai-bleisure": {
     cost_total: 169500,
     gross_profit: 42500,
     margin_percent: 20.05,
-    deposit_due: 85000,
-    status: "Quote approved and ready to send",
-    payment_state: "Quote approval stage",
+    ledger_reference: "DEAL-DXB-003",
+    ledger_status: "Pipeline",
+    ledger_status_class: "text-[#1D9E75]",
+    amount_class: "text-[#F5F0E8]",
   },
-  {
-    slug: "kerala-family",
-    guest: "Sharma Family",
-    destination: "Kerala",
-    quote_total: 124000,
+  "kerala-family": {
     cost_total: 98750,
     gross_profit: 25250,
     margin_percent: 20.36,
-    deposit_due: 45000,
-    status: "Payment reminder queued",
-    payment_state: "Deposit reminder stage",
+    ledger_reference: "DEAL-KER-002",
+    ledger_status: "Reminder",
+    ledger_status_class: "text-[#1D9E75]",
+    amount_class: "text-[#F5F0E8]",
   },
-];
+};
 
-const LEDGER_ROWS = [
-  {
-    date: "02 Apr 2026",
-    entity: "Meera Nair - Maldives honeymoon",
-    reference: "DEAL-MAL-001",
-    category: "Quote value",
-    amount: "+ ₹ 4,86,000",
-    amountClass: "text-[#C9A84C]",
-    status: "Pipeline",
-    statusClass: "text-[#C9A84C]",
-  },
-  {
-    date: "02 Apr 2026",
-    entity: "Arjun Mehta - Dubai bleisure",
-    reference: "DEAL-DXB-003",
-    category: "Quote value",
-    amount: "+ ₹ 2,12,000",
-    amountClass: "text-[#F5F0E8]",
-    status: "Pipeline",
-    statusClass: "text-[#1D9E75]",
-  },
-  {
-    date: "02 Apr 2026",
-    entity: "Sharma Family - Kerala trip",
-    reference: "DEAL-KER-002",
-    category: "Quote value",
-    amount: "+ ₹ 1,24,000",
-    amountClass: "text-[#F5F0E8]",
-    status: "Reminder",
-    statusClass: "text-[#1D9E75]",
-  },
+const FINANCE_CASES: FinanceCase[] = DEMO_CASE_ROUTES.map((item) => ({
+  slug: item.slug,
+  guest: item.guest,
+  case_name: item.caseName,
+  destination: item.destination,
+  quote_total: item.quoteTotal,
+  cost_total: FINANCE_CASE_DETAILS[item.slug].cost_total,
+  gross_profit: FINANCE_CASE_DETAILS[item.slug].gross_profit,
+  margin_percent: FINANCE_CASE_DETAILS[item.slug].margin_percent,
+  deposit_due: item.depositDue,
+  status: item.financeStatus,
+  payment_state: item.paymentState,
+}));
+
+const LEDGER_ROWS = FINANCE_CASES.map((item) => ({
+  date: "02 Apr 2026",
+  entity: `${item.guest} - ${item.case_name}`,
+  reference: FINANCE_CASE_DETAILS[item.slug].ledger_reference,
+  category: "Quote value",
+  amount: `+ ₹ ${item.quote_total.toLocaleString("en-IN")}`,
+  amountClass: FINANCE_CASE_DETAILS[item.slug].amount_class,
+  status: FINANCE_CASE_DETAILS[item.slug].ledger_status,
+  statusClass: FINANCE_CASE_DETAILS[item.slug].ledger_status_class,
+})).concat([
   {
     date: "02 Apr 2026",
     entity: "Preview overhead bucket",
@@ -114,34 +105,16 @@ const LEDGER_ROWS = [
     status: "Seeded",
     statusClass: "text-[#B8B0A0]",
   },
-];
+]);
 
-const COLLECTION_QUEUE = [
-  {
-    title: "Maldives deposit hold",
-    owner: "Meera Shah",
-    amount: "₹1,80,000",
-    risk: "High",
-    note: "Deposit timing is the priority finance talking point because it controls whether the case can move cleanly into execution.",
-    href: "/dashboard/deals?case=maldives-honeymoon",
-  },
-  {
-    title: "Dubai quote release",
-    owner: "Ravi Menon",
-    amount: "₹85,000",
-    risk: "Medium",
-    note: "The quote is ready, but finance framing should sit next to the approver summary so the release feels controlled.",
-    href: "/dashboard/deals?case=dubai-bleisure",
-  },
-  {
-    title: "Kerala reminder pacing",
-    owner: "Farah Khan",
-    amount: "₹45,000",
-    risk: "Watch",
-    note: "This case needs softer reminder timing without losing visibility on fare movement and payment intent.",
-    href: "/dashboard/deals?case=kerala-family",
-  },
-];
+const COLLECTION_QUEUE = DEMO_CASE_ROUTES.map((item) => ({
+  title: `${item.destination} ${item.slug === PRIMARY_CASE.slug ? "deposit hold" : item.slug === "dubai-bleisure" ? "quote release" : "reminder pacing"}`,
+  owner: item.collectionOwner,
+  amount: `₹${item.depositDue.toLocaleString("en-IN")}`,
+  risk: item.collectionRisk,
+  note: item.collectionNote,
+  href: `/dashboard/deals?case=${item.slug}`,
+}));
 
 const FINANCE_GUARDRAILS = [
   {
@@ -152,7 +125,7 @@ const FINANCE_GUARDRAILS = [
   {
     title: "Deposit timing",
     state: "Needs attention",
-    detail: "The Maldives case is the cash-pressure moment and should be the finance highlight during the walkthrough.",
+    detail: `The ${PRIMARY_CASE.destination} case is the cash-pressure moment and should be the finance highlight during the walkthrough.`,
   },
   {
     title: "Execution release",
@@ -196,10 +169,10 @@ export default function FinancePage() {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href="/dashboard/deals?case=maldives-honeymoon"
+            href={`/dashboard/deals?case=${PRIMARY_CASE.slug}`}
             className="w-full rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10 sm:w-auto"
           >
-            Return to Maldives deal
+            Return to {PRIMARY_CASE.destination} deal
           </Link>
           <Link
             href="/dashboard/bookings"
@@ -232,7 +205,12 @@ export default function FinancePage() {
           </div>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <SignalCard label="Priority collection" value="Maldives hold" note="Lead with the most time-sensitive deposit case." icon={<AlertTriangle size={16} />} />
+          <SignalCard
+            label="Priority collection"
+            value={`${PRIMARY_CASE.destination} hold`}
+            note="Lead with the most time-sensitive deposit case."
+            icon={<AlertTriangle size={16} />}
+          />
           <SignalCard label="Release gate" value="Finance clears bookings" note="Execution is shown as a consequence of approval." icon={<Shield size={16} />} />
           <SignalCard label="Cash pacing" value="Three stages visible" note="Approved, pending, and reminder states sit side by side." icon={<Wallet size={16} />} />
           <SignalCard label="Commercial confidence" value="Margins protected" note="Each case stays above the visible floor." icon={<CheckCircle2 size={16} />} />

@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
+import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
+import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
 import {
   CalendarClock,
   CheckCircle2,
@@ -59,11 +61,17 @@ type LeadRecord = DemoCase & {
   };
 };
 
-const FALLBACK_CASES: DemoCase[] = [
-  { slug: "maldives-honeymoon", lead_id: 1, guest_name: "Meera Nair", priority: "CRITICAL", destination: "Maldives", quote_total: 486000, status: "Deposit pending within 24 hours" },
-  { slug: "dubai-bleisure", lead_id: 3, guest_name: "Arjun Mehta", priority: "ATTENTION", destination: "Dubai", quote_total: 212000, status: "Quote approved and ready to send" },
-  { slug: "kerala-family", lead_id: 2, guest_name: "Sharma Family", priority: "CRITICAL", destination: "Kerala", quote_total: 124000, status: "Payment reminder queued" },
-];
+const PRIMARY_CASE = getPrimaryDemoCase();
+
+const FALLBACK_CASES: DemoCase[] = DEMO_CASE_ROUTES.map((item) => ({
+  slug: item.slug,
+  lead_id: item.leadId,
+  guest_name: item.guest,
+  priority: item.priority,
+  destination: item.destination,
+  quote_total: item.quoteTotal,
+  status: item.financeStatus,
+}));
 
 const captureSources = [
   { label: "Website", note: "Public enquiry form", tone: "Fastest intake" },
@@ -75,44 +83,44 @@ const captureSources = [
 const schedulerItems = [
   {
     time: "09:30",
-    title: "Call Meera Nair",
-    owner: "Aisha Khan",
+    title: `Call ${PRIMARY_CASE.guest}`,
+    owner: DEMO_LEAD_PROFILE_META[PRIMARY_CASE.slug].owner,
     mode: "Phone callback",
     color: "text-[#C9A84C]",
-    account: "Nair Luxury Escapes",
+    account: DEMO_LEAD_PROFILE_META[PRIMARY_CASE.slug].company,
     stage: "Follow Up",
     objective: "Unlock deposit confirmation before the 24-hour hold expires.",
     note: "Lead reopened the itinerary three times and viewed the premium villa option last.",
   },
   {
     time: "11:00",
-    title: "Send Dubai executive quote",
-    owner: "Ravi Menon",
+    title: `Send ${DEMO_DEAL_CASES["dubai-bleisure"].triage.destination} executive quote`,
+    owner: DEMO_LEAD_PROFILE_META["dubai-bleisure"].owner,
     mode: "Email send",
     color: "text-[#1D9E75]",
-    account: "Velocity Corporate Travel",
+    account: DEMO_LEAD_PROFILE_META["dubai-bleisure"].company,
     stage: "Quoted",
     objective: "Send the executive version with add-on airport lounge and flexible transfer options.",
     note: "Corporate traveler asked for a one-page decision-ready summary for approvers.",
   },
   {
     time: "14:30",
-    title: "Kerala payment reminder",
-    owner: "Farah Khan",
+    title: `${DEMO_DEAL_CASES["kerala-family"].triage.destination} payment reminder`,
+    owner: DEMO_LEAD_PROFILE_META["kerala-family"].owner,
     mode: "WhatsApp follow-up",
     color: "text-[#C9A84C]",
-    account: "Sharma Family Travels",
+    account: DEMO_LEAD_PROFILE_META["kerala-family"].company,
     stage: "Qualified",
     objective: "Prompt payment before the family departure window moves into a higher fare tier.",
     note: "Customer asked for softer pacing and easier installment timing in the previous thread.",
   },
   {
     time: "17:00",
-    title: "Review Maldives deposit status",
+    title: `Review ${PRIMARY_CASE.destination} deposit status`,
     owner: "Aisha Khan",
     mode: "Manager checkpoint",
     color: "text-[#F5F0E8]",
-    account: "Nair Luxury Escapes",
+    account: DEMO_LEAD_PROFILE_META[PRIMARY_CASE.slug].company,
     stage: "Follow Up",
     objective: "Escalate if the deposit is still pending and switch the follow-up owner if needed.",
     note: "This checkpoint keeps high-intent luxury leads from slipping overnight without visibility.",
@@ -128,87 +136,10 @@ const calendarDays = [
 ];
 
 function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
-  return cases.map((item) => {
-    if (item.slug === "maldives-honeymoon") {
-      return {
-        ...item,
-        owner: "Aisha Khan",
-        source: "Website",
-        stage: "Follow Up",
-        fitScore: 94,
-        urgency: "High",
-        sla: "18 min to next touch",
-        risk: "Deposit hold expires today",
-        nextAction: "Deposit follow-up call",
-        nextActionAt: "Today · 09:30",
-        contactLabel: "High-intent honeymoon lead",
-        lastTouch: "Viewed itinerary 3 times in 90 minutes",
-        company: "Nair Luxury Escapes",
-        email: "meera@nairluxury.com",
-        phone: "+91 98765 11001",
-        enrichment: {
-          linkedin: "Luxury founder profile detected",
-          instagram: "@meera.escapejournal",
-          facebook: "Private profile with Maldives interest clusters",
-          publicWeb: "Travel and lifestyle blog mentions honeymoon content",
-          summary: "High-affinity luxury traveler with strong visual preference and premium-experience bias.",
-          confidence: "91%",
-        },
-      };
-    }
-    if (item.slug === "dubai-bleisure") {
-      return {
-        ...item,
-        owner: "Ravi Menon",
-        source: "Phone",
-        stage: "Quoted",
-        fitScore: 88,
-        urgency: "Medium",
-        sla: "42 min to quote send",
-        risk: "Corporate approver summary pending",
-        nextAction: "Send executive quote PDF",
-        nextActionAt: "Today · 11:00",
-        contactLabel: "Corporate bleisure traveler",
-        lastTouch: "Requested premium option set",
-        company: "Velocity Corporate Travel",
-        email: "arjun.mehta@velocitycorp.in",
-        phone: "+91 98110 33003",
-        enrichment: {
-          linkedin: "Senior corporate decision-maker profile",
-          instagram: "@arjun.globalroutes",
-          facebook: "Sparse activity, mostly business travel check-ins",
-          publicWeb: "Conference speaker references and executive travel footprint",
-          summary: "Corporate traveler with premium efficiency preference and business-leisure blending pattern.",
-          confidence: "88%",
-        },
-      };
-    }
-    return {
-      ...item,
-      owner: "Farah Khan",
-      source: "Email",
-      stage: "Qualified",
-      fitScore: 81,
-      urgency: "High",
-      sla: "1 hr to payment reminder",
-      risk: "Fare tier may move if delayed",
-      nextAction: "Payment reminder sequence",
-      nextActionAt: "Today · 14:30",
-      contactLabel: "Family pacing and budget case",
-      lastTouch: "Asked for easier payment timing",
-      company: "Sharma Family Travels",
-      email: "booking@sharmafamilytravels.in",
-      phone: "+91 98989 22002",
-      enrichment: {
-        linkedin: "Family business operator reference",
-        instagram: "@sharmafamilyweekends",
-        facebook: "Active family-travel planning groups detected",
-        publicWeb: "Kid-friendly itinerary searches and Kerala interest signals",
-        summary: "Value-conscious family planner with strong convenience and pacing sensitivity.",
-        confidence: "84%",
-      },
-    };
-  });
+  return cases.map((item) => ({
+    ...item,
+    ...DEMO_LEAD_PROFILE_META[item.slug],
+  }));
 }
 
 export default function LeadsPage() {
@@ -320,7 +251,7 @@ export default function LeadsPage() {
             </button>
           </div>
           <Link
-            href="/dashboard/deals?case=maldives-honeymoon"
+            href={`/dashboard/deals?case=${PRIMARY_CASE.slug}`}
             className="bg-[#111111] text-[#C9A84C] border border-[#C9A84C]/20 px-4 py-2.5 rounded-xl hover:bg-[#C9A84C]/10 transition-all text-[10px] font-black uppercase tracking-widest"
           >
             Open Primary Case

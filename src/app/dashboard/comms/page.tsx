@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
-import { dealHrefFromCaseName, dealHrefFromSlug, normalizeDemoCaseSlug } from "@/lib/demo-cases";
+import { DEMO_CASE_ROUTES, dealHrefFromCaseName, dealHrefFromSlug, getPrimaryDemoCase, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import {
   ArrowRight,
   Bot,
@@ -35,39 +35,33 @@ type TranscriptLine = {
   message: string;
 };
 
+const PRIMARY_CASE = getPrimaryDemoCase();
+
 const THREADS: ThreadCard[] = [
-  {
-    channel: "Website",
-    source: "Landing page Maldives preset",
-    guest: "Meera Nair",
-    caseName: "Maldives honeymoon",
-    tone: "High intent",
-    note: "A preview inquiry lands directly from the homepage and becomes a deal without manual cleanup.",
-    status: "Captured",
-  },
-  {
-    channel: "Phone",
-    source: "Sales call transcript",
-    guest: "Arjun Mehta",
-    caseName: "Dubai bleisure",
-    tone: "Call-to-CRM",
-    note: "The call summary is attached to the same record so the next rep has context immediately.",
-    status: "Synced",
-  },
-  {
-    channel: "Email",
-    source: "Inbound family enquiry",
-    guest: "Sharma Family",
-    caseName: "Kerala family trip",
-    tone: "Threaded context",
-    note: "The email is normalized into destination, duration, travelers, and follow-up status.",
-    status: "Parsed",
-  },
+  ...DEMO_CASE_ROUTES.map((item) => ({
+    channel: item.intakeChannel,
+    source: item.intakeSource,
+    guest: item.guest,
+    caseName: item.caseName,
+    tone: item.intakeTone,
+    note:
+      item.intakeChannel === "Website"
+        ? "A preview inquiry lands directly from the homepage and becomes a deal without manual cleanup."
+        : item.intakeChannel === "Phone"
+          ? "The call summary is attached to the same record so the next rep has context immediately."
+          : "The email is normalized into destination, duration, travelers, and follow-up status.",
+    status:
+      item.intakeChannel === "Website"
+        ? "Captured"
+        : item.intakeChannel === "Phone"
+          ? "Synced"
+          : "Parsed",
+  })),
   {
     channel: "WhatsApp",
     source: "Placeholder messaging rail",
-    guest: "Arjun Mehta",
-    caseName: "Dubai bleisure",
+    guest: DEMO_CASE_ROUTES[1].guest,
+    caseName: DEMO_CASE_ROUTES[1].caseName,
     tone: "Demo-safe",
     note: "Shown in the workflow as an expected channel, but not presented as a live production connector.",
     status: "Illustrated",
@@ -78,7 +72,7 @@ const ACTIVE_TRANSCRIPT: TranscriptLine[] = [
   {
     speaker: "Sales Agent",
     channel: "Phone",
-    message: "I’ve captured the Maldives honeymoon request and I’m moving it into CRM now.",
+    message: `I’ve captured the ${PRIMARY_CASE.caseName} request and I’m moving it into CRM now.`,
   },
   {
     speaker: "Client",
@@ -92,26 +86,17 @@ const ACTIVE_TRANSCRIPT: TranscriptLine[] = [
   },
 ];
 
-const FOLLOW_UP_QUEUE = [
-  {
-    guest: "Meera Nair",
-    caseName: "Maldives honeymoon",
-    nextStep: "Send deposit link and hold villa for 24 hours.",
-    urgency: "Critical",
-  },
-  {
-    guest: "Arjun Mehta",
-    caseName: "Dubai bleisure",
-    nextStep: "Share executive quote PDF and confirm premium desert option.",
-    urgency: "Attention",
-  },
-  {
-    guest: "Sharma Family",
-    caseName: "Kerala family trip",
-    nextStep: "Nudge for deposit and keep the houseboat operator in reserve.",
-    urgency: "Critical",
-  },
-];
+const FOLLOW_UP_QUEUE = DEMO_CASE_ROUTES.map((item) => ({
+  guest: item.guest,
+  caseName: item.caseName,
+  nextStep:
+    item.slug === PRIMARY_CASE.slug
+      ? "Send deposit link and hold villa for 24 hours."
+      : item.slug === "dubai-bleisure"
+        ? "Share executive quote PDF and confirm premium desert option."
+        : "Nudge for deposit and keep the operator in reserve.",
+  urgency: item.priority === "CRITICAL" ? "Critical" : "Attention",
+}));
 
 const SOURCE_SUMMARY = [
   { label: "Website", value: "1 lead", icon: Sparkles },
@@ -163,10 +148,10 @@ export default function CommsPage() {
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <Link
-            href={dealHrefFromSlug("maldives-honeymoon")}
+            href={dealHrefFromSlug(PRIMARY_CASE.slug)}
             className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
-            Open Maldives deal
+            Open {PRIMARY_CASE.destination} deal
           </Link>
           <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
             Reply draft queued

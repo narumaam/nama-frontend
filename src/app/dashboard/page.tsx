@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
+import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet } from "lucide-react";
 
@@ -32,61 +33,27 @@ type DemoMarket = {
   gateway: string;
 };
 
-const FALLBACK_CASES: DemoCase[] = [
-  {
-    slug: "maldives-honeymoon",
-    lead_id: 1,
-    guest_name: "Meera Nair",
-    priority: "CRITICAL",
-    query: "Hi NAMA! We want a honeymoon in Maldives - 6 nights, luxury overwater villa, private beach. Budget Rs5L for 2 people. Flexible on dates in April.",
-    destination: "Maldives",
-    quote_total: 486000,
-    status: "Deposit pending within 24 hours",
-  },
-  {
-    slug: "dubai-bleisure",
-    lead_id: 3,
-    guest_name: "Arjun Mehta",
-    priority: "ATTENTION",
-    query: "Need 4 nights in Dubai for one executive traveler. Mix of meetings and leisure. Downtown hotel, airport transfers, one desert experience. Budget around Rs2L all-in.",
-    destination: "Dubai",
-    quote_total: 212000,
-    status: "Quote approved and ready to send",
-  },
-  {
-    slug: "kerala-family",
-    lead_id: 2,
-    guest_name: "Sharma Family",
-    priority: "CRITICAL",
-    query: "Need a Kerala family trip for 5 days in June for 2 adults and 1 child. Want Munnar, Alleppey houseboat, and easy pacing. Budget about Rs1.2L total.",
-    destination: "Kerala",
-    quote_total: 124000,
-    status: "Payment reminder queued",
-  },
-];
+const PRIMARY_CASE = getPrimaryDemoCase();
+
+const FALLBACK_CASES: DemoCase[] = DEMO_CASE_ROUTES.map((item) => ({
+  slug: item.slug,
+  lead_id: item.leadId,
+  guest_name: item.guest,
+  priority: item.priority,
+  query: item.query,
+  destination: item.destination,
+  quote_total: item.quoteTotal,
+  status: item.financeStatus,
+}));
 
 const CAPTURE_SIGNALS: CaptureSignal[] = [
-  {
-    channel: "Website",
-    source: "Public enquiry form",
-    lead: "Meera Nair",
-    note: "Luxury honeymoon demand lands in CRM with urgency and intent already visible to sales.",
-    tone: "High intent",
-  },
-  {
-    channel: "WhatsApp",
-    source: "Business chat handoff",
-    lead: "Arjun Mehta",
-    note: "Inbound chat becomes a structured case with source, owner, and next action already framed.",
-    tone: "Fast response",
-  },
-  {
-    channel: "Email",
-    source: "Sales inbox parse",
-    lead: "Sharma Family",
-    note: "Threaded itinerary requests retain dates, pacing notes, and family context before the deal opens.",
-    tone: "Context rich",
-  },
+  ...DEMO_CASE_ROUTES.map((item) => ({
+    channel: item.intakeChannel,
+    source: item.intakeSource,
+    lead: item.guest,
+    note: item.intakeNote,
+    tone: item.intakeTone,
+  })),
   {
     channel: "Phone",
     source: "Call transcript capture",
@@ -111,9 +78,9 @@ const WALKTHROUGH_GUIDE = [
   },
   {
     title: "3. Deal conversion",
-    body: "Use the Maldives case for triage, itinerary logic, quote framing, vendor position, and the conversion story.",
-    href: "/dashboard/deals?case=maldives-honeymoon",
-    cta: "Open Maldives deal",
+    body: `Use the ${PRIMARY_CASE.destination} case for triage, itinerary logic, quote framing, vendor position, and the conversion story.`,
+    href: `/dashboard/deals?case=${PRIMARY_CASE.slug}`,
+    cta: `Open ${PRIMARY_CASE.destination} deal`,
   },
   {
     title: "4. Finance-lite",
@@ -131,7 +98,7 @@ const WALKTHROUGH_GUIDE = [
 
 const PREVIEW_JOURNEY = [
   { label: "Capture", href: "/dashboard/leads", detail: "Website, WhatsApp, email, and phone" },
-  { label: "Convert", href: "/dashboard/deals?case=maldives-honeymoon", detail: "Triage, itinerary, quote, and close logic" },
+  { label: "Convert", href: `/dashboard/deals?case=${PRIMARY_CASE.slug}`, detail: "Triage, itinerary, quote, and close logic" },
   { label: "Control", href: "/dashboard/finance", detail: "Margin, deposits, and release checks" },
   { label: "Normalize", href: "/dashboard/dmc", detail: "Contracts, suppliers, and DMC ops" },
   { label: "Execute", href: "/dashboard/bookings", detail: "Documents, payments, and handoff" },
@@ -197,7 +164,7 @@ export default function DashboardPage() {
   const totalQuote = cases.reduce((sum, item) => sum + item.quote_total, 0);
   const avgQuote = Math.round(totalQuote / Math.max(cases.length, 1));
   const criticalCount = cases.filter((item) => item.priority === "CRITICAL").length;
-  const depositExposure = 310000;
+  const depositExposure = DEMO_CASE_ROUTES.reduce((sum, item) => sum + item.depositDue, 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -239,10 +206,10 @@ export default function DashboardPage() {
             </p>
           </div>
           <Link
-            href="/dashboard/deals?case=maldives-honeymoon"
+            href={`/dashboard/deals?case=${PRIMARY_CASE.slug}`}
             className="w-full rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10 md:w-auto"
           >
-            Start walkthrough with Maldives
+            Start walkthrough with {PRIMARY_CASE.destination}
           </Link>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -376,7 +343,10 @@ export default function DashboardPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">Preview Focus</h2>
           </div>
           <div className="space-y-3">
-            <FocusCard title="Maldives" note="Use this as the primary case because it spans urgency, margin, supplier fit, and deposit timing." />
+            <FocusCard
+              title={PRIMARY_CASE.destination}
+              note="Use this as the primary case because it spans urgency, margin, supplier fit, and deposit timing."
+            />
             <FocusCard title="Finance-lite" note="Show finance between deal and bookings so execution feels earned through release control." />
             <FocusCard title="DMC continuity" note="Use supplier normalization as proof that the alpha is not only front-end CRM polish." />
           </div>

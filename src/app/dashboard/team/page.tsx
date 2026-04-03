@@ -2,6 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
+import { DEMO_CASE_ASSIGNMENTS, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { ArrowRight, CheckCircle2, ClipboardList, FileUp, Filter, Mail, Plus, Shield, Users, UserPlus2 } from "lucide-react";
 
@@ -29,8 +31,8 @@ const TEAM_ROLES: TeamRole[] = [
 ];
 
 const INVITES: InviteRecord[] = [
-  { name: "Aisha Khan", email: "aisha@demoagency.in", role: "Sales", status: "Pending", responsibility: "Maldives, Dubai" },
-  { name: "Rohan Iyer", email: "rohan@demoagency.in", role: "Operations", status: "Accepted", responsibility: "Kerala, Content" },
+  { name: "Aisha Khan", email: "aisha@demoagency.in", role: "Sales", status: "Pending", responsibility: DEMO_CASE_ROUTES.slice(0, 2).map((item) => item.destination).join(", ") },
+  { name: "Rohan Iyer", email: "rohan@demoagency.in", role: "Operations", status: "Accepted", responsibility: `${DEMO_CASE_ROUTES[1].destination}, Content` },
   { name: "Meera Shah", email: "meera@demoagency.in", role: "Finance", status: "Invited", responsibility: "Billing, payouts" },
   { name: "Arjun Paul", email: "arjun@demoagency.in", role: "Sub-agent", status: "Pending", responsibility: "Inbound support" },
 ];
@@ -49,11 +51,7 @@ const HIERARCHY = [
   { level: "L5", label: "Sub-agent", details: "Limited-access external collaborator with controlled visibility." },
 ];
 
-const ASSIGNMENTS = [
-  { lead: "Meera Nair", owner: "Aisha Khan", role: "Sales", note: "Honeymoon lead assigned for quick quote turn-around." },
-  { lead: "Arjun Mehta", owner: "Nikhil", role: "Operations", note: "Executive bleisure case handed to itinerary operations." },
-  { lead: "Sharma Family", owner: "Farah", role: "Finance", note: "Payment reminder and deposit monitoring." },
-];
+const ASSIGNMENTS = DEMO_CASE_ASSIGNMENTS;
 
 const PERMISSION_MATRIX = [
   { role: "Admin", view: "All modules", act: "Users, rules, workspace configuration", escalation: "Tenant-wide authority" },

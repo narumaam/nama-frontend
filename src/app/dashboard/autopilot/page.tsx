@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from '@/lib/demo-profile';
-import { dealHrefFromLeadId } from '@/lib/demo-cases';
+import { DEMO_CASE_ROUTES, dealHrefFromLeadId, getPrimaryDemoCase } from '@/lib/demo-cases';
 import {
   Zap, AlertTriangle, CheckCircle, Clock, TrendingUp,
   ArrowRight, Play, Pause, Eye, Activity, Brain, Target,
@@ -20,6 +20,7 @@ const SURFACE2 = '#1A1A1A';
 const OFF_WHITE = '#F5F0E8';
 const MUTED = '#B8B0A0';
 const FAINT = '#4A453E';
+const PRIMARY_CASE = getPrimaryDemoCase();
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Priority = 'CRITICAL' | 'ATTENTION' | 'INFO';
@@ -51,58 +52,28 @@ interface Agent {
 }
 
 // ─── Static data ─────────────────────────────────────────────────────────────
-const FEED_DATA: FeedItem[] = [
-  {
-    id: 1,
-    priority: 'CRITICAL',
-    name: 'Meera Nair',
-    destination: 'Maldives Honeymoon',
-    value: '₹4,86,000',
-    headline: 'Website enquiry captured and staged for the quote-to-close walkthrough.',
-    subtext: 'Use this card to open the deal view, then show triage, itinerary, finance, and the CRM transcript in one flow.',
-    cta: 'Open Deal',
-    ctaType: 'call',
-    confidence: 91,
-    ago: 'Just now',
-    leadId: 1,
-  },
-  {
-    id: 3,
-    priority: 'ATTENTION',
-    name: 'Arjun Mehta',
-    destination: 'Dubai Bleisure',
-    value: '₹2,12,000',
-    headline: 'Phone-captured executive lead is staged with a premium business + leisure blend.',
-    subtext: 'Perfect for showing a quote that feels tailored, fast, and still margin aware.',
-    cta: 'Approve & Send',
-    ctaType: 'approve',
-    confidence: 89,
-    ago: '2m ago',
-    leadId: 3,
-  },
-  {
-    id: 2,
-    priority: 'CRITICAL',
-    name: 'Sharma Family',
-    destination: 'Kerala Family',
-    value: '₹1,24,000',
-    headline: 'Email-captured family request is staged with pacing, houseboat, and reminder context.',
-    subtext: 'This is the backup story if you want to show a slower booking path that still converts.',
-    cta: 'Send Reminder',
-    ctaType: 'payment',
-    confidence: 90,
-    ago: '5m ago',
-    leadId: 2,
-  },
-];
+const FEED_DATA: FeedItem[] = DEMO_CASE_ROUTES.map((item) => ({
+  id: item.leadId,
+  priority: item.priority,
+  name: item.guest,
+  destination: item.caseName.replace(/\b\w/g, (char) => char.toUpperCase()),
+  value: `₹${item.quoteTotal.toLocaleString('en-IN')}`,
+  headline: item.autopilotHeadline,
+  subtext: item.autopilotSubtext,
+  cta: item.autopilotCta,
+  ctaType: item.autopilotCtaType,
+  confidence: item.autopilotConfidence,
+  ago: item.autopilotAgo,
+  leadId: item.leadId,
+}));
 
 const AGENTS: Agent[] = [
   { id: 'triage',     name: 'Triage',     role: 'Lead Qualification',    state: 'RUNNING', done: 47, current: 'Parsing 2 new WhatsApp leads',        Icon: Brain },
-  { id: 'itinerary',  name: 'Itinerary',  role: 'Trip Architecture',     state: 'RUNNING', done: 12, current: 'Building the Maldives honeymoon draft', Icon: MapPin },
-  { id: 'bidding',    name: 'Bidding',    role: 'Vendor Negotiation',    state: 'ALERT',   done: 8,  current: 'Holding a Dubai fallback rate if needed', Icon: Target },
+  { id: 'itinerary',  name: 'Itinerary',  role: 'Trip Architecture',     state: 'RUNNING', done: 12, current: `Building the ${PRIMARY_CASE.caseName} draft`, Icon: MapPin },
+  { id: 'bidding',    name: 'Bidding',    role: 'Vendor Negotiation',    state: 'ALERT',   done: 8,  current: 'Holding a premium fallback rate if needed', Icon: Target },
   { id: 'finance',    name: 'Finance',    role: 'Payments & Ledger',     state: 'IDLE',    done: 31, current: 'Awaiting next transaction event',       Icon: CreditCard },
   { id: 'comms',      name: 'Comms',      role: 'Client Messaging',      state: 'RUNNING', done: 63, current: 'Staging WhatsApp, email, and call follow-ups', Icon: MessageSquare },
-  { id: 'operations', name: 'Operations', role: 'Booking Execution',     state: 'RUNNING', done: 19, current: 'Confirming Maldives speed boat hold',       Icon: Shield },
+  { id: 'operations', name: 'Operations', role: 'Booking Execution',     state: 'RUNNING', done: 19, current: `Confirming ${PRIMARY_CASE.destination} execution hold`, Icon: Shield },
 ];
 
 // ─── Priority config ──────────────────────────────────────────────────────────
@@ -283,17 +254,13 @@ export default function AutopilotPage() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              { label: 'Maldives', href: '/dashboard/deals?case=maldives-honeymoon' },
-              { label: 'Dubai', href: '/dashboard/deals?case=dubai-bleisure' },
-              { label: 'Kerala', href: '/dashboard/deals?case=kerala-family' },
-            ].map((item) => (
+            {DEMO_CASE_ROUTES.map((item) => (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.slug}
+                href={`/dashboard/deals?case=${item.slug}`}
                 className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] hover:text-[#F5F0E8] hover:border-[#C9A84C]/30 transition-all"
               >
-                {item.label}
+                {item.destination}
               </Link>
             ))}
           </div>

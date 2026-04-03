@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { DEMO_ITINERARY_WORKSPACE_CASE } from '@/lib/demo-case-profiles';
 import { 
   Sparkles, 
   Eye, 
@@ -21,8 +22,11 @@ import {
 } from 'lucide-react';
 
 export default function ItinerariesPage() {
+  const workspaceCase = DEMO_ITINERARY_WORKSPACE_CASE;
   const [activeDay, setActiveDay] = useState(1);
   const [loading, setLoading] = useState(false);
+  const activeDayData = workspaceCase.itinerary.days.find((day) => day.day_number === activeDay) ?? workspaceCase.itinerary.days[0];
+  const travelerLabel = `${workspaceCase.guest_name}${workspaceCase.triage.travelers_count > 1 ? ` + ${workspaceCase.triage.travelers_count - 1}` : ""}`;
 
   return (
     <div className="flex flex-col h-[calc(100vh-144px)] overflow-hidden animate-in fade-in duration-700">
@@ -35,12 +39,12 @@ export default function ItinerariesPage() {
             <span className="opacity-50">Trip Design Layer</span>
           </div>
           <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
-            Dubai Premium Bleisure
+            {workspaceCase.itinerary.title}
           </h1>
           <div className="flex items-center gap-6 mt-2 text-[#B8B0A0] font-mono text-[10px] uppercase tracking-widest">
-            <span className="flex items-center gap-1.5"><Users size={12} className="text-[#C9A84C]" /> Anjali Sharma + 2</span>
-            <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#C9A84C]" /> 15-20 Oct 2026</span>
-            <span className="flex items-center gap-1.5"><MapPin size={12} className="text-[#C9A84C]" /> Dubai, UAE</span>
+            <span className="flex items-center gap-1.5"><Users size={12} className="text-[#C9A84C]" /> {travelerLabel}</span>
+            <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#C9A84C]" /> {workspaceCase.triage.travel_dates}</span>
+            <span className="flex items-center gap-1.5"><MapPin size={12} className="text-[#C9A84C]" /> {workspaceCase.triage.destination}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -63,11 +67,7 @@ export default function ItinerariesPage() {
           <h3 className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.2em] mb-6 font-mono opacity-50">Trip Timeline</h3>
           <div className="space-y-3">
             {[
-              { day: 1, title: 'Arrival & Check-in' },
-              { day: 2, title: 'Downtown Exploration' },
-              { day: 3, title: 'Desert Adventure' },
-              { day: 4, title: 'Old Dubai & Souks' },
-              { day: 5, title: 'Leisure & Shopping' },
+              ...workspaceCase.itinerary.days.map((day) => ({ day: day.day_number, title: day.title })),
             ].map((d) => (
               <button 
                 key={d.day}
@@ -93,8 +93,8 @@ export default function ItinerariesPage() {
           <div className="max-w-4xl mx-auto">
             <div className="flex items-end justify-between mb-12 border-b border-[#C9A84C]/10 pb-8">
               <div>
-                <h2 className="text-3xl font-black text-[#F5F0E8] tracking-tighter uppercase font-headline">Day {activeDay}: Arrival & Check-in</h2>
-                <p className="text-[#B8B0A0] mt-3 max-w-lg text-sm font-body leading-relaxed">Welcome to Dubai! Your first day is designed for comfort and luxury after your flight. Settle into the magnificent Atlantis The Palm.</p>
+                <h2 className="text-3xl font-black text-[#F5F0E8] tracking-tighter uppercase font-headline">Day {activeDayData.day_number}: {activeDayData.title}</h2>
+                <p className="text-[#B8B0A0] mt-3 max-w-lg text-sm font-body leading-relaxed">{activeDayData.narrative}</p>
               </div>
               <div className="flex gap-2">
                 <button className="w-10 h-10 rounded-xl bg-[#1A1A1A] border border-[#C9A84C]/20 flex items-center justify-center text-[#B8B0A0] hover:text-[#C9A84C] transition-all shadow-sm">
