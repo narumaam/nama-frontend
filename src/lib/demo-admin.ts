@@ -64,6 +64,12 @@ export function readDemoTenantRegistry(): DemoTenantRecord[] {
   return readJson<DemoTenantRecord[]>(window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.tenantRegistry), []);
 }
 
+export function writeDemoTenantRegistry(records: DemoTenantRecord[]) {
+  if (typeof window === "undefined") return records;
+  window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.tenantRegistry, JSON.stringify(records));
+  return records;
+}
+
 export function upsertDemoTenantRegistration(input: {
   company: string;
   market: string;

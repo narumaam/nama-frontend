@@ -10,9 +10,62 @@ import { chromium } from "playwright";
 
 const HOST = process.env.SMOKE_HOST || "127.0.0.1";
 const ROOT = process.cwd();
+const scenarioKey = process.argv[2] || "founder";
+
+const SCENARIOS = {
+  founder: {
+    label: "Founder Golden Path",
+    companyName: "Aurora Reserve Travel",
+    operatorName: "Radhika Founder",
+    planName: "Enterprise",
+    caseSlug: "maldives-honeymoon",
+    employeeToAccept: "Ritika Sen · Sales",
+    employees: [
+      "name,email,role,designation,team,reportsTo,responsibility",
+      "Ritika Sen,ritika@aurora.example,Sales,Senior Executive,Inbound Desk,Sales Manager,Inbound CRM and quote follow-up",
+      "Kabir Rao,kabir@aurora.example,Operations,Trip Designer,Luxury Desk,Operations Lead,Trip design and supplier coordination",
+      "Zoya Ali,zoya@aurora.example,Finance,Accounts Lead,Billing,Finance Lead,Billing and reconciliation",
+    ].join("\n"),
+  },
+  "small-agency": {
+    label: "Small Agency",
+    companyName: "Maple Trail Holidays",
+    operatorName: "Asha Khan",
+    planName: "Starter",
+    caseSlug: "maldives-honeymoon",
+    employeeToAccept: "Nina Dsouza · Operations",
+    employees: [
+      "name,email,role,designation,team,reportsTo,responsibility",
+      "Nina Dsouza,nina@mapletrail.ae,Operations,Trip Coordinator,Holiday Desk,Founder,Bookings and traveler documentation",
+      "Rhea Mathew,rhea@mapletrail.ae,Sales,Travel Consultant,Holiday Desk,Founder,Lead intake and quote follow-up",
+    ].join("\n"),
+  },
+  "ops-dmc": {
+    label: "Ops Heavy DMC",
+    companyName: "Saffron Dunes DMC",
+    operatorName: "Rehan Malik",
+    planName: "Growth",
+    caseSlug: "europe-family-escape",
+    employeeToAccept: "Mira Joshi · Operations",
+    employees: [
+      "name,email,role,designation,team,reportsTo,responsibility",
+      "Mira Joshi,mira@saffrondunes.in,Operations,Ops Lead,Fulfilment Desk,Customer Admin,Supplier and itinerary execution",
+      "Dev Shah,dev@saffrondunes.in,Finance,Collections Lead,Billing,Customer Admin,Collections and reconciliation",
+      "Anika Roy,anika@saffrondunes.in,Sales,Partner Desk,B2B Desk,Customer Admin,Agent follow-up and group quoting",
+    ].join("\n"),
+  },
+};
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getScenario() {
+  const scenario = SCENARIOS[scenarioKey];
+  if (!scenario) {
+    throw new Error(`Unknown smoke scenario "${scenarioKey}". Expected one of: ${Object.keys(SCENARIOS).join(", ")}`);
+  }
+  return scenario;
 }
 
 function getAvailablePort() {
@@ -68,19 +121,14 @@ function startAppServer(port) {
 }
 
 async function main() {
+  const scenario = getScenario();
   const port = process.env.SMOKE_PORT || (await getAvailablePort());
   const baseUrl = process.env.SMOKE_BASE_URL || `http://${HOST}:${port}`;
   rmSync(path.join(ROOT, ".next"), { recursive: true, force: true });
   const server = startAppServer(port);
-  const tempDir = mkdtempSync(path.join(tmpdir(), "nama-founder-smoke-"));
+  const tempDir = mkdtempSync(path.join(tmpdir(), `nama-${scenarioKey}-smoke-`));
   const csvPath = path.join(tempDir, "employees.csv");
-  const csv = [
-    "name,email,role,designation,team,reportsTo,responsibility",
-    "Ritika Sen,ritika@aurora.example,Sales,Senior Executive,Inbound Desk,Sales Manager,Inbound CRM and quote follow-up",
-    "Kabir Rao,kabir@aurora.example,Operations,Trip Designer,Luxury Desk,Operations Lead,Trip design and supplier coordination",
-    "Zoya Ali,zoya@aurora.example,Finance,Accounts Lead,Billing,Finance Lead,Billing and reconciliation",
-  ].join("\n");
-  writeFileSync(csvPath, csv, "utf8");
+  writeFileSync(csvPath, scenario.employees, "utf8");
 
   let browser;
 
@@ -92,19 +140,18 @@ async function main() {
 
     await page.goto(`${baseUrl}/register`);
     await page.waitForLoadState("networkidle");
-    await page.getByRole("textbox", { name: "Company Name" }).fill("Aurora Reserve Travel");
-    await page.getByRole("textbox", { name: "Workspace Operator" }).fill("Radhika Founder");
-    await page.locator("button").filter({ hasText: "Enterprise" }).first().click();
+    await page.getByRole("textbox", { name: "Company Name" }).fill(scenario.companyName);
+    await page.getByRole("textbox", { name: "Workspace Operator" }).fill(scenario.operatorName);
+    await page.locator("button").filter({ hasText: scenario.planName }).first().click();
     await page.getByRole("button", { name: /Enter Demo Workspace/i }).click();
     await page.waitForURL("**/dashboard");
 
     await page.goto(`${baseUrl}/dashboard/team`);
     await page.waitForLoadState("networkidle");
-
     await page.getByRole("button", { name: "bulk", exact: true }).click();
     await expectVisible(page, "Upload Employee List");
     await page.locator('label:has-text("Upload Employee List") input[type="file"]').setInputFiles(csvPath);
-    await expectVisible(page, "Imported 3 employees into the directory.");
+    await expectVisible(page, "Imported");
 
     const checkboxes = page.locator('input[type="checkbox"]');
     const count = await checkboxes.count();
@@ -117,11 +164,11 @@ async function main() {
     await expectVisible(page, "Select from employee directory");
     const employeeDirectorySelect = page.getByText("Select from employee directory").locator("..").locator("select");
     await employeeDirectorySelect.waitFor({ state: "visible", timeout: 20000 });
-    await employeeDirectorySelect.locator("option", { hasText: "Ritika Sen · Sales" }).waitFor({
+    await employeeDirectorySelect.locator("option", { hasText: scenario.employeeToAccept }).waitFor({
       state: "attached",
       timeout: 20000,
     });
-    await employeeDirectorySelect.selectOption({ label: "Ritika Sen · Sales" });
+    await employeeDirectorySelect.selectOption({ label: scenario.employeeToAccept });
     await page.getByRole("button", { name: /Send Individual Invite/i }).click();
 
     const openAcceptance = page.getByRole("link", { name: /Open acceptance/i }).last();
@@ -144,27 +191,28 @@ async function main() {
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Record Deposit/i }).first().click();
 
-    await page.goto(`${baseUrl}/dashboard/bookings?case=maldives-honeymoon`);
+    await page.goto(`${baseUrl}/dashboard/bookings?case=${scenario.caseSlug}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Release guest pack now/i }).click();
 
-    await page.goto(`${baseUrl}/dashboard/invoices/maldives-honeymoon`);
+    await page.goto(`${baseUrl}/dashboard/invoices/${scenario.caseSlug}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Mark Paid/i }).click();
 
-    await page.goto(`${baseUrl}/dashboard/traveler-pdf/maldives-honeymoon`);
+    await page.goto(`${baseUrl}/dashboard/traveler-pdf/${scenario.caseSlug}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Mark shared/i }).click();
 
     await page.goto(`${baseUrl}/dashboard/admin`);
     await page.waitForLoadState("networkidle");
-    await expectVisible(page, "Aurora Reserve Travel");
-    await expectVisible(page, "Enterprise");
+    await expectVisible(page, scenario.companyName);
+    await expectVisible(page, scenario.planName);
     await expectVisible(page, "Logged-in Users");
     await expectVisible(page, "Golden Path Status");
-    await expectVisible(page, "Accepted Invites");
+    await expectVisible(page, "System Audit Snapshot");
+    await expectVisible(page, "Tenant Lifecycle & Risk Board");
 
-    console.log("\nFounder flow smoke passed.");
+    console.log(`\n${scenario.label} smoke passed.`);
   } finally {
     if (browser) await browser.close();
     rmSync(tempDir, { recursive: true, force: true });
@@ -177,7 +225,7 @@ async function expectVisible(page, text) {
 }
 
 main().catch((error) => {
-  console.error("\nFounder flow smoke failed.");
+  console.error(`\n${scenarioKey} smoke failed.`);
   console.error(error);
   process.exitCode = 1;
 });

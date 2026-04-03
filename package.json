@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0",
-    "smoke:founder": "node scripts/founder_flow_smoke.mjs"
+    "smoke:founder": "node scripts/founder_flow_smoke.mjs founder",
+    "smoke:small-agency": "node scripts/founder_flow_smoke.mjs small-agency",
+    "smoke:ops-dmc": "node scripts/founder_flow_smoke.mjs ops-dmc"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",

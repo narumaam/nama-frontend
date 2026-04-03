@@ -7,6 +7,7 @@ import { DEMO_PLAN_PRICES, readDemoSubscriptionPlan, readDemoTenantRegistry } fr
 import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
 import { DEFAULT_DEMO_PROFILE } from "@/lib/demo-profile";
 import { useDemoProfile } from "@/lib/use-demo-profile";
+import { DEMO_SCENARIOS, getScenarioProjectedMrr, resetDemoState, seedDemoScenario, type DemoScenarioKey } from "@/lib/demo-scenarios";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
@@ -16,12 +17,14 @@ import {
   CheckCircle2,
   ChevronRight,
   CreditCard,
+  DatabaseZap,
   Globe,
   Globe2,
   LayoutTemplate,
   Lock,
   Languages,
   Landmark,
+  RotateCcw,
   Shield,
   Sparkles,
   Users,
@@ -196,6 +199,7 @@ export default function AdminPage() {
   const [selectedPlan, setSelectedPlan] = useState(SUBSCRIPTION_PLANS[1]);
   const [bufferEnabled, setBufferEnabled] = useState(true);
   const [manualRateEnabled, setManualRateEnabled] = useState(false);
+  const [demoLabMessage, setDemoLabMessage] = useState("Use Demo Lab to reset the workspace or seed a tested scenario.");
   const currentPlan = readDemoSubscriptionPlan();
   const tenantRegistry = readDemoTenantRegistry();
   const acceptedInvites = workflow.invites.filter((invite) => invite.status === "Accepted").length;
@@ -242,6 +246,43 @@ export default function AdminPage() {
   const totalSystemActiveUsers = tenantHealth.reduce((sum, tenant) => sum + (tenant.activeUsers ?? tenant.users), 0);
   const totalSystemPendingInvites = tenantHealth.reduce((sum, tenant) => sum + (tenant.pendingInvites ?? 0), 0);
   const systemHealthLabel = pendingInvites > 0 ? "Monitoring" : releasedArtifacts > 0 || settledInvoices > 0 ? "Live demo active" : "Healthy";
+  const totalRegisteredUsers = tenantHealth.reduce((sum, tenant) => sum + tenant.users, 0);
+  const totalAcceptedInvites = tenantHealth.reduce((sum, tenant) => sum + Math.max((tenant.activeUsers ?? tenant.users) - 1, 0), 0);
+  const systemLifecycle =
+    settledInvoices > 0
+      ? "Revenue realized"
+      : wonCases > 0
+        ? "Operational handoff active"
+        : acceptedInvites > 0
+          ? "Users onboarded"
+          : tenantRegistry.length > 0
+            ? "Tenants registered"
+            : "Awaiting setup";
+  const systemRisk =
+    totalSystemPendingInvites > 2 ? "Invite backlog" : settledInvoices === 0 && wonCases > 0 ? "Collections watch" : "Stable";
+  const tenantAuditRows = tenantHealth.map((tenant) => {
+    const lifecycle =
+      tenant.name === currentTenantName
+        ? settledInvoices > 0
+          ? "Paid + delivered"
+          : wonCases > 0
+            ? "Won + in fulfilment"
+            : acceptedInvites > 0
+              ? "Team onboarded"
+              : "Registered"
+        : tenant.pendingInvites > 0
+          ? "Pending invites"
+          : tenant.activeUsers > 1
+            ? "Live"
+            : "Registered";
+    const healthScore = tenant.pendingInvites > 1 ? "At risk" : tenant.status === "Attention" ? "Watch" : "Healthy";
+
+    return {
+      ...tenant,
+      lifecycle,
+      healthScore,
+    };
+  });
   const simulatedPlanPrice = useMemo(() => {
     const baseAmount =
       selectedPlan.name === "Starter" ? 24000 : selectedPlan.name === "Growth" ? 49000 : 125000;
@@ -256,6 +297,18 @@ export default function AdminPage() {
     const bufferedAmount = bufferEnabled ? Math.round(localizedAmount * 1.025) : localizedAmount;
     return `${selectedMarket.baseCurrency} ${bufferedAmount.toLocaleString("en-IN")}`;
   }, [bufferEnabled, selectedMarket.baseCurrency, selectedPlan.name]);
+
+  function handleResetDemo() {
+    resetDemoState();
+    setDemoLabMessage("Demo state reset to the default platform snapshot.");
+  }
+
+  function handleSeedScenario(key: DemoScenarioKey) {
+    seedDemoScenario(key);
+    const scenario = DEMO_SCENARIOS.find((item) => item.key === key);
+    if (!scenario) return;
+    setDemoLabMessage(`${scenario.label} seeded: ${scenario.company} on ${scenario.plan} with projected MRR ₹${getScenarioProjectedMrr(key).toLocaleString("en-IN")}.`);
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -294,6 +347,70 @@ export default function AdminPage() {
         <MetricCard label="MRR Snapshot" value={`₹${totalMrr.toLocaleString("en-IN")}`} sub={`Includes ${currentTenantName} on the ${currentPlan} plan`} icon={<BadgeIndianRupee size={16} />} />
         <MetricCard label="Platform Health" value={systemHealthLabel} sub={`${wonCases} won cases · ${releasedArtifacts} released artifacts`} icon={<CheckCircle2 size={16} />} />
         <MetricCard label="Logged-in Users" value={String(totalSystemActiveUsers).padStart(2, "0")} sub={`${totalSystemPendingInvites} pending invites across visible tenants`} icon={<Waypoints size={16} />} />
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <DatabaseZap size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Demo Lab</h2>
+            </div>
+          </div>
+          <p className="text-sm leading-relaxed text-[#B8B0A0]">
+            Reset the workspace, seed a founder walkthrough, or drop in focused QA tenants without manually editing local storage between runs.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleResetDemo}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]"
+            >
+              <RotateCcw size={12} />
+              Reset Demo
+            </button>
+            {DEMO_SCENARIOS.map((scenario) => (
+              <button
+                key={scenario.key}
+                type="button"
+                onClick={() => handleSeedScenario(scenario.key)}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+              >
+                <Sparkles size={12} />
+                Seed {scenario.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-3">
+            {DEMO_SCENARIOS.map((scenario) => (
+              <div key={scenario.key} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                <div className="text-sm font-black text-[#F5F0E8]">{scenario.label}</div>
+                <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">
+                  {scenario.plan} · ₹{getScenarioProjectedMrr(scenario.key).toLocaleString("en-IN")}
+                </div>
+                <div className="mt-2 text-xs leading-relaxed text-[#B8B0A0]">{scenario.note}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+            {demoLabMessage}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Waypoints size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">System Audit Snapshot</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoTile title="Lifecycle" detail={systemLifecycle} icon={<CheckCircle2 size={14} />} />
+            <InfoTile title="Risk Flag" detail={systemRisk} icon={<AlertTriangle size={14} />} />
+            <InfoTile title="Registered Seats" detail={`${totalRegisteredUsers} total visible seats across tenants`} icon={<Users size={14} />} />
+            <InfoTile title="Joined Users" detail={`${totalAcceptedInvites} accepted invites are active in the snapshot`} icon={<Sparkles size={14} />} />
+            <InfoTile title="Subscription Revenue" detail={`₹${totalMrr.toLocaleString("en-IN")} monthly across visible tenants`} icon={<BadgeIndianRupee size={14} />} />
+            <InfoTile title="Current Flow" detail={`${wonCases} won, ${settledInvoices} paid, ${releasedArtifacts} delivered`} icon={<LayoutTemplate size={14} />} />
+          </div>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
@@ -414,6 +531,47 @@ export default function AdminPage() {
             ))}
           </div>
         </aside>
+      </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+        <div className="mb-5 flex items-center gap-2">
+          <Building2 size={14} className="text-[#C9A84C]" />
+          <h2 className="text-lg font-black text-[#F5F0E8]">Tenant Lifecycle & Risk Board</h2>
+        </div>
+        <div className="space-y-3">
+          {tenantAuditRows.map((tenant) => (
+            <div key={tenant.name} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="text-sm font-black text-[#F5F0E8]">{tenant.name}</div>
+                  <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#4A453E]">
+                    {tenant.tier} · {tenant.lifecycle} · Renewal {tenant.renewal}
+                  </div>
+                  <div className="mt-2 text-xs leading-relaxed text-[#B8B0A0]">{tenant.healthNote}</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                    {tenant.activeUsers ?? tenant.users} active
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+                    {tenant.pendingInvites ?? 0} pending
+                  </span>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
+                      tenant.healthScore === "Healthy"
+                        ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]"
+                        : tenant.healthScore === "Watch"
+                          ? "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"
+                          : "border-red-400/20 bg-red-400/10 text-red-300"
+                    }`}
+                  >
+                    {tenant.healthScore}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">

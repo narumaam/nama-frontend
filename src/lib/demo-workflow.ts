@@ -58,6 +58,12 @@ export type DemoWorkflowState = {
   cases: Record<string, DemoCaseWorkflowState>;
 };
 
+type DemoWorkflowInput = {
+  employees?: DemoEmployeeRecord[];
+  invites?: DemoInviteRecord[];
+  cases?: Record<string, Partial<DemoCaseWorkflowState>>;
+};
+
 const DEMO_WORKFLOW_EVENT = "nama-demo-workflow-updated";
 
 function nowLabel() {
@@ -358,7 +364,7 @@ function normalizeCaseState(slug: string, input: Partial<DemoCaseWorkflowState>)
   };
 }
 
-function normalizeWorkflowState(input?: Partial<DemoWorkflowState>): DemoWorkflowState {
+function normalizeWorkflowState(input?: DemoWorkflowInput): DemoWorkflowState {
   const defaultEmployees = createDefaultEmployees();
   const defaultInvites = createDefaultInvites();
   const defaultCases = createDefaultCases();
@@ -405,6 +411,20 @@ export function writeDemoWorkflowState(input: Partial<DemoWorkflowState>): DemoW
 
   persistWorkflowState(nextState);
   return nextState;
+}
+
+export function replaceDemoWorkflowState(state: DemoWorkflowInput) {
+  const nextState = normalizeWorkflowState(state);
+  persistWorkflowState(nextState);
+  return nextState;
+}
+
+export function resetDemoWorkflowState() {
+  return replaceDemoWorkflowState({
+    employees: createDefaultEmployees(),
+    invites: createDefaultInvites(),
+    cases: createDefaultCases(),
+  });
 }
 
 export function createDemoInvite(input: Omit<DemoInviteRecord, "id" | "status" | "createdAt" | "invitedAt"> & { status?: DemoInviteStatus }) {
