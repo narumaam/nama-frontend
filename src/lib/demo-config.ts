@@ -1,6 +1,7 @@
 import type { DemoMarket } from "@/lib/demo-profile";
 
 export type BusinessRole = "Travel Agency" | "DMC" | "Tour Operator";
+export type DemoPlan = "Starter" | "Growth" | "Enterprise";
 
 export const BUSINESS_ROLES: BusinessRole[] = ["Travel Agency", "DMC", "Tour Operator"];
 
@@ -17,12 +18,17 @@ export const MARKET_PRESETS: DemoMarket[] = [
 export const DEMO_PROFILE_STORAGE_KEYS = {
   company: "nama-demo-company",
   operator: "nama-demo-operator",
+  subscriptionPlan: "nama-demo-subscription-plan",
   roles: "nama-demo-business-roles",
   market: "nama-demo-market",
   baseCurrency: "nama-demo-base-currency",
   enabledCurrencies: "nama-demo-enabled-currencies",
   bankDetails: "nama-demo-bank-details",
   whiteLabel: "nama-demo-white-label",
+  employees: "nama-demo-employees",
+  invites: "nama-demo-invites",
+  workflowCases: "nama-demo-workflow-cases",
+  tenantRegistry: "nama-demo-tenant-registry",
 } as const;
 
 export const DEFAULT_SHELL_BRAND = {

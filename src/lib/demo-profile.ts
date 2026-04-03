@@ -10,6 +10,7 @@ export type DemoMarket = {
 export type DemoProfile = {
   company: string;
   operator: string;
+  subscriptionPlan: "Starter" | "Growth" | "Enterprise";
   roles: string[];
   market: DemoMarket;
   baseCurrency: string;
@@ -47,6 +48,7 @@ const DEFAULT_MARKET: DemoMarket = MARKET_PRESETS[0];
 export const DEFAULT_DEMO_PROFILE: DemoProfile = {
   company: "Nair Luxury Escapes",
   operator: "Workspace Admin",
+  subscriptionPlan: "Growth",
   roles: ["Travel Agency", "DMC"],
   market: DEFAULT_MARKET,
   baseCurrency: DEFAULT_MARKET.currency,
@@ -95,6 +97,7 @@ function normalizeDemoProfile(input: Partial<DemoProfile>): DemoProfile {
   return {
     company: input.company?.trim() || DEFAULT_DEMO_PROFILE.company,
     operator: input.operator?.trim() || DEFAULT_DEMO_PROFILE.operator,
+    subscriptionPlan: input.subscriptionPlan || DEFAULT_DEMO_PROFILE.subscriptionPlan,
     roles: input.roles?.length ? input.roles : DEFAULT_DEMO_PROFILE.roles,
     market,
     baseCurrency,
@@ -125,6 +128,7 @@ export function readDemoProfile(): DemoProfile {
   return normalizeDemoProfile({
     company: window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.company) || DEFAULT_DEMO_PROFILE.company,
     operator: window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.operator) || DEFAULT_DEMO_PROFILE.operator,
+    subscriptionPlan: (window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.subscriptionPlan) as DemoProfile["subscriptionPlan"]) || DEFAULT_DEMO_PROFILE.subscriptionPlan,
     roles: readJson<string[]>(window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.roles), DEFAULT_DEMO_PROFILE.roles),
     market: readJson<DemoMarket>(window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.market), DEFAULT_DEMO_PROFILE.market),
     baseCurrency: window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.baseCurrency) || undefined,
@@ -143,6 +147,7 @@ export function writeDemoProfile(input: Partial<DemoProfile>): DemoProfile {
   if (typeof window !== "undefined") {
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.company, nextProfile.company);
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.operator, nextProfile.operator);
+    window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.subscriptionPlan, nextProfile.subscriptionPlan);
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.roles, JSON.stringify(nextProfile.roles));
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.market, JSON.stringify(nextProfile.market));
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.baseCurrency, nextProfile.baseCurrency);

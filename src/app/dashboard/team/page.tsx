@@ -4,11 +4,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
-import { DEMO_CASE_ASSIGNMENTS, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
+import { DEMO_CASE_ASSIGNMENTS } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain, writeDemoProfile } from "@/lib/demo-profile";
+import { createDemoInvite, createEmployeeRecord, getInvitePath, upsertDemoEmployees, type DemoInviteRecord } from "@/lib/demo-workflow";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useDemoProfile } from "@/lib/use-demo-profile";
-import { ArrowRight, CheckCircle2, ClipboardList, FileUp, Filter, Mail, Palette, Plus, Shield, Users, UserPlus2 } from "lucide-react";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
+import { ArrowRight, CheckCircle2, ClipboardList, Copy, Download, FileUp, Filter, Mail, Palette, Plus, Send, Shield, Upload, Users, UserPlus2 } from "lucide-react";
 
 type TeamRole = {
   name: string;
@@ -17,33 +19,12 @@ type TeamRole = {
   color: string;
 };
 
-type InviteRecord = {
-  name: string;
-  email: string;
-  role: string;
-  status: "Pending" | "Accepted" | "Invited";
-  responsibility: string;
-};
-
 const TEAM_ROLES: TeamRole[] = [
   { name: "Admin", scope: "Full workspace control", people: 2, color: "text-[#C9A84C]" },
   { name: "Sales", scope: "Leads, quotes, follow-up", people: 5, color: "text-[#1D9E75]" },
   { name: "Operations", scope: "Itineraries, bookings, vouchers", people: 4, color: "text-[#F5F0E8]" },
   { name: "Finance", scope: "Deposits, balances, reconciliation", people: 2, color: "text-[#C9A84C]" },
   { name: "Sub-agent", scope: "Restricted customer-facing access", people: 3, color: "text-[#B8B0A0]" },
-];
-
-const INVITES: InviteRecord[] = [
-  { name: "Aisha Khan", email: "aisha@demoagency.in", role: "Sales", status: "Pending", responsibility: DEMO_CASE_ROUTES.slice(0, 2).map((item) => item.destination).join(", ") },
-  { name: "Rohan Iyer", email: "rohan@demoagency.in", role: "Operations", status: "Accepted", responsibility: `${DEMO_CASE_ROUTES[1].destination}, Content` },
-  { name: "Meera Shah", email: "meera@demoagency.in", role: "Finance", status: "Invited", responsibility: "Billing, payouts" },
-  { name: "Arjun Paul", email: "arjun@demoagency.in", role: "Sub-agent", status: "Pending", responsibility: "Inbound support" },
-];
-
-const BULK_ROWS = [
-  { name: "Priya", email: "priya@demoagency.in", role: "Sales", designation: "Senior Executive", team: "Inbound Desk" },
-  { name: "Nikhil", email: "nikhil@demoagency.in", role: "Operations", designation: "Trip Designer", team: "Luxury Desk" },
-  { name: "Farah", email: "farah@demoagency.in", role: "Finance", designation: "Accounts Lead", team: "Billing" },
 ];
 
 const HIERARCHY = [
@@ -122,10 +103,11 @@ const ORG_CHART = {
 
 export default function TeamPage() {
   const profile = useDemoProfile();
+  const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const domainMode = getDemoDomainMode(brandTheme);
-  const [selectedRole, setSelectedRole] = useState("Sales");
+  const [selectedRole, setSelectedRole] = useState("All");
   const [selectedMode, setSelectedMode] = useState<"invite" | "bulk" | "roles" | "hierarchy" | "structure" | "assign" | "brand">("invite");
   const [orgDepartments, setOrgDepartments] = useState(ORG_CHART.departments);
   const [draggingDept, setDraggingDept] = useState<string | null>(null);
@@ -141,13 +123,29 @@ export default function TeamPage() {
   const [supportEmail, setSupportEmail] = useState(profile.whiteLabel.supportEmail);
   const [customDomain, setCustomDomain] = useState(profile.whiteLabel.customDomain);
   const [accentHex, setAccentHex] = useState(profile.whiteLabel.accentHex);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [inviteName, setInviteName] = useState("Aisha Khan");
+  const [inviteEmail, setInviteEmail] = useState("aisha@demoagency.in");
+  const [inviteRole, setInviteRole] = useState("Sales");
+  const [inviteDesignation, setInviteDesignation] = useState("Senior Executive");
+  const [inviteTeam, setInviteTeam] = useState("Inbound Desk");
+  const [inviteReportsTo, setInviteReportsTo] = useState("Sales Manager");
+  const [inviteResponsibility, setInviteResponsibility] = useState(DEMO_CASE_ROUTES.slice(0, 2).map((item) => item.destination).join(", "));
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [inviteMessage, setInviteMessage] = useState("Invites are ready to send.");
 
   const filteredInvites = useMemo(
-    () => INVITES.filter((invite) => invite.role === selectedRole || selectedRole === "All"),
-    [selectedRole]
+    () => workflow.invites.filter((invite) => invite.role === selectedRole || selectedRole === "All"),
+    [selectedRole, workflow.invites]
+  );
+  const filteredEmployees = useMemo(
+    () => workflow.employees.filter((employee) => employee.role === selectedRole || selectedRole === "All"),
+    [selectedRole, workflow.employees]
   );
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleOperator = profile.operator || DEFAULT_DEMO_PROFILE.operator;
+  const pendingInviteCount = workflow.invites.filter((invite) => invite.status === "Pending").length;
+  const acceptedInviteCount = workflow.invites.filter((invite) => invite.status === "Accepted").length;
   const hierarchyPreview = {
     adminTitle: `${entityLabel} Admin`,
     adminSubtitle: `${visibleCompany} · ${visibleOperator}`,
@@ -189,6 +187,120 @@ export default function TeamPage() {
     });
   }
 
+  function hydrateInviteFromEmployee(employeeId: string) {
+    setSelectedEmployeeId(employeeId);
+    const employee = workflow.employees.find((item) => item.id === employeeId);
+    if (!employee) return;
+    setInviteName(employee.name);
+    setInviteEmail(employee.email);
+    setInviteRole(employee.role);
+    setInviteDesignation(employee.designation);
+    setInviteTeam(employee.team);
+    setInviteReportsTo(employee.reportsTo);
+    setInviteResponsibility(employee.responsibility);
+    setInviteMessage(`Loaded ${employee.name} from the employee directory.`);
+  }
+
+  function sendInviteForCurrentForm() {
+    if (!inviteName.trim() || !inviteEmail.trim()) {
+      setInviteMessage("Name and email are required before an invite can be sent.");
+      return;
+    }
+
+    createDemoInvite({
+      name: inviteName,
+      email: inviteEmail,
+      role: inviteRole,
+      designation: inviteDesignation,
+      team: inviteTeam,
+      reportsTo: inviteReportsTo,
+      responsibility: inviteResponsibility,
+      status: "Pending",
+    });
+    setInviteMessage(`Invite sent to ${inviteName}.`);
+  }
+
+  function toggleSelectedEmployee(employeeId: string) {
+    setSelectedEmployeeIds((current) =>
+      current.includes(employeeId) ? current.filter((item) => item !== employeeId) : [...current, employeeId]
+    );
+  }
+
+  function sendInvitesToSelectedEmployees() {
+    const selectedEmployees = workflow.employees.filter((employee) => selectedEmployeeIds.includes(employee.id));
+    if (!selectedEmployees.length) {
+      setInviteMessage("Select at least one employee before sending invites in bulk.");
+      return;
+    }
+
+    selectedEmployees.forEach((employee) => {
+      createDemoInvite({
+        name: employee.name,
+        email: employee.email,
+        role: employee.role,
+        designation: employee.designation,
+        team: employee.team,
+        reportsTo: employee.reportsTo,
+        responsibility: employee.responsibility,
+        status: "Pending",
+      });
+    });
+    setInviteMessage(`Sent ${selectedEmployees.length} employee invite${selectedEmployees.length > 1 ? "s" : ""}.`);
+    setSelectedEmployeeIds([]);
+  }
+
+  function downloadEmployeeTemplate() {
+    if (typeof window === "undefined") return;
+    const template = [
+      "name,email,role,designation,team,reportsTo,responsibility",
+      "Jane Doe,jane@agency.com,Sales,Senior Executive,Inbound Desk,Sales Manager,Inbound CRM and quote follow-up",
+      "John Smith,john@agency.com,Operations,Trip Designer,Luxury Desk,Operations Lead,Trip design and supplier coordination",
+    ].join("\n");
+    const blob = new Blob([template], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "nama-employee-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    setInviteMessage("Employee CSV template downloaded.");
+  }
+
+  function uploadEmployeeList(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = typeof reader.result === "string" ? reader.result : "";
+      const lines = content.split(/\r?\n/).filter(Boolean);
+      const rows = lines.slice(1);
+      const employees = rows
+        .map((line) => line.split(",").map((value) => value.trim()))
+        .filter((parts) => parts.length >= 7 && parts[0] && parts[1])
+        .map(([name, email, role, designation, team, reportsTo, responsibility]) =>
+          createEmployeeRecord({ name, email, role, designation, team, reportsTo, responsibility })
+        );
+
+      if (!employees.length) {
+        setInviteMessage("The uploaded file did not contain any valid employee rows.");
+        return;
+      }
+
+      upsertDemoEmployees(employees);
+      setInviteMessage(`Imported ${employees.length} employee${employees.length > 1 ? "s" : ""} into the directory.`);
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+  }
+
+  async function copyInviteLink(inviteId: string) {
+    if (typeof window === "undefined" || !navigator.clipboard) return;
+    const inviteUrl = `${window.location.origin}${getInvitePath(inviteId)}`;
+    await navigator.clipboard.writeText(inviteUrl);
+    setInviteMessage("Invite link copied.");
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
@@ -221,16 +333,23 @@ export default function TeamPage() {
           >
             Back to Leads
           </Link>
-          <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.18)]">
-            Create Invite
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedMode("invite");
+              sendInviteForCurrentForm();
+            }}
+            className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.18)]"
+          >
+            Send Invite
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Active Users" value="14" sub="Across Sales, Ops, Finance" icon={<Users size={16} />} />
-        <Metric label="Pending Invites" value="4" sub="Ready for customer admin send" icon={<UserPlus2 size={16} />} />
-        <Metric label="Bulk Import" value="CSV Preview" sub="Imported rows staged before send" icon={<FileUp size={16} />} />
+        <Metric label="Employee Directory" value={`${workflow.employees.length}`} sub="Added individually or through CSV import" icon={<Users size={16} />} />
+        <Metric label="Pending Invites" value={`${pendingInviteCount}`} sub="Sent and waiting for employee acceptance" icon={<UserPlus2 size={16} />} />
+        <Metric label="Accepted Invites" value={`${acceptedInviteCount}`} sub="Employees who already joined the workspace" icon={<CheckCircle2 size={16} />} />
         <Metric label="Hierarchy" value="L1-L5" sub="From super admin to sub-agent" icon={<Shield size={16} />} />
       </div>
 
@@ -336,16 +455,62 @@ export default function TeamPage() {
                   <Mail size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Individual Invite</span>
                 </div>
+                <div className="mb-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Select from employee directory</div>
+                  <select
+                    value={selectedEmployeeId}
+                    onChange={(event) => hydrateInviteFromEmployee(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-3 text-sm font-semibold text-[#F5F0E8] outline-none"
+                  >
+                    <option value="">Choose an employee</option>
+                    {workflow.employees.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} · {employee.role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Name" value="Aisha Khan" />
-                  <Field label="Email" value="aisha@demoagency.in" />
-                  <Field label="Role" value="Sales" />
-                  <Field label="Designation" value="Senior Executive" />
-                  <Field label="Team" value="Inbound Desk" />
-                  <Field label="Reports to" value="Sales Manager" />
+                  <EditableField label="Name" value={inviteName} onChange={setInviteName} />
+                  <EditableField label="Email" value={inviteEmail} onChange={setInviteEmail} />
+                  <EditableField label="Role" value={inviteRole} onChange={setInviteRole} />
+                  <EditableField label="Designation" value={inviteDesignation} onChange={setInviteDesignation} />
+                  <EditableField label="Team" value={inviteTeam} onChange={setInviteTeam} />
+                  <EditableField label="Reports to" value={inviteReportsTo} onChange={setInviteReportsTo} />
+                  <div className="sm:col-span-2">
+                    <EditableField label="Responsibility" value={inviteResponsibility} onChange={setInviteResponsibility} />
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={sendInviteForCurrentForm}
+                    className="rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+                  >
+                    Send Individual Invite
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      upsertDemoEmployees([
+                        createEmployeeRecord({
+                          name: inviteName,
+                          email: inviteEmail,
+                          role: inviteRole,
+                          designation: inviteDesignation,
+                          team: inviteTeam,
+                          reportsTo: inviteReportsTo,
+                          responsibility: inviteResponsibility,
+                        }),
+                      ])
+                    }
+                    className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+                  >
+                    Save to Employee List
+                  </button>
                 </div>
                 <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm text-[#B8B0A0]">
-                  Preview: invitation email, access role, and reporting line are prepared before the customer admin clicks send.
+                  {inviteMessage}
                 </div>
               </div>
               <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
@@ -370,7 +535,7 @@ export default function TeamPage() {
                 </div>
                 <div className="space-y-3">
                   {filteredInvites.map((invite) => (
-                    <InviteRow key={invite.email} invite={invite} />
+                    <InviteRow key={invite.id} invite={invite} onCopyInvite={copyInviteLink} />
                   ))}
                 </div>
               </div>
@@ -382,22 +547,52 @@ export default function TeamPage() {
               <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
                 <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
                   <FileUp size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Bulk CSV Import Preview</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Employee List Upload + Bulk Send</span>
+                </div>
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={downloadEmployeeTemplate}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+                  >
+                    <Download size={12} />
+                    Download CSV Template
+                  </button>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]">
+                    <Upload size={12} />
+                    Upload Employee List
+                    <input type="file" accept=".csv" className="hidden" onChange={uploadEmployeeList} />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={sendInvitesToSelectedEmployees}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+                  >
+                    <Send size={12} />
+                    Send to Selected
+                  </button>
                 </div>
                 <div className="overflow-hidden rounded-2xl border border-[#C9A84C]/10">
-                  <div className="grid grid-cols-4 bg-[#111111] px-4 py-3 text-[9px] font-black uppercase tracking-widest text-[#4A453E]">
+                  <div className="grid grid-cols-[0.4fr_1fr_1.2fr_0.8fr_0.9fr] bg-[#111111] px-4 py-3 text-[9px] font-black uppercase tracking-widest text-[#4A453E]">
+                    <span>Select</span>
                     <span>Name</span>
                     <span>Email</span>
                     <span>Role</span>
-                    <span>Designation</span>
+                    <span>Team</span>
                   </div>
                   <div className="divide-y divide-[#C9A84C]/10">
-                    {BULK_ROWS.map((row) => (
-                      <div key={row.email} className="grid grid-cols-4 px-4 py-3 text-sm text-[#F5F0E8]">
+                    {filteredEmployees.map((row) => (
+                      <div key={row.id} className="grid grid-cols-[0.4fr_1fr_1.2fr_0.8fr_0.9fr] items-center px-4 py-3 text-sm text-[#F5F0E8]">
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployeeIds.includes(row.id)}
+                          onChange={() => toggleSelectedEmployee(row.id)}
+                          className="h-4 w-4 rounded border-[#C9A84C]/20 bg-[#0A0A0A]"
+                        />
                         <span>{row.name}</span>
                         <span className="text-[#B8B0A0]">{row.email}</span>
                         <span className="text-[#C9A84C]">{row.role}</span>
-                        <span className="text-[#B8B0A0]">{row.designation}</span>
+                        <span className="text-[#B8B0A0]">{row.team}</span>
                       </div>
                     ))}
                   </div>
@@ -409,10 +604,13 @@ export default function TeamPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Import Notes</span>
                 </div>
                 <ul className="space-y-3 text-sm text-[#B8B0A0] leading-relaxed">
-                  <li>Rows are validated before invite send, so the customer admin can review the structure without risk.</li>
-                  <li>Roles, designations, teams, and reporting lines are mapped in one place.</li>
-                  <li>Imported users inherit the selected permissions and hierarchy on approval.</li>
+                  <li>Download the template first so the employee list lands with the right headers and invite fields.</li>
+                  <li>Uploaded rows become part of the employee directory and can be invited individually or in bulk.</li>
+                  <li>Use the checkboxes to select exactly who should receive invites in one send action.</li>
                 </ul>
+                <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+                  {inviteMessage}
+                </div>
               </div>
             </div>
           )}
@@ -786,15 +984,6 @@ function Metric({ label, value, sub, icon }: { label: string; value: string; sub
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
-      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
-    </div>
-  );
-}
-
 function EditableField({
   label,
   value,
@@ -834,7 +1023,13 @@ function PreviewField({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InviteRow({ invite }: { invite: InviteRecord }) {
+function InviteRow({
+  invite,
+  onCopyInvite,
+}: {
+  invite: DemoInviteRecord;
+  onCopyInvite: (inviteId: string) => void | Promise<void>;
+}) {
   const statusClass =
     invite.status === "Accepted"
       ? "text-[#1D9E75] border-[#1D9E75]/20 bg-[#1D9E75]/10"
@@ -855,6 +1050,22 @@ function InviteRow({ invite }: { invite: InviteRecord }) {
         <span>{invite.role}</span>
         <span>•</span>
         <span>{invite.responsibility}</span>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onCopyInvite(invite.id)}
+          className="inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]"
+        >
+          <Copy size={11} />
+          Copy link
+        </button>
+        <Link
+          href={getInvitePath(invite.id)}
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]"
+        >
+          Open acceptance
+        </Link>
       </div>
     </div>
   );

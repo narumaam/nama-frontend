@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
-import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, type BusinessRole, type SupportedCurrency } from "@/lib/demo-config";
-import { DEFAULT_DEMO_PROFILE, writeDemoProfile } from "@/lib/demo-profile";
+import { upsertDemoTenantRegistration, writeDemoSubscriptionPlan, type DemoSubscriptionPlan } from "@/lib/demo-admin";
+import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, findMarketPreset, type BusinessRole, type DemoPlan, type SupportedCurrency } from "@/lib/demo-config";
+import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, readDemoProfile, writeDemoProfile } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import {
   ArrowRight,
@@ -28,7 +29,11 @@ const ONBOARDING_STEPS = [
   "Enter the workspace with preview data while keeping live credentials for later connection.",
 ];
 
-const PLAN_PRESETS = [
+const PLAN_PRESETS: Array<{
+  name: DemoPlan;
+  note: string;
+  modules: string;
+}> = [
   {
     name: "Starter",
     note: "For smaller teams validating NAMA across leads, deals, and execution.",
@@ -65,6 +70,25 @@ export default function RegisterPage() {
   const [billingAddress, setBillingAddress] = useState(DEFAULT_DEMO_PROFILE.bankDetails.billingAddress);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  useEffect(() => {
+    const profile = readDemoProfile();
+    const resolvedMarket = findMarketPreset(profile.market.country) ?? profile.market;
+
+    setCompanyName(profile.company);
+    setOperatorName(profile.operator);
+    setBusinessRoles(profile.roles as BusinessRole[]);
+    setSelectedMarket(resolvedMarket);
+    setEnabledCurrencies(profile.enabledCurrencies as SupportedCurrency[]);
+    setSelectedPlan(PLAN_PRESETS.find((plan) => plan.name === profile.subscriptionPlan) ?? PLAN_PRESETS[1]);
+    setBeneficiaryName(profile.bankDetails.beneficiaryName);
+    setBankName(profile.bankDetails.bankName);
+    setBranchName(profile.bankDetails.branchName);
+    setAccountNumber(profile.bankDetails.accountNumber);
+    setAccountType(profile.bankDetails.accountType);
+    setRoutingCode(profile.bankDetails.routingCode);
+    setBillingAddress(profile.bankDetails.billingAddress);
+  }, []);
+
   const profileLabel = useMemo(() => {
     if (businessRoles.length === 0) return "Travel business";
     if (businessRoles.length === 1) return businessRoles[0];
@@ -83,9 +107,10 @@ export default function RegisterPage() {
 
   function enterDemoWorkspace() {
     setShowConfetti(true);
-    writeDemoProfile({
+    const nextProfile = writeDemoProfile({
       company: companyName.trim() || DEFAULT_DEMO_PROFILE.company,
       operator: operatorName.trim() || DEFAULT_DEMO_PROFILE.operator,
+      subscriptionPlan: selectedPlan.name as DemoSubscriptionPlan,
       roles: businessRoles,
       market: selectedMarket,
       baseCurrency: selectedMarket.currency,
@@ -99,6 +124,14 @@ export default function RegisterPage() {
         routingCode,
         billingAddress,
       },
+    });
+    const subscriptionPlan = selectedPlan.name as DemoSubscriptionPlan;
+    writeDemoSubscriptionPlan(subscriptionPlan);
+    upsertDemoTenantRegistration({
+      company: nextProfile.company,
+      market: nextProfile.market.country,
+      plan: subscriptionPlan,
+      brandTheme: getDemoBrandTheme(nextProfile),
     });
     window.setTimeout(() => {
       router.push("/dashboard");

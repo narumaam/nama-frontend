@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BadgeIndianRupee, CheckCircle2, ChevronRight, Download, Landmark, Mail, Receipt, Shield } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Download, Landmark, Receipt } from "lucide-react";
 
 import { DEMO_DEAL_CASES, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
+import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { normalizeDemoCaseSlug } from "@/lib/demo-cases";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 function formatAmount(amount: number) {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -16,13 +18,14 @@ function formatAmount(amount: number) {
 export default function InvoicePage() {
   const params = useParams<{ case: string }>();
   const profile = useMemo(() => readDemoProfile(), []);
+  const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const slug = normalizeDemoCaseSlug(Array.isArray(params.case) ? params.case[0] : params.case);
   const deal = DEMO_DEAL_CASES[slug] ?? PRIMARY_DEMO_DEAL_CASE;
   const balanceDue = deal.finance.quote_total - deal.finance.deposit_due;
-  const [deliveryState, setDeliveryState] = useState<"Draft" | "Sent" | "Paid">("Draft");
-  const [downloadState, setDownloadState] = useState<"Ready" | "Downloaded">("Ready");
+  const deliveryState = workflow.cases[slug]?.invoiceState ?? "Draft";
+  const downloadState = workflow.cases[slug]?.invoiceDownloadState ?? "Ready";
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
@@ -44,7 +47,14 @@ export default function InvoicePage() {
               <ArrowLeft size={14} />
               Back to Finance
             </Link>
-            <button className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white">
+            <button
+              type="button"
+              onClick={() => {
+                updateDemoCaseWorkflow(slug, { invoiceDownloadState: "Downloaded" });
+                window.print();
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white"
+            >
               <Download size={14} />
               Download Invoice
             </button>
@@ -63,10 +73,36 @@ export default function InvoicePage() {
           <div className="print-hidden mb-6 grid gap-3 md:grid-cols-4">
             <ArtifactStateCard label="Invoice State" value={deliveryState} />
             <ArtifactStateCard label="Download" value={downloadState} />
-            <button type="button" onClick={() => setDeliveryState("Sent")} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600">
+            <button
+              type="button"
+              onClick={() =>
+                updateDemoCaseWorkflow(slug, {
+                  invoiceState: "Sent",
+                  financeStatus: "Invoice sent to traveler and awaiting settlement",
+                  paymentState: "Settlement in progress",
+                })
+              }
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600"
+            >
               Mark Sent
             </button>
-            <button type="button" onClick={() => { setDownloadState("Downloaded"); setDeliveryState("Paid"); }} className="rounded-2xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#1D9E75]">
+            <button
+              type="button"
+              onClick={() =>
+                updateDemoCaseWorkflow(slug, {
+                  leadStage: "Won",
+                  nextAction: "Share traveler documents and hand off to operations",
+                  nextActionAt: "Ready now",
+                  bookingState: "Ready for handoff",
+                  guestPackState: "Queued",
+                  invoiceDownloadState: "Downloaded",
+                  invoiceState: "Paid",
+                  financeStatus: "Invoice settled and finance release approved",
+                  paymentState: "Payment confirmed",
+                })
+              }
+              className="rounded-2xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#1D9E75]"
+            >
               Mark Paid
             </button>
           </div>

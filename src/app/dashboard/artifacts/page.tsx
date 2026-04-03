@@ -6,11 +6,13 @@ import { ChevronRight, Download, FileText, Receipt, Sparkles } from "lucide-reac
 
 import { DEMO_DEAL_CASES } from "@/lib/demo-case-profiles";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 const ARTIFACT_CASES = Object.values(DEMO_DEAL_CASES);
 
 export default function ArtifactHubPage() {
   const profile = readDemoProfile();
+  const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const [selectedSlug, setSelectedSlug] = useState(ARTIFACT_CASES[0]?.slug ?? "");
@@ -87,6 +89,8 @@ export default function ArtifactHubPage() {
               <ArtifactMeta label="Quote Total" value={`₹${deal.finance.quote_total.toLocaleString("en-IN")}`} />
               <ArtifactMeta label="Travel Window" value={deal.triage.travel_dates} />
               <ArtifactMeta label="Support" value={brandTheme.supportEmail} />
+              <ArtifactMeta label="Invoice State" value={workflow.cases[deal.slug]?.invoiceState ?? "Draft"} />
+              <ArtifactMeta label="Traveler PDF" value={workflow.cases[deal.slug]?.travelerPdfState ?? "Draft"} />
             </div>
 
             <div className="mt-5 grid gap-3">

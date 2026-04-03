@@ -1,23 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, CalendarDays, ChevronRight, Download, FileText, MapPin, Phone, Sparkles, Users } from "lucide-react";
 
 import { DEMO_DEAL_CASES, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
+import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { normalizeDemoCaseSlug } from "@/lib/demo-cases";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 export default function TravelerPdfPage() {
   const params = useParams<{ case: string }>();
   const profile = useMemo(() => readDemoProfile(), []);
+  const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const slug = normalizeDemoCaseSlug(Array.isArray(params.case) ? params.case[0] : params.case);
   const deal = DEMO_DEAL_CASES[slug] ?? PRIMARY_DEMO_DEAL_CASE;
-  const [deliveryState, setDeliveryState] = useState<"Draft" | "Shared" | "Downloaded">("Draft");
-  const [approvalState, setApprovalState] = useState<"Awaiting approval" | "Approved for send">("Awaiting approval");
+  const deliveryState = workflow.cases[slug]?.travelerPdfState ?? "Draft";
+  const approvalState = workflow.cases[slug]?.travelerApprovalState ?? "Awaiting approval";
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
@@ -39,7 +42,14 @@ export default function TravelerPdfPage() {
               <ArrowLeft size={14} />
               Back to Itineraries
             </Link>
-            <button className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white">
+            <button
+              type="button"
+              onClick={() => {
+                updateDemoCaseWorkflow(slug, { travelerPdfState: "Downloaded" });
+                window.print();
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white"
+            >
               <Download size={14} />
               Download PDF
             </button>
@@ -59,10 +69,25 @@ export default function TravelerPdfPage() {
             <div className="grid gap-3 md:grid-cols-4">
               <ArtifactStatusCard label="Traveler PDF" value={deliveryState} />
               <ArtifactStatusCard label="Approval" value={approvalState} />
-              <button type="button" onClick={() => setApprovalState("Approved for send")} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600">
+              <button
+                type="button"
+                onClick={() => updateDemoCaseWorkflow(slug, { travelerApprovalState: "Approved for send" })}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600"
+              >
                 Approve for send
               </button>
-              <button type="button" onClick={() => setDeliveryState("Shared")} className="rounded-2xl border border-[#C9A84C]/20 bg-[#FFF8E8] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#8B6A1F]">
+              <button
+                type="button"
+                onClick={() =>
+                  updateDemoCaseWorkflow(slug, {
+                    bookingState: "Guest pack released",
+                    guestPackState: "Released",
+                    travelerApprovalState: "Approved for send",
+                    travelerPdfState: "Shared",
+                  })
+                }
+                className="rounded-2xl border border-[#C9A84C]/20 bg-[#FFF8E8] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#8B6A1F]"
+              >
                 Mark shared
               </button>
             </div>

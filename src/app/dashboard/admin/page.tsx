@@ -3,8 +3,12 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import ScreenInfoTip from "@/components/screen-info-tip";
+import { DEMO_PLAN_PRICES, readDemoSubscriptionPlan, readDemoTenantRegistry } from "@/lib/demo-admin";
 import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
+import { DEFAULT_DEMO_PROFILE } from "@/lib/demo-profile";
+import { useDemoProfile } from "@/lib/use-demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   AlertTriangle,
   BadgeIndianRupee,
@@ -20,6 +24,7 @@ import {
   Landmark,
   Shield,
   Sparkles,
+  Users,
   Waypoints,
 } from "lucide-react";
 
@@ -28,25 +33,34 @@ const TENANT_HEALTH = [
     name: "Nair Luxury Escapes",
     tier: "Growth",
     users: 14,
+    activeUsers: 11,
+    pendingInvites: 2,
     status: "Healthy",
     renewal: "12 Apr 2026",
     mrr: "₹49,000",
+    healthNote: "Growth tenant is using the core workflow without major blockers.",
   },
   {
     name: "Velocity Corporate Travel",
     tier: "Enterprise",
     users: 22,
+    activeUsers: 18,
+    pendingInvites: 2,
     status: "Attention",
     renewal: "18 Apr 2026",
     mrr: "₹1,25,000",
+    healthNote: "Renewal is close and enterprise usage is high.",
   },
   {
     name: "BluePalm Holidays",
     tier: "Starter",
     users: 8,
+    activeUsers: 6,
+    pendingInvites: 1,
     status: "Healthy",
     renewal: "09 Apr 2026",
     mrr: "₹24,000",
+    healthNote: "Starter tenant is stable with light but healthy usage.",
   },
 ];
 
@@ -176,10 +190,58 @@ const LOCALIZATION_RULES = [
 ];
 
 export default function AdminPage() {
+  const profile = useDemoProfile();
+  const workflow = useDemoWorkflow();
   const [selectedMarket, setSelectedMarket] = useState(REGIONAL_COMMERCE[0]);
   const [selectedPlan, setSelectedPlan] = useState(SUBSCRIPTION_PLANS[1]);
   const [bufferEnabled, setBufferEnabled] = useState(true);
   const [manualRateEnabled, setManualRateEnabled] = useState(false);
+  const currentPlan = readDemoSubscriptionPlan();
+  const tenantRegistry = readDemoTenantRegistry();
+  const acceptedInvites = workflow.invites.filter((invite) => invite.status === "Accepted").length;
+  const pendingInvites = workflow.invites.filter((invite) => invite.status === "Pending").length;
+  const activeUsers = acceptedInvites + 1;
+  const releasedArtifacts = Object.values(workflow.cases).filter((item) => item.guestPackState === "Released").length;
+  const settledInvoices = Object.values(workflow.cases).filter((item) => item.invoiceState === "Paid").length;
+  const wonCases = Object.values(workflow.cases).filter((item) => item.leadStage === "Won").length;
+  const currentTenantMrr = DEMO_PLAN_PRICES[currentPlan];
+  const currentTenantStatus = pendingInvites > 0 ? "Attention" : "Healthy";
+  const currentTenantName = profile.company || DEFAULT_DEMO_PROFILE.company;
+  const currentTenant = {
+    name: currentTenantName,
+    tier: currentPlan,
+    users: workflow.employees.length + 1,
+    activeUsers,
+    pendingInvites,
+    status: currentTenantStatus,
+    renewal: tenantRegistry.find((tenant) => tenant.company === currentTenantName)?.renewalDate ?? "30 Apr 2026",
+    mrr: `₹${currentTenantMrr.toLocaleString("en-IN")}`,
+    healthNote:
+      pendingInvites > 0
+        ? `${pendingInvites} employee invite${pendingInvites > 1 ? "s are" : " is"} still waiting for acceptance.`
+        : "Invite acceptance and workflow checkpoints are in a stable state.",
+  };
+  const tenantHealth = [
+    currentTenant,
+    ...TENANT_HEALTH.filter((tenant) => tenant.name !== currentTenant.name),
+    ...tenantRegistry
+      .filter((tenant) => tenant.company !== currentTenant.name && !TENANT_HEALTH.some((item) => item.name === tenant.company))
+      .map((tenant) => ({
+        name: tenant.company,
+        tier: tenant.plan,
+        users: 1,
+        activeUsers: 1,
+        pendingInvites: 0,
+        status: "Healthy",
+        renewal: tenant.renewalDate,
+        mrr: `₹${DEMO_PLAN_PRICES[tenant.plan].toLocaleString("en-IN")}`,
+        healthNote: `Registered on ${tenant.createdAt} through the onboarding flow.`,
+      })),
+  ];
+  const totalMrr = tenantHealth.reduce((sum, tenant) => sum + Number(tenant.mrr.replace(/[^\d]/g, "")), 0);
+  const totalSystemActiveUsers = tenantHealth.reduce((sum, tenant) => sum + (tenant.activeUsers ?? tenant.users), 0);
+  const totalSystemPendingInvites = tenantHealth.reduce((sum, tenant) => sum + (tenant.pendingInvites ?? 0), 0);
+  const systemHealthLabel = pendingInvites > 0 ? "Monitoring" : releasedArtifacts > 0 || settledInvoices > 0 ? "Live demo active" : "Healthy";
   const simulatedPlanPrice = useMemo(() => {
     const baseAmount =
       selectedPlan.name === "Starter" ? 24000 : selectedPlan.name === "Growth" ? 49000 : 125000;
@@ -228,10 +290,10 @@ export default function AdminPage() {
       </header>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Active Tenants" value="03" sub="Growth-stage preview tenants" icon={<Building2 size={16} />} />
-        <MetricCard label="MRR Snapshot" value="₹1.98L" sub="Across Starter, Growth, Enterprise" icon={<BadgeIndianRupee size={16} />} />
-        <MetricCard label="Platform Health" value="Healthy" sub="Frontend, backend, and preview APIs verified" icon={<CheckCircle2 size={16} />} />
-        <MetricCard label="Global Rules" value="12" sub="Across comms, pricing, and ops policies" icon={<Waypoints size={16} />} />
+        <MetricCard label="Active Tenants" value={String(tenantHealth.length).padStart(2, "0")} sub="Current tenant plus seeded preview accounts" icon={<Building2 size={16} />} />
+        <MetricCard label="MRR Snapshot" value={`₹${totalMrr.toLocaleString("en-IN")}`} sub={`Includes ${currentTenantName} on the ${currentPlan} plan`} icon={<BadgeIndianRupee size={16} />} />
+        <MetricCard label="Platform Health" value={systemHealthLabel} sub={`${wonCases} won cases · ${releasedArtifacts} released artifacts`} icon={<CheckCircle2 size={16} />} />
+        <MetricCard label="Logged-in Users" value={String(totalSystemActiveUsers).padStart(2, "0")} sub={`${totalSystemPendingInvites} pending invites across visible tenants`} icon={<Waypoints size={16} />} />
       </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
@@ -253,7 +315,7 @@ export default function AdminPage() {
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Tenant Action Queue</div>
             <div className="mt-4 space-y-3">
-              {TENANT_ACTIONS.map((item) => (
+              {[{ title: `${currentTenantName} invite queue`, note: `${pendingInvites} invites pending, ${acceptedInvites} accepted, ${workflow.employees.length} employees in the directory.` }, { title: `${currentTenantName} subscription state`, note: `${currentPlan} plan with projected MRR ${currentTenant.mrr} and ${activeUsers} currently active users.` }, { title: "Registration feed", note: `${tenantRegistry.length || 1} tenant registrations are currently visible to Super Admin.` }, ...TENANT_ACTIONS].map((item) => (
                 <div key={item.title} className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-4">
                   <div className="text-sm font-black text-[#F5F0E8]">{item.title}</div>
                   <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{item.note}</div>
@@ -298,18 +360,22 @@ export default function AdminPage() {
             This view gives you a platform-owner perspective: who is live, who is growing, who needs attention, and what commercial tier they sit on.
           </p>
           <div className="space-y-3">
-            {TENANT_HEALTH.map((tenant) => (
+            {tenantHealth.map((tenant) => (
               <div key={tenant.name} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <div className="text-sm font-black text-[#F5F0E8]">{tenant.name}</div>
                     <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">
-                      {tenant.tier} · {tenant.users} seats · Renewal {tenant.renewal}
+                      {tenant.tier} · {tenant.activeUsers ?? tenant.users} active / {tenant.users} seats · Renewal {tenant.renewal}
                     </div>
+                    <div className="mt-2 text-xs leading-relaxed text-[#B8B0A0]">{tenant.healthNote}</div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
                       {tenant.mrr}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+                      {tenant.pendingInvites ?? 0} pending
                     </span>
                     <span
                       className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
@@ -588,6 +654,36 @@ export default function AdminPage() {
               detail="New modules, rules, and templates can be staged tenant-by-tenant before wider release."
               icon={<Sparkles size={14} />}
             />
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Users size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Current Tenant Runtime</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoTile title="Tenant" detail={`${currentTenantName} · ${currentPlan}`} icon={<Building2 size={14} />} />
+            <InfoTile title="Workspace Admin" detail={profile.operator || DEFAULT_DEMO_PROFILE.operator} icon={<Shield size={14} />} />
+            <InfoTile title="Employees" detail={`${workflow.employees.length} in directory`} icon={<Users size={14} />} />
+            <InfoTile title="Logged In Now" detail={`${activeUsers} active users in the demo snapshot`} icon={<CheckCircle2 size={14} />} />
+            <InfoTile title="Pending Invites" detail={`${pendingInvites} waiting for acceptance`} icon={<CreditCard size={14} />} />
+            <InfoTile title="Accepted Invites" detail={`${acceptedInvites} joined users`} icon={<Sparkles size={14} />} />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Waypoints size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Golden Path Status</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoTile title="Won Cases" detail={`${wonCases} cases reached post-sale state`} icon={<CheckCircle2 size={14} />} />
+            <InfoTile title="Settled Invoices" detail={`${settledInvoices} invoices marked paid`} icon={<BadgeIndianRupee size={14} />} />
+            <InfoTile title="Released Artifacts" detail={`${releasedArtifacts} guest packs/shared traveler PDFs`} icon={<LayoutTemplate size={14} />} />
+            <InfoTile title="System Note" detail={pendingInvites > 0 ? "Invite acceptance still in progress for this tenant." : "Tenant flow is moving cleanly through invite and artifact states."} icon={<AlertTriangle size={14} />} />
           </div>
         </div>
       </section>

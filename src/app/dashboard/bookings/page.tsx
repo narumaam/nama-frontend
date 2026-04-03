@@ -4,9 +4,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
+import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   ArrowRight,
   BadgeIndianRupee,
@@ -104,6 +106,7 @@ function resolveFlightSegments(slug: string) {
 
 export default function BookingsPage() {
   const profile = useMemo(() => readDemoProfile(), []);
+  const workflow = useDemoWorkflow();
   const [activeTab, setActiveTab] = useState<(typeof EXECUTION_TABS)[number]>("Overview");
   const [selectedStep, setSelectedStep] = useState(EXECUTION_STEPS[0]);
   const [activeSlug, setActiveSlug] = useState(PRIMARY_DEMO_DEAL_CASE.slug);
@@ -112,12 +115,13 @@ export default function BookingsPage() {
   const visibleBank = profile.bankDetails;
   const activeCase = getDemoCaseRoute(activeSlug);
   const activeDeal = DEMO_DEAL_CASES[activeSlug] ?? PRIMARY_DEMO_DEAL_CASE;
+  const activeWorkflow = workflow.cases[activeSlug];
   const paymentMeta = DEMO_LEAD_PROFILE_META[activeSlug] ?? DEMO_LEAD_PROFILE_META[PRIMARY_DEMO_DEAL_CASE.slug];
   const flightSegments = resolveFlightSegments(activeSlug);
   const paymentStack = [
     { label: "Quote Total", value: `₹${activeDeal.finance.quote_total.toLocaleString("en-IN")}` },
     { label: "Deposit Due", value: `₹${activeDeal.finance.deposit_due.toLocaleString("en-IN")}` },
-    { label: "Status", value: activeDeal.finance.status },
+    { label: "Status", value: activeWorkflow?.financeStatus ?? activeDeal.finance.status },
     { label: "Gross Profit", value: `₹${activeDeal.finance.gross_profit.toLocaleString("en-IN")}` },
   ];
   const executionOwners = [
@@ -164,15 +168,26 @@ export default function BookingsPage() {
           >
             Back to Deal
           </Link>
-          <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
+          <button
+            type="button"
+            onClick={() =>
+              updateDemoCaseWorkflow(activeDeal.slug, {
+                bookingState: "Guest pack released",
+                guestPackState: "Released",
+                travelerApprovalState: "Approved for send",
+                travelerPdfState: "Shared",
+              })
+            }
+            className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95"
+          >
             Release Guest Pack
           </button>
         </div>
       </header>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Execution State" value="Operational" sub={`${activeCase.destination} case is ready for handoff`} icon={<ShieldCheck size={16} />} />
-        <MetricCard label="Deposit" value={activeDeal.finance.status.includes("pending") ? "Pending" : "In motion"} sub="Finance checkpoint is visible" icon={<BadgeIndianRupee size={16} />} />
+        <MetricCard label="Execution State" value={activeWorkflow?.bookingState ?? "Pending finance"} sub={`${activeCase.destination} case tracks a live handoff state`} icon={<ShieldCheck size={16} />} />
+        <MetricCard label="Deposit" value={(activeWorkflow?.financeStatus ?? activeDeal.finance.status).toLowerCase().includes("pending") ? "Pending" : "In motion"} sub="Finance checkpoint is visible" icon={<BadgeIndianRupee size={16} />} />
         <MetricCard label="Documents" value="3 staged" sub="Voucher, receipt, arrival brief" icon={<FileText size={16} />} />
         <MetricCard label="Ops Owner" value="Rohan Iyer" sub={`Live owner for ${activeCase.guest}`} icon={<Users size={16} />} />
       </section>
@@ -188,7 +203,7 @@ export default function BookingsPage() {
           </div>
           <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Backed by deal #{String(activeCase.leadId)}</span>
-            <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">Ready for guest pack release</span>
+            <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">{activeWorkflow?.guestPackState ?? "Queued"} guest pack state</span>
           </div>
         </div>
       </section>
@@ -270,12 +285,12 @@ export default function BookingsPage() {
                   <div className="text-sm font-black text-[#F5F0E8]">{item.label}</div>
                   <span
                     className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
-                      item.state === "Done"
+                      ((item.label === "Voucher pack generated" && (activeWorkflow?.guestPackState ?? "Queued") === "Released") || item.state === "Done")
                         ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]"
                         : "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"
                     }`}
                   >
-                    {item.state}
+                    {item.label === "Voucher pack generated" && (activeWorkflow?.guestPackState ?? "Queued") === "Released" ? "Done" : item.state}
                   </span>
                 </div>
               </div>
@@ -355,7 +370,7 @@ export default function BookingsPage() {
                       <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{doc.note}</div>
                     </div>
                     <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
-                      {doc.status}
+                      {doc.title === "Guest Voucher Pack" ? activeWorkflow?.guestPackState ?? doc.status : doc.status}
                     </span>
                   </div>
                 </div>
@@ -429,7 +444,7 @@ export default function BookingsPage() {
             </div>
             <div className="space-y-3">
               <WorkspaceNote tone="neutral" text={`Guest profile stays attached to ${activeDeal.capture.phone.toLowerCase()} and final arrival brief release.`} />
-              <WorkspaceNote tone="success" text={`${activeDeal.finance.status} and execution control is visible on the same case.`} />
+              <WorkspaceNote tone="success" text={`${activeWorkflow?.financeStatus ?? activeDeal.finance.status} and execution control is visible on the same case.`} />
               <WorkspaceNote tone="neutral" text="DMC supplier thread is already linked so ops does not need to re-collect supplier terms." />
             </div>
           </section>
@@ -440,6 +455,21 @@ export default function BookingsPage() {
               <h2 className="text-lg font-black text-[#F5F0E8]">Next Actions</h2>
             </div>
             <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() =>
+                  updateDemoCaseWorkflow(activeDeal.slug, {
+                    bookingState: "Guest pack released",
+                    guestPackState: "Released",
+                    travelerApprovalState: "Approved for send",
+                    travelerPdfState: "Shared",
+                  })
+                }
+                className="flex w-full items-center justify-between rounded-2xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#1D9E75] transition-colors"
+              >
+                <span>Release guest pack now</span>
+                <ArrowRight size={14} />
+              </button>
               <ActionLink href="/dashboard/comms" label="Release guest pack in Comms" />
               <ActionLink href="/dashboard/dmc" label="Review supplier confirmation in DMC" />
               <ActionLink href="/dashboard/finance" label="Check balance due in Finance" />

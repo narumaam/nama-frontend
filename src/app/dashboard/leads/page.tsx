@@ -6,7 +6,9 @@ import { apiUrl } from "@/lib/api";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
+import { setDemoLeadStage } from "@/lib/demo-workflow";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   CalendarClock,
   CheckCircle2,
@@ -137,14 +139,19 @@ const calendarDays = [
   { day: "Fri", date: "10", status: "Reviews" },
 ];
 
-function buildLeadRecords(cases: DemoCase[]): LeadRecord[] {
+function buildLeadRecords(cases: DemoCase[], workflowCases: ReturnType<typeof useDemoWorkflow>["cases"]): LeadRecord[] {
   return cases.map((item) => ({
     ...item,
     ...DEMO_LEAD_PROFILE_META[item.slug],
+    stage: workflowCases[item.slug]?.leadStage ?? DEMO_LEAD_PROFILE_META[item.slug]?.stage ?? "New",
+    nextAction: workflowCases[item.slug]?.nextAction ?? DEMO_LEAD_PROFILE_META[item.slug]?.nextAction ?? "Review contact",
+    nextActionAt: workflowCases[item.slug]?.nextActionAt ?? DEMO_LEAD_PROFILE_META[item.slug]?.nextActionAt ?? "Today · 17:00",
+    status: workflowCases[item.slug]?.financeStatus ?? item.status,
   }));
 }
 
 export default function LeadsPage() {
+  const workflow = useDemoWorkflow();
   const [activeView, setActiveView] = useState<"kanban" | "list">("kanban");
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [query, setQuery] = useState("");
@@ -172,7 +179,8 @@ export default function LeadsPage() {
     };
   }, []);
 
-  const leads = useMemo(() => buildLeadRecords(cases), [cases]);
+  const leads = useMemo(() => buildLeadRecords(cases, workflow.cases), [cases, workflow.cases]);
+  const drawerLead = selectedLead ? leads.find((item) => item.slug === selectedLead.slug) ?? selectedLead : null;
   const normalizedQuery = query.trim().toLowerCase();
   const filteredLeads = useMemo(() => {
     return leads.filter((item) => {
@@ -592,8 +600,16 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {selectedLead && (
-        <ContactDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} onEnrich={() => setEnrichedLead(selectedLead)} />
+      {drawerLead && (
+        <ContactDrawer
+          lead={drawerLead}
+          onClose={() => setSelectedLead(null)}
+          onEnrich={() => setEnrichedLead(drawerLead)}
+          onStageChange={(stage) => {
+            setDemoLeadStage(drawerLead.slug, stage);
+            setSelectedLead({ ...drawerLead, stage });
+          }}
+        />
       )}
     </div>
   );
@@ -776,10 +792,12 @@ function ContactDrawer({
   lead,
   onClose,
   onEnrich,
+  onStageChange,
 }: {
   lead: LeadRecord;
   onClose: () => void;
   onEnrich: () => void;
+  onStageChange: (stage: LeadStage) => void;
 }) {
   return (
     <div className="fixed inset-0 z-[110] flex justify-end bg-black/50 backdrop-blur-sm">
@@ -831,6 +849,26 @@ function ContactDrawer({
             >
               Strengthen profile
             </button>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Move Lead Stage</div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {(["New", "Qualified", "Quoted", "Follow Up", "Won"] as LeadStage[]).map((stage) => (
+              <button
+                key={stage}
+                type="button"
+                onClick={() => onStageChange(stage)}
+                className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-widest ${
+                  lead.stage === stage
+                    ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]"
+                    : "border-white/10 text-[#B8B0A0]"
+                }`}
+              >
+                {stage}
+              </button>
+            ))}
           </div>
         </div>
 

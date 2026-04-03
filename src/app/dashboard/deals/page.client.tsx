@@ -11,9 +11,11 @@ import { dealHrefFromSlug } from "@/lib/demo-cases";
 import { DEMO_DEAL_CASES, DEMO_LEAD_FALLBACK_MAP, PRIMARY_DEMO_DEAL_CASE, type DemoDealCase } from "@/lib/demo-case-profiles";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 export default function DealsClientPage() {
   const profile = useMemo(() => readDemoProfile(), []);
+  const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const params = useSearchParams();
@@ -68,6 +70,10 @@ export default function DealsClientPage() {
       </div>
     );
   }
+
+  const workflowCase = workflow.cases[slugParam];
+  const visibleFinanceStatus = workflowCase?.financeStatus ?? data.finance.status;
+  const visibleBookingState = workflowCase?.bookingState ?? "Pending finance";
 
   return (
     <div className="space-y-8 pb-12">
@@ -139,8 +145,8 @@ export default function DealsClientPage() {
             { label: "CRM", detail: "Inbound source, contact context, transcript", state: "Ready" },
             { label: "Itinerary", detail: data.itinerary.title, state: "Drafted" },
             { label: "Supplier", detail: data.bidding.vendor, state: data.bidding.status },
-            { label: "Finance", detail: `Margin ${data.finance.margin_percent}%`, state: data.finance.status },
-            { label: "Execution", detail: "Awaiting deposit + ops release", state: "Staged" },
+            { label: "Finance", detail: `Margin ${data.finance.margin_percent}%`, state: visibleFinanceStatus },
+            { label: "Execution", detail: "Awaiting deposit + ops release", state: visibleBookingState },
           ].map((step) => (
             <div key={step.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
               <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">{step.label}</div>
@@ -235,7 +241,7 @@ export default function DealsClientPage() {
             />
             <GuardrailRow
               label="Next deadline"
-              state={data.finance.status}
+              state={visibleFinanceStatus}
               note={`Deposit due: ₹${data.finance.deposit_due.toLocaleString("en-IN")} before release into execution.`}
             />
           </div>
@@ -344,7 +350,7 @@ export default function DealsClientPage() {
             <LineItem label="Margin" value={`${data.finance.margin_percent}%`} />
           </div>
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] p-4 text-sm text-[#C9A84C]">
-            {data.finance.status}
+            {visibleFinanceStatus}
           </div>
           <Link
             href="/dashboard/finance"

@@ -4,8 +4,10 @@ import React from "react";
 import Link from "next/link";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
+import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 import {
   Activity,
   AlertTriangle,
@@ -138,12 +140,18 @@ const FINANCE_GUARDRAILS = [
 
 export default function FinancePage() {
   const profile = readDemoProfile();
-  const totalQuote = FINANCE_CASES.reduce((sum, item) => sum + item.quote_total, 0);
-  const totalCost = FINANCE_CASES.reduce((sum, item) => sum + item.cost_total, 0);
-  const totalProfit = FINANCE_CASES.reduce((sum, item) => sum + item.gross_profit, 0);
+  const workflow = useDemoWorkflow();
+  const financeCases = FINANCE_CASES.map((item) => ({
+    ...item,
+    status: workflow.cases[item.slug]?.financeStatus ?? item.status,
+    payment_state: workflow.cases[item.slug]?.paymentState ?? item.payment_state,
+  }));
+  const totalQuote = financeCases.reduce((sum, item) => sum + item.quote_total, 0);
+  const totalCost = financeCases.reduce((sum, item) => sum + item.cost_total, 0);
+  const totalProfit = financeCases.reduce((sum, item) => sum + item.gross_profit, 0);
   const avgMargin = (totalProfit / totalQuote) * 100;
-  const totalDeposit = FINANCE_CASES.reduce((sum, item) => sum + item.deposit_due, 0);
-  const atRiskCount = FINANCE_CASES.filter((item) => item.status.includes("pending") || item.status.includes("queued")).length;
+  const totalDeposit = financeCases.reduce((sum, item) => sum + item.deposit_due, 0);
+  const atRiskCount = financeCases.filter((item) => item.status.toLowerCase().includes("pending") || item.status.toLowerCase().includes("queued")).length;
   const depositCoverage = Math.round((totalDeposit / totalQuote) * 100);
   const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
   const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
@@ -248,7 +256,7 @@ export default function FinancePage() {
             </div>
           </div>
           <div className="flex h-64 items-end gap-3 px-2">
-            {FINANCE_CASES.map((item) => {
+            {financeCases.map((item) => {
               const quoteHeight = `${Math.max(40, (item.quote_total / totalQuote) * 100)}%`;
               const profitHeight = `${Math.max(30, (item.gross_profit / totalProfit) * 100)}%`;
               return (
@@ -388,7 +396,7 @@ export default function FinancePage() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {FINANCE_CASES.map((item) => (
+        {financeCases.map((item) => (
           <article key={item.slug} className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
             <div className="mb-4 flex items-center gap-2">
               <BadgeIndianRupee size={14} className="text-[#C9A84C]" />
@@ -407,6 +415,36 @@ export default function FinancePage() {
               <p className="mt-2 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.payment_state}</p>
             </div>
             <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  updateDemoCaseWorkflow(item.slug, {
+                    financeStatus: "Quote approved and sent to the traveler",
+                    paymentState: "Awaiting deposit confirmation",
+                  })
+                }
+                className="flex-1 rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+              >
+                Send Quote
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  updateDemoCaseWorkflow(item.slug, {
+                    leadStage: "Won",
+                    nextAction: "Release the case into bookings",
+                    nextActionAt: "Ready now",
+                    financeStatus: "Deposit received and finance release approved",
+                    paymentState: "Deposit confirmed",
+                    bookingState: "Ready for handoff",
+                  })
+                }
+                className="flex-1 rounded-xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#1D9E75]"
+              >
+                Record Deposit
+              </button>
+            </div>
+            <div className="mt-2 flex gap-2">
               <Link
                 href={`/dashboard/deals?case=${item.slug}`}
                 className="flex-1 rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
@@ -414,7 +452,7 @@ export default function FinancePage() {
                 Open Case
               </Link>
               <Link
-                href="/dashboard/bookings"
+                href={`/dashboard/bookings?case=${item.slug}`}
                 className="flex-1 rounded-xl border border-white/10 bg-[#111111] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#B8B0A0]"
               >
                 Open Bookings
