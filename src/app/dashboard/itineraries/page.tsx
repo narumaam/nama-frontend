@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import ScreenInfoTip from '@/components/screen-info-tip';
 import { DEMO_ITINERARY_WORKSPACE_CASE } from '@/lib/demo-case-profiles';
+import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from '@/lib/demo-profile';
 import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
   Sparkles, 
@@ -24,6 +25,9 @@ import {
 
 export default function ItinerariesPage() {
   const workspaceCase = DEMO_ITINERARY_WORKSPACE_CASE;
+  const profile = readDemoProfile();
+  const brandTheme = getDemoBrandTheme(profile);
+  const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const [activeDay, setActiveDay] = useState(1);
   const [loading, setLoading] = useState(false);
   const activeDayData = workspaceCase.itinerary.days.find((day) => day.day_number === activeDay) ?? workspaceCase.itinerary.days[0];
@@ -212,6 +216,34 @@ export default function ItinerariesPage() {
             </div>
           </div>
         </section>
+
+        <aside className="w-[340px] max-w-[38vw] border-l border-[#C9A84C]/15 bg-[#0A0A0A] p-6 overflow-y-auto no-scrollbar shrink-0 hidden 2xl:block">
+          <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">Traveler PDF Shell</div>
+            <div className="mt-4 rounded-3xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-lg font-black uppercase tracking-tight text-[#F5F0E8]">
+                    {brandTheme.enabled ? brandTheme.workspaceName : profile.company}
+                  </div>
+                  <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{workspaceDomain}</div>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#C9A84C] text-sm font-black text-[#0A0A0A]">
+                  {brandTheme.badgeGlyph}
+                </div>
+              </div>
+              <div className="mt-5 space-y-3">
+                <TravelerPdfField label="Support" value={brandTheme.supportEmail} />
+                <TravelerPdfField label="Beneficiary" value={profile.bankDetails.beneficiaryName} />
+                <TravelerPdfField label="Bank / Routing" value={`${profile.bankDetails.bankName} · ${profile.bankDetails.routingCode}`} />
+                <TravelerPdfField label="Billing Address" value={profile.bankDetails.billingAddress} />
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+              The traveler PDF now carries the same brand, support, domain, and remittance identity already shown in quote, comms, finance, and bookings.
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
@@ -283,3 +315,12 @@ const Users = ({
     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 );
+
+function TravelerPdfField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold leading-relaxed text-[#F5F0E8]">{value}</div>
+    </div>
+  );
+}
