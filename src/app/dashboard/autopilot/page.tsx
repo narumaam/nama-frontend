@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from '@/lib/demo-profile';
 import {
   Zap, AlertTriangle, CheckCircle, Clock, TrendingUp,
   ArrowRight, Play, Pause, Eye, Activity, Brain, Target,
@@ -143,7 +144,7 @@ function ConfidenceBar({ value }: { value: number }) {
   );
 }
 
-function FeedCard({ item, onDismiss }: { item: FeedItem; onDismiss: (id: number) => void }) {
+function FeedCard({ item, onDismiss, onFocus }: { item: FeedItem; onDismiss: (id: number) => void; onFocus: () => void }) {
   const p = P_CFG[item.priority];
   const CtaIcon = CTA_ICON[item.ctaType];
   return (
@@ -173,14 +174,15 @@ function FeedCard({ item, onDismiss }: { item: FeedItem; onDismiss: (id: number)
             <div className="flex items-center gap-3">
               <Link
                 href={`/dashboard/deals?lead=${item.leadId}`}
+                onClick={onFocus}
                 className="flex items-center gap-2 bg-[#C9A84C] text-[#0A0A0A] text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(201,168,76,0.2)] shrink-0"
               >
                 <CtaIcon size={11} />
                 {item.cta}
               </Link>
-              <Link href={`/dashboard/deals?lead=${item.leadId}`} className="text-[9px] font-mono text-[#4A453E] hover:text-[#B8B0A0] transition-colors flex items-center gap-1">
+              <button onClick={onFocus} className="text-[9px] font-mono text-[#4A453E] hover:text-[#B8B0A0] transition-colors flex items-center gap-1 uppercase tracking-widest">
                 Full context <ChevronRight size={10} />
-              </Link>
+              </button>
               <div className="ml-auto">
                 <ConfidenceBar value={item.confidence} />
               </div>
@@ -228,9 +230,13 @@ function AgentCard({ agent }: { agent: Agent }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AutopilotPage() {
+  const profile = readDemoProfile();
   const [autopilot, setAutopilot] = useState(true);
   const [feed, setFeed] = useState(FEED_DATA);
+  const [selectedFocus, setSelectedFocus] = useState(FEED_DATA[0]);
   const critical = feed.filter(i => i.priority === 'CRITICAL').length;
+  const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
+  const visibleRoles = profile.roles.length ? profile.roles.join(' + ') : DEFAULT_DEMO_PROFILE.roles.join(' + ');
 
   function dismiss(id: number) { setFeed(prev => prev.filter(i => i.id !== id)); }
 
@@ -252,6 +258,17 @@ export default function AutopilotPage() {
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
             Seeded demo cases are driving the walkthrough · You only see what needs your attention
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+              {visibleCompany}
+            </span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+              {visibleRoles}
+            </span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+              {profile.market.country} · {profile.baseCurrency} · {profile.market.gateway}
+            </span>
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {[
               'Website intake',
@@ -340,9 +357,30 @@ export default function AutopilotPage() {
                 </span>
               )}
             </div>
-            <button className="text-[9px] font-mono text-[#4A453E] hover:text-[#C9A84C] transition-colors uppercase tracking-widest flex items-center gap-1">
-              Show safe demo path <ChevronRight size={10} />
-            </button>
+            <div className="text-[9px] font-mono text-[#4A453E] uppercase tracking-widest flex items-center gap-1">
+              Active focus: <span className="text-[#C9A84C]">{selectedFocus.name}</span>
+            </div>
+          </div>
+
+          <div className="bg-[#111111] rounded-2xl border border-[#C9A84C]/10 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C9A84C] font-mono">Current autopilot focus</div>
+                <div className="mt-2 text-lg font-black text-[#F5F0E8]">{selectedFocus.name} · {selectedFocus.destination}</div>
+                <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{selectedFocus.value} · confidence {selectedFocus.confidence}%</div>
+              </div>
+              <Link
+                href={`/dashboard/deals?lead=${selectedFocus.leadId}`}
+                className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
+              >
+                Open Case
+              </Link>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <FocusTile label="What autopilot sees" value={selectedFocus.headline} />
+              <FocusTile label="Why it matters" value={selectedFocus.subtext} />
+              <FocusTile label="Next operator move" value={selectedFocus.cta} />
+            </div>
           </div>
 
           {feed.length === 0 ? (
@@ -353,7 +391,7 @@ export default function AutopilotPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {feed.map(item => <FeedCard key={item.id} item={item} onDismiss={dismiss} />)}
+              {feed.map(item => <FeedCard key={item.id} item={item} onDismiss={dismiss} onFocus={() => setSelectedFocus(item)} />)}
             </div>
           )}
 
@@ -395,6 +433,15 @@ export default function AutopilotPage() {
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+function FocusTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-2 text-sm leading-relaxed text-[#F5F0E8]">{value}</div>
     </div>
   );
 }
