@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
 import { DEFAULT_SHELL_BRAND } from '@/lib/demo-config';
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from '@/lib/demo-profile';
@@ -34,9 +34,11 @@ import {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const primaryCase = getPrimaryDemoCase();
   const profile = useDemoProfile();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
+  const [artifactCaseSlug, setArtifactCaseSlug] = useState(primaryCase.slug);
   const pathname = usePathname();
   const demoCompany = profile.company;
   const demoOperator = profile.operator;
@@ -251,6 +253,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 placeholder="Search leads, deals, itineraries..."
                 className="bg-transparent border-none outline-none text-[11px] w-full min-w-0 text-[#F5F0E8] font-body placeholder:text-[#4A453E]"
               />
+            </div>
+            <div className="hidden xl:flex items-center gap-2 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] px-3 py-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Artifacts</span>
+              <select
+                value={artifactCaseSlug}
+                onChange={(event) => setArtifactCaseSlug(event.target.value)}
+                className="bg-transparent text-[10px] font-black uppercase tracking-widest text-[#F5F0E8] outline-none"
+              >
+                {DEMO_CASE_ROUTES.map((item) => (
+                  <option key={item.slug} value={item.slug} className="bg-[#111111] text-[#F5F0E8]">
+                    {item.destination}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/invoices/${artifactCaseSlug}`)}
+                className="rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]"
+              >
+                Invoice
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/traveler-pdf/${artifactCaseSlug}`)}
+                className="rounded-xl border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]"
+              >
+                PDF
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-5">

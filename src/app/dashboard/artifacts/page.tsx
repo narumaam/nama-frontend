@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ChevronRight, Download, FileText, Receipt, Sparkles } from "lucide-react";
 
 import { DEMO_DEAL_CASES } from "@/lib/demo-case-profiles";
@@ -12,6 +13,8 @@ export default function ArtifactHubPage() {
   const profile = readDemoProfile();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
+  const [selectedSlug, setSelectedSlug] = useState(ARTIFACT_CASES[0]?.slug ?? "");
+  const selectedCase = ARTIFACT_CASES.find((item) => item.slug === selectedSlug) ?? ARTIFACT_CASES[0];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -33,6 +36,38 @@ export default function ArtifactHubPage() {
           <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{workspaceDomain}</div>
         </div>
       </header>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Quick Jump</div>
+            <p className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">
+              Pick a case and jump straight into the invoice or traveler PDF without walking through Finance or Bookings first.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <select
+              value={selectedSlug}
+              onChange={(event) => setSelectedSlug(event.target.value)}
+              className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8] outline-none"
+            >
+              {ARTIFACT_CASES.map((deal) => (
+                <option key={deal.slug} value={deal.slug} className="bg-[#111111] text-[#F5F0E8]">
+                  {deal.triage.destination}
+                </option>
+              ))}
+            </select>
+            <Link href={`/dashboard/invoices/${selectedCase.slug}`} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">
+              <Receipt size={14} />
+              Open Invoice
+            </Link>
+            <Link href={`/dashboard/traveler-pdf/${selectedCase.slug}`} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]">
+              <FileText size={14} />
+              Open PDF
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {ARTIFACT_CASES.map((deal) => (

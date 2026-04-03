@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, BadgeIndianRupee, CheckCircle2, ChevronRight, Download, Landmark, Mail, Receipt, Shield } from "lucide-react";
 
@@ -21,6 +21,8 @@ export default function InvoicePage() {
   const slug = normalizeDemoCaseSlug(Array.isArray(params.case) ? params.case[0] : params.case);
   const deal = DEMO_DEAL_CASES[slug] ?? PRIMARY_DEMO_DEAL_CASE;
   const balanceDue = deal.finance.quote_total - deal.finance.deposit_due;
+  const [deliveryState, setDeliveryState] = useState<"Draft" | "Sent" | "Paid">("Draft");
+  const [downloadState, setDownloadState] = useState<"Ready" | "Downloaded">("Ready");
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
@@ -58,6 +60,16 @@ export default function InvoicePage() {
         </div>
 
         <div className="print-shell rounded-[36px] border border-[#C9A84C]/25 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+          <div className="print-hidden mb-6 grid gap-3 md:grid-cols-4">
+            <ArtifactStateCard label="Invoice State" value={deliveryState} />
+            <ArtifactStateCard label="Download" value={downloadState} />
+            <button type="button" onClick={() => setDeliveryState("Sent")} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600">
+              Mark Sent
+            </button>
+            <button type="button" onClick={() => { setDownloadState("Downloaded"); setDeliveryState("Paid"); }} className="rounded-2xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#1D9E75]">
+              Mark Paid
+            </button>
+          </div>
           <div className="flex flex-col gap-6 border-b border-slate-200 pb-8 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-black text-[#0A0A0A]" style={{ backgroundColor: brandTheme.accentHex }}>
@@ -78,7 +90,7 @@ export default function InvoicePage() {
               <div className="mt-3 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Status</div>
               <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#1D9E75]">
                 <CheckCircle2 size={12} />
-                Preview Issued
+                {deliveryState === "Paid" ? "Paid" : deliveryState === "Sent" ? "Sent to client" : "Preview Issued"}
               </div>
             </div>
           </div>
@@ -189,6 +201,15 @@ function InvoiceTotal({ label, value, muted }: { label: string; value: string; m
     <div className="flex items-center justify-between border-b border-white/10 pb-3">
       <span className={`text-sm ${muted ? "text-slate-400" : "text-white"}`}>{label}</span>
       <span className={`text-lg font-black ${muted ? "text-slate-300" : "text-[#C9A84C]"}`}>{value}</span>
+    </div>
+  );
+}
+
+function ArtifactStateCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{label}</div>
+      <div className="mt-1 text-sm font-black text-[#0F172A]">{value}</div>
     </div>
   );
 }

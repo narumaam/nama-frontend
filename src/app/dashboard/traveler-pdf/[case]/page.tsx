@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, CalendarDays, ChevronRight, Download, FileText, MapPin, Phone, Sparkles, Users } from "lucide-react";
 
@@ -16,6 +16,8 @@ export default function TravelerPdfPage() {
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const slug = normalizeDemoCaseSlug(Array.isArray(params.case) ? params.case[0] : params.case);
   const deal = DEMO_DEAL_CASES[slug] ?? PRIMARY_DEMO_DEAL_CASE;
+  const [deliveryState, setDeliveryState] = useState<"Draft" | "Shared" | "Downloaded">("Draft");
+  const [approvalState, setApprovalState] = useState<"Awaiting approval" | "Approved for send">("Awaiting approval");
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
@@ -53,6 +55,18 @@ export default function TravelerPdfPage() {
         </div>
 
         <div className="print-shell rounded-[36px] border border-[#C9A84C]/25 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+          <div className="print-hidden border-b border-slate-200 px-8 py-6">
+            <div className="grid gap-3 md:grid-cols-4">
+              <ArtifactStatusCard label="Traveler PDF" value={deliveryState} />
+              <ArtifactStatusCard label="Approval" value={approvalState} />
+              <button type="button" onClick={() => setApprovalState("Approved for send")} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                Approve for send
+              </button>
+              <button type="button" onClick={() => setDeliveryState("Shared")} className="rounded-2xl border border-[#C9A84C]/20 bg-[#FFF8E8] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#8B6A1F]">
+                Mark shared
+              </button>
+            </div>
+          </div>
           <div className="bg-[#0F172A] px-8 py-8 text-white">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div>
@@ -75,6 +89,8 @@ export default function TravelerPdfPage() {
                 <div className="mt-1 text-sm font-semibold">{brandTheme.supportEmail}</div>
                 <div className="mt-4 text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Travel Window</div>
                 <div className="mt-1 text-sm font-semibold">{deal.triage.travel_dates}</div>
+                <div className="mt-4 text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">Release State</div>
+                <div className="mt-1 text-sm font-semibold">{deliveryState}</div>
               </div>
             </div>
           </div>
@@ -173,6 +189,15 @@ function PdfField({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{label}</div>
       <div className="mt-1 text-sm font-semibold leading-relaxed text-[#0F172A]">{value}</div>
+    </div>
+  );
+}
+
+function ArtifactStatusCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{label}</div>
+      <div className="mt-1 text-sm font-black text-[#0F172A]">{value}</div>
     </div>
   );
 }
