@@ -1,277 +1,362 @@
 "use client";
 
-import React, { useState } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Bell, 
-  MessageCircle, 
-  MoreVertical, 
-  Info, 
-  CheckCircle, 
-  Clock, 
-  Send, 
-  Sparkles, 
-  Receipt, 
+import React, { useMemo, useState } from "react";
+import Link from "next/link";
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
+import {
+  ArrowRight,
+  BadgeIndianRupee,
+  CheckCircle2,
   ChevronRight,
-  Plane,
-  HelpCircle,
-  type LucideIcon,
-} from 'lucide-react';
+  Clock3,
+  FileText,
+  Landmark,
+  MapPin,
+  Receipt,
+  ShieldCheck,
+  Sparkles,
+  Ticket,
+  Users,
+} from "lucide-react";
+
+const EXECUTION_STEPS = [
+  {
+    label: "Deposit",
+    detail: "Deposit verified and finance release approved.",
+    state: "Ready",
+  },
+  {
+    label: "Supplier",
+    detail: "Primary vendor accepted and fallback vendor staged.",
+    state: "Confirmed",
+  },
+  {
+    label: "Documents",
+    detail: "Voucher pack and guest-facing PDFs ready to issue.",
+    state: "Queued",
+  },
+  {
+    label: "Handoff",
+    detail: "Ops owner assigned with supplier and guest thread context.",
+    state: "In Progress",
+  },
+];
+
+const EXECUTION_TABS = ["Overview", "Travel", "Documents", "Payments", "Operations"] as const;
+
+const FLIGHT_SEGMENTS = [
+  {
+    route: "DEL → MLE",
+    airline: "Vistara + Maldivian",
+    departure: "15 Apr · 07:45",
+    arrival: "15 Apr · 14:10",
+    status: "Ticketed",
+    reference: "VT-82QF",
+  },
+  {
+    route: "MLE → DEL",
+    airline: "Maldivian + Vistara",
+    departure: "21 Apr · 18:15",
+    arrival: "22 Apr · 02:05",
+    status: "Held",
+    reference: "ML-73PK",
+  },
+];
+
+const EXECUTION_OWNERS = [
+  { lane: "Sales", owner: "Aisha Khan", note: "Client promise keeper and final commercial owner." },
+  { lane: "Operations", owner: "Rohan Iyer", note: "Owns confirmations, supplier checks, and guest pack release." },
+  { lane: "Finance", owner: "Meera Shah", note: "Verifies deposits, balance due, and payout readiness." },
+  { lane: "Supplier", owner: "Soneva Jani Desk", note: "Hotel and transfer confirmations aligned to guest profile." },
+];
+
+const DOCUMENT_STACK = [
+  { title: "Guest Voucher Pack", status: "Ready", note: "Itinerary summary, inclusions, and on-ground numbers." },
+  { title: "Deposit Receipt", status: "Issued", note: "Finance confirmation attached to the case." },
+  { title: "Arrival Brief", status: "Queued", note: "Guest-facing arrival note and transfer instructions." },
+];
+
+const PAYMENT_STACK = [
+  { label: "Quote Total", value: "₹4,86,000" },
+  { label: "Deposit Received", value: "₹1,80,000" },
+  { label: "Balance Pending", value: "₹3,06,000" },
+  { label: "Gross Profit", value: "₹94,500" },
+];
 
 export default function BookingsPage() {
-  const [activeTab, setActiveTab] = useState('Flights');
+  const profile = useMemo(() => readDemoProfile(), []);
+  const [activeTab, setActiveTab] = useState<(typeof EXECUTION_TABS)[number]>("Overview");
+  const [selectedStep, setSelectedStep] = useState(EXECUTION_STEPS[0]);
+  const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
+  const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
 
   return (
-    <div className="flex flex-col h-[calc(100vh-144px)] overflow-hidden animate-in fade-in duration-700">
-      {/* Booking Header Section */}
-      <section className="mb-8 shrink-0">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-[#C9A84C] font-black text-[10px] uppercase tracking-[0.2em] font-mono">Booking ID: <span className="text-[#F5F0E8] ml-1">B-2024-001</span></span>
-              <span className="px-3 py-1 bg-[#1D9E75]/10 text-[#1D9E75] text-[9px] font-black rounded-full uppercase tracking-widest border border-[#1D9E75]/20 animate-pulse">Confirmed</span>
-            </div>
-            <h2 className="text-4xl font-black text-[#F5F0E8] tracking-tighter uppercase font-headline">Anjali Sharma</h2>
+    <div className="space-y-8 animate-in fade-in duration-700 pb-12">
+      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
+            <span>Execution Workspace</span>
+            <ChevronRight size={10} />
+            <span className="opacity-50">Bookings & Handoffs</span>
           </div>
-          <div className="flex gap-8 items-center bg-[#111111] px-8 py-5 rounded-3xl border border-[#C9A84C]/15 shadow-xl">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[#B8B0A0] mb-2 font-mono font-black">Total Value</p>
-              <p className="text-2xl font-black text-[#C9A84C] font-headline">₹4,50,000</p>
-            </div>
-            <div className="h-10 w-px bg-[#C9A84C]/15"></div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[#B8B0A0] mb-2 font-mono font-black">Margin</p>
-              <p className="text-2xl font-black text-[#1D9E75] font-headline">₹85,000</p>
-            </div>
+          <h1 className="text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Booking Execution Hub</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            This is the post-sale operating layer: confirmations, documents, payments, and responsibility handoff once a case moves beyond quoting.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">{visibleRoles}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">
+              {profile.market.country} · {profile.baseCurrency}
+            </span>
           </div>
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/dashboard/deals?lead=1"
+            className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+          >
+            Back to Deal
+          </Link>
+          <button className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
+            Release Guest Pack
+          </button>
+        </div>
+      </header>
 
-        <nav className="flex gap-1 border-b border-[#C9A84C]/10 overflow-x-auto no-scrollbar scroll-smooth">
-          {['Overview', 'Flights', 'Hotels', 'Transport', 'Itinerary', 'Documents', 'Payments', 'Notes'].map((tab) => (
-            <button 
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-4 text-[11px] uppercase tracking-[0.2em] font-black transition-all relative ${
-                activeTab === tab 
-                  ? 'text-[#C9A84C]' 
-                  : 'text-[#B8B0A0] hover:text-[#F5F0E8]'
-              }`}
-            >
-              {tab}
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.5)]"></div>
-              )}
-            </button>
-          ))}
-        </nav>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Execution State" value="Operational" sub="Booking is ready for handoff" icon={<ShieldCheck size={16} />} />
+        <MetricCard label="Deposit" value="Received" sub="Finance release approved" icon={<BadgeIndianRupee size={16} />} />
+        <MetricCard label="Documents" value="3 staged" sub="Voucher, receipt, arrival brief" icon={<FileText size={16} />} />
+        <MetricCard label="Ops Owner" value="Rohan Iyer" sub="Live case owner for execution" icon={<Users size={16} />} />
       </section>
 
-      {/* Workspace Area */}
-      <div className="flex-1 flex overflow-hidden rounded-3xl border border-[#C9A84C]/15 bg-[#111111]/30 backdrop-blur-sm shadow-2xl">
-        {/* Main Content Pane */}
-        <section className="flex-1 p-8 overflow-y-auto no-scrollbar">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Flight Segments</h3>
-            <button className="flex items-center gap-2 bg-[#1D9E75] text-[#0A0A0A] px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#1D9E75]/10 hover:scale-105 transition-all active:scale-95">
-              <Plus size={16} strokeWidth={3} /> Add Flight
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Execution Continuity</div>
+            <h2 className="text-xl font-black text-[#F5F0E8]">From quote approval to traveler-ready delivery</h2>
+          </div>
+          <span className="rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#1D9E75]">
+            Monday-safe workflow
+          </span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          {EXECUTION_STEPS.map((step) => (
+            <button
+              key={step.label}
+              type="button"
+              onClick={() => setSelectedStep(step)}
+              className={`rounded-2xl border p-4 text-left transition-colors ${
+                selectedStep.label === step.label ? "border-[#C9A84C]/30 bg-[#0A0A0A]" : "border-[#C9A84C]/10 bg-[#111111] hover:border-[#C9A84C]/20"
+              }`}
+            >
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">{step.label}</div>
+              <div className="mt-2 text-sm font-semibold text-[#F5F0E8] leading-relaxed">{step.detail}</div>
+              <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{step.state}</div>
             </button>
-          </div>
-
-          <div className="bg-[#111111] rounded-3xl shadow-sm overflow-hidden border border-[#C9A84C]/15">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#1A1A1A]/50 border-b border-[#C9A84C]/10">
-                  {['Airline', 'Route', 'Departure', 'Arrival', 'Class', 'PNR', ''].map((header, i) => (
-                    <th key={i} className="px-6 py-5 text-[10px] uppercase tracking-widest text-[#B8B0A0] font-black font-mono">{header}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#C9A84C]/5">
-                <FlightRow 
-                  airline="Emirates" 
-                  flightNo="EK-511" 
-                  route="DEL → DXB" 
-                  depTime="10:45 AM" 
-                  depDate="Oct 24, 2024" 
-                  arrTime="01:15 PM" 
-                  arrDate="Oct 24, 2024" 
-                  cabin="Economy" 
-                  pnr="EK8R2P" 
-                  logo="https://lh3.googleusercontent.com/aida-public/AB6AXuB6UJHhHEJyPhI8ojEWQdxlDTERqOE941CUxcbnZZXyUkdZqEvpdiYFXC6YdCwWX2crSsL_HkdX3_LCXsbZq1tJcedXwrLD0OkZ2ksyXgj1ietByaU_mtdfhS2opp03dSf5X4I2zHlSTVFxwk2Ydd1zXb0CsJ6zK0K1TxcOiqoP6P9YZW75EA9vikvKtOvYdd6DWINU3TRl2goGX1TKX94a7Rfe3QdE8Tj3YuGXzMMjkQsYI-PtPWcAx-xuw_Qknqpp1TMJEH-kiDw2"
-                />
-                <FlightRow 
-                  airline="Emirates" 
-                  flightNo="EK-512" 
-                  route="DXB → DEL" 
-                  depTime="09:10 PM" 
-                  depDate="Oct 30, 2024" 
-                  arrTime="01:55 AM" 
-                  arrDate="Oct 31, 2024" 
-                  cabin="Economy" 
-                  pnr="EK8R2P" 
-                  logo="https://lh3.googleusercontent.com/aida-public/AB6AXuBWiYUCZblbaO-I9c4j9BMRJs5BuJv6hffQJPdFt9jRyYUh6XimU923Yu23qmCqafH_MmTfYqsxqdm1slp-bJGGh4kxqR-mRWEHIdJp1nb8iMXDxnSZEnLvt5AicJbugmxvxjDOov84wXmfEhMDAzudyXKFJWEpHG9rpB12TvyWZ-DUTVNRcM6YORbkhiopeKQGpNAHqqGMcMu6YJ3id92xXpnGZ8fhdacv8z9q3E8tT8tnNenu0R4_ZkW_3VdqnFA9hr82221rma4o"
-                />
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 pb-12">
-            <div className="bg-[#C9A84C]/5 rounded-3xl p-8 border border-[#C9A84C]/15">
-              <div className="flex items-center gap-2 mb-6 text-[#C9A84C]">
-                <Info size={18} />
-                <h4 className="font-black text-[11px] uppercase tracking-[0.2em] font-mono">Flight Requirements</h4>
-              </div>
-              <ul className="space-y-4">
-                <RequirementItem label="Visa for UAE required (E-Visa initiated)" status="check" />
-                <RequirementItem label="Return ticket confirmed" status="check" />
-                <RequirementItem label="Meal preference: Vegetarian (Pending confirm)" status="pending" />
-              </ul>
+          ))}
+        </div>
+        <div className="mt-4 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Selected checkpoint</div>
+              <div className="mt-1 text-sm font-black text-[#F5F0E8]">{selectedStep.label}</div>
             </div>
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
+              {selectedStep.state}
+            </span>
+          </div>
+          <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{selectedStep.detail}</div>
+        </div>
+      </section>
 
-            <div className="bg-[#111111] rounded-3xl p-8 border border-[#C9A84C]/15 flex flex-col justify-center">
-              <h4 className="font-black text-[11px] uppercase tracking-[0.2em] text-[#B8B0A0] mb-6 font-mono">Price Analysis</h4>
-              <div className="space-y-4">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#B8B0A0] font-mono uppercase tracking-widest opacity-60">Base Fare (2x)</span>
-                  <span className="font-black text-[#F5F0E8] font-mono">₹1,10,000</span>
+      <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-2">
+        {EXECUTION_TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+              activeTab === tab ? "bg-[#C9A84C] text-[#0A0A0A]" : "text-[#B8B0A0] hover:text-[#F5F0E8]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        <section className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Ticket size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">
+              {activeTab === "Overview" && "Travel Readiness"}
+              {activeTab === "Travel" && "Travel Segments"}
+              {activeTab === "Documents" && "Document Release"}
+              {activeTab === "Payments" && "Payment Readiness"}
+              {activeTab === "Operations" && "Ownership & Handoff"}
+            </h2>
+          </div>
+
+          {activeTab === "Overview" && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <ReadinessCard icon={<MapPin size={16} />} title="Flights + transfers" detail="Outbound ticketed, return held, airport transfer instructions staged." />
+              <ReadinessCard icon={<Landmark size={16} />} title="Supplier confirmation" detail="Hotel and transfer vendors aligned to the same guest profile and arrival window." />
+              <ReadinessCard icon={<Receipt size={16} />} title="Finance release" detail="Deposit confirmed, balance due visible, and payout timing protected." />
+              <ReadinessCard icon={<FileText size={16} />} title="Guest pack" detail="Voucher set, receipt, and arrival brief ready for the customer-facing release." />
+            </div>
+          )}
+
+          {activeTab === "Travel" && (
+            <div className="space-y-3">
+              {FLIGHT_SEGMENTS.map((segment) => (
+                <div key={segment.route} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <div className="text-sm font-black text-[#F5F0E8]">{segment.route}</div>
+                      <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{segment.airline}</div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 text-sm">
+                        <span className="text-[#B8B0A0]">Depart: {segment.departure}</span>
+                        <span className="text-[#B8B0A0]">Arrive: {segment.arrival}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                        {segment.status}
+                      </span>
+                      <div className="mt-2 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{segment.reference}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#B8B0A0] font-mono uppercase tracking-widest opacity-60">Taxes & Fees</span>
-                  <span className="font-black text-[#F5F0E8] font-mono">₹24,550</span>
+              ))}
+            </div>
+          )}
+
+          {activeTab === "Documents" && (
+            <div className="space-y-3">
+              {DOCUMENT_STACK.map((doc) => (
+                <div key={doc.title} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-[#F5F0E8]">{doc.title}</div>
+                      <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{doc.note}</div>
+                    </div>
+                    <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                      {doc.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-lg pt-4 border-t border-[#C9A84C]/10 mt-4">
-                  <span className="font-black text-[#F5F0E8] font-headline uppercase tracking-tighter">Total Flight Cost</span>
-                  <span className="font-black text-[#C9A84C] font-headline">₹1,34,550</span>
-                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === "Payments" && (
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="space-y-3">
+                {PAYMENT_STACK.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between border-b border-[#C9A84C]/5 pb-2">
+                    <span className="text-sm text-[#B8B0A0]">{item.label}</span>
+                    <span className="text-sm font-semibold text-[#F5F0E8]">{item.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
+
+          {activeTab === "Operations" && (
+            <div className="space-y-3">
+              {EXECUTION_OWNERS.map((owner) => (
+                <div key={owner.lane} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{owner.lane}</div>
+                      <div className="mt-1 text-sm font-black text-[#F5F0E8]">{owner.owner}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{owner.note}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* Right Operations Sidebar */}
-        <aside className="w-80 bg-[#111111] border-l border-[#C9A84C]/15 flex flex-col shrink-0 overflow-y-auto no-scrollbar">
-          <div className="p-8 border-b border-[#C9A84C]/10">
-            <h3 className="text-[10px] uppercase tracking-[0.3em] text-[#C9A84C] font-black font-mono mb-6">Quick Notes</h3>
-            <div className="space-y-6">
-              <div className="bg-[#1A1A1A] p-6 rounded-2xl relative group border border-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all shadow-sm">
-                <p className="text-sm text-[#F5F0E8] leading-relaxed font-medium">Client prefers window seats on all legs. Check for bulkhead availability for extra legroom.</p>
-                <p className="text-[10px] text-[#B8B0A0] font-mono mt-4 opacity-40 uppercase tracking-widest font-bold">Updated 2h ago</p>
-                <button className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-[#C9A84C]"><Plus size={14} /></button>
-              </div>
-              <div className="bg-[#1D9E75]/5 p-6 rounded-2xl border border-[#1D9E75]/20">
-                <p className="text-sm text-[#F5F0E8] leading-relaxed italic opacity-80">&ldquo;Please include airport transfers in the final quote.&rdquo;</p>
-                <p className="text-[9px] text-[#1D9E75] font-black font-mono mt-4 uppercase tracking-[0.2em]">Live WhatsApp Update</p>
-              </div>
-              <button className="w-full py-5 border-2 border-dashed border-[#C9A84C]/15 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#B8B0A0] hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/30 transition-all flex items-center justify-center gap-2 font-mono">
-                <Plus size={16} /> New Workspace Note
-              </button>
+        <aside className="xl:col-span-5 space-y-6">
+          <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Users size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Execution Notes</h2>
             </div>
-          </div>
-
-          <div className="p-8 mt-auto bg-[#141414]/50">
-            <h3 className="text-[10px] uppercase tracking-[0.3em] text-[#C9A84C] font-black font-mono mb-6">Deployment</h3>
             <div className="space-y-3">
-              <ActionLink icon={Send} label="Send Quote" />
-              <ActionLink icon={Sparkles} label="Generate Itinerary" />
-              <ActionLink icon={Receipt} label="Print Invoice" />
+              <WorkspaceNote tone="neutral" text="Client prefers window seats and wants the final arrival brief on WhatsApp and email." />
+              <WorkspaceNote tone="success" text="Deposit received, finance release issued, and guest pack is safe to prepare." />
+              <WorkspaceNote tone="neutral" text="DMC supplier thread is already linked so ops does not need to re-collect hotel terms." />
             </div>
-          </div>
+          </section>
+
+          <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Next Actions</h2>
+            </div>
+            <div className="space-y-3">
+              <ActionLink href="/dashboard/comms" label="Release guest pack in Comms" />
+              <ActionLink href="/dashboard/dmc" label="Review supplier confirmation in DMC" />
+              <ActionLink href="/dashboard/finance" label="Check balance due in Finance" />
+            </div>
+          </section>
         </aside>
       </div>
     </div>
   );
 }
 
-function FlightRow({
-  airline,
-  flightNo,
-  route,
-  depTime,
-  depDate,
-  arrTime,
-  arrDate,
-  cabin,
-  pnr,
-  logo,
-}: {
-  airline: string;
-  flightNo: string;
-  route: string;
-  depTime: string;
-  depDate: string;
-  arrTime: string;
-  arrDate: string;
-  cabin: string;
-  pnr: string;
-  logo: string;
-}) {
+function MetricCard({ label, value, sub, icon }: { label: string; value: string; sub: string; icon: React.ReactNode }) {
   return (
-    <tr className="hover:bg-[#1A1A1A]/50 transition-all group cursor-pointer">
-      <td className="px-6 py-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[#1A1A1A] flex items-center justify-center p-2 border border-[#C9A84C]/10 group-hover:scale-110 transition-transform">
-            <img alt={airline} className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all" src={logo} />
-          </div>
-          <div>
-            <p className="font-black text-sm text-[#F5F0E8] tracking-tight uppercase font-headline">{airline}</p>
-            <p className="text-[10px] text-[#B8B0A0] font-mono font-bold tracking-widest">{flightNo}</p>
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-6 font-black text-xs text-[#F5F0E8] tracking-[0.2em] font-mono">{route}</td>
-      <td className="px-6 py-6">
-        <p className="text-xs font-black text-[#F5F0E8] font-mono">{depTime}</p>
-        <p className="text-[10px] text-[#B8B0A0] font-mono uppercase tracking-tighter mt-1 opacity-50">{depDate}</p>
-      </td>
-      <td className="px-6 py-6">
-        <p className="text-xs font-black text-[#F5F0E8] font-mono">{arrTime}</p>
-        <p className="text-[10px] text-[#B8B0A0] font-mono uppercase tracking-tighter mt-1 opacity-50">{arrDate}</p>
-      </td>
-      <td className="px-6 py-6">
-        <span className="px-3 py-1 bg-[#111111] text-[9px] font-black rounded-full text-[#C9A84C] uppercase tracking-widest border border-[#C9A84C]/15 font-mono">{cabin}</span>
-      </td>
-      <td className="px-6 py-6 font-mono text-xs font-black text-[#C9A84C] tracking-widest uppercase">{pnr}</td>
-      <td className="px-6 py-6 text-right">
-        <button className="p-2 hover:bg-[#1A1A1A] rounded-xl transition-all text-[#B8B0A0] hover:text-[#C9A84C]"><MoreVertical size={18} /></button>
-      </td>
-    </tr>
-  );
-}
-
-function RequirementItem({
-  label,
-  status,
-}: {
-  label: string;
-  status: 'check' | 'pending';
-}) {
-  return (
-    <li className="flex items-start gap-3 text-xs">
-      {status === 'check' ? (
-        <CheckCircle size={16} className="text-[#1D9E75] mt-0.5" />
-      ) : (
-        <Clock size={16} className="text-[#C9A84C] mt-0.5 opacity-50 animate-pulse" />
-      )}
-      <span className="text-[#B8B0A0] font-medium font-body leading-tight">{label}</span>
-    </li>
-  );
-}
-
-function ActionLink({
-  icon: Icon,
-  label,
-}: {
-  icon: LucideIcon;
-  label: string;
-}) {
-  return (
-    <button className="w-full flex items-center justify-between bg-[#1A1A1A] px-5 py-4 rounded-2xl border border-[#C9A84C]/10 hover:border-[#C9A84C] transition-all group shadow-sm active:scale-95">
-      <div className="flex items-center gap-4">
-        <Icon size={18} className="text-[#B8B0A0] group-hover:text-[#C9A84C] transition-colors" />
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#F5F0E8] font-mono">{label}</span>
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+      <div className="mb-3 flex items-center gap-2 text-[#C9A84C]">
+        {icon}
+        <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
       </div>
-      <ChevronRight size={16} className="text-[#B8B0A0] opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-    </button>
+      <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
+      <div className="mt-1 text-xs text-[#4A453E]">{sub}</div>
+    </div>
+  );
+}
+
+function ReadinessCard({ icon, title, detail }: { icon: React.ReactNode; title: string; detail: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="flex items-center gap-2 text-[#C9A84C]">
+        {icon}
+        <span className="text-[10px] font-black uppercase tracking-widest">{title}</span>
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{detail}</p>
+    </div>
+  );
+}
+
+function WorkspaceNote({ text, tone }: { text: string; tone: "neutral" | "success" }) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 text-sm leading-relaxed ${
+        tone === "success"
+          ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#F5F0E8]"
+          : "border-[#C9A84C]/10 bg-[#0A0A0A] text-[#B8B0A0]"
+      }`}
+    >
+      {text}
+    </div>
+  );
+}
+
+function ActionLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#F5F0E8] hover:border-[#C9A84C]/20 transition-colors"
+    >
+      <span>{label}</span>
+      <ArrowRight size={14} className="text-[#C9A84C]" />
+    </Link>
   );
 }
