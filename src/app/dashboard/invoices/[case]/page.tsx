@@ -5,10 +5,12 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ChevronRight, Download, Landmark, Receipt } from "lucide-react";
 
+import { canPerformAction } from "@/lib/auth-session";
 import { DEMO_DEAL_CASES, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
 import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { normalizeDemoCaseSlug } from "@/lib/demo-cases";
+import { useAppSession } from "@/lib/use-app-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 function formatAmount(amount: number) {
@@ -18,6 +20,7 @@ function formatAmount(amount: number) {
 export default function InvoicePage() {
   const params = useParams<{ case: string }>();
   const profile = useMemo(() => readDemoProfile(), []);
+  const session = useAppSession();
   const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
@@ -26,6 +29,7 @@ export default function InvoicePage() {
   const balanceDue = deal.finance.quote_total - deal.finance.deposit_due;
   const deliveryState = workflow.cases[slug]?.invoiceState ?? "Draft";
   const downloadState = workflow.cases[slug]?.invoiceDownloadState ?? "Ready";
+  const canManageInvoice = canPerformAction(session, "artifact.invoiceManage");
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
@@ -76,19 +80,24 @@ export default function InvoicePage() {
             <button
               type="button"
               onClick={() =>
+                canManageInvoice &&
                 updateDemoCaseWorkflow(slug, {
                   invoiceState: "Sent",
                   financeStatus: "Invoice sent to traveler and awaiting settlement",
                   paymentState: "Settlement in progress",
                 })
               }
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600"
+              disabled={!canManageInvoice}
+              className={`rounded-2xl border px-4 py-3 text-[10px] font-black uppercase tracking-widest ${
+                canManageInvoice ? "border-slate-200 bg-slate-50 text-slate-600" : "border-slate-200 bg-slate-100 text-slate-400"
+              }`}
             >
               Mark Sent
             </button>
             <button
               type="button"
               onClick={() =>
+                canManageInvoice &&
                 updateDemoCaseWorkflow(slug, {
                   leadStage: "Won",
                   nextAction: "Share traveler documents and hand off to operations",
@@ -101,11 +110,19 @@ export default function InvoicePage() {
                   paymentState: "Payment confirmed",
                 })
               }
-              className="rounded-2xl border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#1D9E75]"
+              disabled={!canManageInvoice}
+              className={`rounded-2xl border px-4 py-3 text-[10px] font-black uppercase tracking-widest ${
+                canManageInvoice ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]" : "border-slate-200 bg-slate-100 text-slate-400"
+              }`}
             >
               Mark Paid
             </button>
           </div>
+          {!canManageInvoice && (
+            <div className="print-hidden mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-500">
+              This role can review invoice artifacts, but only Finance or Customer Admin can update invoice send and settlement states.
+            </div>
+          )}
           <div className="flex flex-col gap-6 border-b border-slate-200 pb-8 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-black text-[#0A0A0A]" style={{ backgroundColor: brandTheme.accentHex }}>

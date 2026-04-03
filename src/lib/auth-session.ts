@@ -18,6 +18,8 @@ export type AppAction =
   | "finance.recordDeposit"
   | "finance.export"
   | "booking.releaseGuestPack"
+  | "artifact.invoiceManage"
+  | "artifact.travelerDispatch"
   | "team.invite"
   | "team.bulkInvite"
   | "team.employeeSave"
@@ -150,6 +152,8 @@ const ACTION_RULES: Record<AppAction, AppRole[]> = {
   "finance.recordDeposit": ["customer-admin", "finance", "super-admin"],
   "finance.export": ["customer-admin", "finance", "super-admin"],
   "booking.releaseGuestPack": ["customer-admin", "operations", "super-admin"],
+  "artifact.invoiceManage": ["customer-admin", "finance", "super-admin"],
+  "artifact.travelerDispatch": ["customer-admin", "operations", "super-admin"],
   "team.invite": ["customer-admin", "super-admin"],
   "team.bulkInvite": ["customer-admin", "super-admin"],
   "team.employeeSave": ["customer-admin", "super-admin"],

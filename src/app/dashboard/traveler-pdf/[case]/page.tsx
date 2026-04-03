@@ -5,15 +5,18 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, CalendarDays, ChevronRight, Download, FileText, MapPin, Phone, Sparkles, Users } from "lucide-react";
 
+import { canPerformAction } from "@/lib/auth-session";
 import { DEMO_DEAL_CASES, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
 import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { normalizeDemoCaseSlug } from "@/lib/demo-cases";
+import { useAppSession } from "@/lib/use-app-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
 
 export default function TravelerPdfPage() {
   const params = useParams<{ case: string }>();
   const profile = useMemo(() => readDemoProfile(), []);
+  const session = useAppSession();
   const workflow = useDemoWorkflow();
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
@@ -21,6 +24,7 @@ export default function TravelerPdfPage() {
   const deal = DEMO_DEAL_CASES[slug] ?? PRIMARY_DEMO_DEAL_CASE;
   const deliveryState = workflow.cases[slug]?.travelerPdfState ?? "Draft";
   const approvalState = workflow.cases[slug]?.travelerApprovalState ?? "Awaiting approval";
+  const canDispatchTravelerPdf = canPerformAction(session, "artifact.travelerDispatch");
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
@@ -71,14 +75,18 @@ export default function TravelerPdfPage() {
               <ArtifactStatusCard label="Approval" value={approvalState} />
               <button
                 type="button"
-                onClick={() => updateDemoCaseWorkflow(slug, { travelerApprovalState: "Approved for send" })}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600"
+                onClick={() => canDispatchTravelerPdf && updateDemoCaseWorkflow(slug, { travelerApprovalState: "Approved for send" })}
+                disabled={!canDispatchTravelerPdf}
+                className={`rounded-2xl border px-4 py-3 text-[10px] font-black uppercase tracking-widest ${
+                  canDispatchTravelerPdf ? "border-slate-200 bg-slate-50 text-slate-600" : "border-slate-200 bg-slate-100 text-slate-400"
+                }`}
               >
                 Approve for send
               </button>
               <button
                 type="button"
                 onClick={() =>
+                  canDispatchTravelerPdf &&
                   updateDemoCaseWorkflow(slug, {
                     bookingState: "Guest pack released",
                     guestPackState: "Released",
@@ -86,11 +94,19 @@ export default function TravelerPdfPage() {
                     travelerPdfState: "Shared",
                   })
                 }
-                className="rounded-2xl border border-[#C9A84C]/20 bg-[#FFF8E8] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#8B6A1F]"
+                disabled={!canDispatchTravelerPdf}
+                className={`rounded-2xl border px-4 py-3 text-[10px] font-black uppercase tracking-widest ${
+                  canDispatchTravelerPdf ? "border-[#C9A84C]/20 bg-[#FFF8E8] text-[#8B6A1F]" : "border-slate-200 bg-slate-100 text-slate-400"
+                }`}
               >
                 Mark shared
               </button>
             </div>
+            {!canDispatchTravelerPdf && (
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-500">
+                This role can review the traveler PDF, but only Operations or Customer Admin can approve and dispatch the guest pack.
+              </div>
+            )}
           </div>
           <div className="bg-[#0F172A] px-8 py-8 text-white">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
