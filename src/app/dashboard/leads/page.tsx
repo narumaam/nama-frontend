@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { apiUrl } from "@/lib/api";
 import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
@@ -156,31 +155,12 @@ export default function LeadsPage() {
   const session = useAppSession();
   const workflow = useDemoWorkflow();
   const [activeView, setActiveView] = useState<"kanban" | "list">("kanban");
-  const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
+  const [cases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [query, setQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<LeadSourceFilter>("All");
   const [enrichedLead, setEnrichedLead] = useState<LeadRecord | null>(null);
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState(schedulerItems[0]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const response = await fetch(apiUrl("/demo/cases"));
-        const data = await response.json();
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
-          setCases(data);
-        }
-      } catch {
-        if (!cancelled) setCases(FALLBACK_CASES);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const leads = useMemo(() => buildLeadRecords(cases, workflow.cases), [cases, workflow.cases]);
   const drawerLead = selectedLead ? leads.find((item) => item.slug === selectedLead.slug) ?? selectedLead : null;

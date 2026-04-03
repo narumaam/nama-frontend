@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Briefcase, CreditCard, Eye, Shield, Sparkles, Users } from "lucide-react";
 
-import { createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
+import { createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
+import { type DemoMemberRecord } from "@/lib/demo-members";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { readDemoWorkflowState, type DemoEmployeeRecord, type DemoInviteRecord } from "@/lib/demo-workflow";
+import { useDemoMembers } from "@/lib/use-demo-members";
 
 type TenantRoleOption = {
   role: Exclude<AppRole, "super-admin">;
@@ -17,11 +19,13 @@ type TenantRoleOption = {
 };
 
 type PersonaCard = TenantRoleOption & {
+  id: string;
   displayName: string;
   email: string;
   designation: string;
   team: string;
   source: string;
+  status: string;
 };
 
 const TENANT_ROLE_OPTIONS: TenantRoleOption[] = [
@@ -55,6 +59,24 @@ function fallbackPersona(
   };
 }
 
+function optionForRole(role: Exclude<AppRole, "super-admin">) {
+  return TENANT_ROLE_OPTIONS.find((option) => option.role === role) ?? TENANT_ROLE_OPTIONS[TENANT_ROLE_OPTIONS.length - 1];
+}
+
+function memberPersona(member: DemoMemberRecord): PersonaCard {
+  const option = optionForRole(member.role);
+  return {
+    ...option,
+    id: member.id,
+    displayName: member.name,
+    email: member.email,
+    designation: member.designation,
+    team: member.team,
+    source: member.source.replace(/-/g, " "),
+    status: member.status,
+  };
+}
+
 function resolvePersona(
   option: TenantRoleOption,
   employees: DemoEmployeeRecord[],
@@ -63,18 +85,20 @@ function resolvePersona(
   operator: string,
 ): PersonaCard {
   if (option.role === "customer-admin") {
-    return { ...option, ...fallbackPersona(option.role, company, operator) };
+    return { ...option, id: option.role, ...fallbackPersona(option.role, company, operator), status: "Seeded" };
   }
 
   const employee = employees.find((item) => normalizeTenantRole(item.role) === option.role);
   if (employee) {
     return {
       ...option,
+      id: employee.id,
       displayName: employee.name,
       email: employee.email,
       designation: employee.designation,
       team: employee.team,
       source: "Seeded from employee directory",
+      status: "Active",
     };
   }
 
@@ -82,48 +106,61 @@ function resolvePersona(
   if (acceptedInvite) {
     return {
       ...option,
+      id: acceptedInvite.id,
       displayName: acceptedInvite.name,
       email: acceptedInvite.email,
       designation: acceptedInvite.designation,
       team: acceptedInvite.team,
       source: "Seeded from accepted invite",
+      status: "Active",
     };
   }
 
-  return { ...option, ...fallbackPersona(option.role, company, operator) };
+  return { ...option, id: option.role, ...fallbackPersona(option.role, company, operator), status: "Seeded" };
 }
 
 export default function WorkspaceLoginPage() {
   const router = useRouter();
   const profile = useMemo(() => readDemoProfile(), []);
-  const [message, setMessage] = useState("Choose a seeded tenant role to enter the workspace from its own starting point.");
-  const [personas, setPersonas] = useState<PersonaCard[]>([]);
+  const memberRegistry = useDemoMembers();
+  const [message, setMessage] = useState("Choose a tenant member to enter the workspace from the route that matches their scope.");
+  const personas = useMemo(() => {
+    const tenantMembers = memberRegistry.members
+      .filter((member) => member.tenantName === profile.company)
+      .sort((left, right) => {
+        const statusRank = { Active: 0, Invited: 1, Seeded: 2 } as const;
+        return (
+          statusRank[left.status] - statusRank[right.status] ||
+          left.role.localeCompare(right.role) ||
+          left.name.localeCompare(right.name)
+        );
+      });
 
-  useEffect(() => {
-    function syncPersonas() {
-      const workflow = readDemoWorkflowState();
-      setPersonas(
-        TENANT_ROLE_OPTIONS.map((option) =>
-          resolvePersona(option, workflow.employees, workflow.invites, profile.company, profile.operator)
-        )
-      );
+    if (tenantMembers.length) {
+      return tenantMembers.map(memberPersona);
     }
 
-    syncPersonas();
-    window.addEventListener("storage", syncPersonas);
-    window.addEventListener("nama-demo-workflow-updated", syncPersonas as EventListener);
-    window.addEventListener("nama-demo-profile-updated", syncPersonas as EventListener);
-
-    return () => {
-      window.removeEventListener("storage", syncPersonas);
-      window.removeEventListener("nama-demo-workflow-updated", syncPersonas as EventListener);
-      window.removeEventListener("nama-demo-profile-updated", syncPersonas as EventListener);
-    };
-  }, [profile.company, profile.operator]);
+    const workflow = readDemoWorkflowState();
+    return TENANT_ROLE_OPTIONS.map((option) => resolvePersona(option, workflow.employees, workflow.invites, profile.company, profile.operator));
+  }, [memberRegistry.members, profile.company, profile.operator]);
 
   function enterWorkspace(persona: PersonaCard) {
-    createTenantRoleSession(persona.displayName, profile.company, persona.role);
-    setMessage(`${persona.heading} access granted for ${persona.displayName}. Opening the workspace entry path now.`);
+    const member = memberRegistry.members.find((item) => item.id === persona.id);
+    if (member) {
+      createTenantMemberSession({
+        id: member.id,
+        email: member.email,
+        name: member.name,
+        role: member.role,
+        tenantName: member.tenantName,
+        status: member.status,
+        designation: member.designation,
+        team: member.team,
+      });
+    } else {
+      createTenantRoleSession(persona.displayName, profile.company, persona.role);
+    }
+    setMessage(`${persona.heading} entry granted for ${persona.displayName}. Opening the workspace route for that member now.`);
     router.push(getDefaultRouteForRole(persona.role));
   }
 
@@ -133,14 +170,13 @@ export default function WorkspaceLoginPage() {
         <section className="flex-1 rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(201,168,76,0.16),_transparent_48%),linear-gradient(180deg,_rgba(255,255,255,0.04),_rgba(255,255,255,0.02))] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/20 bg-[#C9A84C]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-[#C9A84C]">
             <Users size={12} />
-            Tenant Role Access
+            Member Workspace Entry
           </div>
           <h1 className="mt-6 max-w-3xl text-4xl font-black tracking-[-0.04em] text-white sm:text-5xl">
-            Seeded role entry for customer teams.
+            Workspace entry based on the tenant member roster.
           </h1>
           <p className="mt-5 max-w-3xl text-sm leading-7 text-[#D6D0C4] sm:text-base">
-            This beta route gives each tenant role its own believable starting point. Sales, finance, operations, viewer,
-            and customer-admin can enter through a seeded persona and land directly on the route that matches their scope.
+            This route now prefers the member registry for the current tenant. Operators, imported employees, and accepted invitees can enter through their own member card and still land on the route that matches their role scope.
           </p>
 
           <div className="mt-8 grid gap-4 xl:grid-cols-2">
@@ -148,7 +184,7 @@ export default function WorkspaceLoginPage() {
               const Icon = persona.icon;
               return (
                 <button
-                  key={persona.role}
+                  key={persona.id}
                   type="button"
                   onClick={() => enterWorkspace(persona)}
                   className="rounded-[28px] border border-white/10 bg-black/20 p-6 text-left transition hover:border-[#C9A84C]/30 hover:bg-black/30"
@@ -175,9 +211,11 @@ export default function WorkspaceLoginPage() {
                       <div className="mt-2 font-semibold text-white">{persona.team}</div>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:col-span-2">
-                      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9F9788]">Seeded login</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9F9788]">Member login</div>
                       <div className="mt-2 break-all font-mono text-white">{persona.email}</div>
-                      <div className="mt-2 text-xs text-[#B8B0A0]">{persona.source}</div>
+                      <div className="mt-2 text-xs text-[#B8B0A0]">
+                        {persona.status} via {persona.source}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -193,7 +231,7 @@ export default function WorkspaceLoginPage() {
         <aside className="w-full max-w-xl rounded-[32px] border border-white/10 bg-white/[0.03] p-8 lg:w-[430px]">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#9F9788]">
             <Sparkles size={12} className="text-[#C9A84C]" />
-            Beta Role Entry
+            Member Entry Notes
           </div>
           <div className="mt-6 rounded-[28px] border border-white/10 bg-[#0F0F0F] p-6">
             <div className="space-y-4 text-sm text-[#D6D0C4]">
@@ -210,8 +248,7 @@ export default function WorkspaceLoginPage() {
                 <p className="mt-2 font-mono text-[#F5F0E8]">/super-admin/login</p>
               </div>
               <p>
-                These role cards are beta-safe seeded personas. They improve realistic QA and demo entry without claiming
-                production auth, password delivery, or backend-backed identity yet.
+                Member cards are resolved from the tenant registry first. If that roster has not been populated yet, this route stays ready with seeded fallback personas so the login surface does not break while the member import flow catches up.
               </p>
             </div>
 

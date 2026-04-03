@@ -68,6 +68,29 @@ function normalizeRegistryState(input: Partial<DemoMemberRegistryState>): DemoMe
   };
 }
 
+function mergeSeededMembers(existingMembers: DemoMemberRecord[], seededMembers: DemoMemberRecord[]) {
+  const membersByEmail = new Map(existingMembers.map((member) => [member.email.toLowerCase(), member]));
+
+  seededMembers.forEach((member) => {
+    const existing = membersByEmail.get(member.email.toLowerCase());
+    membersByEmail.set(
+      member.email.toLowerCase(),
+      existing
+        ? normalizeMemberRecord({
+            ...existing,
+            ...member,
+            status: existing.status === "Active" ? "Active" : member.status,
+            source: existing.source,
+            createdAt: existing.createdAt,
+            updatedAt: nowLabel(),
+          })
+        : member
+    );
+  });
+
+  return Array.from(membersByEmail.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function normalizeMemberRecord(input: Partial<DemoMemberRecord>): DemoMemberRecord {
   const tenantName = input.tenantName?.trim() || readDemoProfile().company;
   const name = input.name?.trim() || "Workspace Member";
@@ -182,13 +205,17 @@ export function readDemoMemberRegistryState(): DemoMemberRegistryState {
   }
 
   const stored = readJson<DemoMemberRecord[]>(window.localStorage.getItem(DEMO_MEMBER_STORAGE_KEY), []);
+  const seeded = seedDemoMembers();
   if (!stored.length) {
-    const seeded = seedDemoMembers();
     persistRegistryState({ members: seeded });
     return { members: seeded };
   }
 
-  return normalizeRegistryState({ members: stored });
+  const merged = mergeSeededMembers(stored, seeded);
+  if (JSON.stringify(merged) !== JSON.stringify(stored)) {
+    persistRegistryState({ members: merged });
+  }
+  return normalizeRegistryState({ members: merged });
 }
 
 export function writeDemoMemberRegistryState(input: Partial<DemoMemberRegistryState>) {

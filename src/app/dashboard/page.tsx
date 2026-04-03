@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "@/lib/api";
-import { TENANT_ROLE_OPTIONS, createTenantRoleSession, getRoleLabel, readAppSession, type AppRole } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from "@/lib/demo-profile";
 import { seedDemoScenario } from "@/lib/demo-scenarios";
 import { SCREEN_HELP } from "@/lib/screen-help";
+import { useDemoMembers } from "@/lib/use-demo-members";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet } from "lucide-react";
 
@@ -106,11 +105,9 @@ const PREVIEW_JOURNEY = [
 export default function DashboardPage() {
   const router = useRouter();
   const profile = useDemoProfile();
-  const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
-  const [loading, setLoading] = useState(true);
+  const memberRegistry = useDemoMembers();
+  const [cases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [founderLaunchMessage, setFounderLaunchMessage] = useState("Seed the strongest scenario and jump directly into the founder-ready pack.");
-  const [rolePreviewMessage, setRolePreviewMessage] = useState("Switch tenant roles here to test the beta access rules without changing the underlying demo tenant.");
-  const [activeRole, setActiveRole] = useState<AppRole>("customer-admin");
   const demoCompany = profile.company;
   const demoOperator = profile.operator;
   const businessRoles = profile.roles;
@@ -123,48 +120,18 @@ export default function DashboardPage() {
   const accentSoft = `${accentHex}14`;
   const accentBorder = `${accentHex}33`;
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const response = await fetch(apiUrl("/demo/cases"));
-        const data = await response.json();
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
-          setCases(data);
-        }
-      } catch {
-        if (!cancelled) setCases(FALLBACK_CASES);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    function syncRole() {
-      const session = readAppSession();
-      if (!session || session.scope !== "tenant") return;
-      setActiveRole(session.role);
-    }
-
-    syncRole();
-    window.addEventListener("storage", syncRole);
-    window.addEventListener("nama-app-session-updated", syncRole as EventListener);
-
-    return () => {
-      window.removeEventListener("storage", syncRole);
-      window.removeEventListener("nama-app-session-updated", syncRole as EventListener);
-    };
-  }, []);
-
   const totalQuote = cases.reduce((sum, item) => sum + item.quote_total, 0);
   const avgQuote = Math.round(totalQuote / Math.max(cases.length, 1));
   const criticalCount = cases.filter((item) => item.priority === "CRITICAL").length;
   const depositExposure = DEMO_CASE_ROUTES.reduce((sum, item) => sum + item.depositDue, 0);
+  const tenantMembers = useMemo(
+    () => memberRegistry.members.filter((member) => member.tenantName === demoCompany),
+    [demoCompany, memberRegistry.members]
+  );
+  const activeMembers = tenantMembers.filter((member) => member.status === "Active");
+  const invitedMembers = tenantMembers.filter((member) => member.status === "Invited");
+  const coveredRoles = new Set(tenantMembers.map((member) => member.role)).size;
+  const memberPreview = tenantMembers.slice(0, 3);
 
   function launchFounderPack() {
     seedDemoScenario("founder");
@@ -176,13 +143,6 @@ export default function DashboardPage() {
     seedDemoScenario("finance-overdue");
     setFounderLaunchMessage("Finance Overdue QA seeded. Opening the audit report for the risk case.");
     router.push("/dashboard/admin/audit-report?tenant=Northstar%20Voyages&category=commercial&severity=warning&case=maldives-honeymoon");
-  }
-
-  function switchTenantRole(role: AppRole) {
-    const tenantRole = role === "super-admin" ? "customer-admin" : role;
-    createTenantRoleSession(profile.operator, profile.company, tenantRole);
-    setActiveRole(tenantRole);
-    setRolePreviewMessage(`${getRoleLabel(tenantRole)} access is now active for ${profile.company}. The shell and guards will adapt on the next navigation.`);
   }
 
   return (
@@ -206,7 +166,7 @@ export default function DashboardPage() {
           <Sparkles size={16} style={{ color: accentHex }} />
           <div>
             <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Preview Status</div>
-            <div className="text-sm font-black text-[#F5F0E8]">{loading ? "Syncing preview cases..." : "Preview cases ready"}</div>
+            <div className="text-sm font-black text-[#F5F0E8]">Preview cases ready</div>
           </div>
         </div>
       </div>
@@ -252,41 +212,54 @@ export default function DashboardPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Beta Access Preview</div>
-            <h2 className="text-xl font-black text-[#F5F0E8]">Test tenant roles against the new dashboard guards</h2>
+            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Member Entry Guidance</div>
+            <h2 className="text-xl font-black text-[#F5F0E8]">Enter the workspace through real team members, not a preview switcher</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
-              This lets us preview how customer-admin, sales, operations, finance, and viewer sessions see the workspace before backend auth is fully wired.
+              Use the dedicated member login route to enter as the operator, active employees, or accepted invitees already seeded for this tenant. Founder shortcuts stay here on overview, but role-based entry now lives on the login route where the team roster belongs.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#F5F0E8]">
-            Active role: {getRoleLabel(activeRole)}
+            {tenantMembers.length} member records ready
           </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <SnapshotCard label="Active Members" value={`${activeMembers.length}`} sub="Members already ready for entry" borderColor={accentBorder} />
+          <SnapshotCard label="Pending Invites" value={`${invitedMembers.length}`} sub="Invitees waiting to accept before they appear as active members" borderColor={accentBorder} />
+          <SnapshotCard label="Role Coverage" value={`${coveredRoles || 0}`} sub="Distinct tenant roles represented in the roster" borderColor={accentBorder} />
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
             href="/workspace/login"
             className="rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
           >
-            Open tenant role login
+            Open member login
           </Link>
-          {TENANT_ROLE_OPTIONS.map((option) => {
-            const active = option.role === activeRole;
-            return (
-              <button
-                key={option.role}
-                type="button"
-                onClick={() => switchTenantRole(option.role)}
-                className={`rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest transition ${
-                  active ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#0A0A0A] text-[#F5F0E8]"
-                }`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+          <Link
+            href="/register"
+            className="rounded-2xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]"
+          >
+            Review tenant setup
+          </Link>
         </div>
-        <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
-          {rolePreviewMessage}
+        <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4">
+          {memberPreview.length ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              {memberPreview.map((member) => (
+                <div key={member.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C9A84C]">{member.role.replace("-", " ")}</div>
+                  <div className="mt-2 text-sm font-semibold text-[#F5F0E8]">{member.name}</div>
+                  <div className="mt-1 break-all font-mono text-xs text-[#B8B0A0]">{member.email}</div>
+                  <div className="mt-3 text-[10px] uppercase tracking-[0.18em] text-[#9F9788]">
+                    {member.status} · {member.source.replace("-", " ")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm leading-relaxed text-[#B8B0A0]">
+              The member registry is not populated yet. The login route will stay ready for roster-backed entry as soon as the tenant operator, employee list, or accepted invites are present.
+            </div>
+          )}
         </div>
       </section>
 

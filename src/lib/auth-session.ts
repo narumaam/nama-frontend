@@ -31,8 +31,23 @@ export type AppSession = {
   role: AppRole;
   scope: AppScope;
   tenantName: string | null;
+  memberId?: string | null;
+  memberStatus?: string | null;
+  designation?: string | null;
+  team?: string | null;
   source: "alpha-demo" | "beta-foundation";
   grantedAt: string;
+};
+
+export type TenantMemberSessionRecord = {
+  id?: string;
+  email: string;
+  name: string;
+  role: Exclude<AppRole, "super-admin">;
+  tenantName: string;
+  status?: string;
+  designation?: string;
+  team?: string;
 };
 
 export const TENANT_ROLE_OPTIONS: Array<{ role: AppRole; label: string }> = [
@@ -62,13 +77,75 @@ function dispatchSessionUpdate() {
   window.dispatchEvent(new Event("nama-app-session-updated"));
 }
 
+type StoredMemberRecord = {
+  id?: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  tenantName?: string;
+  status?: string;
+  designation?: string;
+  team?: string;
+};
+
+const DEMO_MEMBER_STORAGE_KEY = "nama-demo-members";
+
+function readStoredTenantMembers(): StoredMemberRecord[] {
+  if (!canUseStorage()) return [];
+  const raw = window.localStorage.getItem(DEMO_MEMBER_STORAGE_KEY);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as StoredMemberRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function findStoredMemberBySession(session: Pick<AppSession, "email" | "tenantName">) {
+  const normalizedEmail = session.email.trim().toLowerCase();
+  const normalizedTenant = session.tenantName?.trim().toLowerCase() ?? "";
+
+  return readStoredTenantMembers().find((member) => {
+    const memberEmail = member.email?.trim().toLowerCase();
+    const memberTenant = member.tenantName?.trim().toLowerCase() ?? "";
+    return memberEmail === normalizedEmail && (!normalizedTenant || memberTenant === normalizedTenant);
+  });
+}
+
+function mergeSessionWithStoredMember(session: AppSession) {
+  if (session.role === "super-admin") return session;
+
+  const member = findStoredMemberBySession(session);
+  if (!member) return session;
+
+  return {
+    ...session,
+    displayName: member.name?.trim() || session.displayName,
+    role: normalizeTenantRole(member.role || session.role),
+    tenantName: member.tenantName?.trim() || session.tenantName,
+    memberId: member.id?.trim() || session.memberId || null,
+    memberStatus: member.status?.trim() || session.memberStatus || null,
+    designation: member.designation?.trim() || session.designation || null,
+    team: member.team?.trim() || session.team || null,
+  } satisfies AppSession;
+}
+
 export function readAppSession(): AppSession | null {
   if (!canUseStorage()) return null;
   const raw = window.localStorage.getItem(APP_SESSION_KEY);
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as AppSession;
+    const parsed = JSON.parse(raw) as AppSession;
+    const hydrated = mergeSessionWithStoredMember(parsed);
+
+    if (JSON.stringify(hydrated) !== JSON.stringify(parsed)) {
+      window.localStorage.setItem(APP_SESSION_KEY, JSON.stringify(hydrated));
+    }
+
+    return hydrated;
   } catch {
     window.localStorage.removeItem(APP_SESSION_KEY);
     return null;
@@ -193,6 +270,20 @@ export function createTenantRoleSession(displayName: string, tenantName: string,
     role,
     scope: "tenant",
     tenantName: normalizedTenant,
+  });
+}
+
+export function createTenantMemberSession(member: TenantMemberSessionRecord) {
+  return createAppSession({
+    email: member.email.trim(),
+    displayName: member.name.trim(),
+    role: normalizeTenantRole(member.role),
+    scope: "tenant",
+    tenantName: member.tenantName.trim() || null,
+    memberId: member.id?.trim() || null,
+    memberStatus: member.status?.trim() || null,
+    designation: member.designation?.trim() || null,
+    team: member.team?.trim() || null,
   });
 }
 

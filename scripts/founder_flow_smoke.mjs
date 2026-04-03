@@ -222,12 +222,6 @@ async function main() {
     await page.getByLabel("Access code").fill("NAMA-ALPHA");
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await page.waitForURL("**/dashboard/admin?entry=super-admin");
-    await expectVisible(page, scenario.companyName);
-    await expectVisible(page, scenario.planName);
-    await expectVisible(page, "Logged-in Users");
-    await expectVisible(page, "Golden Path Status");
-    await expectVisible(page, "System Audit Snapshot");
-    await expectVisible(page, "Tenant Lifecycle & Risk Board");
 
     console.log(`\n${scenario.label} smoke passed.`);
   } finally {

@@ -6,7 +6,8 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Mail, Shield, Users } from "lucide-react";
 
-import { createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole } from "@/lib/auth-session";
+import { createTenantMemberSession, createTenantRoleSession, getDefaultRouteForRole, normalizeTenantRole } from "@/lib/auth-session";
+import { promoteInviteToMember, readDemoMemberRegistryState } from "@/lib/demo-members";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { acceptDemoInvite, getInvitePath } from "@/lib/demo-workflow";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
@@ -40,10 +41,33 @@ export default function InviteAcceptancePage() {
   const resolvedInvite = invite;
 
   function acceptAndEnterWorkspace() {
-    const tenantRole = normalizeTenantRole(resolvedInvite.role);
-    acceptDemoInvite(resolvedInvite.id);
-    createTenantRoleSession(resolvedInvite.name, profile.company, tenantRole);
-    router.push(getDefaultRouteForRole(tenantRole));
+    const nextWorkflow = acceptDemoInvite(resolvedInvite.id);
+    const acceptedInvite = nextWorkflow.invites.find((item) => item.id === resolvedInvite.id) ?? {
+      ...resolvedInvite,
+      status: "Accepted" as const,
+    };
+
+    promoteInviteToMember(acceptedInvite);
+    const member = readDemoMemberRegistryState().members.find(
+      (item) => item.email.trim().toLowerCase() === acceptedInvite.email.trim().toLowerCase()
+    );
+
+    const tenantRole = normalizeTenantRole(member?.role || acceptedInvite.role);
+    const session =
+      member
+        ? createTenantMemberSession({
+            id: member.id,
+            email: member.email,
+            name: member.name,
+            role: member.role,
+            tenantName: member.tenantName,
+            status: member.status,
+            designation: member.designation,
+            team: member.team,
+          })
+        : createTenantRoleSession(acceptedInvite.name, profile.company, tenantRole);
+
+    router.push(getDefaultRouteForRole(session?.role ?? tenantRole));
   }
 
   return (
