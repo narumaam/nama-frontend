@@ -23,7 +23,7 @@ const DEFAULT_MARKET: DemoMarket = {
 
 export const DEFAULT_DEMO_PROFILE: DemoProfile = {
   company: "Nair Luxury Escapes",
-  operator: "Demo Operator",
+  operator: "Workspace Admin",
   roles: ["Travel Agency", "DMC"],
   market: DEFAULT_MARKET,
   baseCurrency: DEFAULT_MARKET.currency,

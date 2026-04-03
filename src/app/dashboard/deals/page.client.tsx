@@ -711,6 +711,12 @@ export default function DealsClientPage() {
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] p-4 text-sm text-[#C9A84C]">
             {data.finance.status}
           </div>
+          <Link
+            href="/dashboard/finance"
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+          >
+            Open Finance Control <ArrowRight size={12} />
+          </Link>
         </div>
 
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">

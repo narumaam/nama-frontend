@@ -1,7 +1,25 @@
 "use client";
 
 import React from "react";
-import { Activity, ArrowDownRight, ArrowUpRight, BadgeIndianRupee, ChevronRight, Download, Filter, Info, Sparkles, Target, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  BadgeIndianRupee,
+  CheckCircle2,
+  ChevronRight,
+  Download,
+  Filter,
+  Shield,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 
 type FinanceCase = {
   slug: string;
@@ -88,9 +106,9 @@ const LEDGER_ROWS = [
   },
   {
     date: "02 Apr 2026",
-    entity: "Demo overhead bucket",
-    reference: "OPS-DEMO-001",
-    category: "Demo operation",
+    entity: "Preview overhead bucket",
+    reference: "OPS-ALPHA-001",
+    category: "Operating layer",
     amount: "- ₹ 1,25,000",
     amountClass: "text-[#B8B0A0]",
     status: "Seeded",
@@ -98,46 +116,135 @@ const LEDGER_ROWS = [
   },
 ];
 
+const COLLECTION_QUEUE = [
+  {
+    title: "Maldives deposit hold",
+    owner: "Meera Shah",
+    amount: "₹1,80,000",
+    risk: "High",
+    note: "Deposit timing is the priority finance talking point because it controls whether the case can move cleanly into execution.",
+    href: "/dashboard/deals?case=maldives-honeymoon",
+  },
+  {
+    title: "Dubai quote release",
+    owner: "Ravi Menon",
+    amount: "₹85,000",
+    risk: "Medium",
+    note: "The quote is ready, but finance framing should sit next to the approver summary so the release feels controlled.",
+    href: "/dashboard/deals?case=dubai-bleisure",
+  },
+  {
+    title: "Kerala reminder pacing",
+    owner: "Farah Khan",
+    amount: "₹45,000",
+    risk: "Watch",
+    note: "This case needs softer reminder timing without losing visibility on fare movement and payment intent.",
+    href: "/dashboard/deals?case=kerala-family",
+  },
+];
+
+const FINANCE_GUARDRAILS = [
+  {
+    title: "Margin floor",
+    state: "Protected",
+    detail: "All three preview cases stay above the visible commercial floor, so finance reads as controlled instead of reactive.",
+  },
+  {
+    title: "Deposit timing",
+    state: "Needs attention",
+    detail: "The Maldives case is the cash-pressure moment and should be the finance highlight during the walkthrough.",
+  },
+  {
+    title: "Execution release",
+    state: "Ready",
+    detail: "Bookings is presented as a consequence of finance clearance rather than a disconnected ops jump.",
+  },
+];
+
 export default function FinancePage() {
+  const profile = readDemoProfile();
   const totalQuote = FINANCE_CASES.reduce((sum, item) => sum + item.quote_total, 0);
   const totalCost = FINANCE_CASES.reduce((sum, item) => sum + item.cost_total, 0);
   const totalProfit = FINANCE_CASES.reduce((sum, item) => sum + item.gross_profit, 0);
-  const avgMargin = totalProfit / totalQuote * 100;
+  const avgMargin = (totalProfit / totalQuote) * 100;
   const totalDeposit = FINANCE_CASES.reduce((sum, item) => sum + item.deposit_due, 0);
+  const atRiskCount = FINANCE_CASES.filter((item) => item.status.includes("pending") || item.status.includes("queued")).length;
+  const depositCoverage = Math.round((totalDeposit / totalQuote) * 100);
+  const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
+  const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
-            <span>Financial Ledger</span>
+            <span>Finance-lite</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">Seeded deal economics</span>
+            <span className="opacity-50">Collections & Margin Control</span>
           </div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter font-headline text-[#F5F0E8]">Financial Ledger</h1>
-          <p className="mt-2 max-w-3xl text-xs uppercase tracking-wide font-mono text-[#B8B0A0]">
-            This screen shows demo-safe quote economics for the Maldives, Dubai, and Kerala cases without implying payment rails are live.
+          <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#F5F0E8]">Finance Control</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            This is the alpha finance layer for the same live cases: margin visibility, deposit pressure, release readiness, and commercial control before execution starts.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">{visibleRoles}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">
+              {profile.market.country} · {profile.baseCurrency}
+            </span>
+          </div>
         </div>
-        <div className="rounded-2xl border border-[#C9A84C]/15 bg-[#111111] p-4 shadow-xl">
-          <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Base currency</div>
-          <div className="mt-1 text-lg font-black text-[#C9A84C]">INR (₹)</div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Link
+            href="/dashboard/deals?case=maldives-honeymoon"
+            className="w-full rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10 sm:w-auto"
+          >
+            Open priority deal
+          </Link>
+          <Link
+            href="/dashboard/bookings"
+            className="w-full rounded-xl bg-[#C9A84C] px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95 sm:w-auto"
+          >
+            Continue to execution
+          </Link>
         </div>
       </header>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Quote Volume" value={`₹${totalQuote.toLocaleString("en-IN")}`} sub="Across 3 seeded cases" icon={BadgeIndianRupee} />
-        <MetricCard label="Gross Profit" value={`₹${totalProfit.toLocaleString("en-IN")}`} sub="Commercial surplus shown in demo" icon={Target} />
+        <MetricCard label="Quote Volume" value={`₹${totalQuote.toLocaleString("en-IN")}`} sub="Across 3 preview cases" icon={BadgeIndianRupee} />
+        <MetricCard label="Gross Profit" value={`₹${totalProfit.toLocaleString("en-IN")}`} sub="Commercial surplus in view" icon={Target} />
         <MetricCard label="Deposit Pipeline" value={`₹${totalDeposit.toLocaleString("en-IN")}`} sub="Pending collection across cases" icon={TrendingUp} />
-        <MetricCard label="Average Margin" value={`${avgMargin.toFixed(1)}%`} sub="Weighted across the demo set" icon={Sparkles} />
+        <MetricCard label="Average Margin" value={`${avgMargin.toFixed(1)}%`} sub="Weighted across the active set" icon={Sparkles} />
+      </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.25em] text-[#C9A84C]">Finance Continuity</div>
+            <h2 className="text-lg font-black text-[#F5F0E8] sm:text-xl">The commercial checkpoint between deal approval and execution</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              Use this screen to show that finance is not a back-office afterthought. It protects margin, controls deposit timing, and decides when a case is truly ready for bookings.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">{depositCoverage}% deposit coverage</span>
+            <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">{atRiskCount} cases need cash action</span>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <SignalCard label="Priority collection" value="Maldives hold" note="Lead with the most time-sensitive deposit case." icon={<AlertTriangle size={16} />} />
+          <SignalCard label="Release gate" value="Finance clears bookings" note="Execution is shown as a consequence of approval." icon={<Shield size={16} />} />
+          <SignalCard label="Cash pacing" value="Three stages visible" note="Approved, pending, and reminder states sit side by side." icon={<Wallet size={16} />} />
+          <SignalCard label="Commercial confidence" value="Margins protected" note="Each case stays above the visible floor." icon={<CheckCircle2 size={16} />} />
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 lg:col-span-8">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Performance Vector</h2>
-              <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Deterministic case economics for the Monday demo</p>
+              <h2 className="font-headline text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Performance Vector</h2>
+              <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Case economics across the April preview set</p>
             </div>
             <div className="flex gap-6">
               <LegendItem color="bg-[#C9A84C]" label="Quote value" />
@@ -170,16 +277,96 @@ export default function FinancePage() {
             <Activity size={18} className="text-[#C9A84C] opacity-50" />
           </div>
           <div className="space-y-6">
-            <FlowItem label="Seeded inflow" value={`₹${totalQuote.toLocaleString("en-IN")}`} color="text-[#1D9E75]" icon={<ArrowUpRight size={20} />} />
-            <FlowItem label="Seeded cost base" value={`₹${totalCost.toLocaleString("en-IN")}`} color="text-[#C9A84C]" icon={<ArrowDownRight size={20} />} />
+            <FlowItem label="Visible inflow" value={`₹${totalQuote.toLocaleString("en-IN")}`} color="text-[#1D9E75]" icon={<ArrowUpRight size={20} />} />
+            <FlowItem label="Cost base" value={`₹${totalCost.toLocaleString("en-IN")}`} color="text-[#C9A84C]" icon={<ArrowDownRight size={20} />} />
             <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-              <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E] mb-2">Narrative</div>
+              <div className="mb-2 text-[9px] font-mono uppercase tracking-[0.2em] text-[#4A453E]">Narrative</div>
               <p className="text-sm leading-relaxed text-[#B8B0A0]">
-                The ledger mirrors the same seeded deals used in leads, comms, and deals so the commercial story stays continuous.
+                The finance layer mirrors the same cases used in leads, deals, DMC, and bookings so the commercial story stays continuous.
               </p>
             </div>
           </div>
         </aside>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Wallet size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Collection Priority Queue</h2>
+          </div>
+          <div className="space-y-3">
+            {COLLECTION_QUEUE.map((item) => (
+              <Link key={item.title} href={item.href} className="block rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 transition-colors hover:border-[#C9A84C]/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-black text-[#F5F0E8]">{item.title}</div>
+                    <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.owner}</div>
+                  </div>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
+                      item.risk === "High"
+                        ? "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"
+                        : item.risk === "Medium"
+                          ? "border-[#1D9E75]/20 bg-[#1D9E75]/10 text-[#1D9E75]"
+                          : "border-white/10 bg-[#111111] text-[#B8B0A0]"
+                    }`}
+                  >
+                    {item.risk}
+                  </span>
+                </div>
+                <div className="mt-3 text-xl font-black text-[#C9A84C]">{item.amount}</div>
+                <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{item.note}</div>
+                <div className="mt-3 inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-[#4A453E]">
+                  Open linked case <ArrowRight size={12} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+            <div className="mb-5 flex items-center gap-2">
+              <Shield size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Finance Guardrails</h2>
+            </div>
+            <div className="space-y-3">
+              {FINANCE_GUARDRAILS.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-black text-[#F5F0E8]">{item.title}</div>
+                    <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                      {item.state}
+                    </span>
+                  </div>
+                  <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">{item.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">How to frame this in the preview</h2>
+            </div>
+            <div className="grid gap-3">
+              <PositioningCard
+                title="What this proves"
+                detail="Finance is a visible operator layer in NAMA, not a spreadsheet after the fact. It sees margin, deposits, and release timing inside the same case flow."
+              />
+              <PositioningCard
+                title="Safe wording"
+                detail="Call this a preview-safe finance control layer. It shows commercial logic and collections workflow without claiming live reconciliation rails are fully wired end to end."
+              />
+              <PositioningCard
+                title="Walkthrough handoff"
+                detail="Use Finance between the deal page and bookings so execution feels earned through a release checkpoint, not jumped to for convenience."
+              />
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -197,19 +384,33 @@ export default function FinancePage() {
               <Stat label="Deposit" value={`₹${item.deposit_due.toLocaleString("en-IN")}`} />
             </div>
             <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">State</div>
+              <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">State</div>
               <p className="text-sm leading-relaxed text-[#F5F0E8]">{item.status}</p>
               <p className="mt-2 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.payment_state}</p>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Link
+                href={`/dashboard/deals?case=${item.slug}`}
+                className="flex-1 rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+              >
+                Open Deal
+              </Link>
+              <Link
+                href="/dashboard/bookings"
+                className="flex-1 rounded-xl border border-white/10 bg-[#111111] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-[#B8B0A0]"
+              >
+                Open Execution
+              </Link>
             </div>
           </article>
         ))}
       </section>
 
-      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] overflow-hidden">
+      <section className="overflow-hidden rounded-3xl border border-[#C9A84C]/10 bg-[#111111]">
         <div className="flex items-center justify-between gap-4 border-b border-[#C9A84C]/10 bg-[#151515] px-6 py-5">
           <div>
-            <h2 className="text-lg font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Intelligence Ledger</h2>
-            <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Recent seeded transmissions</p>
+            <h2 className="font-headline text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Intelligence Ledger</h2>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Recent preview transmissions</p>
           </div>
           <div className="flex gap-3">
             <button className="flex items-center gap-2 rounded-lg border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] transition-all hover:border-[#C9A84C]/30">
@@ -236,10 +437,10 @@ export default function FinancePage() {
             </thead>
             <tbody className="divide-y divide-[#C9A84C]/5">
               {LEDGER_ROWS.map((row) => (
-                <tr key={row.reference} className="group hover:bg-[#1A1A1A] transition-colors">
+                <tr key={row.reference} className="group transition-colors hover:bg-[#1A1A1A]">
                   <td className="px-6 py-4 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{row.date}</td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-black uppercase tracking-tighter text-[#F5F0E8] group-hover:text-[#C9A84C] transition-colors">{row.entity}</div>
+                    <div className="text-sm font-black uppercase tracking-tighter text-[#F5F0E8] transition-colors group-hover:text-[#C9A84C]">{row.entity}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">{row.reference}</span>
@@ -247,7 +448,7 @@ export default function FinancePage() {
                   <td className="px-6 py-4 text-sm text-[#B8B0A0]">{row.category}</td>
                   <td className={`px-6 py-4 font-mono text-sm font-black tracking-tighter ${row.amountClass}`}>{row.amount}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${row.statusClass} border-current/20 bg-current/10`}>
+                    <span className={`inline-flex items-center rounded-full border border-current/20 bg-current/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest ${row.statusClass}`}>
                       {row.status}
                     </span>
                   </td>
@@ -257,6 +458,19 @@ export default function FinancePage() {
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+function SignalCard({ label, value, note, icon }: { label: string; value: string; note: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="mb-3 flex items-center gap-2 text-[#C9A84C]">
+        {icon}
+        <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
+      </div>
+      <div className="text-sm font-black text-[#F5F0E8]">{value}</div>
+      <div className="mt-2 text-xs leading-relaxed text-[#B8B0A0]">{note}</div>
     </div>
   );
 }
@@ -288,7 +502,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className={`h-2 w-2 rounded-sm ${color}`} />
-      <span className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E] font-black">{label}</span>
+      <span className="text-[9px] font-mono font-black uppercase tracking-widest text-[#4A453E]">{label}</span>
     </div>
   );
 }
@@ -307,7 +521,7 @@ function FlowItem({
   return (
     <div className="group flex items-center justify-between">
       <div>
-        <p className="mb-1 text-[9px] font-black uppercase tracking-[0.2em] font-mono text-[#4A453E] group-hover:text-[#B8B0A0] transition-colors">{label}</p>
+        <p className="mb-1 text-[9px] font-mono font-black uppercase tracking-[0.2em] text-[#4A453E] transition-colors group-hover:text-[#B8B0A0]">{label}</p>
         <p className={`font-mono text-2xl font-black tracking-tighter ${color}`}>{value}</p>
       </div>
       <div className={`rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3 ${color}`}>{icon}</div>
@@ -320,6 +534,15 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-3">
       <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
       <div className="mt-1 text-sm font-black text-[#F5F0E8]">{value}</div>
+    </div>
+  );
+}
+
+function PositioningCard({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{title}</div>
+      <div className="text-sm leading-relaxed text-[#B8B0A0]">{detail}</div>
     </div>
   );
 }

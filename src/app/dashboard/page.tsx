@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
 import { readDemoProfile } from "@/lib/demo-profile";
-import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet, Wand2 } from "lucide-react";
+import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet } from "lucide-react";
 
 type DemoCase = {
   slug: string;
@@ -38,7 +38,7 @@ const FALLBACK_CASES: DemoCase[] = [
     lead_id: 1,
     guest_name: "Meera Nair",
     priority: "CRITICAL",
-    query: "Hi NAMA! We want a honeymoon in Maldives — 6 nights, luxury overwater villa, private beach. Budget ₹5L for 2 people. Flexible on dates in April.",
+    query: "Hi NAMA! We want a honeymoon in Maldives - 6 nights, luxury overwater villa, private beach. Budget Rs5L for 2 people. Flexible on dates in April.",
     destination: "Maldives",
     quote_total: 486000,
     status: "Deposit pending within 24 hours",
@@ -48,7 +48,7 @@ const FALLBACK_CASES: DemoCase[] = [
     lead_id: 3,
     guest_name: "Arjun Mehta",
     priority: "ATTENTION",
-    query: "Need 4 nights in Dubai for one executive traveler. Mix of meetings and leisure. Downtown hotel, airport transfers, one desert experience. Budget around ₹2L all-in.",
+    query: "Need 4 nights in Dubai for one executive traveler. Mix of meetings and leisure. Downtown hotel, airport transfers, one desert experience. Budget around Rs2L all-in.",
     destination: "Dubai",
     quote_total: 212000,
     status: "Quote approved and ready to send",
@@ -58,7 +58,7 @@ const FALLBACK_CASES: DemoCase[] = [
     lead_id: 2,
     guest_name: "Sharma Family",
     priority: "CRITICAL",
-    query: "Need a Kerala family trip for 5 days in June for 2 adults and 1 child. Want Munnar, Alleppey houseboat, and easy pacing. Budget about ₹1.2L total.",
+    query: "Need a Kerala family trip for 5 days in June for 2 adults and 1 child. Want Munnar, Alleppey houseboat, and easy pacing. Budget about Rs1.2L total.",
     destination: "Kerala",
     quote_total: 124000,
     status: "Payment reminder queued",
@@ -68,44 +68,72 @@ const FALLBACK_CASES: DemoCase[] = [
 const CAPTURE_SIGNALS: CaptureSignal[] = [
   {
     channel: "Website",
-    source: "Website enquiry form",
+    source: "Public enquiry form",
     lead: "Meera Nair",
-    note: "Luxury honeymoon request captured from the public demo site and routed to CRM instantly.",
+    note: "Luxury honeymoon demand lands in CRM with urgency and intent already visible to sales.",
     tone: "High intent",
   },
   {
     channel: "WhatsApp",
-    source: "WhatsApp Business",
+    source: "Business chat handoff",
     lead: "Arjun Mehta",
-    note: "Inbound executive brief converted from chat into a structured lead and deal card.",
+    note: "Inbound chat becomes a structured case with source, owner, and next action already framed.",
     tone: "Fast response",
   },
   {
     channel: "Email",
-    source: "Sales inbox",
+    source: "Sales inbox parse",
     lead: "Sharma Family",
-    note: "Family itinerary request arrives with subject, sender, and dates parsed into the pipeline.",
-    tone: "Threaded context",
+    note: "Threaded itinerary requests retain dates, pacing notes, and family context before the deal opens.",
+    tone: "Context rich",
   },
   {
     channel: "Phone",
-    source: "Call transcript",
+    source: "Call transcript capture",
     lead: "Corporate lead",
-    note: "Voice note and call transcript are stored alongside the lead so the sales team can pick up where the call ended.",
+    note: "Call notes are stored in the same workspace so no one asks the traveler to repeat themselves.",
     tone: "Call-to-CRM",
   },
 ];
 
-const SALES_TRANSCRIPT = [
-  "Sales: Thanks for the brief, I’ve captured the Maldives honeymoon and I’m opening the quote now.",
-  "Client: Perfect, please keep the overwater villa and private dinner in the plan.",
-  "Sales: Noted. I’ll move this into CRM, hold the room window, and send the deposit follow-up.",
+const WALKTHROUGH_GUIDE = [
+  {
+    title: "1. Onboarding fit",
+    body: "Start with the configured business profile, market defaults, and operating identity so the workspace feels tailored from the first screen.",
+    href: "/register",
+    cta: "Open onboarding",
+  },
+  {
+    title: "2. CRM urgency",
+    body: "Move into Leads to show omnichannel capture, fit scoring, owner load, and urgency control before opening a case.",
+    href: "/dashboard/leads",
+    cta: "Open leads",
+  },
+  {
+    title: "3. Deal conversion",
+    body: "Use the Maldives case for triage, itinerary logic, quote framing, vendor position, and the conversion story.",
+    href: "/dashboard/deals?case=maldives-honeymoon",
+    cta: "Open deal",
+  },
+  {
+    title: "4. Finance-lite",
+    body: "Show margin visibility, deposit pressure, and release readiness as a dedicated control layer instead of a hidden spreadsheet step.",
+    href: "/dashboard/finance",
+    cta: "Open finance",
+  },
+  {
+    title: "5. Supplier to execution",
+    body: "Close on DMC normalization and bookings handoff to prove the alpha runs as one operating system.",
+    href: "/dashboard/bookings",
+    cta: "Open execution",
+  },
 ];
 
-const DEMO_JOURNEY = [
+const PREVIEW_JOURNEY = [
   { label: "Capture", href: "/dashboard/leads", detail: "Website, WhatsApp, email, and phone" },
-  { label: "Convert", href: "/dashboard/deals?lead=1", detail: "Triage, itinerary, quote, and margin" },
-  { label: "Normalize", href: "/dashboard/dmc", detail: "Contracts, vendor notes, and DMC ops" },
+  { label: "Convert", href: "/dashboard/deals?case=maldives-honeymoon", detail: "Triage, itinerary, quote, and close logic" },
+  { label: "Control", href: "/dashboard/finance", detail: "Margin, deposits, and release checks" },
+  { label: "Normalize", href: "/dashboard/dmc", detail: "Contracts, suppliers, and DMC ops" },
   { label: "Execute", href: "/dashboard/bookings", detail: "Documents, payments, and handoff" },
 ];
 
@@ -169,58 +197,57 @@ export default function DashboardPage() {
   const totalQuote = cases.reduce((sum, item) => sum + item.quote_total, 0);
   const avgQuote = Math.round(totalQuote / Math.max(cases.length, 1));
   const criticalCount = cases.filter((item) => item.priority === "CRITICAL").length;
+  const depositExposure = 310000;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
-            <span>Demo</span>
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
+            <span>Alpha Preview</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">Golden Path</span>
+            <span className="opacity-50">Walkthrough Spine</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter text-[#F5F0E8] font-headline uppercase">Operations Overview</h1>
-          <p className="text-[#B8B0A0] mt-2 font-body text-sm max-w-2xl">
-            This dashboard is wired to seeded demo cases so the Monday walkthrough stays coherent from lead to quote to deal.
+          <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#F5F0E8]">Operations Overview</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            This overview is the April 6 preview spine: one configured workspace, one coherent case set, and one guided path from capture through finance, supplier control, and execution.
           </p>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-3">
           <Sparkles size={16} className="text-[#C9A84C]" />
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Demo Mode</div>
-            <div className="text-sm font-black text-[#F5F0E8]">
-              {loading ? "Syncing seeded cases..." : "Seeded cases ready"}
-            </div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Preview Status</div>
+            <div className="text-sm font-black text-[#F5F0E8]">{loading ? "Syncing preview cases..." : "Preview cases ready"}</div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <MetricCard label="Pipeline Value" value={`₹${totalQuote.toLocaleString("en-IN")}`} sub="Across 3 demo cases" icon={<BadgeIndianRupee size={16} />} />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Pipeline Value" value={`₹${totalQuote.toLocaleString("en-IN")}`} sub="Across 3 preview cases" icon={<BadgeIndianRupee size={16} />} />
         <MetricCard label="Avg Deal Size" value={`₹${avgQuote.toLocaleString("en-IN")}`} sub="Mean quote value" icon={<Target size={16} />} />
         <MetricCard label="Active Cases" value={`${cases.length}`} sub={`${criticalCount} marked critical`} icon={<Users size={16} />} />
-        <MetricCard label="Automation Readiness" value="94%" sub="Backend + frontend verified" icon={<Wand2 size={16} />} />
+        <MetricCard label="Deposit Exposure" value={`₹${depositExposure.toLocaleString("en-IN")}`} sub="Needs finance follow-through" icon={<Wallet size={16} />} />
       </div>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Canonical Demo Journey</div>
-            <h2 className="text-lg sm:text-xl font-black text-[#F5F0E8]">One lead, one journey, four operating layers</h2>
-            <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed max-w-3xl">
-              Use this strip as the Monday anchor: capture demand, convert it into a structured deal, normalize supplier input, then move into execution.
+            <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.25em] text-[#C9A84C]">Canonical Preview Journey</div>
+            <h2 className="text-lg font-black text-[#F5F0E8] sm:text-xl">One lead, one journey, five operating layers</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              Use this strip as the walkthrough anchor: capture demand, convert it into a structured deal, show finance control, normalize supplier input, then move into execution.
             </p>
           </div>
           <Link
-            href="/dashboard/deals?lead=1"
-            className="w-full md:w-auto text-center rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
+            href="/dashboard/deals?case=maldives-honeymoon"
+            className="w-full rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10 md:w-auto"
           >
             Start with Maldives case
           </Link>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {DEMO_JOURNEY.map((step, index) => (
-            <Link key={step.label} href={step.href} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 hover:border-[#C9A84C]/20 transition-colors">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {PREVIEW_JOURNEY.map((step, index) => (
+            <Link key={step.label} href={step.href} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 transition-colors hover:border-[#C9A84C]/20">
               <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
                 {String(index + 1).padStart(2, "0")} · {step.label}
               </div>
@@ -234,20 +261,19 @@ export default function DashboardPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               <Bot size={14} className="text-[#C9A84C]" />
               <h2 className="text-lg font-black text-[#F5F0E8]">Onboarding Snapshot</h2>
             </div>
-            <p className="text-sm text-[#B8B0A0] leading-relaxed max-w-3xl">
-              The workspace is carrying forward what was chosen in onboarding: company identity, operator name, hybrid business roles, operating market, base currency,
-              additional selling currencies, and gateway routing.
+            <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              The workspace carries forward the operating choices made in onboarding: company identity, operator, hybrid business roles, market defaults, base currency, selling currencies, and gateway route.
             </p>
           </div>
-          <Link href="/register" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
+          <Link href="/register" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
             Review onboarding <ChevronRight size={14} />
           </Link>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <SnapshotCard label="Company" value={demoCompany} sub={`Run by ${demoOperator}`} />
           <SnapshotCard label="Business Roles" value={businessRoles.join(" + ")} sub="One entity can operate as all three" />
           <SnapshotCard label="Operating Market" value={demoMarket.country} sub={demoMarket.language} />
@@ -256,82 +282,87 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <section className="lg:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
-          <div className="flex items-center gap-2 mb-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 lg:col-span-3">
+          <div className="mb-4 flex items-center gap-2">
             <Sparkles size={14} className="text-[#C9A84C]" />
             <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel Capture</h2>
           </div>
-          <p className="text-sm text-[#B8B0A0] leading-relaxed mb-5">
-            Website forms, WhatsApp, email, and phone-call transcripts all land in the same CRM lane so the team sees one continuous customer story.
+          <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
+            Website forms, WhatsApp, email, and call transcripts all land in one CRM lane so the team sees one continuous traveler story before it becomes a deal.
           </p>
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid gap-3 md:grid-cols-2">
             {CAPTURE_SIGNALS.map((signal) => (
               <div key={signal.channel} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{signal.channel}</span>
                   <span className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{signal.tone}</span>
                 </div>
-                <div className="text-sm font-black text-[#F5F0E8] mb-1">{signal.lead}</div>
-                <div className="text-xs text-[#B8B0A0] leading-relaxed">{signal.note}</div>
+                <div className="mb-1 text-sm font-black text-[#F5F0E8]">{signal.lead}</div>
+                <div className="text-xs leading-relaxed text-[#B8B0A0]">{signal.note}</div>
                 <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#1D9E75]">{signal.source}</div>
               </div>
             ))}
           </div>
         </section>
 
-        <aside className="lg:col-span-2 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Wand2 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Sales Transcript</h2>
+        <aside className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock3 size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Walkthrough Guide</h2>
           </div>
-          <p className="text-sm text-[#B8B0A0] leading-relaxed mb-4">
-            Sales calls and follow-up notes are captured back into the CRM so the next rep sees the exact context without asking the customer to repeat themselves.
-          </p>
-          <div className="space-y-3">
-            {SALES_TRANSCRIPT.map((line, index) => (
-              <div key={index} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 text-sm text-[#F5F0E8] leading-relaxed">
-                {line}
-              </div>
+          <div className="space-y-4">
+            {WALKTHROUGH_GUIDE.map((step) => (
+              <Link key={step.title} href={step.href} className="block rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 transition-colors hover:border-[#C9A84C]/20">
+                <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{step.title}</div>
+                <div className="text-sm leading-relaxed text-[#B8B0A0]">{step.body}</div>
+                <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{step.cta}</div>
+              </Link>
             ))}
           </div>
         </aside>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
-          <div className="flex items-center justify-between mb-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 lg:col-span-2">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-black text-[#F5F0E8] uppercase tracking-tight font-headline">Demo Cases</h2>
-              <p className="text-[#B8B0A0] text-sm mt-1">Tap any card to open the full deal view and walk the quote pipeline with deterministic demo data.</p>
+              <h2 className="font-headline text-xl font-black uppercase tracking-tight text-[#F5F0E8]">Priority Cases</h2>
+              <p className="mt-1 text-sm text-[#B8B0A0]">Open any case to walk the same alpha through CRM, deal conversion, finance, supplier control, and execution.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Link href="/dashboard/ekla" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
-                Open Ekla <ChevronRight size={14} />
+              <Link href="/dashboard/finance" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
+                Open Finance <ChevronRight size={14} />
               </Link>
-              <Link href="/dashboard/autopilot" className="text-[#C9A84C] text-xs uppercase tracking-widest font-black flex items-center gap-1">
+              <Link href="/dashboard/autopilot" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
                 Open Autopilot <ChevronRight size={14} />
               </Link>
             </div>
           </div>
           <div className="space-y-4">
             {cases.map((item) => (
-              <Link key={item.slug} href={`/dashboard/deals?case=${item.slug}`} className="block rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5 hover:border-[#C9A84C]/30 transition-all">
+              <Link key={item.slug} href={`/dashboard/deals?case=${item.slug}`} className="block rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5 transition-all hover:border-[#C9A84C]/30">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-[8px] font-mono font-black uppercase tracking-widest px-2 py-1 rounded-full border ${item.priority === "CRITICAL" ? "text-red-400 border-red-400/20 bg-red-400/10" : "text-[#C9A84C] border-[#C9A84C]/20 bg-[#C9A84C]/10"}`}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[8px] font-mono font-black uppercase tracking-widest ${
+                          item.priority === "CRITICAL"
+                            ? "border-red-400/20 bg-red-400/10 text-red-400"
+                            : "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"
+                        }`}
+                      >
                         {item.priority}
                       </span>
-                      <span className="text-[10px] font-mono text-[#4A453E] uppercase tracking-widest">{item.destination}</span>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.destination}</span>
                     </div>
                     <h3 className="text-lg font-black text-[#F5F0E8]">{item.guest_name}</h3>
-                    <p className="text-sm text-[#B8B0A0] leading-relaxed mt-1 max-w-2xl">{item.query}</p>
+                    <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#B8B0A0]">{item.query}</p>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="shrink-0 text-right">
                     <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Quote</div>
                     <div className="text-xl font-black text-[#C9A84C]">₹{item.quote_total.toLocaleString("en-IN")}</div>
-                    <div className="text-[10px] text-[#1D9E75] mt-2 max-w-[160px]">{item.status}</div>
+                    <div className="mt-2 max-w-[160px] text-[10px] text-[#1D9E75]">{item.status}</div>
                   </div>
                 </div>
               </Link>
@@ -340,24 +371,15 @@ export default function DashboardPage() {
         </section>
 
         <aside className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock3 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Demo Flow</h2>
+          <div className="mb-4 flex items-center gap-2">
+            <Wallet size={14} className="text-[#C9A84C]" />
+            <h2 className="text-lg font-black text-[#F5F0E8]">Preview Focus</h2>
           </div>
-          <ol className="space-y-4 text-sm">
-            <FlowStep title="1. Triage" body="Use the homepage playground to load Maldives, Dubai, or Kerala cases." />
-            <FlowStep title="2. Ekla" body="Show the autonomous agency operator layer that prepares routine work before a human touches it." />
-            <FlowStep title="3. Autopilot" body="Open the command center and jump directly into the high-priority deal cards." />
-            <FlowStep title="4. Deal View" body="Open a case and walk the quote, itinerary, finance, and vendor panels." />
-            <FlowStep title="5. Close" body="Show the consistent design, the seeded fallback, and the health indicators." />
-          </ol>
-          <Link
-            href="/dashboard/ekla"
-            className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
-          >
-            <Bot size={12} />
-            Ekla demo module
-          </Link>
+          <div className="space-y-3">
+            <FocusCard title="Maldives" note="Use this as the primary case because it spans urgency, margin, supplier fit, and deposit timing." />
+            <FocusCard title="Finance-lite" note="Show finance between deal and bookings so execution feels earned through release control." />
+            <FocusCard title="DMC continuity" note="Use supplier normalization as proof that the alpha is not only front-end CRM polish." />
+          </div>
         </aside>
       </div>
     </div>
@@ -367,12 +389,12 @@ export default function DashboardPage() {
 function MetricCard({ label, value, sub, icon }: { label: string; value: string; sub: string; icon: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-5">
-      <div className="flex items-center gap-2 text-[#C9A84C] mb-3">
+      <div className="mb-3 flex items-center gap-2 text-[#C9A84C]">
         {icon}
-        <span className="text-[10px] uppercase tracking-widest font-mono">{label}</span>
+        <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
       </div>
       <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
-      <div className="text-[10px] uppercase tracking-widest text-[#4A453E] font-mono mt-2">{sub}</div>
+      <div className="mt-2 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{sub}</div>
     </div>
   );
 }
@@ -380,18 +402,18 @@ function MetricCard({ label, value, sub, icon }: { label: string; value: string;
 function SnapshotCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-      <div className="text-[10px] uppercase tracking-widest font-mono text-[#4A453E]">{label}</div>
+      <div className="text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{label}</div>
       <div className="mt-2 text-sm font-black text-[#F5F0E8]">{value}</div>
-      <div className="mt-1 text-xs text-[#B8B0A0] leading-relaxed">{sub}</div>
+      <div className="mt-1 text-xs leading-relaxed text-[#B8B0A0]">{sub}</div>
     </div>
   );
 }
 
-function FlowStep({ title, body }: { title: string; body: string }) {
+function FocusCard({ title, note }: { title: string; note: string }) {
   return (
-    <li className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-      <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-1">{title}</div>
-      <div className="text-sm text-[#B8B0A0] leading-relaxed">{body}</div>
-    </li>
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{title}</div>
+      <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{note}</div>
+    </div>
   );
 }
