@@ -371,6 +371,7 @@ export default function DealsClientPage() {
 
   const [data, setData] = useState<DemoCase | null>(null);
   const [loading, setLoading] = useState(true);
+  const fallbackActivated = resolvedSlug !== slugParam;
 
   useEffect(() => {
     let cancelled = false;
@@ -443,6 +444,25 @@ export default function DealsClientPage() {
         </Link>
       </header>
 
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Resolved Demo Case</div>
+            <h2 className="text-lg font-black text-[#F5F0E8]">{data.guest_name} · {data.triage.destination}</h2>
+            <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
+              This screen is the conversion layer in the Monday story: capture, triage, quote, supplier alignment, finance, then booking handoff.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Case {slugParam}</span>
+            <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">Lead #{data.lead_id}</span>
+            <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">
+              {fallbackActivated ? "Fallback route used" : "Primary route resolved"}
+            </span>
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex items-center justify-between gap-4 mb-5">
           <div>
@@ -472,6 +492,22 @@ export default function DealsClientPage() {
               <div className="mt-2 text-sm font-semibold text-[#F5F0E8] leading-relaxed">{step.detail}</div>
               <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{step.state}</div>
             </div>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            { label: "1 Capture", href: `/dashboard/leads?case=${slugParam}` },
+            { label: "2 Deal", href: `/dashboard/deals?case=${slugParam}` },
+            { label: "3 DMC", href: "/dashboard/dmc" },
+            { label: "4 Execution", href: "/dashboard/bookings" },
+          ].map((step) => (
+            <Link
+              key={step.label}
+              href={step.href}
+              className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0] hover:border-[#C9A84C]/20 hover:text-[#F5F0E8] transition-colors"
+            >
+              {step.label}
+            </Link>
           ))}
         </div>
       </section>

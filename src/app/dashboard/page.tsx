@@ -102,6 +102,13 @@ const SALES_TRANSCRIPT = [
   "Sales: Noted. I’ll move this into CRM, hold the room window, and send the deposit follow-up.",
 ];
 
+const DEMO_JOURNEY = [
+  { label: "Capture", href: "/dashboard/leads", detail: "Website, WhatsApp, email, and phone" },
+  { label: "Convert", href: "/dashboard/deals?lead=1", detail: "Triage, itinerary, quote, and margin" },
+  { label: "Normalize", href: "/dashboard/dmc", detail: "Contracts, vendor notes, and DMC ops" },
+  { label: "Execute", href: "/dashboard/bookings", detail: "Documents, payments, and handoff" },
+];
+
 export default function DashboardPage() {
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [loading, setLoading] = useState(true);
@@ -194,6 +201,35 @@ export default function DashboardPage() {
         <MetricCard label="Active Cases" value={`${cases.length}`} sub={`${criticalCount} marked critical`} icon={<Users size={16} />} />
         <MetricCard label="Automation Readiness" value="94%" sub="Backend + frontend verified" icon={<Wand2 size={16} />} />
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Canonical Demo Journey</div>
+            <h2 className="text-lg sm:text-xl font-black text-[#F5F0E8]">One lead, one journey, four operating layers</h2>
+            <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed max-w-3xl">
+              Use this strip as the Monday anchor: capture demand, convert it into a structured deal, normalize supplier input, then move into execution.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/deals?lead=1"
+            className="w-full md:w-auto text-center rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
+          >
+            Start with Maldives case
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {DEMO_JOURNEY.map((step, index) => (
+            <Link key={step.label} href={step.href} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 hover:border-[#C9A84C]/20 transition-colors">
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                {String(index + 1).padStart(2, "0")} · {step.label}
+              </div>
+              <div className="mt-2 text-sm font-semibold text-[#F5F0E8]">{step.detail}</div>
+              <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Open layer</div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

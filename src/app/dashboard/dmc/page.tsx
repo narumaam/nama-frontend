@@ -126,6 +126,22 @@ export default function DmcPage() {
         ))}
       </section>
 
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Case Continuity</div>
+            <h2 className="text-lg font-black text-[#F5F0E8]">Supplier normalization for the same traveler case</h2>
+            <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed max-w-3xl">
+              This page is not a separate tool. It is the supplier-side layer of the same live deal, where messy contracts become structured quote and ops inputs.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Case Maldives honeymoon</span>
+            <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">Feeds quote blocks + ops notes</span>
+          </div>
+        </div>
+      </section>
+
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <div className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="mb-5 flex items-center gap-2">

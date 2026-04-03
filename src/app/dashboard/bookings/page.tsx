@@ -131,6 +131,22 @@ export default function BookingsPage() {
         <MetricCard label="Ops Owner" value="Rohan Iyer" sub="Live case owner for execution" icon={<Users size={16} />} />
       </section>
 
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Active Execution Case</div>
+            <h2 className="text-lg font-black text-[#F5F0E8]">Meera Nair · Maldives honeymoon · post-quote handoff</h2>
+            <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed max-w-3xl">
+              This is the execution consequence of the deal approval: deposit verified, supplier confirmed, documents queued, and ops ownership made explicit.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[#C9A84C]">Backed by deal #1</span>
+            <span className="rounded-full border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[#B8B0A0]">Ready for guest pack release</span>
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
           <div>
