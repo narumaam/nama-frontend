@@ -104,6 +104,13 @@ export type TenantCredentialResetRequestPayload = {
   scope: TenantSessionScope;
 };
 
+export type TenantCredentialBootstrapPayload = {
+  tenant_name: string;
+  email: string;
+  scope: "tenant";
+  access_code: string;
+};
+
 export type TenantCredentialResetConfirmPayload = {
   tenant_name?: string | null;
   email: string;
@@ -116,7 +123,8 @@ export type TenantCredentialResetResponse = {
   email: string;
   scope: TenantSessionScope;
   tenant_name: string | null;
-  reset_token: string;
+  reset_token: string | null;
+  delivery?: "response-preview" | "out-of-band";
   reset_expires_at: string;
 };
 

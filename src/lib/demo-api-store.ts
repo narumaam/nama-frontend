@@ -65,6 +65,17 @@ type DemoAuthAuditEvent = {
 };
 
 const DEFAULT_TENANT_NAME = "NAMA Demo";
+const APP_ENV = process.env.NAMA_ENV?.trim().toLowerCase();
+const IS_LOCAL_PREVIEW_ENV =
+  APP_ENV === "development" ||
+  APP_ENV === "dev" ||
+  APP_ENV === "local" ||
+  APP_ENV === "test" ||
+  APP_ENV === "testing" ||
+  process.env.NODE_ENV !== "production";
+const ALLOW_SECRET_PREVIEW =
+  IS_LOCAL_PREVIEW_ENV ||
+  process.env.NAMA_ALLOW_DEV_AUTH_PREVIEW?.trim().toLowerCase() === "true";
 
 class DemoApiStoreError extends Error {
   status: number;
@@ -102,7 +113,7 @@ function createCredentialRecord(
   return {
     subject_email: normalizeCredentialEmail(email),
     secret_hash: hashCredentialSecret(secret),
-    preview_code: options?.previewCode ?? null,
+    preview_code: ALLOW_SECRET_PREVIEW ? (options?.previewCode ?? null) : null,
     issued_at: now,
     updated_at: now,
     reset_token: null,
@@ -327,6 +338,9 @@ function ensureTenantCredentialForMembers(tenant: DemoTenantApiState) {
 function ensureSuperAdminCredentials(store: DemoApiStoreState) {
   const email = normalizeCredentialEmail(SUPER_ADMIN_DEMO_EMAIL);
   if (!store.super_admin_credentials[email]) {
+    if (!SUPER_ADMIN_DEMO_CODE) {
+      throw new DemoApiStoreError("Super Admin bootstrap credential is not configured for this environment", 503);
+    }
     store.super_admin_credentials[email] = createCredentialRecord(email, SUPER_ADMIN_DEMO_CODE, {
       previewCode: SUPER_ADMIN_DEMO_CODE,
       rotationRequired: false,
@@ -345,9 +359,7 @@ function getStoreState() {
     };
   }
 
-  const store = globalThis.__NAMA_DEMO_API_STORE__;
-  ensureSuperAdminCredentials(store);
-  return store;
+  return globalThis.__NAMA_DEMO_API_STORE__;
 }
 
 function getTenantState(tenantName?: string | null) {
@@ -509,7 +521,7 @@ function setSuperAdminCredentialSecret(email: string, secret: string) {
 function sanitizeResetRecord(record: DemoCredentialRecord, resetToken: string) {
   return {
     ...record,
-    reset_token: resetToken,
+    reset_token: ALLOW_SECRET_PREVIEW ? resetToken : null,
     reset_expires_at: resetExpiryIso(),
     updated_at: nowIso(),
   };
@@ -713,7 +725,7 @@ export function acceptTenantInvite(payload: TenantInviteAcceptPayload) {
     tenant_name: tenant.tenant_name,
     invite,
     member,
-    credential_access_code: payload.access_code,
+    credential_access_code: ALLOW_SECRET_PREVIEW ? payload.access_code : null,
   };
 }
 
@@ -793,6 +805,7 @@ export function listTenantSessions(tenantName?: string | null) {
 
 export function issueSuperAdminSession(payload: Pick<TenantSessionCreatePayload, "email" | "display_name" | "access_code">) {
   const store = getStoreState();
+  ensureSuperAdminCredentials(store);
 
   if (payload.access_code) {
     const credential = store.super_admin_credentials[normalizeCredentialEmail(payload.email)];
@@ -826,6 +839,7 @@ export function issueSuperAdminSession(payload: Pick<TenantSessionCreatePayload,
 }
 
 export function listSuperAdminSessions() {
+  ensureSuperAdminCredentials(getStoreState());
   return [...getStoreState().super_admin_sessions];
 }
 
@@ -850,9 +864,38 @@ export function requestTenantCredentialReset(payload: { tenant_name: string; ema
     email,
     scope: "tenant" as const,
     tenant_name: tenant.tenant_name,
-    reset_token: nextToken,
+    reset_token: ALLOW_SECRET_PREVIEW ? nextToken : null,
+    delivery: ALLOW_SECRET_PREVIEW ? "response-preview" : "out-of-band",
     reset_expires_at: tenant.credentials[email].reset_expires_at!,
   };
+}
+
+export function bootstrapTenantCredential(payload: {
+  tenant_name: string;
+  email: string;
+  scope: "tenant";
+  access_code: string;
+}) {
+  const tenant = getTenantState(payload.tenant_name);
+  const email = normalizeCredentialEmail(payload.email);
+  const member = tenant.members.find(
+    (item) =>
+      item.email.toLowerCase() === email &&
+      item.role === "customer-admin" &&
+      item.source === "tenant-profile",
+  );
+  if (!member) {
+    throw new DemoApiStoreError("Bootstrap tenant admin not found", 404);
+  }
+  setTenantCredentialSecret(tenant, member, payload.access_code);
+  recordTenantAuditEvent(tenant, {
+    category: "credential",
+    action: "bootstrapped",
+    actor_email: email,
+    subject_email: email,
+    detail: `Bootstrap credential initialized for ${member.name}.`,
+  });
+  return { ok: true, email, scope: "tenant" as const, tenant_name: tenant.tenant_name };
 }
 
 export function confirmTenantCredentialReset(payload: {
@@ -889,6 +932,7 @@ export function confirmTenantCredentialReset(payload: {
 
 export function requestSuperAdminCredentialReset(payload: { email: string; scope: "platform" }) {
   const store = getStoreState();
+  ensureSuperAdminCredentials(store);
   const email = normalizeCredentialEmail(payload.email);
   const credential = store.super_admin_credentials[email];
   if (!credential) {
@@ -908,7 +952,8 @@ export function requestSuperAdminCredentialReset(payload: { email: string; scope
     email,
     scope: "platform" as const,
     tenant_name: null,
-    reset_token: nextToken,
+    reset_token: ALLOW_SECRET_PREVIEW ? nextToken : null,
+    delivery: ALLOW_SECRET_PREVIEW ? "response-preview" : "out-of-band",
     reset_expires_at: store.super_admin_credentials[email].reset_expires_at!,
   };
 }
@@ -920,6 +965,7 @@ export function confirmSuperAdminCredentialReset(payload: {
   access_code: string;
 }) {
   const store = getStoreState();
+  ensureSuperAdminCredentials(store);
   const email = normalizeCredentialEmail(payload.email);
   const credential = store.super_admin_credentials[email];
   if (!credential || credential.reset_token !== payload.reset_token || isExpired(credential.reset_expires_at)) {
@@ -961,6 +1007,7 @@ export function revokeTenantSession(payload: { tenant_name: string; session_id: 
 
 export function revokeSuperAdminSession(payload: { session_id: string }) {
   const store = getStoreState();
+  ensureSuperAdminCredentials(store);
   const session = store.super_admin_sessions.find((item) => item.id === payload.session_id);
   if (!session) {
     throw new DemoApiStoreError("Session not found", 404);
@@ -981,6 +1028,7 @@ export function listTenantAuthAudit(tenantName?: string | null) {
 }
 
 export function listPlatformAuthAudit() {
+  ensureSuperAdminCredentials(getStoreState());
   return [...getStoreState().platform_audit_events];
 }
 

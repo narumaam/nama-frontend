@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.api.v1.beta_auth_store import confirm_reset_token, issue_reset_token
+from app.api.v1.beta_auth_store import bootstrap_tenant_admin_credential, confirm_reset_token, issue_reset_token
 from app.db.session import get_db
 
 router = APIRouter()
@@ -24,6 +24,13 @@ class CredentialResetConfirmRequest(BaseModel):
     access_code: str = Field(..., min_length=8)
 
 
+class TenantCredentialBootstrapRequest(BaseModel):
+    email: str = Field(..., min_length=3)
+    tenant_name: str = Field(..., min_length=1)
+    scope: str = Field(..., min_length=1)
+    access_code: str = Field(..., min_length=8)
+
+
 @router.get("/health")
 def health_check():
     return {"status": "ready", "module": "TENANT_CREDENTIALS"}
@@ -36,6 +43,18 @@ def request_tenant_reset(payload: CredentialResetRequest, db: Session = Depends(
     if not payload.tenant_name:
         raise HTTPException(status_code=400, detail="tenant_name is required for tenant credential reset")
     return issue_reset_token(db, scope="tenant", email=payload.email, tenant_name=payload.tenant_name)
+
+
+@router.post("/tenant/bootstrap")
+def bootstrap_tenant_credential(payload: TenantCredentialBootstrapRequest, db: Session = Depends(get_db)):
+    if payload.scope != "tenant":
+        raise HTTPException(status_code=400, detail="Tenant credential bootstrap scope must be tenant")
+    return bootstrap_tenant_admin_credential(
+        db,
+        tenant_name=payload.tenant_name,
+        email=payload.email,
+        access_code=payload.access_code,
+    )
 
 
 @router.post("/tenant/confirm-reset")

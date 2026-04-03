@@ -3,9 +3,19 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { type TenantSessionContract } from "@/lib/tenant-contracts";
 
 export const APP_SESSION_COOKIE = "nama.app_session";
+const SESSION_TTL_SECONDS = 60 * 60 * 8;
+
+function isLocalAuthPreviewEnv() {
+  const appEnv = process.env.NAMA_ENV?.trim().toLowerCase();
+  const nodeEnv = process.env.NODE_ENV?.trim().toLowerCase();
+  return appEnv === "development" || appEnv === "dev" || appEnv === "local" || appEnv === "test" || appEnv === "testing" || nodeEnv !== "production";
+}
 
 function getSessionCookieSecret() {
-  return process.env.SESSION_COOKIE_SECRET?.trim() || process.env.SECRET_KEY?.trim() || "dev-only-session-cookie-secret";
+  const configuredSecret = process.env.SESSION_COOKIE_SECRET?.trim() || process.env.SECRET_KEY?.trim();
+  if (configuredSecret) return configuredSecret;
+  if (isLocalAuthPreviewEnv()) return "dev-only-session-cookie-secret";
+  throw new Error("SESSION_COOKIE_SECRET or SECRET_KEY must be configured outside local preview environments");
 }
 
 function toBase64Url(value: string) {
@@ -24,6 +34,18 @@ export function serializeSessionCookie(session: TenantSessionContract) {
   const payload = toBase64Url(JSON.stringify(session));
   const signature = signPayload(payload);
   return `${payload}.${signature}`;
+}
+
+export function getSessionCookieOptions() {
+  const nodeEnv = process.env.NODE_ENV?.trim().toLowerCase();
+  const secure = nodeEnv === "production" || process.env.NAMA_FORCE_SECURE_COOKIE?.trim().toLowerCase() === "true";
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure,
+    path: "/",
+    maxAge: SESSION_TTL_SECONDS,
+  };
 }
 
 export function parseSessionCookie(value?: string | null) {

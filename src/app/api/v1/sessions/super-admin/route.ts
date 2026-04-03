@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireRouteSession } from "@/app/api/v1/_session-auth";
 import { isDemoApiStoreError, issueSuperAdminSession, listSuperAdminSessions } from "@/lib/demo-api-store";
-import { APP_SESSION_COOKIE, serializeSessionCookie } from "@/lib/session-cookie";
+import { APP_SESSION_COOKIE, getSessionCookieOptions, serializeSessionCookie } from "@/lib/session-cookie";
 
 export async function GET() {
   const session = await requireRouteSession({
@@ -30,11 +30,7 @@ export async function POST(request: Request) {
     response.cookies.set({
       name: APP_SESSION_COOKIE,
       value: serializeSessionCookie(session),
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 8,
+      ...getSessionCookieOptions(),
     });
     return response;
   } catch (error) {

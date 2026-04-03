@@ -6,6 +6,52 @@ from app.main import app
 client = TestClient(app)
 
 
+def test_tenant_admin_bootstrap_initializes_login() -> None:
+    upsert_response = client.post(
+        "/api/v1/tenant-members/upsert",
+        json={
+            "tenant_name": "Bootstrap Travel",
+            "member": {
+                "id": "bootstrap-admin",
+                "tenant_name": "Bootstrap Travel",
+                "name": "Bootstrap Admin",
+                "email": "admin@bootstrap.demo",
+                "role": "customer-admin",
+                "designation": "Workspace Admin",
+                "team": "Leadership",
+                "status": "Active",
+                "source": "tenant-profile",
+                "reports_to": "Platform",
+                "responsibility": "Workspace ownership",
+            },
+        },
+    )
+    assert upsert_response.status_code == 200
+
+    bootstrap_response = client.post(
+        "/api/v1/credentials/tenant/bootstrap",
+        json={
+            "email": "admin@bootstrap.demo",
+            "scope": "tenant",
+            "tenant_name": "Bootstrap Travel",
+            "access_code": "Bootstrap-01",
+        },
+    )
+    assert bootstrap_response.status_code == 200
+
+    login_response = client.post(
+        "/api/v1/sessions/tenant",
+        json={
+            "email": "admin@bootstrap.demo",
+            "scope": "tenant",
+            "tenant_name": "Bootstrap Travel",
+            "access_code": "Bootstrap-01",
+        },
+    )
+    assert login_response.status_code == 200
+    assert login_response.json()["role"] == "customer-admin"
+
+
 def test_tenant_credential_reset_rotates_login() -> None:
     upsert_response = client.post(
         "/api/v1/tenant-members/upsert",

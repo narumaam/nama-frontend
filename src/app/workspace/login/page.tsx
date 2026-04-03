@@ -202,8 +202,12 @@ export default function WorkspaceLoginPage() {
         email,
         scope: "tenant",
       });
-      setResetToken(response.reset_token);
-      setMessage("Reset token issued for this beta workspace. Set the new access code below and confirm the reset.");
+      setResetToken(response.reset_token ?? "");
+      setMessage(
+        response.reset_token
+          ? "Reset token issued for this beta workspace. Set the new access code below and confirm the reset."
+          : "Reset requested. Deliver the issued token through the configured out-of-band channel, then confirm the new access code."
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to request a reset token.");
     } finally {

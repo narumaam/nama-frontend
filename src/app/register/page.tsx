@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { upsertDemoTenantRegistration, writeDemoSubscriptionPlan, type DemoSubscriptionPlan } from "@/lib/demo-admin";
 import { createIssuedTenantSession } from "@/lib/auth-session";
-import { confirmTenantCredentialReset, requestTenantCredentialReset } from "@/lib/credential-api";
+import { bootstrapTenantCredential } from "@/lib/credential-api";
 import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, findMarketPreset, type BusinessRole, type DemoPlan, type SupportedCurrency } from "@/lib/demo-config";
 import { appendDemoEvent } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, readDemoProfile, writeDemoProfile } from "@/lib/demo-profile";
@@ -181,16 +181,10 @@ export default function RegisterPage() {
         },
       });
 
-      const reset = await requestTenantCredentialReset({
+      await bootstrapTenantCredential({
         tenant_name: nextProfile.company,
         email: adminEmail,
         scope: "tenant",
-      });
-      await confirmTenantCredentialReset({
-        tenant_name: nextProfile.company,
-        email: adminEmail,
-        scope: "tenant",
-        reset_token: reset.reset_token,
         access_code: adminAccessCode,
       });
 

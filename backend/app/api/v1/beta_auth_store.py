@@ -22,10 +22,17 @@ TenantRole = Literal["customer-admin", "sales", "finance", "operations", "viewer
 TenantScope = Literal["tenant", "platform"]
 
 SUPER_ADMIN_EMAIL = "control@nama.internal"
-SUPER_ADMIN_BOOTSTRAP_CODE = "NAMA-ALPHA"
 SESSION_TTL_HOURS = 8
 RESET_TTL_MINUTES = 30
 INVITE_TTL_DAYS = 7
+
+APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
+IS_LOCAL_ENV = APP_ENV in {"development", "dev", "local", "test", "testing"}
+ALLOW_SECRET_PREVIEW = IS_LOCAL_ENV or os.getenv("NAMA_ALLOW_DEV_AUTH_PREVIEW", "").strip().lower() in {"1", "true", "yes"}
+SUPER_ADMIN_BOOTSTRAP_CODE = (
+    os.getenv("SUPER_ADMIN_BOOTSTRAP_CODE", "").strip()
+    or ("NAMA-ALPHA" if ALLOW_SECRET_PREVIEW else "")
+)
 
 
 def now_utc() -> datetime:
@@ -77,6 +84,10 @@ def normalize_invite_status(status: Optional[str]) -> str:
     if normalized == "accepted":
         return "Accepted"
     return "Pending"
+
+
+def should_echo_secret_preview() -> bool:
+    return ALLOW_SECRET_PREVIEW
 
 
 def tenant_access_code(tenant_name: str, role: TenantRole) -> str:
@@ -193,6 +204,12 @@ def ensure_super_admin_credential(db: Session) -> BetaCredential:
     if record:
         return record
 
+    if not SUPER_ADMIN_BOOTSTRAP_CODE:
+        raise HTTPException(
+            status_code=503,
+            detail="Super Admin bootstrap credential is not configured for this environment",
+        )
+
     current = now_iso()
     record = BetaCredential(
         scope="platform",
@@ -200,7 +217,7 @@ def ensure_super_admin_credential(db: Session) -> BetaCredential:
         subject_email=SUPER_ADMIN_EMAIL,
         subject_role="super-admin",
         secret_hash=hash_secret(SUPER_ADMIN_BOOTSTRAP_CODE),
-        preview_code=SUPER_ADMIN_BOOTSTRAP_CODE,
+        preview_code=SUPER_ADMIN_BOOTSTRAP_CODE if should_echo_secret_preview() else None,
         rotation_required=False,
         created_at=current,
         updated_at=current,
@@ -243,7 +260,7 @@ def ensure_tenant_member_credential(
         subject_email=subject_email,
         subject_role=role,
         secret_hash=hash_secret(resolved_secret),
-        preview_code=preview_code,
+        preview_code=preview_code if should_echo_secret_preview() else None,
         rotation_required=rotation_required if secret is None else False,
         created_at=current,
         updated_at=current,
@@ -654,6 +671,45 @@ def set_credential_secret(
     return record
 
 
+def bootstrap_tenant_admin_credential(
+    db: Session,
+    *,
+    tenant_name: str,
+    email: str,
+    access_code: str,
+) -> dict[str, object]:
+    tenant = normalize_tenant_name(tenant_name)
+    seed_tenant_defaults(db, tenant)
+    member = (
+        db.query(BetaTenantMember)
+        .filter(
+            BetaTenantMember.tenant_name == tenant,
+            BetaTenantMember.email == normalize_email(email),
+        )
+        .first()
+    )
+    if not member or member.role != "customer-admin" or member.source != "tenant-profile":
+        raise HTTPException(status_code=404, detail="Bootstrap tenant admin not found")
+
+    set_credential_secret(db, scope="tenant", email=email, access_code=access_code, tenant_name=tenant)
+    record_audit_event(
+        db,
+        tenant_name=tenant,
+        actor_email=normalize_email(email),
+        subject_email=normalize_email(email),
+        scope="tenant",
+        category="credential",
+        action="bootstrapped",
+        detail=f"Bootstrap credential initialized for {member.name}.",
+    )
+    return {
+        "ok": True,
+        "email": normalize_email(email),
+        "scope": "tenant",
+        "tenant_name": tenant,
+    }
+
+
 def accept_invite(
     db: Session,
     *,
@@ -727,7 +783,7 @@ def accept_invite(
         "tenant_name": tenant,
         "invite": invite_to_contract(refreshed_invite),
         "member": member,
-        "credential_access_code": access_code,
+        "credential_access_code": access_code if should_echo_secret_preview() else None,
     }
 
 
@@ -958,7 +1014,8 @@ def issue_reset_token(db: Session, *, scope: TenantScope, email: str, tenant_nam
         "email": normalize_email(email),
         "scope": scope,
         "tenant_name": normalize_tenant_name(tenant_name) if tenant_name else None,
-        "reset_token": raw_token,
+        "reset_token": raw_token if should_echo_secret_preview() else None,
+        "delivery": "response-preview" if should_echo_secret_preview() else "out-of-band",
         "reset_expires_at": record.reset_expires_at,
     }
 

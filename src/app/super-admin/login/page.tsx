@@ -57,8 +57,12 @@ export default function SuperAdminLoginPage() {
         scope: "platform",
         tenant_name: null,
       });
-      setResetToken(response.reset_token);
-      setMessage("Super Admin reset token issued. Confirm the new credential below, then sign in again.");
+      setResetToken(response.reset_token ?? "");
+      setMessage(
+        response.reset_token
+          ? "Super Admin reset token issued. Confirm the new credential below, then sign in again."
+          : "Super Admin reset requested. Use the configured out-of-band token delivery channel, then confirm the new credential below."
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to request a Super Admin reset.");
     } finally {

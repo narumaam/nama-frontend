@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/api";
 import {
+  type TenantCredentialBootstrapPayload,
   type TenantCredentialResetConfirmPayload,
   type TenantCredentialResetRequestPayload,
   type TenantCredentialResetResponse,
@@ -37,6 +38,23 @@ export async function requestTenantCredentialReset(payload: TenantCredentialRese
   }
 
   return (await response.json()) as TenantCredentialResetResponse;
+}
+
+export async function bootstrapTenantCredential(payload: TenantCredentialBootstrapPayload) {
+  const response = await fetch(credentialApiUrl("/tenant/bootstrap"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    await parseCredentialError(response, `Tenant credential bootstrap failed: ${response.status}`);
+  }
+
+  return (await response.json()) as { ok: boolean; email: string; scope: "tenant"; tenant_name: string };
 }
 
 export async function confirmTenantCredentialReset(payload: TenantCredentialResetConfirmPayload) {

@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 
 from fastapi import FastAPI
@@ -9,11 +10,11 @@ from app.api.v1 import (
     integrations, sentinel, rsi,
     sourcing, pricing, payments, marketing, demo, tenant_members, tenant_invites, tenant_sessions, tenant_credentials, tenant_audit
 )
-from app.db.session import engine, Base
+from app.db.bootstrap import bootstrap_database
 from app.models import beta_auth as beta_auth_models  # noqa: F401
 
-# For prototyping
-Base.metadata.create_all(bind=engine)
+APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
+bootstrap_database()
 
 app = FastAPI(title="NAMA Backend OS", version="0.1.0")
 
@@ -62,5 +63,5 @@ def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "mode": "demo",
+        "mode": APP_ENV,
     }

@@ -1,7 +1,9 @@
 import { tenantKey, type TenantRole } from "@/lib/tenant-contracts";
 
 export const SUPER_ADMIN_DEMO_EMAIL = "control@nama.internal";
-export const SUPER_ADMIN_DEMO_CODE = "NAMA-ALPHA";
+export const SUPER_ADMIN_DEMO_CODE =
+  process.env.SUPER_ADMIN_BOOTSTRAP_CODE?.trim() ||
+  (process.env.NODE_ENV === "production" ? "" : "NAMA-ALPHA");
 
 function normalizeRoleToken(role: TenantRole) {
   if (role === "customer-admin") return "ADMIN";

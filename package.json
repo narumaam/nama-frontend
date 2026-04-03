@@ -10,6 +10,7 @@
     "smoke:founder": "node scripts/founder_flow_smoke.mjs founder",
     "smoke:tenant-roles": "node scripts/tenant_role_smoke.mjs",
     "smoke:super-admin": "node scripts/super_admin_smoke.mjs",
+    "smoke:deploy-auth": "node scripts/deploy_auth_smoke.mjs",
     "smoke:small-agency": "node scripts/founder_flow_smoke.mjs small-agency",
     "smoke:ops-dmc": "node scripts/founder_flow_smoke.mjs ops-dmc"
   },
