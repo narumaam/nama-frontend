@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import {
   ArrowRight,
   Building2,
@@ -80,6 +81,11 @@ const SERVICE_STACK = [
 ];
 
 export default function DmcPage() {
+  const profile = useMemo(() => readDemoProfile(), []);
+  const [selectedContract, setSelectedContract] = useState(CONTRACT_INBOX[0]);
+  const visibleCompany = profile.company || DEFAULT_DEMO_PROFILE.company;
+  const visibleRoles = profile.roles.length ? profile.roles.join(" + ") : DEFAULT_DEMO_PROFILE.roles.join(" + ");
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -93,6 +99,13 @@ export default function DmcPage() {
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
             This is the supplier-side operating layer for DMCs: upload non-standard contracts, normalize messy formats, and keep travel-agent plus service-provider communication inside one controlled workspace.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
+            <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">{visibleRoles}</span>
+            <span className="rounded-full border border-white/10 bg-[#111111] px-3 py-1.5 text-[#B8B0A0]">
+              {profile.market.country} · {profile.baseCurrency}
+            </span>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link
@@ -124,7 +137,14 @@ export default function DmcPage() {
           </p>
           <div className="space-y-3">
             {CONTRACT_INBOX.map((contract) => (
-              <div key={contract.supplier} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <button
+                key={contract.supplier}
+                type="button"
+                onClick={() => setSelectedContract(contract)}
+                className={`w-full rounded-2xl border bg-[#0A0A0A] p-4 text-left transition-colors ${
+                  selectedContract.supplier === contract.supplier ? "border-[#C9A84C]/30" : "border-[#C9A84C]/10 hover:border-[#C9A84C]/20"
+                }`}
+              >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="text-sm font-black text-[#F5F0E8]">{contract.supplier}</div>
@@ -143,7 +163,7 @@ export default function DmcPage() {
                     {contract.status}
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -171,6 +191,30 @@ export default function DmcPage() {
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
               Present this as “AI-assisted contract normalization in a demo-safe flow,” not as a claim that every vendor format is already fully automated in production.
             </p>
+          </div>
+          <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Selected supplier output</div>
+                <div className="mt-1 text-sm font-black text-[#F5F0E8]">{selectedContract.supplier}</div>
+              </div>
+              <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+                {selectedContract.status}
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <PreviewField label="Source format" value={selectedContract.format} />
+              <PreviewField label="Publishing mode" value={selectedContract.status === "Parsed" || selectedContract.status === "Structured" ? "Ready for quote blocks" : "Review before release"} />
+            </div>
+            <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Structured commercial note</div>
+              <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{selectedContract.note}</div>
+            </div>
+            <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Operational destination</div>
+              <div className="mt-2 text-sm text-[#F5F0E8]">{visibleCompany} supplier workspace</div>
+              <div className="mt-1 text-[10px] text-[#B8B0A0]">Ready to feed quote blocks, ops notes, and supplier thread context back into the main deal flow.</div>
+            </div>
           </div>
         </aside>
       </section>
@@ -256,6 +300,15 @@ function MetricCard({ label, value, icon }: { label: string; value: string; icon
         <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
       </div>
       <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
+    </div>
+  );
+}
+
+function PreviewField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-[#F5F0E8]">{value}</div>
     </div>
   );
 }
