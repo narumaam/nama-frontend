@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_PLAN_PRICES, readDemoSubscriptionPlan, readDemoTenantRegistry } from "@/lib/demo-admin";
 import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
+import { filterDemoEvents, type DemoEventRange, type DemoEventSeverity } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE } from "@/lib/demo-profile";
 import { useDemoEvents } from "@/lib/use-demo-events";
 import { useDemoProfile } from "@/lib/use-demo-profile";
@@ -21,6 +22,7 @@ import {
   CreditCard,
   DatabaseZap,
   ExternalLink,
+  FileDown,
   Globe,
   Globe2,
   LayoutTemplate,
@@ -208,6 +210,8 @@ export default function AdminPage() {
   const [timelineTenantFilter, setTimelineTenantFilter] = useState<"All" | string>("All");
   const [timelineTypeFilter, setTimelineTypeFilter] = useState<"All" | "commercial" | "team" | "delivery">("All");
   const [timelineCaseFilter, setTimelineCaseFilter] = useState<"All" | string>("All");
+  const [timelineSeverityFilter, setTimelineSeverityFilter] = useState<"All" | DemoEventSeverity>("All");
+  const [timelineRangeFilter, setTimelineRangeFilter] = useState<DemoEventRange>("All");
   const [exportMessage, setExportMessage] = useState("Copy or download the filtered audit trail as a founder-safe proof artifact.");
   const currentPlan = readDemoSubscriptionPlan();
   const tenantRegistry = readDemoTenantRegistry();
@@ -308,25 +312,43 @@ export default function AdminPage() {
   }, [bufferEnabled, selectedMarket.baseCurrency, selectedPlan.name]);
   const timelineTenants = useMemo(() => ["All", ...Array.from(new Set(events.map((event) => event.tenant)))], [events]);
   const timelineCases = useMemo(() => ["All", ...Array.from(new Set(events.map((event) => event.caseSlug).filter(Boolean) as string[]))], [events]);
-  const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
-      const tenantMatch = timelineTenantFilter === "All" || event.tenant === timelineTenantFilter;
-      const caseMatch = timelineCaseFilter === "All" || event.caseSlug === timelineCaseFilter;
-      const typeMatch =
-        timelineTypeFilter === "All" ||
-        (timelineTypeFilter === "team" && event.type.includes("invite")) ||
-        (timelineTypeFilter === "commercial" &&
-          (event.type.includes("invoice") || event.type.includes("deposit") || event.type.includes("tenant_registered"))) ||
-        (timelineTypeFilter === "delivery" &&
-          (event.type.includes("traveler") || event.type.includes("guest_pack") || event.type.includes("lead_stage")));
-      return tenantMatch && caseMatch && typeMatch;
-    });
-  }, [events, timelineCaseFilter, timelineTenantFilter, timelineTypeFilter]);
+  const filteredEvents = useMemo(
+    () =>
+      filterDemoEvents(events, {
+        tenant: timelineTenantFilter,
+        caseSlug: timelineCaseFilter,
+        category: timelineTypeFilter,
+        severity: timelineSeverityFilter,
+        range: timelineRangeFilter,
+      }),
+    [events, timelineCaseFilter, timelineRangeFilter, timelineSeverityFilter, timelineTenantFilter, timelineTypeFilter]
+  );
   const exportText = useMemo(() => {
     return filteredEvents
       .map((event) => `${event.createdAt} | ${event.tenant} | ${event.title} | ${event.detail}${event.caseSlug ? ` | case ${event.caseSlug}` : ""}`)
       .join("\n");
   }, [filteredEvents]);
+  const auditSummary = useMemo(() => {
+    const successCount = filteredEvents.filter((event) => event.severity === "success").length;
+    const warningCount = filteredEvents.filter((event) => event.severity === "warning").length;
+    const tenantCount = new Set(filteredEvents.map((event) => event.tenant)).size;
+    return {
+      total: filteredEvents.length,
+      successCount,
+      warningCount,
+      tenantCount,
+    };
+  }, [filteredEvents]);
+  const auditReportHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (timelineTenantFilter !== "All") params.set("tenant", timelineTenantFilter);
+    if (timelineTypeFilter !== "All") params.set("category", timelineTypeFilter);
+    if (timelineCaseFilter !== "All") params.set("case", timelineCaseFilter);
+    if (timelineSeverityFilter !== "All") params.set("severity", timelineSeverityFilter);
+    if (timelineRangeFilter !== "All") params.set("range", timelineRangeFilter);
+    const query = params.toString();
+    return `/dashboard/admin/audit-report${query ? `?${query}` : ""}`;
+  }, [timelineCaseFilter, timelineRangeFilter, timelineSeverityFilter, timelineTenantFilter, timelineTypeFilter]);
 
   function handleResetDemo() {
     resetDemoState();
@@ -655,7 +677,7 @@ export default function AdminPage() {
           <Waypoints size={14} className="text-[#C9A84C]" />
           <h2 className="text-lg font-black text-[#F5F0E8]">Activity Timeline</h2>
         </div>
-        <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto_auto]">
+        <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto_auto]">
           <select
             value={timelineTenantFilter}
             onChange={(event) => setTimelineTenantFilter(event.target.value)}
@@ -688,6 +710,26 @@ export default function AdminPage() {
               </option>
             ))}
           </select>
+          <select
+            value={timelineSeverityFilter}
+            onChange={(event) => setTimelineSeverityFilter(event.target.value as "All" | DemoEventSeverity)}
+            className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-3 text-sm font-semibold text-[#F5F0E8] outline-none"
+          >
+            <option value="All">All severities</option>
+            <option value="success">Success</option>
+            <option value="warning">Warning</option>
+            <option value="info">Info</option>
+          </select>
+          <select
+            value={timelineRangeFilter}
+            onChange={(event) => setTimelineRangeFilter(event.target.value as DemoEventRange)}
+            className="rounded-xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-3 py-3 text-sm font-semibold text-[#F5F0E8] outline-none"
+          >
+            <option value="All">All dates</option>
+            <option value="24h">Last 24h</option>
+            <option value="7d">Last 7d</option>
+            <option value="30d">Last 30d</option>
+          </select>
           <button
             type="button"
             onClick={handleCopyExport}
@@ -702,6 +744,33 @@ export default function AdminPage() {
           >
             Download Audit
           </button>
+        </div>
+        <div className="mb-5 grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Share Summary</div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-4">
+              <AuditSummaryStat label="Events" value={String(auditSummary.total)} />
+              <AuditSummaryStat label="Success" value={String(auditSummary.successCount)} />
+              <AuditSummaryStat label="Warnings" value={String(auditSummary.warningCount)} />
+              <AuditSummaryStat label="Tenants" value={String(auditSummary.tenantCount)} />
+            </div>
+            <div className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">
+              Filtered proof artifact for {timelineTenantFilter === "All" ? "all visible tenants" : timelineTenantFilter}, focused on {timelineTypeFilter === "All" ? "all event types" : timelineTypeFilter} activity.
+            </div>
+          </div>
+          <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Printable Report</div>
+            <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">
+              Open a founder-safe printable route using the same filters, summary, and event list shown here.
+            </div>
+            <Link
+              href={auditReportHref}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+            >
+              <FileDown size={12} />
+              Open Audit Report
+            </Link>
+          </div>
         </div>
         <div className="mb-5 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
           {exportMessage}
@@ -1079,6 +1148,15 @@ function MetricCard({
       </div>
       <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
       <div className="mt-1 text-xs text-[#4A453E]">{sub}</div>
+    </div>
+  );
+}
+
+function AuditSummaryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
+      <div className="mt-1 text-lg font-black text-[#F5F0E8]">{value}</div>
     </div>
   );
 }
