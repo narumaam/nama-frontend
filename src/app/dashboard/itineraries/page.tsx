@@ -30,28 +30,28 @@ export default function ItinerariesPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
-            <span>Operations</span>
+            <span>Itinerary Workspace</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">Itinerary Builder</span>
+            <span className="opacity-50">Trip Design Layer</span>
           </div>
           <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
-            Dubai Luxury Escape
+            Dubai Premium Bleisure
           </h1>
           <div className="flex items-center gap-6 mt-2 text-[#B8B0A0] font-mono text-[10px] uppercase tracking-widest">
             <span className="flex items-center gap-1.5"><Users size={12} className="text-[#C9A84C]" /> Anjali Sharma + 2</span>
-            <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#C9A84C]" /> 15-20 Oct 2024</span>
+            <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#C9A84C]" /> 15-20 Oct 2026</span>
             <span className="flex items-center gap-1.5"><MapPin size={12} className="text-[#C9A84C]" /> Dubai, UAE</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1D9E75]/10 text-[#1D9E75] border border-[#1D9E75]/30 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1D9E75]/20 transition-all shadow-[0_0_15px_rgba(29,158,117,0.1)]">
-            <Sparkles size={14} fill="currentColor" /> Auto Generate (AI)
+            <Sparkles size={14} fill="currentColor" /> Generate Draft
           </button>
           <button className="flex items-center gap-2 px-5 py-2.5 bg-[#111111] text-[#F5F0E8] border border-[#C9A84C]/15 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1A1A1A] transition-all">
-            <Eye size={14} /> Preview
+            <Eye size={14} /> Preview Flow
           </button>
           <button className="flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-[#0A0A0A] rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(201,168,76,0.2)]">
-            <FileText size={14} /> Export PDF
+            <FileText size={14} /> Export Traveler PDF
           </button>
         </div>
       </div>

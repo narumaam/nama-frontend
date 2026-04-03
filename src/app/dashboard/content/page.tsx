@@ -26,24 +26,24 @@ export default function ContentLibraryPage() {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 shrink-0">
         <div>
           <nav className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2 font-black">
-            <span>Operations Hub</span>
+            <span>Content Workspace</span>
             <ChevronRight size={10} />
-            <span className="opacity-50 font-bold">Content Repository</span>
+            <span className="opacity-50 font-bold">Reusable Asset Library</span>
           </nav>
-          <h1 className="font-headline text-5xl font-black tracking-tighter text-[#F5F0E8] uppercase leading-none">Asset Repository</h1>
+          <h1 className="font-headline text-5xl font-black tracking-tighter text-[#F5F0E8] uppercase leading-none">Asset Library</h1>
           <p className="font-mono text-xs text-[#B8B0A0] mt-4 flex items-center gap-3 font-bold uppercase tracking-widest">
             <span className="w-2 h-2 rounded-full bg-[#1D9E75] shadow-[0_0_10px_rgba(29,158,117,0.5)] animate-pulse"></span>
-            ACTIVE STORAGE NODES: 1,248 ASSETS SYNCED
+            ACTIVE PREVIEW SET: 1,248 ASSETS INDEXED
           </p>
         </div>
         <div className="flex gap-4">
           <button className="bg-[#111111] border border-[#C9A84C]/20 text-[#C9A84C] px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all flex items-center gap-2 font-mono shadow-xl shadow-black/20">
             <Upload size={16} />
-            Bulk Upload
+            Bulk Ingest
           </button>
           <button className="bg-[#C9A84C] text-[#0A0A0A] px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2 shadow-[0_0_30px_rgba(201,168,76,0.3)] font-mono">
             <Plus size={16} strokeWidth={3} />
-            New Template
+            New Asset Template
           </button>
         </div>
       </header>
