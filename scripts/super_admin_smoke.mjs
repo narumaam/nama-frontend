@@ -9,9 +9,20 @@ import { chromium } from "playwright";
 
 const HOST = process.env.SMOKE_HOST || "127.0.0.1";
 const ROOT = process.cwd();
+const ROTATED_SUPER_ADMIN_CODE = "Nama-root-01";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readFilledValue(locator, timeoutMs = 20000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const value = await locator.inputValue();
+    if (value) return value;
+    await sleep(250);
+  }
+  throw new Error("Timed out waiting for populated input value");
 }
 
 function getAvailablePort() {
@@ -89,12 +100,24 @@ async function main() {
     await expectVisible(page, "/super-admin/login");
 
     await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
-    await page.getByLabel("Access code").fill("WRONG-CODE");
+    await page.getByRole("textbox", { name: /^Access code$/ }).fill("WRONG-CODE");
+    await page.getByRole("button", { name: /Open Super Admin/i }).click();
+    await expectVisible(page, "Invalid Super Admin credentials");
+
+    await page.getByRole("button", { name: /Request Reset/i }).click();
+    const resetToken = await readFilledValue(page.getByRole("textbox", { name: /^Reset token$/ }));
+    if (!resetToken) throw new Error("Reset token was not issued");
+    await page.getByRole("textbox", { name: /^New access code$/ }).fill(ROTATED_SUPER_ADMIN_CODE);
+    await page.getByRole("button", { name: /Confirm Reset/i }).click();
+    await expectVisible(page, "Super Admin credential updated");
+
+    await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
+    await page.getByRole("textbox", { name: /^Access code$/ }).fill("NAMA-ALPHA");
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await expectVisible(page, "Invalid Super Admin credentials");
 
     await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
-    await page.getByLabel("Access code").fill("NAMA-ALPHA");
+    await page.getByRole("textbox", { name: /^Access code$/ }).fill(ROTATED_SUPER_ADMIN_CODE);
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await page.waitForURL("**/dashboard/admin?entry=super-admin");
     await page.evaluate(() => window.localStorage.removeItem("nama.appSession"));

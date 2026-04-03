@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { upsertDemoTenantRegistration, writeDemoSubscriptionPlan, type DemoSubscriptionPlan } from "@/lib/demo-admin";
 import { createIssuedTenantSession } from "@/lib/auth-session";
-import { createTenantMemberAccessCode } from "@/lib/demo-credentials";
+import { confirmTenantCredentialReset, requestTenantCredentialReset } from "@/lib/credential-api";
 import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, findMarketPreset, type BusinessRole, type DemoPlan, type SupportedCurrency } from "@/lib/demo-config";
 import { appendDemoEvent } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, readDemoProfile, writeDemoProfile } from "@/lib/demo-profile";
@@ -73,6 +73,8 @@ export default function RegisterPage() {
   const [accountType, setAccountType] = useState(DEFAULT_DEMO_PROFILE.bankDetails.accountType);
   const [routingCode, setRoutingCode] = useState(DEFAULT_DEMO_PROFILE.bankDetails.routingCode);
   const [billingAddress, setBillingAddress] = useState(DEFAULT_DEMO_PROFILE.bankDetails.billingAddress);
+  const [adminAccessCode, setAdminAccessCode] = useState("NAMA-launch");
+  const [confirmAdminAccessCode, setConfirmAdminAccessCode] = useState("NAMA-launch");
   const [showConfetti, setShowConfetti] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState("");
 
@@ -112,6 +114,15 @@ export default function RegisterPage() {
   }
 
   async function enterDemoWorkspace() {
+    if (adminAccessCode.trim().length < 8) {
+      setSubmissionMessage("Choose a workspace admin access code with at least 8 characters.");
+      return;
+    }
+    if (adminAccessCode !== confirmAdminAccessCode) {
+      setSubmissionMessage("Workspace admin access code confirmation does not match.");
+      return;
+    }
+
     setShowConfetti(true);
     setSubmissionMessage("");
     const nextProfile = writeDemoProfile({
@@ -170,14 +181,24 @@ export default function RegisterPage() {
         },
       });
 
+      const reset = await requestTenantCredentialReset({
+        tenant_name: nextProfile.company,
+        email: adminEmail,
+        scope: "tenant",
+      });
+      await confirmTenantCredentialReset({
+        tenant_name: nextProfile.company,
+        email: adminEmail,
+        scope: "tenant",
+        reset_token: reset.reset_token,
+        access_code: adminAccessCode,
+      });
+
       const issuedSession = await issueTenantSession({
         email: adminEmail,
         scope: "tenant",
         tenant_name: nextProfile.company,
-        access_code: createTenantMemberAccessCode({
-          tenantName: nextProfile.company,
-          role: "customer-admin",
-        }),
+        access_code: adminAccessCode,
       });
 
       createIssuedTenantSession({
@@ -227,8 +248,8 @@ export default function RegisterPage() {
           </div>
 
           <p className="max-w-3xl text-sm leading-relaxed text-slate-600 xl:text-[15px]">
-            This is the onboarding layer for the alpha preview. It shows how a business enters NAMA before live credentials, subscriptions, or provider keys are connected:
-            company profile, business type, market defaults, and operating structure.
+            This is the onboarding layer for the beta workspace. It captures how a business enters NAMA, sets the first workspace-admin credential,
+            and lands inside the same contract-backed access model used by member and Super Admin login.
           </p>
 
           <form
@@ -250,6 +271,20 @@ export default function RegisterPage() {
                 value={operatorName}
                 onChange={setOperatorName}
                 placeholder="e.g. Narayan Mallapur"
+              />
+              <Field
+                label="Workspace Admin Access Code"
+                value={adminAccessCode}
+                onChange={setAdminAccessCode}
+                placeholder="Choose a secure workspace credential"
+                type="password"
+              />
+              <Field
+                label="Confirm Access Code"
+                value={confirmAdminAccessCode}
+                onChange={setConfirmAdminAccessCode}
+                placeholder="Repeat the workspace credential"
+                type="password"
               />
             </div>
 
@@ -581,11 +616,13 @@ function Field({
   value,
   onChange,
   placeholder,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  type?: string;
 }) {
   const fieldId = useId();
 
@@ -596,7 +633,7 @@ function Field({
       </label>
       <input
         id={fieldId}
-        type="text"
+        type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

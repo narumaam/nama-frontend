@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Briefcase, CreditCard, Eye, Shield, Sparkles, Users } from "lucide-react";
 
 import { createIssuedTenantSession, getDefaultRouteForRole, normalizeTenantRole, type AppRole } from "@/lib/auth-session";
-import { createTenantMemberAccessCode } from "@/lib/demo-credentials";
+import { confirmTenantCredentialReset, requestTenantCredentialReset } from "@/lib/credential-api";
 import { type DemoMemberRecord } from "@/lib/demo-members";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { readDemoWorkflowState, type DemoEmployeeRecord, type DemoInviteRecord } from "@/lib/demo-workflow";
@@ -127,8 +127,11 @@ export default function WorkspaceLoginPage() {
   const memberRegistry = useDemoMembers();
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [resetAccessCode, setResetAccessCode] = useState("");
   const [message, setMessage] = useState("Enter tenant member credentials or use a member card to prefill the login form.");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const personas = useMemo(() => {
     const sourceRank = {
       "tenant-profile": 0,
@@ -180,8 +183,60 @@ export default function WorkspaceLoginPage() {
 
   function applyPersona(persona: PersonaCard) {
     setEmail(persona.email);
-    setAccessCode(createTenantMemberAccessCode({ tenantName: profile.company, role: persona.role }));
-    setMessage(`${persona.heading} credentials loaded for ${persona.displayName}. Submit to verify and enter.`);
+    setAccessCode("");
+    setResetToken("");
+    setResetAccessCode("");
+    setMessage(`${persona.heading} email loaded for ${persona.displayName}. Enter the member credential or request a reset.`);
+  }
+
+  async function handleRequestReset() {
+    if (!email.trim()) {
+      setMessage("Enter the member email first so we can issue a reset token.");
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const response = await requestTenantCredentialReset({
+        tenant_name: profile.company,
+        email,
+        scope: "tenant",
+      });
+      setResetToken(response.reset_token);
+      setMessage("Reset token issued for this beta workspace. Set the new access code below and confirm the reset.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to request a reset token.");
+    } finally {
+      setIsResetting(false);
+    }
+  }
+
+  async function handleConfirmReset() {
+    if (!email.trim() || !resetToken.trim()) {
+      setMessage("Request a reset token first, then confirm the new access code.");
+      return;
+    }
+    if (resetAccessCode.trim().length < 8) {
+      setMessage("Choose a new access code with at least 8 characters.");
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      await confirmTenantCredentialReset({
+        tenant_name: profile.company,
+        email,
+        scope: "tenant",
+        reset_token: resetToken,
+        access_code: resetAccessCode,
+      });
+      setAccessCode(resetAccessCode);
+      setMessage("Workspace credential updated. Submit the login form to verify and enter.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to confirm the reset.");
+    } finally {
+      setIsResetting(false);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -229,7 +284,8 @@ export default function WorkspaceLoginPage() {
             Workspace entry based on the tenant member roster.
           </h1>
           <p className="mt-5 max-w-3xl text-sm leading-7 text-[#D6D0C4] sm:text-base">
-            This route now prefers the member registry for the current tenant. Operators, imported employees, and accepted invitees can enter through their own member card and still land on the route that matches their role scope.
+            This route now verifies against the member credential registry for the current tenant. Operators, imported employees,
+            and accepted invitees sign in through the session contract and can rotate credentials without local session shortcuts.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 rounded-[28px] border border-white/10 bg-black/20 p-5">
@@ -264,8 +320,48 @@ export default function WorkspaceLoginPage() {
                 {isSubmitting ? "Verifying Access" : "Enter Workspace"}
                 <ArrowRight size={14} />
               </button>
+              <button
+                type="button"
+                onClick={handleRequestReset}
+                disabled={isResetting}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:border-[#C9A84C]/30 hover:text-[#C9A84C] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isResetting ? "Working..." : "Request Reset"}
+              </button>
             </div>
           </form>
+
+          <div className="mt-4 rounded-[28px] border border-white/10 bg-black/20 p-5">
+            <div className="grid gap-4 md:grid-cols-[1.2fr_1fr_auto] md:items-end">
+              <label className="grid gap-2 text-sm text-[#D6D0C4]">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9F9788]">Reset token</span>
+                <input
+                  value={resetToken}
+                  onChange={(event) => setResetToken(event.target.value)}
+                  className="rounded-2xl border border-white/10 bg-[#111111] px-4 py-3 text-sm text-white outline-none transition focus:border-[#C9A84C]/40"
+                  type="text"
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[#D6D0C4]">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9F9788]">New access code</span>
+                <input
+                  value={resetAccessCode}
+                  onChange={(event) => setResetAccessCode(event.target.value)}
+                  className="rounded-2xl border border-white/10 bg-[#111111] px-4 py-3 text-sm text-white outline-none transition focus:border-[#C9A84C]/40"
+                  type="password"
+                  autoComplete="new-password"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleConfirmReset}
+                disabled={isResetting}
+                className="inline-flex h-[50px] items-center justify-center rounded-full bg-white px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-[#0A0A0A] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Confirm Reset
+              </button>
+            </div>
+          </div>
 
           <div className="mt-8 grid gap-4 xl:grid-cols-2">
             {personas.map((persona) => {
@@ -304,9 +400,7 @@ export default function WorkspaceLoginPage() {
                       <div className="mt-2 text-xs text-[#B8B0A0]">
                         {persona.status} via {persona.source}
                       </div>
-                      <div className="mt-3 font-mono text-xs text-[#C9A84C]">
-                        {createTenantMemberAccessCode({ tenantName: profile.company, role: persona.role })}
-                      </div>
+                      <div className="mt-3 text-xs text-[#C9A84C]">Prefill email only. Credentials are verified server-side.</div>
                     </div>
                   </div>
                 </button>
@@ -339,7 +433,7 @@ export default function WorkspaceLoginPage() {
                 <p className="mt-2 font-mono text-[#F5F0E8]">/super-admin/login</p>
               </div>
               <p>
-                Member cards are resolved from the tenant registry first. Each card now shows the demo access code that the session contract verifies before issuing a tenant session.
+                Member cards are resolved from the tenant registry first. They prefill identity, while login and reset both verify through the credential contract instead of showing reusable codes in the UI.
               </p>
             </div>
 

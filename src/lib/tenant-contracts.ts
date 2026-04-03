@@ -38,6 +38,9 @@ export type TenantInviteContract = {
   created_at: string;
   invited_at: string;
   accepted_at?: string;
+  invite_token?: string;
+  token_expires_at?: string;
+  token_used_at?: string;
   source: TenantContractSource;
 };
 
@@ -91,6 +94,30 @@ export type TenantInvitesBulkCreatePayload = {
 export type TenantInviteAcceptPayload = {
   tenant_name: string;
   invite_id: string;
+  invite_token: string;
+  access_code: string;
+};
+
+export type TenantCredentialResetRequestPayload = {
+  tenant_name?: string | null;
+  email: string;
+  scope: TenantSessionScope;
+};
+
+export type TenantCredentialResetConfirmPayload = {
+  tenant_name?: string | null;
+  email: string;
+  scope: TenantSessionScope;
+  reset_token: string;
+  access_code: string;
+};
+
+export type TenantCredentialResetResponse = {
+  email: string;
+  scope: TenantSessionScope;
+  tenant_name: string | null;
+  reset_token: string;
+  reset_expires_at: string;
 };
 
 export type TenantSessionCreatePayload = {

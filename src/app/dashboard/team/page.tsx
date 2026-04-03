@@ -365,7 +365,8 @@ export default function TeamPage() {
 
   async function copyInviteLink(inviteId: string) {
     if (typeof window === "undefined" || !navigator.clipboard) return;
-    const inviteUrl = `${window.location.origin}${getInvitePath(inviteId)}`;
+    const invite = workflow.invites.find((item) => item.id === inviteId);
+    const inviteUrl = `${window.location.origin}${getInvitePath(inviteId, invite?.inviteToken)}`;
     await navigator.clipboard.writeText(inviteUrl);
     setInviteMessage("Invite link copied.");
   }
@@ -1174,7 +1175,7 @@ function InviteRow({
           Copy link
         </button>
         <Link
-          href={getInvitePath(invite.id)}
+          href={getInvitePath(invite.id, invite.inviteToken)}
           className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]"
         >
           Open acceptance

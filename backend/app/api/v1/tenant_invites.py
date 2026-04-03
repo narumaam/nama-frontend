@@ -1,16 +1,18 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import secrets
 from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.api.v1.demo_credentials import ensure_tenant_member_credential
+from app.api.v1.demo_credentials import ensure_tenant_member_credential, set_tenant_member_secret
 from app.api.v1.tenant_members import upsert_tenant_member
 
 router = APIRouter()
 
 TenantInviteStatus = Literal["Draft", "Pending", "Accepted"]
 TenantInviteSource = Literal["backend-demo", "manual", "bulk", "accepted"]
+INVITE_TOKEN_TTL_DAYS = 7
 
 _INVITE_STORE: dict[str, list["TenantInviteRecord"]] = {}
 
@@ -29,6 +31,9 @@ class TenantInviteRecord(BaseModel):
     created_at: str
     invited_at: str
     accepted_at: Optional[str] = None
+    invite_token: Optional[str] = None
+    token_expires_at: Optional[str] = None
+    token_used_at: Optional[str] = None
     source: TenantInviteSource = "backend-demo"
 
 
@@ -58,6 +63,8 @@ class BulkCreateTenantInvitesRequest(BaseModel):
 class AcceptTenantInviteRequest(BaseModel):
     tenant_name: str = Field(..., min_length=1)
     invite_id: str = Field(..., min_length=1)
+    invite_token: str = Field(..., min_length=6)
+    access_code: str = Field(..., min_length=8)
     name: Optional[str] = None
     email: Optional[str] = None
     role: Optional[str] = None
@@ -92,6 +99,10 @@ def _now_label() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _invite_expiry_iso() -> str:
+    return (datetime.now(timezone.utc) + timedelta(days=INVITE_TOKEN_TTL_DAYS)).isoformat()
+
+
 def _default_invites(tenant_name: str) -> list[TenantInviteRecord]:
     safe_tenant = _normalize_tenant_name(tenant_name)
     token = safe_tenant.lower().replace(" ", "")
@@ -109,6 +120,8 @@ def _default_invites(tenant_name: str) -> list[TenantInviteRecord]:
             status="Pending",
             created_at="03 Apr 2026 · 10:15",
             invited_at="03 Apr 2026 · 10:30",
+            invite_token=secrets.token_urlsafe(16),
+            token_expires_at=_invite_expiry_iso(),
             source="backend-demo",
         ),
         TenantInviteRecord(
@@ -125,6 +138,9 @@ def _default_invites(tenant_name: str) -> list[TenantInviteRecord]:
             created_at="02 Apr 2026 · 16:05",
             invited_at="02 Apr 2026 · 16:15",
             accepted_at="02 Apr 2026 · 18:40",
+            invite_token=secrets.token_urlsafe(16),
+            token_expires_at=_invite_expiry_iso(),
+            token_used_at="02 Apr 2026 · 18:40",
             source="backend-demo",
         ),
         TenantInviteRecord(
@@ -140,6 +156,8 @@ def _default_invites(tenant_name: str) -> list[TenantInviteRecord]:
             status="Draft",
             created_at="03 Apr 2026 · 11:10",
             invited_at="Not sent yet",
+            invite_token=secrets.token_urlsafe(16),
+            token_expires_at=_invite_expiry_iso(),
             source="backend-demo",
         ),
     ]
@@ -193,15 +211,29 @@ def _invite_from_payload(payload: CreateTenantInviteRequest, invite_id: Optional
         created_at=_now_label(),
         invited_at="Not sent yet" if payload.status == "Draft" else _now_label(),
         accepted_at=accepted_at,
+        invite_token=secrets.token_urlsafe(16),
+        token_expires_at=_invite_expiry_iso(),
         source="manual" if payload.status == "Draft" else "backend-demo",
     )
 
 
 def _accept_invite(invite: TenantInviteRecord, payload: AcceptTenantInviteRequest) -> TenantInviteRecord:
+    if invite.status == "Accepted" or invite.token_used_at:
+        raise HTTPException(status_code=409, detail="Invite token already used")
+    if invite.invite_token != payload.invite_token:
+        raise HTTPException(status_code=401, detail="Invalid invite token")
+    if invite.token_expires_at:
+        try:
+            if datetime.fromisoformat(invite.token_expires_at) < datetime.now(timezone.utc):
+                raise HTTPException(status_code=410, detail="Invite token expired")
+        except ValueError:
+            raise HTTPException(status_code=410, detail="Invite token expired")
+
     updated_invite = invite.model_copy(
         update={
             "status": "Accepted",
             "accepted_at": _now_label(),
+            "token_used_at": _now_label(),
             "name": (payload.name or invite.name).strip(),
             "email": (payload.email or invite.email).strip().lower(),
             "role": (payload.role or invite.role).strip(),
@@ -233,6 +265,7 @@ def _accept_invite(invite: TenantInviteRecord, payload: AcceptTenantInviteReques
             },
         }
     )
+    set_tenant_member_secret(updated_invite.tenant_name, updated_invite.email, payload.access_code)
     return updated_invite
 
 
@@ -288,7 +321,7 @@ def accept_tenant_invite(payload: AcceptTenantInviteRequest):
         raise HTTPException(status_code=404, detail="Tenant invite not found")
     accepted_invite = _accept_invite(invite, payload)
     _upsert_invite(accepted_invite)
-    credential = ensure_tenant_member_credential(accepted_invite.tenant_name, accepted_invite.email, accepted_invite.role)
+    ensure_tenant_member_credential(accepted_invite.tenant_name, accepted_invite.email, accepted_invite.role)
     return {
         "tenant_name": tenant_key,
         "invite": accepted_invite,
@@ -308,7 +341,7 @@ def accept_tenant_invite(payload: AcceptTenantInviteRequest):
             "invited_at": accepted_invite.invited_at,
             "accepted_at": accepted_invite.accepted_at,
         },
-        "credential_access_code": credential["preview_code"],
+        "credential_access_code": payload.access_code,
     }
 
 

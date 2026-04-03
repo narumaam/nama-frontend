@@ -47,6 +47,8 @@ def test_create_tenant_invite() -> None:
     assert body["tenant_name"] == "Aurora Reserve Travel"
     assert body["status"] == "Pending"
     assert body["email"] == "meera@aurora.example"
+    assert body["invite_token"]
+    assert body["token_expires_at"]
 
 
 def test_bulk_create_tenant_invites() -> None:
@@ -111,13 +113,17 @@ def test_accept_tenant_invite_promotes_member() -> None:
             },
         },
     )
-    invite_id = create_response.json()["id"]
+    invite_body = create_response.json()
+    invite_id = invite_body["id"]
+    invite_token = invite_body["invite_token"]
 
     accept_response = client.post(
         "/api/v1/tenant-invites/accept",
         json={
             "tenant_name": "Aurora Reserve Travel",
             "invite_id": invite_id,
+            "invite_token": invite_token,
+            "access_code": "Priya-sales-01",
         },
     )
     assert accept_response.status_code == 200
@@ -125,7 +131,8 @@ def test_accept_tenant_invite_promotes_member() -> None:
     invite_body = accept_body["invite"]
     assert invite_body["status"] == "Accepted"
     assert invite_body["accepted_at"]
-    assert accept_body["credential_access_code"] == "NAMA-AURORARE-SALES"
+    assert invite_body["token_used_at"]
+    assert accept_body["credential_access_code"] == "Priya-sales-01"
 
     member_response = client.get(
         "/api/v1/tenant-members",
@@ -133,3 +140,38 @@ def test_accept_tenant_invite_promotes_member() -> None:
     )
     member_body = member_response.json()
     assert any(member["email"] == "priya@aurora.example" and member["status"] == "Active" for member in member_body["members"])
+
+
+def test_accept_tenant_invite_rejects_invalid_token() -> None:
+    create_response = client.post(
+        "/api/v1/tenant-invites",
+        json={
+            "tenant_name": "Aurora Reserve Travel",
+            "invite": {
+                "tenant_name": "Aurora Reserve Travel",
+                "id": "invite-token-check",
+                "name": "Token Check",
+                "email": "token.check@aurora.example",
+                "role": "viewer",
+                "designation": "Reviewer",
+                "team": "Reporting",
+                "status": "Pending",
+                "reports_to": "Customer Admin",
+                "responsibility": "Artifact review",
+                "source": "manual",
+            },
+        },
+    )
+    invite_id = create_response.json()["id"]
+
+    accept_response = client.post(
+        "/api/v1/tenant-invites/accept",
+        json={
+            "tenant_name": "Aurora Reserve Travel",
+            "invite_id": invite_id,
+            "invite_token": "wrong-token",
+            "access_code": "Viewer-pass-01",
+        },
+    )
+    assert accept_response.status_code == 401
+    assert accept_response.json()["detail"] == "Invalid invite token"

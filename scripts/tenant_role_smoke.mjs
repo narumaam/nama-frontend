@@ -13,6 +13,7 @@ const CASE_SLUG = "maldives-honeymoon";
 const COMPANY_NAME = "Beta Role Labs";
 const OPERATOR_NAME = "Radhika Beta";
 const PLAN_NAME = "Growth";
+const ADMIN_ACCESS_CODE = "Beta-admin-01";
 
 function tenantToken(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -118,7 +119,7 @@ async function switchRole(page, role) {
   await page.goto("/workspace/login");
   await page.waitForLoadState("networkidle");
   await page.getByRole("textbox", { name: /Workspace email/i }).fill(tenantEmailForRole(role));
-  await page.getByLabel(/Access code/i).fill(tenantAccessCode(role));
+  await page.getByRole("textbox", { name: /^Access code$/ }).fill(tenantAccessCode(role));
   await page.getByRole("button", { name: /Enter Workspace/i }).click();
 }
 
@@ -126,7 +127,7 @@ async function verifyWorkspaceLoginFailure(page) {
   await page.goto("/workspace/login");
   await page.waitForLoadState("networkidle");
   await page.getByRole("textbox", { name: /Workspace email/i }).fill(tenantEmailForRole("sales"));
-  await page.getByLabel(/Access code/i).fill("NAMA-BAD-CODE");
+  await page.getByRole("textbox", { name: /^Access code$/ }).fill("NAMA-BAD-CODE");
   await page.getByRole("button", { name: /Enter Workspace/i }).click();
   await expectVisible(page, "Invalid tenant member credentials");
 }
@@ -136,6 +137,8 @@ async function registerTenant(page, baseUrl) {
   await page.waitForLoadState("networkidle");
   await page.getByRole("textbox", { name: "Company Name" }).fill(COMPANY_NAME);
   await page.getByRole("textbox", { name: "Workspace Operator" }).fill(OPERATOR_NAME);
+  await page.getByLabel("Workspace Admin Access Code").fill(ADMIN_ACCESS_CODE);
+  await page.getByLabel("Confirm Access Code").fill(ADMIN_ACCESS_CODE);
   await page.locator("button").filter({ hasText: PLAN_NAME }).first().click();
   await page.getByRole("button", { name: /Enter Demo Workspace/i }).click();
   await page.waitForURL("**/dashboard");

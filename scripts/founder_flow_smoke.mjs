@@ -20,6 +20,9 @@ const SCENARIOS = {
     planName: "Enterprise",
     caseSlug: "maldives-honeymoon",
     employeeToAccept: "Ritika Sen · Sales",
+    adminAccessCode: "Founder-admin-01",
+    inviteAccessCode: "Invite-sales-01",
+    superAdminAccessCode: "Nama-root-01",
     employees: [
       "name,email,role,designation,team,reportsTo,responsibility",
       "Ritika Sen,ritika@aurora.example,Sales,Senior Executive,Inbound Desk,Sales Manager,Inbound CRM and quote follow-up",
@@ -34,6 +37,9 @@ const SCENARIOS = {
     planName: "Starter",
     caseSlug: "maldives-honeymoon",
     employeeToAccept: "Nina Dsouza · Operations",
+    adminAccessCode: "Agency-admin-01",
+    inviteAccessCode: "Invite-ops-01",
+    superAdminAccessCode: "Nama-root-01",
     employees: [
       "name,email,role,designation,team,reportsTo,responsibility",
       "Nina Dsouza,nina@mapletrail.ae,Operations,Trip Coordinator,Holiday Desk,Founder,Bookings and traveler documentation",
@@ -47,6 +53,9 @@ const SCENARIOS = {
     planName: "Growth",
     caseSlug: "europe-family-escape",
     employeeToAccept: "Mira Joshi · Operations",
+    adminAccessCode: "Dmc-admin-01",
+    inviteAccessCode: "Invite-ops-01",
+    superAdminAccessCode: "Nama-root-01",
     employees: [
       "name,email,role,designation,team,reportsTo,responsibility",
       "Mira Joshi,mira@saffrondunes.in,Operations,Ops Lead,Fulfilment Desk,Customer Admin,Supplier and itinerary execution",
@@ -78,6 +87,18 @@ function tenantEmailForRole(companyName, role) {
   return `${roleToken}@${token}.demo`;
 }
 
+function registeredAdminEmail(companyName, operatorName) {
+  const localPart = operatorName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "") || "workspace.operator";
+  const domainPart = companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .slice(0, 24) || "tenant";
+  return `${localPart}@${domainPart}.demo`;
+}
+
 function getExpectedInviteRoute(employeeLabel) {
   const normalized = employeeLabel.toLowerCase();
   if (normalized.includes("sales")) return "/dashboard/leads";
@@ -88,6 +109,16 @@ function getExpectedInviteRoute(employeeLabel) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readFilledValue(locator, timeoutMs = 20000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const value = await locator.inputValue();
+    if (value) return value;
+    await sleep(250);
+  }
+  throw new Error("Timed out waiting for populated input value");
 }
 
 function getScenario() {
@@ -172,6 +203,8 @@ async function main() {
     await page.waitForLoadState("networkidle");
     await page.getByRole("textbox", { name: "Company Name" }).fill(scenario.companyName);
     await page.getByRole("textbox", { name: "Workspace Operator" }).fill(scenario.operatorName);
+    await page.getByLabel("Workspace Admin Access Code").fill(scenario.adminAccessCode);
+    await page.getByLabel("Confirm Access Code").fill(scenario.adminAccessCode);
     await page.locator("button").filter({ hasText: scenario.planName }).first().click();
     await page.getByRole("button", { name: /Enter Demo Workspace/i }).click();
     await page.waitForURL("**/dashboard");
@@ -208,7 +241,9 @@ async function main() {
     await page.goto(`${baseUrl}${inviteHref}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("heading", { name: /Join the workspace/i }).waitFor({ state: "visible", timeout: 20000 });
-    await page.getByRole("button", { name: /Accept Invite & Enter Workspace/i }).click();
+    await page.getByLabel("New access code").fill(scenario.inviteAccessCode);
+    await page.getByLabel("Confirm access code").fill(scenario.inviteAccessCode);
+    await page.getByRole("button", { name: /Activate Invite & Continue/i }).click();
     await page.waitForURL(/\/workspace\/login/);
     await expectVisible(page, "Invite accepted");
     await page.getByRole("button", { name: /Enter Workspace/i }).click();
@@ -217,9 +252,9 @@ async function main() {
     await page.goto(`${baseUrl}/workspace/login`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("textbox", { name: /Workspace email/i }).fill(
-      tenantEmailForRole(scenario.companyName, "customer-admin")
+      registeredAdminEmail(scenario.companyName, scenario.operatorName)
     );
-    await page.getByLabel(/Access code/i).fill(tenantAccessCode(scenario.companyName, "customer-admin"));
+    await page.getByRole("textbox", { name: /^Access code$/ }).fill(scenario.adminAccessCode);
     await page.getByRole("button", { name: /Enter Workspace/i }).click();
     await page.waitForURL("**/dashboard");
     await page.evaluate(() => window.localStorage.removeItem("nama.appSession"));
@@ -251,7 +286,15 @@ async function main() {
     await page.goto(`${baseUrl}/super-admin/login`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
-    await page.getByLabel("Access code").fill("NAMA-ALPHA");
+    await page.getByRole("button", { name: /Request Reset/i }).click();
+    const superAdminResetToken = await readFilledValue(page.getByRole("textbox", { name: /^Reset token$/ }));
+    if (!superAdminResetToken) throw new Error("Super Admin reset token was not issued");
+    await page.getByRole("textbox", { name: /^New access code$/ }).fill(scenario.superAdminAccessCode);
+    await page.getByRole("button", { name: /Confirm Reset/i }).click();
+    await page.getByRole("textbox", { name: /^Access code$/ }).fill("NAMA-ALPHA");
+    await page.getByRole("button", { name: /Open Super Admin/i }).click();
+    await expectVisible(page, "Invalid Super Admin credentials");
+    await page.getByRole("textbox", { name: /^Access code$/ }).fill(scenario.superAdminAccessCode);
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await page.waitForURL("**/dashboard/admin?entry=super-admin");
 

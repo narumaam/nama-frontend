@@ -73,7 +73,14 @@ export async function acceptTenantInvite(payload: TenantInviteAcceptPayload) {
   });
 
   if (!response.ok) {
-    throw new Error(`Tenant invite acceptance failed: ${response.status}`);
+    let detail = `Tenant invite acceptance failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as {

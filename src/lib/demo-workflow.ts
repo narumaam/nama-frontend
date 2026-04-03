@@ -33,6 +33,9 @@ export type DemoInviteRecord = {
   createdAt: string;
   invitedAt: string;
   acceptedAt?: string;
+  inviteToken?: string;
+  tokenExpiresAt?: string;
+  tokenUsedAt?: string;
 };
 
 export type DemoEmployeeRecord = {
@@ -86,6 +89,14 @@ function nowLabel() {
   });
 }
 
+function createOpaqueToken(prefix: string) {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+}
+
+function inviteExpiryIso() {
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+}
+
 function getCurrentTenantName() {
   return readDemoProfile().company;
 }
@@ -105,8 +116,11 @@ function defaultBookingState(financeStatus: string): DemoBookingState {
   return "Pending finance";
 }
 
-export function getInvitePath(inviteId: string) {
-  return `/invite/${inviteId}`;
+export function getInvitePath(inviteId: string, inviteToken?: string) {
+  if (!inviteToken) {
+    return `/invite/${inviteId}`;
+  }
+  return `/invite/${inviteId}?token=${encodeURIComponent(inviteToken)}`;
 }
 
 export function getLeadStagePreset(stage: DemoLeadStage): Pick<DemoCaseWorkflowState, "leadStage" | "nextAction" | "nextActionAt" | "financeStatus" | "paymentState" | "bookingState"> {
@@ -178,6 +192,8 @@ function createDefaultInvites(): DemoInviteRecord[] {
       status: "Pending",
       createdAt: "03 Apr 2026 · 10:15",
       invitedAt: "03 Apr 2026 · 10:30",
+      inviteToken: createOpaqueToken("invite"),
+      tokenExpiresAt: inviteExpiryIso(),
     },
     {
       id: "invite-rohan-iyer",
@@ -192,6 +208,9 @@ function createDefaultInvites(): DemoInviteRecord[] {
       createdAt: "02 Apr 2026 · 16:05",
       invitedAt: "02 Apr 2026 · 16:15",
       acceptedAt: "02 Apr 2026 · 18:40",
+      inviteToken: createOpaqueToken("invite"),
+      tokenExpiresAt: inviteExpiryIso(),
+      tokenUsedAt: "02 Apr 2026 · 18:40",
     },
     {
       id: "invite-meera-shah",
@@ -205,6 +224,8 @@ function createDefaultInvites(): DemoInviteRecord[] {
       status: "Draft",
       createdAt: "03 Apr 2026 · 11:10",
       invitedAt: "Not sent yet",
+      inviteToken: createOpaqueToken("invite"),
+      tokenExpiresAt: inviteExpiryIso(),
     },
     {
       id: "invite-arjun-paul",
@@ -218,6 +239,8 @@ function createDefaultInvites(): DemoInviteRecord[] {
       status: "Pending",
       createdAt: "03 Apr 2026 · 11:45",
       invitedAt: "03 Apr 2026 · 12:00",
+      inviteToken: createOpaqueToken("invite"),
+      tokenExpiresAt: inviteExpiryIso(),
     },
   ];
 }
@@ -338,6 +361,9 @@ function normalizeInviteRecord(invite: Partial<DemoInviteRecord>, fallback: Demo
     createdAt: invite.createdAt || fallback.createdAt,
     invitedAt: invite.invitedAt || fallback.invitedAt,
     acceptedAt: invite.acceptedAt || fallback.acceptedAt,
+    inviteToken: invite.inviteToken || fallback.inviteToken,
+    tokenExpiresAt: invite.tokenExpiresAt || fallback.tokenExpiresAt,
+    tokenUsedAt: invite.tokenUsedAt || fallback.tokenUsedAt,
   };
 }
 
@@ -355,6 +381,9 @@ function inviteFromApiRecord(invite: TenantInviteApiRecord): DemoInviteRecord {
     createdAt: invite.created_at,
     invitedAt: invite.invited_at,
     acceptedAt: invite.accepted_at,
+    inviteToken: invite.invite_token,
+    tokenExpiresAt: invite.token_expires_at,
+    tokenUsedAt: invite.token_used_at,
   };
 }
 
@@ -481,6 +510,8 @@ export function createDemoInvite(input: Omit<DemoInviteRecord, "id" | "status" |
     status: input.status ?? "Pending",
     createdAt: nowLabel(),
     invitedAt: input.status === "Draft" ? "Not sent yet" : nowLabel(),
+    inviteToken: createOpaqueToken("invite"),
+    tokenExpiresAt: inviteExpiryIso(),
   };
 
   const nextState = writeDemoWorkflowState({
@@ -622,12 +653,20 @@ export function acceptDemoInvite(inviteId: string) {
   return nextState;
 }
 
-export async function acceptDemoInviteViaApi(inviteId: string) {
-  const response = await acceptTenantInvite({ tenant_name: getCurrentTenantName(), invite_id: inviteId });
+export async function acceptDemoInviteViaApi(inviteId: string, input: { inviteToken: string; accessCode: string }) {
+  const response = await acceptTenantInvite({
+    tenant_name: getCurrentTenantName(),
+    invite_id: inviteId,
+    invite_token: input.inviteToken,
+    access_code: input.accessCode,
+  });
   const nextState = updateDemoInvite(response.invite.id, {
     status: response.invite.status,
     acceptedAt: response.invite.accepted_at,
     invitedAt: response.invite.invited_at,
+    inviteToken: response.invite.invite_token,
+    tokenExpiresAt: response.invite.token_expires_at,
+    tokenUsedAt: response.invite.token_used_at,
   });
   return {
     invite: inviteFromApiRecord(response.invite),

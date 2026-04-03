@@ -42,9 +42,12 @@ type DemoApiStoreState = {
 type DemoCredentialRecord = {
   subject_email: string;
   secret_hash: string;
-  preview_code: string;
+  preview_code: string | null;
   issued_at: string;
   updated_at: string;
+  reset_token: string | null;
+  reset_expires_at: string | null;
+  rotation_required: boolean;
 };
 
 const DEFAULT_TENANT_NAME = "NAMA Demo";
@@ -76,15 +79,47 @@ function hashCredentialSecret(secret: string) {
   return createHash("sha256").update(secret).digest("hex");
 }
 
-function createCredentialRecord(email: string, previewCode: string): DemoCredentialRecord {
+function createCredentialRecord(
+  email: string,
+  secret: string,
+  options?: { previewCode?: string | null; rotationRequired?: boolean },
+): DemoCredentialRecord {
   const now = nowIso();
   return {
     subject_email: normalizeCredentialEmail(email),
-    secret_hash: hashCredentialSecret(previewCode),
-    preview_code: previewCode,
+    secret_hash: hashCredentialSecret(secret),
+    preview_code: options?.previewCode ?? null,
     issued_at: now,
     updated_at: now,
+    reset_token: null,
+    reset_expires_at: null,
+    rotation_required: options?.rotationRequired ?? false,
   };
+}
+
+function createOpaqueToken(prefix: string) {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+}
+
+function inviteExpiryIso() {
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function resetExpiryIso() {
+  return new Date(Date.now() + 30 * 60 * 1000).toISOString();
+}
+
+function isExpired(timestamp?: string | null) {
+  if (!timestamp) {
+    return true;
+  }
+
+  const expiry = Date.parse(timestamp);
+  if (Number.isNaN(expiry)) {
+    return true;
+  }
+
+  return expiry < Date.now();
 }
 
 function createSeedMembers(tenantName: string): TenantMemberContract[] {
@@ -175,6 +210,8 @@ function createSeedInvites(tenantName: string): TenantInviteContract[] {
       responsibility: "Lead intake and quote follow-up",
       status: "Pending" as const,
       invited_at: "03 Apr 2026 · 10:30",
+      invite_token: createOpaqueToken("invite"),
+      token_expires_at: inviteExpiryIso(),
       source: "backend-demo" as TenantContractSource,
     },
     {
@@ -188,6 +225,9 @@ function createSeedInvites(tenantName: string): TenantInviteContract[] {
       status: "Accepted" as const,
       invited_at: "02 Apr 2026 · 16:15",
       accepted_at: "02 Apr 2026 · 18:40",
+      invite_token: createOpaqueToken("invite"),
+      token_expires_at: inviteExpiryIso(),
+      token_used_at: "02 Apr 2026 · 18:40",
       source: "accepted-invite" as TenantContractSource,
     },
     {
@@ -200,6 +240,8 @@ function createSeedInvites(tenantName: string): TenantInviteContract[] {
       responsibility: "Billing, payouts, and reconciliation",
       status: "Draft" as const,
       invited_at: "Not sent yet",
+      invite_token: createOpaqueToken("invite"),
+      token_expires_at: inviteExpiryIso(),
       source: "manual" as TenantContractSource,
     },
     {
@@ -212,6 +254,8 @@ function createSeedInvites(tenantName: string): TenantInviteContract[] {
       responsibility: "Inbound support",
       status: "Pending" as const,
       invited_at: "03 Apr 2026 · 12:00",
+      invite_token: createOpaqueToken("invite"),
+      token_expires_at: inviteExpiryIso(),
       source: "backend-demo" as TenantContractSource,
     },
   ];
@@ -243,7 +287,10 @@ function ensureTenantCredential(tenant: DemoTenantApiState, member: Pick<TenantM
   }
 
   const previewCode = createTenantMemberAccessCode({ tenantName: member.tenant_name, role: member.role });
-  const created = createCredentialRecord(email, previewCode);
+  const created = createCredentialRecord(email, previewCode, {
+    previewCode,
+    rotationRequired: true,
+  });
   tenant.credentials[email] = created;
   return created;
 }
@@ -257,7 +304,10 @@ function ensureTenantCredentialForMembers(tenant: DemoTenantApiState) {
 function ensureSuperAdminCredentials(store: DemoApiStoreState) {
   const email = normalizeCredentialEmail(SUPER_ADMIN_DEMO_EMAIL);
   if (!store.super_admin_credentials[email]) {
-    store.super_admin_credentials[email] = createCredentialRecord(email, SUPER_ADMIN_DEMO_CODE);
+    store.super_admin_credentials[email] = createCredentialRecord(email, SUPER_ADMIN_DEMO_CODE, {
+      previewCode: SUPER_ADMIN_DEMO_CODE,
+      rotationRequired: false,
+    });
   }
   return store.super_admin_credentials;
 }
@@ -359,8 +409,59 @@ function normalizeInviteRecord(invite: TenantInviteCreatePayload["invite"], tena
     status: invite.status,
     invited_at: invite.invited_at || now,
     accepted_at: invite.accepted_at,
+    invite_token: invite.invite_token || createOpaqueToken("invite"),
+    token_expires_at: invite.token_expires_at || inviteExpiryIso(),
+    token_used_at: invite.token_used_at,
     created_at: invite.created_at || now,
     source: invite.source,
+  };
+}
+
+function setTenantCredentialSecret(
+  tenant: DemoTenantApiState,
+  input: Pick<TenantMemberContract, "tenant_name" | "email" | "role">,
+  secret: string,
+) {
+  const email = normalizeCredentialEmail(input.email);
+  const existing = tenant.credentials[email] ?? ensureTenantCredential(tenant, input);
+  tenant.credentials[email] = {
+    ...existing,
+    secret_hash: hashCredentialSecret(secret),
+    preview_code: null,
+    reset_token: null,
+    reset_expires_at: null,
+    rotation_required: false,
+    updated_at: nowIso(),
+  };
+  return tenant.credentials[email];
+}
+
+function setSuperAdminCredentialSecret(email: string, secret: string) {
+  const store = getStoreState();
+  const normalizedEmail = normalizeCredentialEmail(email);
+  const existing = store.super_admin_credentials[normalizedEmail];
+  if (!existing) {
+    return null;
+  }
+
+  store.super_admin_credentials[normalizedEmail] = {
+    ...existing,
+    secret_hash: hashCredentialSecret(secret),
+    preview_code: null,
+    reset_token: null,
+    reset_expires_at: null,
+    rotation_required: false,
+    updated_at: nowIso(),
+  };
+  return store.super_admin_credentials[normalizedEmail];
+}
+
+function sanitizeResetRecord(record: DemoCredentialRecord, resetToken: string) {
+  return {
+    ...record,
+    reset_token: resetToken,
+    reset_expires_at: resetExpiryIso(),
+    updated_at: nowIso(),
   };
 }
 
@@ -514,20 +615,33 @@ export function acceptTenantInvite(payload: TenantInviteAcceptPayload) {
   if (!invite) {
     return null;
   }
+  if (!payload.invite_token || invite.invite_token !== payload.invite_token) {
+    throw new DemoApiStoreError("Invalid invite token", 401);
+  }
+  if (invite.token_used_at || invite.status === "Accepted") {
+    throw new DemoApiStoreError("Invite token already used", 409);
+  }
+  if (isExpired(invite.token_expires_at)) {
+    throw new DemoApiStoreError("Invite token expired", 410);
+  }
+  if (!payload.access_code || payload.access_code.trim().length < 8) {
+    throw new DemoApiStoreError("A new access code with at least 8 characters is required", 400);
+  }
 
   invite.status = "Accepted";
   invite.accepted_at = invite.accepted_at || nowIso();
   invite.invited_at = invite.invited_at || invite.accepted_at;
+  invite.token_used_at = invite.accepted_at;
   upsertInviteIntoTenant(tenant, invite);
 
   const member = upsertMemberIntoTenant(tenant, buildMemberFromInvite(invite));
-  const credential = ensureTenantCredential(tenant, member);
+  setTenantCredentialSecret(tenant, member, payload.access_code);
 
   return {
     tenant_name: tenant.tenant_name,
     invite,
     member,
-    credential_access_code: credential.preview_code,
+    credential_access_code: payload.access_code,
   };
 }
 
@@ -620,6 +734,91 @@ export function issueSuperAdminSession(payload: Pick<TenantSessionCreatePayload,
 
 export function listSuperAdminSessions() {
   return [...getStoreState().super_admin_sessions];
+}
+
+export function requestTenantCredentialReset(payload: { tenant_name: string; email: string; scope: "tenant" }) {
+  const tenant = getTenantState(payload.tenant_name);
+  const email = normalizeCredentialEmail(payload.email);
+  const credential = tenant.credentials[email];
+  if (!credential) {
+    throw new DemoApiStoreError("Tenant credential subject not found", 404);
+  }
+
+  const nextToken = createOpaqueToken("reset");
+  tenant.credentials[email] = sanitizeResetRecord(credential, nextToken);
+  return {
+    email,
+    scope: "tenant" as const,
+    tenant_name: tenant.tenant_name,
+    reset_token: nextToken,
+    reset_expires_at: tenant.credentials[email].reset_expires_at!,
+  };
+}
+
+export function confirmTenantCredentialReset(payload: {
+  tenant_name: string;
+  email: string;
+  scope: "tenant";
+  reset_token: string;
+  access_code: string;
+}) {
+  const tenant = getTenantState(payload.tenant_name);
+  const email = normalizeCredentialEmail(payload.email);
+  const credential = tenant.credentials[email];
+  if (!credential || credential.reset_token !== payload.reset_token || isExpired(credential.reset_expires_at)) {
+    throw new DemoApiStoreError("Invalid or expired tenant reset token", 401);
+  }
+  if (payload.access_code.trim().length < 8) {
+    throw new DemoApiStoreError("A new access code with at least 8 characters is required", 400);
+  }
+
+  const member = tenant.members.find((item) => item.email.toLowerCase() === email);
+  if (!member) {
+    throw new DemoApiStoreError("Tenant credential subject not found", 404);
+  }
+  setTenantCredentialSecret(tenant, member, payload.access_code);
+  return { ok: true, email, scope: "tenant" as const, tenant_name: tenant.tenant_name };
+}
+
+export function requestSuperAdminCredentialReset(payload: { email: string; scope: "platform" }) {
+  const store = getStoreState();
+  const email = normalizeCredentialEmail(payload.email);
+  const credential = store.super_admin_credentials[email];
+  if (!credential) {
+    throw new DemoApiStoreError("Super admin credential subject not found", 404);
+  }
+
+  const nextToken = createOpaqueToken("reset");
+  store.super_admin_credentials[email] = sanitizeResetRecord(credential, nextToken);
+  return {
+    email,
+    scope: "platform" as const,
+    tenant_name: null,
+    reset_token: nextToken,
+    reset_expires_at: store.super_admin_credentials[email].reset_expires_at!,
+  };
+}
+
+export function confirmSuperAdminCredentialReset(payload: {
+  email: string;
+  scope: "platform";
+  reset_token: string;
+  access_code: string;
+}) {
+  const store = getStoreState();
+  const email = normalizeCredentialEmail(payload.email);
+  const credential = store.super_admin_credentials[email];
+  if (!credential || credential.reset_token !== payload.reset_token || isExpired(credential.reset_expires_at)) {
+    throw new DemoApiStoreError("Invalid or expired Super Admin reset token", 401);
+  }
+  if (payload.access_code.trim().length < 8) {
+    throw new DemoApiStoreError("A new access code with at least 8 characters is required", 400);
+  }
+  const updated = setSuperAdminCredentialSecret(email, payload.access_code);
+  if (!updated) {
+    throw new DemoApiStoreError("Super admin credential subject not found", 404);
+  }
+  return { ok: true, email, scope: "platform" as const, tenant_name: null };
 }
 
 export function isDemoApiStoreError(error: unknown): error is DemoApiStoreError {

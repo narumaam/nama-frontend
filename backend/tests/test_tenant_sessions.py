@@ -106,13 +106,36 @@ def test_issue_upserted_tenant_member_session_with_credentials() -> None:
     )
     assert upsert_response.status_code == 200
 
+    reset_response = client.post(
+        "/api/v1/credentials/tenant/request-reset",
+        json={
+            "email": "radhika.beta@betarolelabs.demo",
+            "scope": "tenant",
+            "tenant_name": "Beta Role Labs",
+        },
+    )
+    assert reset_response.status_code == 200
+    reset_token = reset_response.json()["reset_token"]
+
+    confirm_response = client.post(
+        "/api/v1/credentials/tenant/confirm-reset",
+        json={
+            "email": "radhika.beta@betarolelabs.demo",
+            "scope": "tenant",
+            "tenant_name": "Beta Role Labs",
+            "reset_token": reset_token,
+            "access_code": "Beta-admin-01",
+        },
+    )
+    assert confirm_response.status_code == 200
+
     response = client.post(
         "/api/v1/sessions/tenant",
         json={
             "email": "radhika.beta@betarolelabs.demo",
             "scope": "tenant",
             "tenant_name": "Beta Role Labs",
-            "access_code": "NAMA-BETAROLE-ADMIN",
+            "access_code": "Beta-admin-01",
         },
     )
     assert response.status_code == 200
