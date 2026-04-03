@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiUrl } from "@/lib/api";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
+import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { BadgeIndianRupee, Bot, ChevronRight, Clock3, Sparkles, Target, Users, Wallet } from "lucide-react";
@@ -108,6 +109,12 @@ export default function DashboardPage() {
   const businessRoles = profile.roles;
   const demoMarket = profile.market;
   const enabledCurrencies = profile.enabledCurrencies;
+  const brandTheme = getDemoBrandTheme(profile);
+  const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
+  const domainMode = getDemoDomainMode(brandTheme);
+  const accentHex = brandTheme.enabled ? brandTheme.accentHex : "#C9A84C";
+  const accentSoft = `${accentHex}14`;
+  const accentBorder = `${accentHex}33`;
 
   useEffect(() => {
     let cancelled = false;
@@ -152,8 +159,8 @@ export default function DashboardPage() {
             This overview is the April 6 preview spine: one configured workspace, one coherent case set, and one guided path from capture through finance, supplier control, and execution.
           </p>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-3">
-          <Sparkles size={16} className="text-[#C9A84C]" />
+        <div className="flex items-center gap-3 rounded-2xl border bg-[#111111] px-4 py-3" style={{ borderColor: accentBorder }}>
+          <Sparkles size={16} style={{ color: accentHex }} />
           <div>
             <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Preview Status</div>
             <div className="text-sm font-black text-[#F5F0E8]">{loading ? "Syncing preview cases..." : "Preview cases ready"}</div>
@@ -179,7 +186,8 @@ export default function DashboardPage() {
           </div>
           <Link
             href={`/dashboard/deals?case=${PRIMARY_CASE.slug}`}
-            className="w-full rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10 md:w-auto"
+            className="w-full rounded-full border bg-[#0A0A0A] px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest transition-colors md:w-auto"
+            style={{ borderColor: accentBorder, color: accentHex, backgroundColor: accentSoft }}
           >
             Start walkthrough with {PRIMARY_CASE.destination}
           </Link>
@@ -218,6 +226,26 @@ export default function DashboardPage() {
           <SnapshotCard label="Operating Market" value={demoMarket.country} sub={demoMarket.language} />
           <SnapshotCard label="Base Currency" value={demoMarket.currency} sub={`${enabledCurrencies.filter((item) => item !== demoMarket.currency).join(", ") || "No extras"} enabled`} />
           <SnapshotCard label="Gateway Route" value={demoMarket.gateway} sub="Market-aware billing and checkout" />
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <SnapshotCard
+            label="Workspace Brand"
+            value={brandTheme.enabled ? brandTheme.workspaceName : "NAMA OS"}
+            sub={brandTheme.enabled ? `Badge ${brandTheme.badgeGlyph} · Accent ${brandTheme.accentHex}` : "Platform default branding"}
+            borderColor={accentBorder}
+          />
+          <SnapshotCard
+            label="Workspace Domain"
+            value={workspaceDomain}
+            sub={domainMode === "nama-subdomain" ? "Customer gets a NAMA-hosted subdomain" : "Customer connects their own domain"}
+            borderColor={accentBorder}
+          />
+          <SnapshotCard
+            label="Support Route"
+            value={brandTheme.supportEmail}
+            sub="Tenant-facing inbox used across the workspace"
+            borderColor={accentBorder}
+          />
         </div>
       </section>
 
@@ -341,9 +369,19 @@ function MetricCard({ label, value, sub, icon }: { label: string; value: string;
   );
 }
 
-function SnapshotCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+function SnapshotCard({
+  label,
+  value,
+  sub,
+  borderColor,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  borderColor?: string;
+}) {
   return (
-    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+    <div className="rounded-2xl border bg-[#0A0A0A] p-4" style={{ borderColor: borderColor || "#C9A84C1A" }}>
       <div className="text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{label}</div>
       <div className="mt-2 text-sm font-black text-[#F5F0E8]">{value}</div>
       <div className="mt-1 text-xs leading-relaxed text-[#B8B0A0]">{sub}</div>

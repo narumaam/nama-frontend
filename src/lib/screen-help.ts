@@ -160,6 +160,7 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     bullets: [
       "The toggle protects branding settings until white label is turned on.",
       "Workspace name, badge, support, domain, and accent fields are the tenant-editable identity layer.",
+      "The domain can be either a NAMA-hosted subdomain or the customer's own connected domain, with clear brand setup guidance.",
       "The preview panel proves the controls have visible product impact without touching live infrastructure.",
     ],
   },

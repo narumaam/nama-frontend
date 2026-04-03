@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
 import { DEFAULT_SHELL_BRAND } from '@/lib/demo-config';
+import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from '@/lib/demo-profile';
 import { useDemoProfile } from '@/lib/use-demo-profile';
 import {
   LayoutDashboard,
@@ -42,10 +43,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const demoRoles = profile.roles;
   const demoMarket = profile.market;
   const enabledCurrencies = profile.enabledCurrencies;
-  const shellBrand = profile.whiteLabel.enabled
+  const brandTheme = getDemoBrandTheme(profile);
+  const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
+  const domainMode = getDemoDomainMode(brandTheme);
+  const accentHex = brandTheme.enabled ? brandTheme.accentHex : "#C9A84C";
+  const accentSoft = `${accentHex}14`;
+  const accentBorder = `${accentHex}33`;
+  const shellBrand = brandTheme.enabled
     ? {
-        shortName: profile.whiteLabel.workspaceName,
-        badgeGlyph: profile.whiteLabel.badgeGlyph,
+        shortName: brandTheme.workspaceName,
+        badgeGlyph: brandTheme.badgeGlyph,
       }
     : DEFAULT_SHELL_BRAND;
   const operatorInitials = demoOperator
@@ -114,8 +121,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className={`h-[60px] flex items-center border-b border-[#C9A84C]/10 ${collapsed ? 'md:px-4 md:justify-center' : 'px-5 justify-between'}`}>
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-[#C9A84C] rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.25)] shrink-0">{shellBrand.badgeGlyph}</div>
-            {(!collapsed || mobileNavOpen) && <span className="text-base font-black tracking-tighter font-headline text-[#C9A84C] uppercase">{shellBrand.shortName}</span>}
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.25)] shrink-0"
+              style={{ backgroundColor: accentHex }}
+            >
+              {shellBrand.badgeGlyph}
+            </div>
+            {(!collapsed || mobileNavOpen) && (
+              <span className="text-base font-black tracking-tighter font-headline uppercase" style={{ color: accentHex }}>
+                {shellBrand.shortName}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {!collapsed && (
@@ -186,7 +202,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             href="/kinetic"
             onClick={handleNavigate}
-            className={`flex items-center gap-3 px-3 py-3 rounded-2xl bg-[#C9A84C]/8 border border-[#C9A84C]/15 text-[#C9A84C] hover:bg-[#C9A84C]/15 transition-all shadow-[0_0_16px_rgba(201,168,76,0.06)] ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}
+            className={`flex items-center gap-3 px-3 py-3 rounded-2xl transition-all shadow-[0_0_16px_rgba(201,168,76,0.06)] ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}
+            style={{ backgroundColor: accentSoft, borderColor: accentBorder, borderWidth: 1, color: accentHex }}
           >
             <Zap size={16} fill="currentColor" />
             {(!collapsed || mobileNavOpen) && <span className="font-black tracking-widest uppercase text-[9px]">Kinetic Engine</span>}
@@ -203,6 +220,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-[8px] text-[#C9A84C] truncate uppercase tracking-widest font-mono">
                 {demoRoles.join(" + ")} · Base {demoMarket.currency} · {enabledCurrencies.join(", ")}
               </p>
+              {brandTheme.enabled && (
+                <p className="text-[8px] truncate uppercase tracking-widest font-mono" style={{ color: accentHex }}>
+                  {domainMode === "nama-subdomain" ? "NAMA Subdomain" : "Custom Domain"} · {workspaceDomain}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -259,10 +281,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
                 {showHeaderNotice === "notifications"
                   ? `Three high-priority actions are queued for ${demoCompany}: follow up on ${primaryCase.destination}, confirm ${DEMO_CASE_ROUTES[1].destination} payment, and send the ${DEMO_CASE_ROUTES[2].destination} executive quote.`
-                  : `This workspace is branded for ${demoCompany}, operated by ${demoOperator}, with ${demoRoles.join(" + ")} enabled. Base market is ${demoMarket.country} with ${demoMarket.currency} as the control currency and ${enabledCurrencies.join(", ")} available across sales flows.`}
+                  : `This workspace is branded for ${demoCompany}, operated by ${demoOperator}, with ${demoRoles.join(" + ")} enabled. Base market is ${demoMarket.country} with ${demoMarket.currency} as the control currency, ${enabledCurrencies.join(", ")} available across sales flows, and the tenant can run on either a NAMA-hosted subdomain or its own domain.`}
               </p>
               {showHeaderNotice === "settings" && (
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 grid gap-3 md:grid-cols-5">
                   <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3">
                     <div className="flex items-center gap-2 text-[#C9A84C]">
                       <Globe2 size={13} />
@@ -286,6 +308,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                     <div className="mt-2 text-sm font-black text-[#F5F0E8]">{demoRoles.join(" + ")}</div>
                     <div className="mt-1 text-xs text-[#B8B0A0]">{demoMarket.gateway} routed by default</div>
+                  </div>
+                  <div className="rounded-2xl border bg-[#0A0A0A] px-4 py-3" style={{ borderColor: accentBorder }}>
+                    <div className="flex items-center gap-2" style={{ color: accentHex }}>
+                      <Globe2 size={13} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Workspace Domain</span>
+                    </div>
+                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{workspaceDomain}</div>
+                    <div className="mt-1 text-xs text-[#B8B0A0]">
+                      {domainMode === "nama-subdomain" ? "Hosted under NAMA" : "Bring your own domain"}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border bg-[#0A0A0A] px-4 py-3" style={{ borderColor: accentBorder }}>
+                    <div className="flex items-center gap-2" style={{ color: accentHex }}>
+                      <Bell size={13} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Support Route</span>
+                    </div>
+                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{brandTheme.supportEmail}</div>
+                    <div className="mt-1 text-xs text-[#B8B0A0]">Visible tenant-facing support mailbox</div>
                   </div>
                 </div>
               )}

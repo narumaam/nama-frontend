@@ -24,6 +24,15 @@ export type DemoProfile = {
   };
 };
 
+export type DemoBrandTheme = {
+  enabled: boolean;
+  workspaceName: string;
+  badgeGlyph: string;
+  supportEmail: string;
+  customDomain: string;
+  accentHex: string;
+};
+
 const DEFAULT_MARKET: DemoMarket = MARKET_PRESETS[0];
 
 export const DEFAULT_DEMO_PROFILE: DemoProfile = {
@@ -118,4 +127,32 @@ export function writeDemoProfile(input: Partial<DemoProfile>): DemoProfile {
 
 export function useDemoProfileSnapshot(): DemoProfile {
   return readDemoProfile();
+}
+
+export function getDemoBrandTheme(profile: DemoProfile): DemoBrandTheme {
+  const fallback = DEFAULT_DEMO_PROFILE.whiteLabel;
+  const accentHex = /^#[0-9a-fA-F]{6}$/.test(profile.whiteLabel.accentHex)
+    ? profile.whiteLabel.accentHex
+    : fallback.accentHex;
+
+  return {
+    enabled: profile.whiteLabel.enabled,
+    workspaceName: profile.whiteLabel.workspaceName || fallback.workspaceName,
+    badgeGlyph: profile.whiteLabel.badgeGlyph || fallback.badgeGlyph,
+    supportEmail: profile.whiteLabel.supportEmail || fallback.supportEmail,
+    customDomain: profile.whiteLabel.customDomain || fallback.customDomain,
+    accentHex,
+  };
+}
+
+export function getDemoWorkspaceDomain(theme: DemoBrandTheme): string {
+  const rawDomain = theme.customDomain.trim().toLowerCase();
+  if (!rawDomain) return DEFAULT_DEMO_PROFILE.whiteLabel.customDomain;
+  return rawDomain.includes(".") ? rawDomain : `${rawDomain}.nama.ai`;
+}
+
+export function getDemoDomainMode(theme: DemoBrandTheme): "nama-subdomain" | "custom-domain" {
+  const rawDomain = theme.customDomain.trim().toLowerCase();
+  if (!rawDomain) return "nama-subdomain";
+  return rawDomain.includes(".") ? "custom-domain" : "nama-subdomain";
 }

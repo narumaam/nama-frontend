@@ -5,7 +5,7 @@ import Link from "next/link";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
 import { DEMO_CASE_ASSIGNMENTS, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
-import { DEFAULT_DEMO_PROFILE, writeDemoProfile } from "@/lib/demo-profile";
+import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain, writeDemoProfile } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { ArrowRight, CheckCircle2, ClipboardList, FileUp, Filter, Mail, Palette, Plus, Shield, Users, UserPlus2 } from "lucide-react";
@@ -122,6 +122,9 @@ const ORG_CHART = {
 
 export default function TeamPage() {
   const profile = useDemoProfile();
+  const brandTheme = getDemoBrandTheme(profile);
+  const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
+  const domainMode = getDemoDomainMode(brandTheme);
   const [selectedRole, setSelectedRole] = useState("Sales");
   const [selectedMode, setSelectedMode] = useState<"invite" | "bulk" | "roles" | "hierarchy" | "structure" | "assign" | "brand">("invite");
   const [orgDepartments, setOrgDepartments] = useState(ORG_CHART.departments);
@@ -639,11 +642,25 @@ export default function TeamPage() {
                   </div>
                 </div>
                 <div className={`mt-4 grid gap-3 sm:grid-cols-2 ${whiteLabelEnabled ? "" : "opacity-50"}`}>
-                  <EditableField label="Workspace Name" value={workspaceName} onChange={setWorkspaceName} disabled={!whiteLabelEnabled} />
-                  <EditableField label="Badge Glyph" value={badgeGlyph} onChange={setBadgeGlyph} disabled={!whiteLabelEnabled} />
-                  <EditableField label="Support Email" value={supportEmail} onChange={setSupportEmail} disabled={!whiteLabelEnabled} />
-                  <EditableField label="Custom Domain" value={customDomain} onChange={setCustomDomain} disabled={!whiteLabelEnabled} />
-                  <EditableField label="Accent Hex" value={accentHex} onChange={setAccentHex} disabled={!whiteLabelEnabled} />
+                  <EditableField label="Workspace Name" value={workspaceName} onChange={setWorkspaceName} disabled={!whiteLabelEnabled} placeholder="Nair Luxury Escapes" hint="This is the name shown in the dashboard shell and overview." />
+                  <EditableField label="Badge Glyph" value={badgeGlyph} onChange={setBadgeGlyph} disabled={!whiteLabelEnabled} placeholder="NL" hint="Use 1-2 characters until logo upload is introduced." />
+                  <EditableField label="Support Email" value={supportEmail} onChange={setSupportEmail} disabled={!whiteLabelEnabled} placeholder="support@nairluxury.com" hint="This becomes the tenant-facing support contact." />
+                  <EditableField label="Subdomain or Domain" value={customDomain} onChange={setCustomDomain} disabled={!whiteLabelEnabled} placeholder="nairluxury or travel.nairluxury.com" hint="Short values become a NAMA subdomain. Full domains stay exactly as entered." />
+                  <EditableField label="Accent Hex" value={accentHex} onChange={setAccentHex} disabled={!whiteLabelEnabled} placeholder="#C9A84C" hint="Use a 6-digit hex color for buttons, highlights, and key brand moments." />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <GuidanceCard
+                    title="Domain options"
+                    body="Use a short value like nairluxury for a hosted subdomain under NAMA, or enter a full domain like travel.nairluxury.com if the customer wants their own domain."
+                  />
+                  <GuidanceCard
+                    title="Logo guidance"
+                    body="Keep the logo mark square at 256 x 256 px minimum, with a 512 x 512 px recommended export and a 512 KB max upload target."
+                  />
+                  <GuidanceCard
+                    title="User-friendly setup"
+                    body="Show examples inline, keep technical wording light, and let the customer admin understand brand impact before anything touches production infra."
+                  />
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
@@ -670,7 +687,7 @@ export default function TeamPage() {
                         {whiteLabelEnabled ? workspaceName || visibleCompany : "NAMA OS"}
                       </div>
                       <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">
-                        {whiteLabelEnabled ? customDomain || "tenant.preview" : "Platform shell locked"}
+                        {whiteLabelEnabled ? workspaceDomain : "Platform shell locked"}
                       </div>
                     </div>
                   </div>
@@ -679,6 +696,7 @@ export default function TeamPage() {
                     <PreviewField label="Support" value={whiteLabelEnabled ? supportEmail || "Not set" : "Platform default"} />
                     <PreviewField label="Tenant" value={visibleCompany} />
                     <PreviewField label="Accent" value={whiteLabelEnabled ? accentHex || "Not set" : "Platform gold"} />
+                    <PreviewField label="Domain Mode" value={whiteLabelEnabled ? (domainMode === "nama-subdomain" ? "NAMA-hosted subdomain" : "Bring your own domain") : "Platform default"} />
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
@@ -782,11 +800,15 @@ function EditableField({
   value,
   onChange,
   disabled,
+  placeholder,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  placeholder?: string;
+  hint?: string;
 }) {
   return (
     <label className={`rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4 ${disabled ? "cursor-not-allowed" : ""}`}>
@@ -795,8 +817,10 @@ function EditableField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
+        placeholder={placeholder}
         className="mt-2 w-full bg-transparent text-sm font-semibold text-[#F5F0E8] outline-none disabled:cursor-not-allowed disabled:text-[#4A453E]"
       />
+      {hint && <div className="mt-2 text-xs leading-relaxed text-[#B8B0A0]">{hint}</div>}
     </label>
   );
 }
@@ -840,6 +864,15 @@ function Item({ text }: { text: string }) {
   return (
     <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] px-4 py-3">
       {text}
+    </div>
+  );
+}
+
+function GuidanceCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4">
+      <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">{title}</div>
+      <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{body}</div>
     </div>
   );
 }
