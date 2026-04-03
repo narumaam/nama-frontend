@@ -41,7 +41,7 @@ const THREADS: ThreadCard[] = [
     guest: "Meera Nair",
     caseName: "Maldives honeymoon",
     tone: "High intent",
-    note: "A demo inquiry lands directly from the homepage and becomes a deal without manual cleanup.",
+    note: "A preview inquiry lands directly from the homepage and becomes a deal without manual cleanup.",
     status: "Captured",
   },
   {
@@ -138,11 +138,11 @@ export default function CommsPage() {
             Comms Command
             <span className="flex items-center gap-2 rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black font-mono uppercase tracking-widest text-[#1D9E75]">
               <Sparkles size={12} />
-              Seeded channels
+              Preview channels
             </span>
           </h1>
-          <p className="mt-2 max-w-3xl text-xs uppercase tracking-wide font-mono text-[#B8B0A0]">
-            Website, phone, email, and a WhatsApp placeholder all resolve into the same CRM story for the Monday demo.
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            Website, phone, email, and a WhatsApp placeholder all resolve into the same CRM story for the April preview.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
@@ -157,10 +157,10 @@ export default function CommsPage() {
             href="/dashboard/deals?lead=1"
             className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
-            Open Maldives case
+            Open Maldives deal
           </Link>
           <button className="w-full sm:w-auto rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95">
-            Demo reply queued
+            Reply draft queued
           </button>
         </div>
       </header>
@@ -178,7 +178,7 @@ export default function CommsPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel Intake</h2>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
-            These cards show how the demo captures demand from the same commercial channels your team already uses, then stores the outcome in one CRM lane.
+            These cards show how the preview captures demand from the same commercial channels your team already uses, then stores the outcome in one CRM lane.
           </p>
           <div className="space-y-3">
             {THREADS.map((thread) => (
@@ -214,7 +214,7 @@ export default function CommsPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">Sales Transcript</h2>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
-            The Monday demo uses a deterministic transcript so the rep can show how voice, message, and CRM context stay attached to the same lead.
+            The preview uses a deterministic transcript so the rep can show how voice, message, and CRM context stay attached to the same lead.
           </p>
           <div className="mb-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="flex items-center justify-between gap-3">
@@ -226,7 +226,7 @@ export default function CommsPage() {
                 href={selectedThread.caseName.includes("Maldives") ? "/dashboard/deals?lead=1" : selectedThread.caseName.includes("Dubai") ? "/dashboard/deals?lead=3" : "/dashboard/deals?lead=2"}
                 className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
               >
-                Open case
+                Open linked case
               </Link>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">

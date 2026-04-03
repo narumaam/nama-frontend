@@ -116,7 +116,7 @@ export default function EklaPage() {
           </div>
           <h1 className="text-4xl font-black uppercase tracking-tighter text-[#F5F0E8] font-headline">Run The Agency On Its Own</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
-            Ekla is the Monday-demo expression of NAMA’s core idea: the travel agency should run like an operating system.
+            Ekla is the preview expression of NAMA’s core idea: the travel agency should run like an operating system.
             It captures raw demand, assembles the commercial response, sequences follow-ups, and escalates only the parts that still need people.
           </p>
         </div>
@@ -132,7 +132,7 @@ export default function EklaPage() {
             href="/dashboard/deals?lead=1"
             className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95"
           >
-            Open Live Case
+            Open Maldives Deal
           </Link>
         </div>
       </header>
@@ -141,7 +141,7 @@ export default function EklaPage() {
         <MetricCard label="Autonomous Coverage" value="78%" sub="Routine agency work staged by Ekla" icon={<Bot size={16} />} />
         <MetricCard label="Human Escalation" value="22%" sub="Only premium, risky, or exception work" icon={<Shield size={16} />} />
         <MetricCard label="Channels Unified" value="05" sub="Website, phone, email, WhatsApp, transcript" icon={<Globe2 size={16} />} />
-        <MetricCard label="Monday Story" value="Ready" sub="Built to land fast in the demo" icon={<Sparkles size={16} />} />
+        <MetricCard label="Preview Story" value="Ready" sub="Built to land fast in the walkthrough" icon={<Sparkles size={16} />} />
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
@@ -171,7 +171,7 @@ export default function EklaPage() {
         <aside className="xl:col-span-5 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="mb-5 flex items-center gap-2">
             <Clock3 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">How To Pitch It On Monday</h2>
+            <h2 className="text-lg font-black text-[#F5F0E8]">How To Pitch It In The Preview</h2>
           </div>
           <div className="space-y-4">
             {MONDAY_STORY.map((item) => (
@@ -233,7 +233,7 @@ export default function EklaPage() {
             ))}
           </div>
           <div className="mt-5 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
-            Safe line for Monday: “Ekla is the operating layer that makes the agency move on its own. This demo shows deterministic cases and control loops, not live third-party credentials.”
+            Safe line for the preview: “Ekla is the operating layer that makes the agency move on its own. This walkthrough shows deterministic cases and control loops, not live third-party credentials.”
           </div>
         </div>
       </section>

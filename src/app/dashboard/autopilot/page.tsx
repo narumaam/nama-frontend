@@ -256,7 +256,7 @@ export default function AutopilotPage() {
             Command Center
           </h1>
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
-            Seeded demo cases are driving the walkthrough · You only see what needs your attention
+            Preview cases are driving the walkthrough · You only see what needs your attention
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
