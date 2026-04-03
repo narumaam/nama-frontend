@@ -1,5 +1,6 @@
 "use client";
 
+import Link from 'next/link';
 import React, { useState } from 'react';
 import ScreenInfoTip from '@/components/screen-info-tip';
 import { DEMO_ITINERARY_WORKSPACE_CASE } from '@/lib/demo-case-profiles';
@@ -62,9 +63,9 @@ export default function ItinerariesPage() {
           <button className="flex items-center gap-2 px-5 py-2.5 bg-[#111111] text-[#F5F0E8] border border-[#C9A84C]/15 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1A1A1A] transition-all">
             <Eye size={14} /> Preview Flow
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-[#0A0A0A] rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(201,168,76,0.2)]">
+          <Link href={`/dashboard/traveler-pdf/${workspaceCase.slug}`} className="flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-[#0A0A0A] rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(201,168,76,0.2)]">
             <FileText size={14} /> Export Traveler PDF
-          </button>
+          </Link>
         </div>
       </div>
 

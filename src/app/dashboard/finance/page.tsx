@@ -186,6 +186,12 @@ export default function FinancePage() {
           >
             Continue into bookings
           </Link>
+          <Link
+            href={`/dashboard/invoices/${PRIMARY_CASE.slug}`}
+            className="w-full rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10 sm:w-auto"
+          >
+            Open branded invoice
+          </Link>
         </div>
       </header>
 

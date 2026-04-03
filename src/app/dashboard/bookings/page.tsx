@@ -443,6 +443,8 @@ export default function BookingsPage() {
               <ActionLink href="/dashboard/comms" label="Release guest pack in Comms" />
               <ActionLink href="/dashboard/dmc" label="Review supplier confirmation in DMC" />
               <ActionLink href="/dashboard/finance" label="Check balance due in Finance" />
+              <ActionLink href={`/dashboard/traveler-pdf/${activeDeal.slug}`} label="Open traveler PDF route" />
+              <ActionLink href={`/dashboard/invoices/${activeDeal.slug}`} label="Open branded invoice route" />
             </div>
           </section>
         </aside>
