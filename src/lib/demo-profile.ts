@@ -14,6 +14,15 @@ export type DemoProfile = {
   market: DemoMarket;
   baseCurrency: string;
   enabledCurrencies: string[];
+  bankDetails: {
+    beneficiaryName: string;
+    bankName: string;
+    branchName: string;
+    accountNumber: string;
+    accountType: string;
+    routingCode: string;
+    billingAddress: string;
+  };
   whiteLabel: {
     enabled: boolean;
     workspaceName: string;
@@ -42,6 +51,15 @@ export const DEFAULT_DEMO_PROFILE: DemoProfile = {
   market: DEFAULT_MARKET,
   baseCurrency: DEFAULT_MARKET.currency,
   enabledCurrencies: ["INR", "AED", "USD"],
+  bankDetails: {
+    beneficiaryName: "Nair Luxury Escapes Pvt Ltd",
+    bankName: "HDFC Bank",
+    branchName: "MG Road, Bengaluru",
+    accountNumber: "50200012345678",
+    accountType: "Current Account",
+    routingCode: "HDFC0000456 / HDFCINBBXXX",
+    billingAddress: "22 Residency Road, Bengaluru 560025, Karnataka, India",
+  },
   whiteLabel: {
     enabled: false,
     workspaceName: "NAMA OS",
@@ -69,6 +87,7 @@ function normalizeDemoProfile(input: Partial<DemoProfile>): DemoProfile {
   const market = input.market ?? DEFAULT_DEMO_PROFILE.market;
   const baseCurrency = input.baseCurrency || market.currency || DEFAULT_DEMO_PROFILE.baseCurrency;
   const enabledCurrencies = sanitizeEnabledCurrencies(baseCurrency, input.enabledCurrencies ?? DEFAULT_DEMO_PROFILE.enabledCurrencies);
+  const bankDetailsInput = input.bankDetails ?? DEFAULT_DEMO_PROFILE.bankDetails;
   const whiteLabelInput = input.whiteLabel ?? DEFAULT_DEMO_PROFILE.whiteLabel;
   const workspaceName = whiteLabelInput.workspaceName?.trim() || DEFAULT_DEMO_PROFILE.whiteLabel.workspaceName;
   const badgeGlyph = (whiteLabelInput.badgeGlyph?.trim() || workspaceName[0] || DEFAULT_DEMO_PROFILE.whiteLabel.badgeGlyph).slice(0, 2).toUpperCase();
@@ -80,6 +99,15 @@ function normalizeDemoProfile(input: Partial<DemoProfile>): DemoProfile {
     market,
     baseCurrency,
     enabledCurrencies,
+    bankDetails: {
+      beneficiaryName: bankDetailsInput.beneficiaryName?.trim() || DEFAULT_DEMO_PROFILE.bankDetails.beneficiaryName,
+      bankName: bankDetailsInput.bankName?.trim() || DEFAULT_DEMO_PROFILE.bankDetails.bankName,
+      branchName: bankDetailsInput.branchName?.trim() || DEFAULT_DEMO_PROFILE.bankDetails.branchName,
+      accountNumber: bankDetailsInput.accountNumber?.trim() || DEFAULT_DEMO_PROFILE.bankDetails.accountNumber,
+      accountType: bankDetailsInput.accountType?.trim() || DEFAULT_DEMO_PROFILE.bankDetails.accountType,
+      routingCode: bankDetailsInput.routingCode?.trim() || DEFAULT_DEMO_PROFILE.bankDetails.routingCode,
+      billingAddress: bankDetailsInput.billingAddress?.trim() || DEFAULT_DEMO_PROFILE.bankDetails.billingAddress,
+    },
     whiteLabel: {
       enabled: Boolean(whiteLabelInput.enabled),
       workspaceName,
@@ -101,6 +129,7 @@ export function readDemoProfile(): DemoProfile {
     market: readJson<DemoMarket>(window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.market), DEFAULT_DEMO_PROFILE.market),
     baseCurrency: window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.baseCurrency) || undefined,
     enabledCurrencies: readJson<string[]>(window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.enabledCurrencies), DEFAULT_DEMO_PROFILE.enabledCurrencies),
+    bankDetails: readJson<DemoProfile["bankDetails"]>(window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.bankDetails), DEFAULT_DEMO_PROFILE.bankDetails),
     whiteLabel: readJson<DemoProfile["whiteLabel"]>(window.localStorage.getItem(DEMO_PROFILE_STORAGE_KEYS.whiteLabel), DEFAULT_DEMO_PROFILE.whiteLabel),
   });
 }
@@ -118,6 +147,7 @@ export function writeDemoProfile(input: Partial<DemoProfile>): DemoProfile {
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.market, JSON.stringify(nextProfile.market));
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.baseCurrency, nextProfile.baseCurrency);
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.enabledCurrencies, JSON.stringify(nextProfile.enabledCurrencies));
+    window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.bankDetails, JSON.stringify(nextProfile.bankDetails));
     window.localStorage.setItem(DEMO_PROFILE_STORAGE_KEYS.whiteLabel, JSON.stringify(nextProfile.whiteLabel));
     window.dispatchEvent(new CustomEvent("nama-demo-profile-updated", { detail: nextProfile }));
   }

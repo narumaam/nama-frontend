@@ -21,6 +21,7 @@ export const DEMO_PROFILE_STORAGE_KEYS = {
   market: "nama-demo-market",
   baseCurrency: "nama-demo-base-currency",
   enabledCurrencies: "nama-demo-enabled-currencies",
+  bankDetails: "nama-demo-bank-details",
   whiteLabel: "nama-demo-white-label",
 } as const;
 

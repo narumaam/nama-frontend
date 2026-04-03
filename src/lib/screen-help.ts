@@ -37,11 +37,20 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
       "This becomes the bridge into later finance and commerce controls.",
     ],
   },
+  registerBanking: {
+    title: "Banking & Settlement",
+    description: "Use this section to capture the tenant's settlement details in one place during onboarding.",
+    bullets: [
+      "Capture beneficiary, bank, branch, account, and routing details together.",
+      "Include the billing address so invoicing and payouts start from the same source of truth.",
+      "This keeps finance setup visible early without claiming live payouts are already connected.",
+    ],
+  },
   registerPreview: {
     title: "Workspace Preview",
     description: "This summary helps the user confirm the tenant defaults before entering the dashboard.",
     bullets: [
-      "Use it as a readback of the selected business type, market, and commerce settings.",
+      "Use it as a readback of the selected business type, market, commerce, and banking settings.",
       "The values here should feel like a safe handoff into the rest of the alpha.",
       "It reinforces that onboarding is defining the workspace, not collecting payment details yet.",
     ],

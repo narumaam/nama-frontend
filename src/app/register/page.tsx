@@ -15,6 +15,7 @@ import {
   Globe2,
   Languages,
   Landmark,
+  Receipt,
   Shield,
   Sparkles,
   Users,
@@ -55,6 +56,13 @@ export default function RegisterPage() {
     DEFAULT_DEMO_PROFILE.enabledCurrencies as SupportedCurrency[]
   );
   const [selectedPlan, setSelectedPlan] = useState(PLAN_PRESETS[1]);
+  const [beneficiaryName, setBeneficiaryName] = useState(DEFAULT_DEMO_PROFILE.bankDetails.beneficiaryName);
+  const [bankName, setBankName] = useState(DEFAULT_DEMO_PROFILE.bankDetails.bankName);
+  const [branchName, setBranchName] = useState(DEFAULT_DEMO_PROFILE.bankDetails.branchName);
+  const [accountNumber, setAccountNumber] = useState(DEFAULT_DEMO_PROFILE.bankDetails.accountNumber);
+  const [accountType, setAccountType] = useState(DEFAULT_DEMO_PROFILE.bankDetails.accountType);
+  const [routingCode, setRoutingCode] = useState(DEFAULT_DEMO_PROFILE.bankDetails.routingCode);
+  const [billingAddress, setBillingAddress] = useState(DEFAULT_DEMO_PROFILE.bankDetails.billingAddress);
   const [showConfetti, setShowConfetti] = useState(false);
 
   const profileLabel = useMemo(() => {
@@ -82,6 +90,15 @@ export default function RegisterPage() {
       market: selectedMarket,
       baseCurrency: selectedMarket.currency,
       enabledCurrencies,
+      bankDetails: {
+        beneficiaryName,
+        bankName,
+        branchName,
+        accountNumber,
+        accountType,
+        routingCode,
+        billingAddress,
+      },
     });
     window.setTimeout(() => {
       router.push("/dashboard");
@@ -263,6 +280,64 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Receipt size={15} className="text-[#C9A84C]" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Banking & Settlement</span>
+                </div>
+                <ScreenInfoTip content={SCREEN_HELP.registerBanking} />
+              </div>
+              <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <Field
+                    label="Beneficiary Name"
+                    value={beneficiaryName}
+                    onChange={setBeneficiaryName}
+                    placeholder="e.g. Maldives Premier Journeys Pvt Ltd"
+                  />
+                  <Field
+                    label="Bank Name"
+                    value={bankName}
+                    onChange={setBankName}
+                    placeholder="e.g. HDFC Bank"
+                  />
+                  <Field
+                    label="Branch Name"
+                    value={branchName}
+                    onChange={setBranchName}
+                    placeholder="e.g. MG Road, Bengaluru"
+                  />
+                  <Field
+                    label="Account Number"
+                    value={accountNumber}
+                    onChange={setAccountNumber}
+                    placeholder="e.g. 50200012345678"
+                  />
+                  <Field
+                    label="Account Type"
+                    value={accountType}
+                    onChange={setAccountType}
+                    placeholder="e.g. Current Account"
+                  />
+                  <Field
+                    label="IFSC / SWIFT / Routing Code"
+                    value={routingCode}
+                    onChange={setRoutingCode}
+                    placeholder="e.g. HDFC0000456 / HDFCINBBXXX"
+                  />
+                </div>
+                <div className="mt-5">
+                  <TextAreaField
+                    label="Billing Address"
+                    value={billingAddress}
+                    onChange={setBillingAddress}
+                    placeholder="Registered billing address for invoices, remittance details, and finance setup"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -277,6 +352,10 @@ export default function RegisterPage() {
                 <PreviewRow label="Additional Currencies" value={enabledCurrencies.filter((item) => item !== selectedMarket.currency).join(", ") || "None"} />
                 <PreviewRow label="Default Language" value={selectedMarket.language} />
                 <PreviewRow label="Payment Rail" value={selectedMarket.gateway} />
+                <PreviewRow label="Beneficiary" value={beneficiaryName} />
+                <PreviewRow label="Bank" value={bankName} />
+                <PreviewRow label="Account / Routing" value={`${accountNumber} · ${routingCode}`} />
+                <PreviewRow label="Billing Address" value={billingAddress} />
                 <PreviewRow label="Recommended Plan" value={selectedPlan.name} />
               </div>
             </div>
@@ -420,6 +499,31 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-white/60 bg-white px-4 py-3">
       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{label}</div>
       <div className="mt-1 text-sm font-black text-[#0F172A]">{value}</div>
+    </div>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">{label}</label>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={3}
+        className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-[#0F172A] outline-none transition-all focus:border-[#14B8A6] focus:bg-white focus:ring-4 focus:ring-[#14B8A6]/10"
+      />
     </div>
   );
 }
