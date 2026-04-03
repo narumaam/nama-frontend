@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { clearAppSession, readAppSession } from '@/lib/auth-session';
+import { canAccessPath, clearAppSession, getDefaultRouteForRole, getRoleLabel, readAppSession, type AppSession } from '@/lib/auth-session';
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
 import { DEFAULT_SHELL_BRAND } from '@/lib/demo-config';
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from '@/lib/demo-profile';
@@ -42,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [artifactCaseSlug, setArtifactCaseSlug] = useState(primaryCase.slug);
   const [superAdminAccess, setSuperAdminAccess] = useState(false);
   const [accessReady, setAccessReady] = useState(false);
+  const [session, setSession] = useState<AppSession | null>(null);
   const pathname = usePathname();
   const demoCompany = profile.company;
   const demoOperator = profile.operator;
@@ -68,19 +69,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     .join("") || shellBrand.badgeGlyph;
 
   useEffect(() => {
-    const session = readAppSession();
-    if (!session) {
-      router.replace(pathname.startsWith('/dashboard/admin') ? '/super-admin/login' : '/register');
-      return;
+    function syncAccess() {
+      const nextSession = readAppSession();
+      if (!nextSession) {
+        setSession(null);
+        setAccessReady(false);
+        router.replace(pathname.startsWith('/dashboard/admin') ? '/super-admin/login' : '/register');
+        return;
+      }
+
+      if (!canAccessPath(nextSession, pathname)) {
+        setSession(nextSession);
+        setSuperAdminAccess(nextSession.role === 'super-admin');
+        setAccessReady(false);
+        router.replace(getDefaultRouteForRole(nextSession.role));
+        return;
+      }
+
+      setSession(nextSession);
+      setSuperAdminAccess(nextSession.role === 'super-admin');
+      setAccessReady(true);
     }
 
-    if (pathname.startsWith('/dashboard/admin') && session.role !== 'super-admin') {
-      router.replace('/dashboard');
-      return;
-    }
+    syncAccess();
+    window.addEventListener('storage', syncAccess);
+    window.addEventListener('nama-app-session-updated', syncAccess as EventListener);
 
-    setSuperAdminAccess(session.role === 'super-admin');
-    setAccessReady(true);
+    return () => {
+      window.removeEventListener('storage', syncAccess);
+      window.removeEventListener('nama-app-session-updated', syncAccess as EventListener);
+    };
   }, [pathname, router]);
 
   const navGroups = [
@@ -126,9 +144,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   function handleExitSuperAdmin() {
     clearAppSession();
+    setSession(null);
     setSuperAdminAccess(false);
     router.push('/super-admin/login');
   }
+
+  const visibleNavGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => (session ? canAccessPath(session, item.href) : false)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   if (!accessReady) {
     return (
@@ -189,7 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto no-scrollbar">
-          {navGroups.map(group => (
+          {visibleNavGroups.map(group => (
             <div key={group.label} className="mb-5">
               {(!collapsed || mobileNavOpen) && (
                 <div className="text-[7px] font-black uppercase tracking-[0.25em] text-[#4A453E] font-mono px-3 mb-2">{group.label}</div>
@@ -255,6 +281,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-[8px] text-[#C9A84C] truncate uppercase tracking-widest font-mono">
                 {demoRoles.join(" + ")} · Base {demoMarket.currency} · {enabledCurrencies.join(", ")}
               </p>
+              {session && (
+                <p className="text-[8px] truncate uppercase tracking-widest font-mono text-[#B8B0A0]">
+                  {getRoleLabel(session.role)} · {session.scope}
+                </p>
+              )}
               {brandTheme.enabled && (
                 <p className="text-[8px] truncate uppercase tracking-widest font-mono" style={{ color: accentHex }}>
                   {domainMode === "nama-subdomain" ? "NAMA Subdomain" : "Custom Domain"} · {workspaceDomain}

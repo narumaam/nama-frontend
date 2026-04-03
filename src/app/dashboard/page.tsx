@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
+import { TENANT_ROLE_OPTIONS, createTenantRoleSession, getRoleLabel, readAppSession, type AppRole } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from "@/lib/demo-profile";
@@ -108,6 +109,8 @@ export default function DashboardPage() {
   const [cases, setCases] = useState<DemoCase[]>(FALLBACK_CASES);
   const [loading, setLoading] = useState(true);
   const [founderLaunchMessage, setFounderLaunchMessage] = useState("Seed the strongest scenario and jump directly into the founder-ready pack.");
+  const [rolePreviewMessage, setRolePreviewMessage] = useState("Switch tenant roles here to test the beta access rules without changing the underlying demo tenant.");
+  const [activeRole, setActiveRole] = useState<AppRole>("customer-admin");
   const demoCompany = profile.company;
   const demoOperator = profile.operator;
   const businessRoles = profile.roles;
@@ -141,6 +144,23 @@ export default function DashboardPage() {
     };
   }, []);
 
+  useEffect(() => {
+    function syncRole() {
+      const session = readAppSession();
+      if (!session || session.scope !== "tenant") return;
+      setActiveRole(session.role);
+    }
+
+    syncRole();
+    window.addEventListener("storage", syncRole);
+    window.addEventListener("nama-app-session-updated", syncRole as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", syncRole);
+      window.removeEventListener("nama-app-session-updated", syncRole as EventListener);
+    };
+  }, []);
+
   const totalQuote = cases.reduce((sum, item) => sum + item.quote_total, 0);
   const avgQuote = Math.round(totalQuote / Math.max(cases.length, 1));
   const criticalCount = cases.filter((item) => item.priority === "CRITICAL").length;
@@ -156,6 +176,13 @@ export default function DashboardPage() {
     seedDemoScenario("finance-overdue");
     setFounderLaunchMessage("Finance Overdue QA seeded. Opening the audit report for the risk case.");
     router.push("/dashboard/admin/audit-report?tenant=Northstar%20Voyages&category=commercial&severity=warning&case=maldives-honeymoon");
+  }
+
+  function switchTenantRole(role: AppRole) {
+    const tenantRole = role === "super-admin" ? "customer-admin" : role;
+    createTenantRoleSession(profile.operator, profile.company, tenantRole);
+    setActiveRole(tenantRole);
+    setRolePreviewMessage(`${getRoleLabel(tenantRole)} access is now active for ${profile.company}. The shell and guards will adapt on the next navigation.`);
   }
 
   return (
@@ -219,6 +246,41 @@ export default function DashboardPage() {
         </div>
         <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
           {founderLaunchMessage}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Beta Access Preview</div>
+            <h2 className="text-xl font-black text-[#F5F0E8]">Test tenant roles against the new dashboard guards</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This lets us preview how customer-admin, sales, operations, finance, and viewer sessions see the workspace before backend auth is fully wired.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#F5F0E8]">
+            Active role: {getRoleLabel(activeRole)}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {TENANT_ROLE_OPTIONS.map((option) => {
+            const active = option.role === activeRole;
+            return (
+              <button
+                key={option.role}
+                type="button"
+                onClick={() => switchTenantRole(option.role)}
+                className={`rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest transition ${
+                  active ? "bg-[#C9A84C] text-[#0A0A0A]" : "border border-white/10 bg-[#0A0A0A] text-[#F5F0E8]"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+          {rolePreviewMessage}
         </div>
       </section>
 

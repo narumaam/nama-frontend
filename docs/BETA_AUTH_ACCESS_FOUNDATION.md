@@ -49,6 +49,14 @@ This branch implements:
 - dashboard shell checks for a session before rendering protected routes
 - Super Admin navigation only appears when the session role allows it
 
+## Second Implementation Slice
+
+This branch now extends that baseline with:
+
+- role-aware route checks for tenant roles
+- role-aware navigation filtering
+- tenant-role preview switching from the overview for beta testing
+
 ## What This Is Not Yet
 
 - not production auth

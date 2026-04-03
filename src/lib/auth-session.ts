@@ -22,6 +22,14 @@ export type AppSession = {
   grantedAt: string;
 };
 
+export const TENANT_ROLE_OPTIONS: Array<{ role: AppRole; label: string }> = [
+  { role: "customer-admin", label: "Customer Admin" },
+  { role: "sales", label: "Sales" },
+  { role: "operations", label: "Operations" },
+  { role: "finance", label: "Finance" },
+  { role: "viewer", label: "Viewer" },
+];
+
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
@@ -74,7 +82,61 @@ export function canAccessSuperAdmin() {
   return hasRole("super-admin");
 }
 
+export function getRoleLabel(role: AppRole) {
+  return TENANT_ROLE_OPTIONS.find((item) => item.role === role)?.label ?? "Super Admin";
+}
+
+export function getDefaultRouteForRole(role: AppRole) {
+  switch (role) {
+    case "super-admin":
+      return "/dashboard/admin";
+    case "finance":
+      return "/dashboard/finance";
+    case "sales":
+      return "/dashboard/leads";
+    case "operations":
+      return "/dashboard/bookings";
+    case "viewer":
+      return "/dashboard/artifacts";
+    case "customer-admin":
+    default:
+      return "/dashboard";
+  }
+}
+
+const PATH_ACCESS_RULES: Array<{ matches: RegExp; roles: AppRole[] }> = [
+  { matches: /^\/dashboard\/admin(?:\/|$)/, roles: ["super-admin"] },
+  { matches: /^\/dashboard\/team(?:\/|$)/, roles: ["customer-admin", "super-admin"] },
+  { matches: /^\/dashboard\/finance(?:\/|$)/, roles: ["customer-admin", "finance", "super-admin"] },
+  { matches: /^\/dashboard\/invoices\/.+/, roles: ["customer-admin", "finance", "super-admin"] },
+  { matches: /^\/dashboard\/leads(?:\/|$)/, roles: ["customer-admin", "sales", "super-admin"] },
+  { matches: /^\/dashboard\/deals(?:\/|$)/, roles: ["customer-admin", "sales", "super-admin"] },
+  { matches: /^\/dashboard\/bookings(?:\/|$)/, roles: ["customer-admin", "operations", "finance", "super-admin"] },
+  { matches: /^\/dashboard\/dmc(?:\/|$)/, roles: ["customer-admin", "operations", "super-admin"] },
+  { matches: /^\/dashboard\/comms(?:\/|$)/, roles: ["customer-admin", "sales", "operations", "super-admin"] },
+  { matches: /^\/dashboard\/analytics(?:\/|$)/, roles: ["customer-admin", "finance", "viewer", "super-admin"] },
+  { matches: /^\/dashboard\/content(?:\/|$)/, roles: ["customer-admin", "super-admin"] },
+  { matches: /^\/dashboard\/autopilot(?:\/|$)/, roles: ["customer-admin", "super-admin"] },
+  { matches: /^\/dashboard\/ekla(?:\/|$)/, roles: ["customer-admin", "super-admin"] },
+  { matches: /^\/dashboard\/evolution(?:\/|$)/, roles: ["customer-admin", "super-admin"] },
+  { matches: /^\/dashboard\/itineraries(?:\/|$)/, roles: ["customer-admin", "sales", "operations", "viewer", "super-admin"] },
+  { matches: /^\/dashboard\/traveler-pdf\/.+/, roles: ["customer-admin", "operations", "viewer", "super-admin"] },
+  { matches: /^\/dashboard\/artifacts(?:\/|$)/, roles: ["customer-admin", "finance", "sales", "operations", "viewer", "super-admin"] },
+  { matches: /^\/dashboard\/demo-pack\/.+/, roles: ["customer-admin", "finance", "sales", "operations", "viewer", "super-admin"] },
+  { matches: /^\/dashboard(?:\/)?$/, roles: ["customer-admin", "finance", "sales", "operations", "viewer", "super-admin"] },
+];
+
+export function canAccessPath(session: AppSession, pathname: string) {
+  const matchingRule = PATH_ACCESS_RULES.find((rule) => rule.matches.test(pathname));
+  if (!matchingRule) return true;
+  return matchingRule.roles.includes(session.role);
+}
+
 export function createTenantAdminSession(displayName: string, tenantName: string) {
+  return createTenantRoleSession(displayName, tenantName, "customer-admin");
+}
+
+export function createTenantRoleSession(displayName: string, tenantName: string, role: Exclude<AppRole, "super-admin">) {
   const normalizedTenant = tenantName.trim() || "nama-demo";
   const normalizedEmail =
     `${displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "") || "workspace.operator"}@${normalizedTenant
@@ -85,7 +147,7 @@ export function createTenantAdminSession(displayName: string, tenantName: string
   return createAppSession({
     email: normalizedEmail,
     displayName,
-    role: "customer-admin",
+    role,
     scope: "tenant",
     tenantName: normalizedTenant,
   });
