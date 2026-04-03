@@ -141,9 +141,12 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <div className="mb-3 flex items-center gap-2">
-                <Building2 size={15} className="text-[#C9A84C]" />
-                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Business Profile</span>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Building2 size={15} className="text-[#C9A84C]" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Business Profile</span>
+                </div>
+                <ScreenInfoTip content={SCREEN_HELP.registerBusiness} />
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 {BUSINESS_ROLES.map((role) => {
@@ -175,9 +178,12 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <div className="mb-3 flex items-center gap-2">
-                <Globe2 size={15} className="text-[#C9A84C]" />
-                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Market Defaults</span>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Globe2 size={15} className="text-[#C9A84C]" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Market Defaults</span>
+                </div>
+                <ScreenInfoTip content={SCREEN_HELP.registerMarket} />
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {MARKET_PRESETS.map((market) => {
@@ -210,9 +216,12 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <div className="mb-3 flex items-center gap-2">
-                <Landmark size={15} className="text-[#C9A84C]" />
-                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Currency Model</span>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Landmark size={15} className="text-[#C9A84C]" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Currency Model</span>
+                </div>
+                <ScreenInfoTip content={SCREEN_HELP.registerCurrency} />
               </div>
               <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
                 <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
@@ -255,9 +264,12 @@ export default function RegisterPage() {
             </div>
 
             <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Sparkles size={15} className="text-[#C9A84C]" />
-                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Workspace Preview</span>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={15} className="text-[#C9A84C]" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Workspace Preview</span>
+                </div>
+                <ScreenInfoTip content={SCREEN_HELP.registerPreview} />
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <PreviewRow label="Business Profile" value={profileLabel} />
@@ -270,9 +282,12 @@ export default function RegisterPage() {
             </div>
 
             <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Shield size={15} className="text-[#C9A84C]" />
-                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Plan Fit</span>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Shield size={15} className="text-[#C9A84C]" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Plan Fit</span>
+                </div>
+                <ScreenInfoTip content={SCREEN_HELP.registerPlan} />
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 {PLAN_PRESETS.map((plan) => {

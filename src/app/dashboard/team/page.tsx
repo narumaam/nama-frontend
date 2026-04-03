@@ -234,9 +234,12 @@ export default function TeamPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Shield size={14} className="text-[#C9A84C]" />
-              <h2 className="text-lg font-black text-[#F5F0E8]">Access Control Layer</h2>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Shield size={14} className="text-[#C9A84C]" />
+                <h2 className="text-lg font-black text-[#F5F0E8]">Access Control Layer</h2>
+              </div>
+              <ScreenInfoTip content={SCREEN_HELP.teamAccess} />
             </div>
             <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
               This is the alpha governance view behind Team: who can see what, who acts where, and which team templates the customer admin can use before inviting real users.
@@ -300,7 +303,10 @@ export default function TeamPage() {
         <section className="min-w-0 xl:col-span-3 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-[#F5F0E8] font-headline">Workflow Modes</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-black uppercase tracking-tight text-[#F5F0E8] font-headline">Workflow Modes</h2>
+                <ScreenInfoTip content={SCREEN_HELP.teamModes} />
+              </div>
               <p className="mt-1 text-sm text-[#B8B0A0]">Switch between invite creation, bulk upload, role design, hierarchy, and assignments.</p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -601,9 +607,12 @@ export default function TeamPage() {
           {selectedMode === "brand" && (
             <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
               <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 sm:p-5">
-                <div className="flex items-center gap-2 mb-4 text-[#C9A84C]">
-                  <Palette size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">White-label Controls</span>
+                <div className="mb-4 flex items-center justify-between gap-3 text-[#C9A84C]">
+                  <div className="flex items-center gap-2">
+                    <Palette size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">White-label Controls</span>
+                  </div>
+                  <ScreenInfoTip content={SCREEN_HELP.teamBrand} />
                 </div>
                 <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
                   <div className="flex items-start justify-between gap-4">

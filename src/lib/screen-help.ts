@@ -10,6 +10,51 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
       "Currency Model and Plan Fit explain how the tenant should operate inside the alpha preview.",
     ],
   },
+  registerBusiness: {
+    title: "Business Profile",
+    description: "Use this section to describe what kind of travel business the tenant actually is.",
+    bullets: [
+      "A tenant can carry more than one identity, so this is intentionally multi-select.",
+      "The selected roles shape the operating narrative shown later in the preview.",
+      "Keep this focused on business model, not plan or team structure.",
+    ],
+  },
+  registerMarket: {
+    title: "Market Defaults",
+    description: "This section sets the operating market anchor before deeper workspace setup begins.",
+    bullets: [
+      "Country drives the default language, billing gateway, and base currency choice.",
+      "These are preview defaults, so they demonstrate logic without claiming live provisioning.",
+      "Use this to explain that regional behavior changes by tenant rather than staying global.",
+    ],
+  },
+  registerCurrency: {
+    title: "Currency Model",
+    description: "This section explains the difference between one accounting base currency and optional selling currencies.",
+    bullets: [
+      "The base currency stays tied to the selected operating market.",
+      "Additional currencies expand quoting flexibility without changing the reporting anchor.",
+      "This becomes the bridge into later finance and commerce controls.",
+    ],
+  },
+  registerPreview: {
+    title: "Workspace Preview",
+    description: "This summary helps the user confirm the tenant defaults before entering the dashboard.",
+    bullets: [
+      "Use it as a readback of the selected business type, market, and commerce settings.",
+      "The values here should feel like a safe handoff into the rest of the alpha.",
+      "It reinforces that onboarding is defining the workspace, not collecting payment details yet.",
+    ],
+  },
+  registerPlan: {
+    title: "Plan Fit",
+    description: "This section frames subscription fit as guided recommendation rather than a hard commercial step.",
+    bullets: [
+      "Use plan selection to explain operating depth, not live billing commitment.",
+      "Each card maps the tenant to a fuller control model inside the alpha.",
+      "The recommendation stays preview-safe while still helping the story land commercially.",
+    ],
+  },
   overview: {
     title: "Operations Overview",
     description: "This screen is the walkthrough spine for the alpha and connects the main operating layers.",
@@ -91,6 +136,33 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
       "Brand mode now includes the white-label toggle and locked branding controls.",
     ],
   },
+  teamAccess: {
+    title: "Access Control Layer",
+    description: "This section is the permission logic behind the visible team workspace.",
+    bullets: [
+      "Permission Matrix explains who can view, act, and escalate across the tenant.",
+      "Role Templates show reusable staffing patterns before real user provisioning exists.",
+      "Admin Summary keeps the visible naming decisions aligned with the rest of the page.",
+    ],
+  },
+  teamModes: {
+    title: "Workflow Modes",
+    description: "Use these modes to switch the story from invites into structure, roles, assignments, and branding.",
+    bullets: [
+      "Invite and Bulk explain user creation paths.",
+      "Roles, Hierarchy, and Structure explain access design and reporting logic.",
+      "Assign and Brand finish the story with ownership mapping and white-label controls.",
+    ],
+  },
+  teamBrand: {
+    title: "White-label Controls",
+    description: "This mode shows how tenant branding becomes configurable only after explicit enablement.",
+    bullets: [
+      "The toggle protects branding settings until white label is turned on.",
+      "Workspace name, badge, support, domain, and accent fields are the tenant-editable identity layer.",
+      "The preview panel proves the controls have visible product impact without touching live infrastructure.",
+    ],
+  },
   admin: {
     title: "Platform Control",
     description: "This is the super-admin layer for subscriptions, template inheritance, tenant health, and regional commerce routing.",
@@ -98,6 +170,51 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
       "Tenant Action Queue and Tenant Health summarize commercial risk and adoption.",
       "Regional Commerce and FX Controls explain how pricing and gateways vary by market.",
       "Subscription Plans and Rules describe platform-level governance rather than tenant-level operations.",
+    ],
+  },
+  adminGovernance: {
+    title: "Platform Governance Layer",
+    description: "This section explains how platform-owner controls differ from tenant-admin controls.",
+    bullets: [
+      "Tenant Action Queue highlights the commercial or operational items needing attention.",
+      "Template Inheritance shows what starts at platform level before local overrides happen.",
+      "Use this to position Super Admin as governance, not day-to-day agency execution.",
+    ],
+  },
+  adminTenants: {
+    title: "Tenant & Subscription Health",
+    description: "This section is the rollup of tenant commercial status, adoption, and risk.",
+    bullets: [
+      "Each tenant card combines plan tier, seats, renewal timing, and health status.",
+      "Global Controls summarize the major control surfaces available to the platform owner.",
+      "This is the fastest way to explain why Super Admin exists at all.",
+    ],
+  },
+  adminRegional: {
+    title: "Regional Commerce Routing",
+    description: "This section models how subscription and payment behavior changes by market.",
+    bullets: [
+      "Country-specific cards define language, base currency, extras, and gateway patterns.",
+      "The selected market feeds the pricing simulator and FX explanation nearby.",
+      "Use it to show geo-aware logic instead of one-size-fits-all billing.",
+    ],
+  },
+  adminFx: {
+    title: "Localization & FX Controls",
+    description: "This section explains how pricing, rates, language, and routing stay flexible but governed.",
+    bullets: [
+      "Localization rules show the default decision path for language, currency, and gateway.",
+      "FX Rate Stack explains live-rate, buffered, and manual-lock behavior.",
+      "The simulator translates those controls into a concrete regional plan price.",
+    ],
+  },
+  adminPlans: {
+    title: "Subscription Plans",
+    description: "This section frames the commercial packaging the platform owner manages across tenants.",
+    bullets: [
+      "Each plan maps to a deeper operating model, not just a higher number.",
+      "Use the cards to explain packaging from Starter through Enterprise.",
+      "Keep this anchored to platform packaging, not tenant-specific usage alone.",
     ],
   },
   analytics: {

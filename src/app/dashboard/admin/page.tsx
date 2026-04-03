@@ -237,9 +237,12 @@ export default function AdminPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Shield size={14} className="text-[#C9A84C]" />
-              <h2 className="text-lg font-black text-[#F5F0E8]">Platform Governance Layer</h2>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Shield size={14} className="text-[#C9A84C]" />
+                <h2 className="text-lg font-black text-[#F5F0E8]">Platform Governance Layer</h2>
+              </div>
+              <ScreenInfoTip content={SCREEN_HELP.adminGovernance} />
             </div>
             <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
               This is the alpha control model behind Super Admin: where tenant action, inherited templates, and platform-level commercial oversight all come together in one safe summary.
@@ -284,9 +287,12 @@ export default function AdminPage() {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <div className="xl:col-span-7 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <Building2 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Tenant & Subscription Health</h2>
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Building2 size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Tenant & Subscription Health</h2>
+            </div>
+            <ScreenInfoTip content={SCREEN_HELP.adminTenants} />
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
             This view gives you a platform-owner perspective: who is live, who is growing, who needs attention, and what commercial tier they sit on.
@@ -346,9 +352,12 @@ export default function AdminPage() {
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <Globe size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Regional Commerce Routing</h2>
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Globe size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Regional Commerce Routing</h2>
+            </div>
+            <ScreenInfoTip content={SCREEN_HELP.adminRegional} />
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
             NAMA should not price, bill, or collect the same way everywhere. This section models the market-aware subscription and payment logic you asked for.
@@ -381,9 +390,12 @@ export default function AdminPage() {
         </div>
 
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <Globe2 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Localization & FX Controls</h2>
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Globe2 size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Localization & FX Controls</h2>
+            </div>
+            <ScreenInfoTip content={SCREEN_HELP.adminFx} />
           </div>
           <div className="space-y-3">
             {LOCALIZATION_RULES.map((rule) => (
@@ -513,9 +525,12 @@ export default function AdminPage() {
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <CreditCard size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Subscription Plans</h2>
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <CreditCard size={14} className="text-[#C9A84C]" />
+              <h2 className="text-lg font-black text-[#F5F0E8]">Subscription Plans</h2>
+            </div>
+            <ScreenInfoTip content={SCREEN_HELP.adminPlans} />
           </div>
           <div className="space-y-3">
             {SUBSCRIPTION_PLANS.map((plan) => (
