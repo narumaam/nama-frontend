@@ -1,48 +1,35 @@
-export const SUPER_ADMIN_SESSION_KEY = "nama.superAdminSession";
+"use client";
+
 export const SUPER_ADMIN_DEMO_EMAIL = "control@nama.internal";
 export const SUPER_ADMIN_DEMO_CODE = "NAMA-ALPHA";
 
-export type SuperAdminSession = {
-  email: string;
-  grantedAt: string;
-  mode: "alpha-demo";
-};
+import {
+  canAccessSuperAdmin,
+  clearAppSession,
+  createSuperAdminSession as createSharedSuperAdminSession,
+  readAppSession,
+} from "@/lib/auth-session";
 
-function canUseStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
-export function readSuperAdminSession(): SuperAdminSession | null {
-  if (!canUseStorage()) return null;
-  const raw = window.localStorage.getItem(SUPER_ADMIN_SESSION_KEY);
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw) as SuperAdminSession;
-  } catch {
-    window.localStorage.removeItem(SUPER_ADMIN_SESSION_KEY);
-    return null;
-  }
+export function readSuperAdminSession() {
+  const session = readAppSession();
+  if (!session || session.role !== "super-admin") return null;
+  return {
+    email: session.email,
+    grantedAt: session.grantedAt,
+    mode: "alpha-demo" as const,
+  };
 }
 
 export function hasSuperAdminSession() {
-  return Boolean(readSuperAdminSession());
+  return canAccessSuperAdmin();
 }
 
 export function createSuperAdminSession(email: string) {
-  if (!canUseStorage()) return null;
-  const session: SuperAdminSession = {
-    email,
-    grantedAt: new Date().toISOString(),
-    mode: "alpha-demo",
-  };
-  window.localStorage.setItem(SUPER_ADMIN_SESSION_KEY, JSON.stringify(session));
-  return session;
+  return createSharedSuperAdminSession("NAMA Super Admin", email);
 }
 
 export function clearSuperAdminSession() {
-  if (!canUseStorage()) return;
-  window.localStorage.removeItem(SUPER_ADMIN_SESSION_KEY);
+  clearAppSession();
 }
 
 export function validateSuperAdminCredentials(email: string, accessCode: string) {

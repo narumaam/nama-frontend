@@ -4,12 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, Shield, Sparkles } from "lucide-react";
-import {
-  SUPER_ADMIN_DEMO_CODE,
-  SUPER_ADMIN_DEMO_EMAIL,
-  createSuperAdminSession,
-  validateSuperAdminCredentials,
-} from "@/lib/super-admin-session";
+import { SUPER_ADMIN_DEMO_CODE, SUPER_ADMIN_DEMO_EMAIL, validateSuperAdminCredentials } from "@/lib/super-admin-session";
+import { createSuperAdminSession } from "@/lib/auth-session";
 
 const ACCESS_NOTES = [
   "Use this route only for NAMA platform-control access.",
@@ -35,7 +31,7 @@ export default function SuperAdminLoginPage() {
       return;
     }
 
-    createSuperAdminSession(email);
+    createSuperAdminSession("NAMA Super Admin", email);
     setMessage("Super Admin session granted. Opening the control tower.");
     router.push("/dashboard/admin?entry=super-admin");
   }

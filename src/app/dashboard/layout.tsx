@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { clearAppSession, readAppSession } from '@/lib/auth-session';
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from '@/lib/demo-cases';
 import { DEFAULT_SHELL_BRAND } from '@/lib/demo-config';
 import { getDemoBrandTheme, getDemoDomainMode, getDemoWorkspaceDomain } from '@/lib/demo-profile';
-import { clearSuperAdminSession, hasSuperAdminSession } from '@/lib/super-admin-session';
 import { useDemoProfile } from '@/lib/use-demo-profile';
 import {
   LayoutDashboard,
@@ -41,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [showHeaderNotice, setShowHeaderNotice] = useState<null | "notifications" | "settings">(null);
   const [artifactCaseSlug, setArtifactCaseSlug] = useState(primaryCase.slug);
   const [superAdminAccess, setSuperAdminAccess] = useState(false);
+  const [accessReady, setAccessReady] = useState(false);
   const pathname = usePathname();
   const demoCompany = profile.company;
   const demoOperator = profile.operator;
@@ -67,8 +68,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     .join("") || shellBrand.badgeGlyph;
 
   useEffect(() => {
-    setSuperAdminAccess(hasSuperAdminSession());
-  }, [pathname]);
+    const session = readAppSession();
+    if (!session) {
+      router.replace(pathname.startsWith('/dashboard/admin') ? '/super-admin/login' : '/register');
+      return;
+    }
+
+    if (pathname.startsWith('/dashboard/admin') && session.role !== 'super-admin') {
+      router.replace('/dashboard');
+      return;
+    }
+
+    setSuperAdminAccess(session.role === 'super-admin');
+    setAccessReady(true);
+  }, [pathname, router]);
 
   const navGroups = [
     {
@@ -112,9 +125,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   function handleExitSuperAdmin() {
-    clearSuperAdminSession();
+    clearAppSession();
     setSuperAdminAccess(false);
     router.push('/super-admin/login');
+  }
+
+  if (!accessReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] px-6 text-sm text-[#B8B0A0]">
+        Checking workspace access...
+      </div>
+    );
   }
 
   return (

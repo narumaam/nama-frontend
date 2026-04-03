@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { upsertDemoTenantRegistration, writeDemoSubscriptionPlan, type DemoSubscriptionPlan } from "@/lib/demo-admin";
+import { createTenantAdminSession } from "@/lib/auth-session";
 import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, findMarketPreset, type BusinessRole, type DemoPlan, type SupportedCurrency } from "@/lib/demo-config";
 import { appendDemoEvent } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE, getDemoBrandTheme, readDemoProfile, writeDemoProfile } from "@/lib/demo-profile";
@@ -142,6 +143,7 @@ export default function RegisterPage() {
       detail: `${nextProfile.company} entered NAMA on the ${subscriptionPlan} plan for the ${nextProfile.market.country} market.`,
       path: "/dashboard",
     });
+    createTenantAdminSession(nextProfile.operator, nextProfile.company);
     window.setTimeout(() => {
       router.push("/dashboard");
     }, 900);
