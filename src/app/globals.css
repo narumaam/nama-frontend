@@ -82,3 +82,28 @@
     @apply bg-gradient-to-br from-primary to-primary-container text-white px-4 py-2 rounded-md transition-all;
   }
 }
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0F172A !important;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-shell {
+    box-shadow: none !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+  }
+
+  .print-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+}

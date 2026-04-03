@@ -20,7 +20,7 @@ export default function TravelerPdfPage() {
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="print-hidden flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#8B6A1F]">
               <span>Customer Artifact</span>
@@ -41,10 +41,18 @@ export default function TravelerPdfPage() {
               <Download size={14} />
               Download PDF
             </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#0F172A]/10 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#0F172A]"
+            >
+              <FileText size={14} />
+              Print / Save PDF
+            </button>
           </div>
         </div>
 
-        <div className="rounded-[36px] border border-[#C9A84C]/25 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+        <div className="print-shell rounded-[36px] border border-[#C9A84C]/25 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
           <div className="bg-[#0F172A] px-8 py-8 text-white">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div>
@@ -81,7 +89,7 @@ export default function TravelerPdfPage() {
           <div className="px-8 py-8">
             <div className="grid gap-5">
               {deal.itinerary.days.map((day) => (
-                <div key={day.day_number} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                <div key={day.day_number} className="print-page-break rounded-3xl border border-slate-200 bg-slate-50 p-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8B6A1F]">Day {day.day_number}</div>
@@ -134,6 +142,10 @@ export default function TravelerPdfPage() {
               </div>
               <Link href={`/dashboard/invoices/${deal.slug}`} className="mt-6 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">
                 Open Branded Invoice Route
+                <ChevronRight size={12} />
+              </Link>
+              <Link href="/dashboard/artifacts" className="mt-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/80 print-hidden">
+                Back to Artifact Hub
                 <ChevronRight size={12} />
               </Link>
             </div>

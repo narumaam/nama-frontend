@@ -25,7 +25,7 @@ export default function InvoicePage() {
   return (
     <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 text-[#0F172A]">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="print-hidden flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#8B6A1F]">
               <span>Customer Artifact</span>
@@ -46,10 +46,18 @@ export default function InvoicePage() {
               <Download size={14} />
               Download Invoice
             </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#0F172A]/10 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#0F172A]"
+            >
+              <Receipt size={14} />
+              Print / Save PDF
+            </button>
           </div>
         </div>
 
-        <div className="rounded-[36px] border border-[#C9A84C]/25 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+        <div className="print-shell rounded-[36px] border border-[#C9A84C]/25 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-6 border-b border-slate-200 pb-8 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-black text-[#0A0A0A]" style={{ backgroundColor: brandTheme.accentHex }}>
@@ -143,6 +151,10 @@ export default function InvoicePage() {
               </div>
               <Link href={`/dashboard/traveler-pdf/${deal.slug}`} className="mt-6 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">
                 Open Traveler PDF Route
+                <ChevronRight size={12} />
+              </Link>
+              <Link href="/dashboard/artifacts" className="mt-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/80 print-hidden">
+                Back to Artifact Hub
                 <ChevronRight size={12} />
               </Link>
             </div>

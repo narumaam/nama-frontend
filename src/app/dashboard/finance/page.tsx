@@ -192,6 +192,12 @@ export default function FinancePage() {
           >
             Open branded invoice
           </Link>
+          <Link
+            href="/dashboard/artifacts"
+            className="w-full rounded-xl border border-white/10 bg-[#111111] px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-[#B8B0A0] transition-all hover:text-[#F5F0E8] sm:w-auto"
+          >
+            Artifact hub
+          </Link>
         </div>
       </header>
 

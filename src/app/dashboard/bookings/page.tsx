@@ -445,6 +445,7 @@ export default function BookingsPage() {
               <ActionLink href="/dashboard/finance" label="Check balance due in Finance" />
               <ActionLink href={`/dashboard/traveler-pdf/${activeDeal.slug}`} label="Open traveler PDF route" />
               <ActionLink href={`/dashboard/invoices/${activeDeal.slug}`} label="Open branded invoice route" />
+              <ActionLink href="/dashboard/artifacts" label="Open artifact hub" />
             </div>
           </section>
         </aside>
