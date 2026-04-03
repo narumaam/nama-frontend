@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { dealHrefFromSlug } from "@/lib/demo-cases";
 import {
   ArrowRight,
   Bot,
@@ -129,7 +130,7 @@ export default function EklaPage() {
             Back to Autopilot
           </Link>
           <Link
-            href="/dashboard/deals?lead=1"
+            href={dealHrefFromSlug("maldives-honeymoon")}
             className="rounded-xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A] shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all hover:scale-105 active:scale-95"
           >
             Open Maldives Deal

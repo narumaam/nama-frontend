@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
+import { dealHrefFromSlug } from "@/lib/demo-cases";
 import {
   ArrowRight,
   Building2,
@@ -131,7 +132,7 @@ export default function DmcPage() {
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           <Link
-            href="/dashboard/deals?lead=1"
+            href={dealHrefFromSlug("maldives-honeymoon")}
             className="w-full sm:w-auto text-center rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
           >
             Back to Deal

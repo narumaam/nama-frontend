@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from '@/lib/demo-profile';
+import { dealHrefFromLeadId } from '@/lib/demo-cases';
 import {
   Zap, AlertTriangle, CheckCircle, Clock, TrendingUp,
   ArrowRight, Play, Pause, Eye, Activity, Brain, Target,
@@ -173,7 +174,7 @@ function FeedCard({ item, onDismiss, onFocus }: { item: FeedItem; onDismiss: (id
             {/* Actions */}
             <div className="flex items-center gap-3">
               <Link
-                href={`/dashboard/deals?lead=${item.leadId}`}
+                href={dealHrefFromLeadId(item.leadId)}
                 onClick={onFocus}
                 className="flex items-center gap-2 bg-[#C9A84C] text-[#0A0A0A] text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(201,168,76,0.2)] shrink-0"
               >
@@ -370,7 +371,7 @@ export default function AutopilotPage() {
                 <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{selectedFocus.value} · confidence {selectedFocus.confidence}%</div>
               </div>
               <Link
-                href={`/dashboard/deals?lead=${selectedFocus.leadId}`}
+                href={dealHrefFromLeadId(selectedFocus.leadId)}
                 className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
               >
                 Open Case

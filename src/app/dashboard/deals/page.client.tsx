@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowRight, BadgeIndianRupee, Bot, CheckCircle2, Clock3, MessageSquare, Shield, Sparkles, Target } from "lucide-react";
 
 import { apiUrl } from "@/lib/api";
+import { dealHrefFromSlug } from "@/lib/demo-cases";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 
 type DemoCase = {
@@ -427,7 +428,7 @@ export default function DealsClientPage() {
       <div className="space-y-4 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <p className="text-red-400 font-mono text-sm">Preview case unavailable. Loading the primary Maldives showcase instead.</p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard/deals?lead=1" className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
+          <Link href={dealHrefFromSlug("maldives-honeymoon")} className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
             Open {fallback.guest_name}
           </Link>
           <Link href="/dashboard/autopilot" className="rounded-full border border-white/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#B8B0A0]">
