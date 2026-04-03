@@ -6,6 +6,21 @@ from app.main import app
 client = TestClient(app)
 
 
+def tenant_admin_headers(tenant_name: str) -> dict[str, str]:
+    normalized = "".join(character for character in tenant_name.lower() if character.isalnum())
+    session_response = client.post(
+        "/api/v1/sessions/tenant",
+        json={
+            "email": f"admin@{normalized}.demo",
+            "scope": "tenant",
+            "tenant_name": tenant_name,
+            "access_code": f"NAMA-{normalized[:8].upper()}-ADMIN",
+        },
+    )
+    assert session_response.status_code == 200
+    return {"x-nama-session-id": session_response.json()["id"]}
+
+
 def test_tenant_invites_health() -> None:
     response = client.get("/api/v1/tenant-invites/health")
     assert response.status_code == 200
@@ -25,6 +40,7 @@ def test_tenant_invites_list_contract() -> None:
 def test_create_tenant_invite() -> None:
     response = client.post(
         "/api/v1/tenant-invites",
+        headers=tenant_admin_headers("Aurora Reserve Travel"),
         json={
             "tenant_name": "Aurora Reserve Travel",
             "invite": {
@@ -54,6 +70,7 @@ def test_create_tenant_invite() -> None:
 def test_bulk_create_tenant_invites() -> None:
     response = client.post(
         "/api/v1/tenant-invites/bulk",
+        headers=tenant_admin_headers("Aurora Reserve Travel"),
         json={
             "tenant_name": "Aurora Reserve Travel",
             "invites": [
@@ -96,6 +113,7 @@ def test_bulk_create_tenant_invites() -> None:
 def test_accept_tenant_invite_promotes_member() -> None:
     create_response = client.post(
         "/api/v1/tenant-invites",
+        headers=tenant_admin_headers("Aurora Reserve Travel"),
         json={
             "tenant_name": "Aurora Reserve Travel",
             "invite": {
@@ -145,6 +163,7 @@ def test_accept_tenant_invite_promotes_member() -> None:
 def test_accept_tenant_invite_rejects_invalid_token() -> None:
     create_response = client.post(
         "/api/v1/tenant-invites",
+        headers=tenant_admin_headers("Aurora Reserve Travel"),
         json={
             "tenant_name": "Aurora Reserve Travel",
             "invite": {

@@ -133,7 +133,7 @@ def test_super_admin_credential_reset_rotates_login() -> None:
             "email": "control@nama.internal",
             "scope": "platform",
             "reset_token": restore_token,
-            "access_code": "NAMA-ALPHA",
+            "access_code": "NAMA-ALPHA1",
         },
     )
     assert restore_confirm.status_code == 200

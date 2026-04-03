@@ -31,12 +31,14 @@ type DemoTenantApiState = {
   invites: TenantInviteContract[];
   sessions: TenantSessionContract[];
   credentials: Record<string, DemoCredentialRecord>;
+  audit_events: DemoAuthAuditEvent[];
 };
 
 type DemoApiStoreState = {
   tenants: Record<string, DemoTenantApiState>;
   super_admin_sessions: TenantSessionContract[];
   super_admin_credentials: Record<string, DemoCredentialRecord>;
+  platform_audit_events: DemoAuthAuditEvent[];
 };
 
 type DemoCredentialRecord = {
@@ -48,6 +50,18 @@ type DemoCredentialRecord = {
   reset_token: string | null;
   reset_expires_at: string | null;
   rotation_required: boolean;
+};
+
+type DemoAuthAuditEvent = {
+  id: string;
+  tenant_name: string | null;
+  scope: "tenant" | "platform";
+  category: "session" | "credential" | "invite" | "member";
+  action: string;
+  actor_email: string | null;
+  subject_email: string | null;
+  detail: string;
+  created_at: string;
 };
 
 const DEFAULT_TENANT_NAME = "NAMA Demo";
@@ -94,6 +108,14 @@ function createCredentialRecord(
     reset_token: null,
     reset_expires_at: null,
     rotation_required: options?.rotationRequired ?? false,
+  };
+}
+
+function createAuditEvent(input: Omit<DemoAuthAuditEvent, "id" | "created_at">): DemoAuthAuditEvent {
+  return {
+    id: createOpaqueToken("audit"),
+    created_at: nowIso(),
+    ...input,
   };
 }
 
@@ -276,6 +298,7 @@ function createTenantState(tenantName: string): DemoTenantApiState {
     invites: createSeedInvites(resolvedTenant),
     sessions: [],
     credentials: {},
+    audit_events: [],
   };
 }
 
@@ -318,6 +341,7 @@ function getStoreState() {
       tenants: {},
       super_admin_sessions: [],
       super_admin_credentials: {},
+      platform_audit_events: [],
     };
   }
 
@@ -338,6 +362,32 @@ function getTenantState(tenantName?: string | null) {
   ensureTenantCredentialForMembers(store.tenants[key]);
 
   return store.tenants[key];
+}
+
+function recordTenantAuditEvent(
+  tenant: DemoTenantApiState,
+  input: Omit<DemoAuthAuditEvent, "id" | "created_at" | "tenant_name" | "scope">,
+) {
+  tenant.audit_events.unshift(
+    createAuditEvent({
+      tenant_name: tenant.tenant_name,
+      scope: "tenant",
+      ...input,
+    })
+  );
+}
+
+function recordPlatformAuditEvent(
+  input: Omit<DemoAuthAuditEvent, "id" | "created_at" | "tenant_name" | "scope">,
+) {
+  const store = getStoreState();
+  store.platform_audit_events.unshift(
+    createAuditEvent({
+      tenant_name: null,
+      scope: "platform",
+      ...input,
+    })
+  );
 }
 
 function sortMembers(members: TenantMemberContract[]) {
@@ -599,7 +649,15 @@ export function listTenantInvites(tenantName?: string | null) {
 export function createTenantInvite(payload: TenantInviteCreatePayload) {
   const tenant = getTenantState(payload.tenant_name);
   const invite = normalizeInviteRecord(payload.invite, tenant.tenant_name);
-  return upsertInviteIntoTenant(tenant, invite);
+  const saved = upsertInviteIntoTenant(tenant, invite);
+  recordTenantAuditEvent(tenant, {
+    category: "invite",
+    action: saved.status === "Draft" ? "drafted" : "sent",
+    actor_email: null,
+    subject_email: saved.email,
+    detail: `${saved.name} invite ${saved.status === "Draft" ? "saved as draft" : "sent"} for ${saved.role}.`,
+  });
+  return saved;
 }
 
 export function bulkCreateTenantInvites(payload: TenantInvitesBulkCreatePayload) {
@@ -636,6 +694,20 @@ export function acceptTenantInvite(payload: TenantInviteAcceptPayload) {
 
   const member = upsertMemberIntoTenant(tenant, buildMemberFromInvite(invite));
   setTenantCredentialSecret(tenant, member, payload.access_code);
+  recordTenantAuditEvent(tenant, {
+    category: "invite",
+    action: "accepted",
+    actor_email: member.email,
+    subject_email: member.email,
+    detail: `${member.name} accepted the workspace invite.`,
+  });
+  recordTenantAuditEvent(tenant, {
+    category: "credential",
+    action: "activated",
+    actor_email: member.email,
+    subject_email: member.email,
+    detail: `${member.name} set an initial workspace access code.`,
+  });
 
   return {
     tenant_name: tenant.tenant_name,
@@ -675,6 +747,13 @@ export function issueTenantSession(payload: TenantSessionCreatePayload) {
     };
 
     tenant.sessions.unshift(session);
+    recordTenantAuditEvent(tenant, {
+      category: "session",
+      action: "issued",
+      actor_email: session.email,
+      subject_email: session.email,
+      detail: `${session.display_name} entered the tenant workspace.`,
+    });
     return session;
   }
 
@@ -698,6 +777,13 @@ export function issueTenantSession(payload: TenantSessionCreatePayload) {
   };
 
   tenant.sessions.unshift(session);
+  recordTenantAuditEvent(tenant, {
+    category: "session",
+    action: "issued",
+    actor_email: session.email,
+    subject_email: session.email,
+    detail: `${session.display_name} received a tenant session.`,
+  });
   return session;
 }
 
@@ -729,6 +815,13 @@ export function issueSuperAdminSession(payload: Pick<TenantSessionCreatePayload,
   };
 
   store.super_admin_sessions.unshift(session);
+  recordPlatformAuditEvent({
+    category: "session",
+    action: "issued",
+    actor_email: session.email,
+    subject_email: session.email,
+    detail: `${session.display_name} entered platform control.`,
+  });
   return session;
 }
 
@@ -746,6 +839,13 @@ export function requestTenantCredentialReset(payload: { tenant_name: string; ema
 
   const nextToken = createOpaqueToken("reset");
   tenant.credentials[email] = sanitizeResetRecord(credential, nextToken);
+  recordTenantAuditEvent(tenant, {
+    category: "credential",
+    action: "reset_requested",
+    actor_email: email,
+    subject_email: email,
+    detail: `Credential reset requested for ${email}.`,
+  });
   return {
     email,
     scope: "tenant" as const,
@@ -777,6 +877,13 @@ export function confirmTenantCredentialReset(payload: {
     throw new DemoApiStoreError("Tenant credential subject not found", 404);
   }
   setTenantCredentialSecret(tenant, member, payload.access_code);
+  recordTenantAuditEvent(tenant, {
+    category: "credential",
+    action: "rotated",
+    actor_email: email,
+    subject_email: email,
+    detail: `Credential rotated for ${email}.`,
+  });
   return { ok: true, email, scope: "tenant" as const, tenant_name: tenant.tenant_name };
 }
 
@@ -790,6 +897,13 @@ export function requestSuperAdminCredentialReset(payload: { email: string; scope
 
   const nextToken = createOpaqueToken("reset");
   store.super_admin_credentials[email] = sanitizeResetRecord(credential, nextToken);
+  recordPlatformAuditEvent({
+    category: "credential",
+    action: "reset_requested",
+    actor_email: email,
+    subject_email: email,
+    detail: `Super Admin reset requested for ${email}.`,
+  });
   return {
     email,
     scope: "platform" as const,
@@ -818,7 +932,56 @@ export function confirmSuperAdminCredentialReset(payload: {
   if (!updated) {
     throw new DemoApiStoreError("Super admin credential subject not found", 404);
   }
+  recordPlatformAuditEvent({
+    category: "credential",
+    action: "rotated",
+    actor_email: email,
+    subject_email: email,
+    detail: `Super Admin credential rotated for ${email}.`,
+  });
   return { ok: true, email, scope: "platform" as const, tenant_name: null };
+}
+
+export function revokeTenantSession(payload: { tenant_name: string; session_id: string }) {
+  const tenant = getTenantState(payload.tenant_name);
+  const session = tenant.sessions.find((item) => item.id === payload.session_id);
+  if (!session) {
+    throw new DemoApiStoreError("Session not found", 404);
+  }
+  tenant.sessions = tenant.sessions.filter((item) => item.id !== payload.session_id);
+  recordTenantAuditEvent(tenant, {
+    category: "session",
+    action: "revoked",
+    actor_email: null,
+    subject_email: session.email,
+    detail: `${session.display_name} session was revoked.`,
+  });
+  return { ok: true };
+}
+
+export function revokeSuperAdminSession(payload: { session_id: string }) {
+  const store = getStoreState();
+  const session = store.super_admin_sessions.find((item) => item.id === payload.session_id);
+  if (!session) {
+    throw new DemoApiStoreError("Session not found", 404);
+  }
+  store.super_admin_sessions = store.super_admin_sessions.filter((item) => item.id !== payload.session_id);
+  recordPlatformAuditEvent({
+    category: "session",
+    action: "revoked",
+    actor_email: null,
+    subject_email: session.email,
+    detail: `${session.display_name} session was revoked.`,
+  });
+  return { ok: true };
+}
+
+export function listTenantAuthAudit(tenantName?: string | null) {
+  return [...getTenantState(tenantName).audit_events];
+}
+
+export function listPlatformAuthAudit() {
+  return [...getStoreState().platform_audit_events];
 }
 
 export function isDemoApiStoreError(error: unknown): error is DemoApiStoreError {

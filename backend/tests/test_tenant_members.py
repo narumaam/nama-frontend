@@ -6,6 +6,21 @@ from app.main import app
 client = TestClient(app)
 
 
+def tenant_admin_headers(tenant_name: str) -> dict[str, str]:
+    tenant_token = "".join(character for character in tenant_name.lower() if character.isalnum())[:8].upper()
+    session_response = client.post(
+        "/api/v1/sessions/tenant",
+        json={
+            "email": f"admin@{''.join(character for character in tenant_name.lower() if character.isalnum())}.demo",
+            "scope": "tenant",
+            "tenant_name": tenant_name,
+            "access_code": f"NAMA-{tenant_token}-ADMIN",
+        },
+    )
+    assert session_response.status_code == 200
+    return {"x-nama-session-id": session_response.json()["id"]}
+
+
 def test_tenant_members_health() -> None:
     response = client.get("/api/v1/tenant-members/health")
     assert response.status_code == 200
@@ -25,6 +40,7 @@ def test_tenant_members_list_contract() -> None:
 def test_upsert_tenant_member() -> None:
     response = client.post(
         "/api/v1/tenant-members/upsert",
+        headers=tenant_admin_headers("Aurora Reserve Travel"),
         json={
             "tenant_name": "Aurora Reserve Travel",
             "member": {
@@ -51,6 +67,7 @@ def test_upsert_tenant_member() -> None:
 def test_bulk_upsert_tenant_members() -> None:
     response = client.post(
         "/api/v1/tenant-members/bulk",
+        headers=tenant_admin_headers("Aurora Reserve Travel"),
         json={
             "tenant_name": "Aurora Reserve Travel",
             "members": [

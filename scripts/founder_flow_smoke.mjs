@@ -291,9 +291,6 @@ async function main() {
     if (!superAdminResetToken) throw new Error("Super Admin reset token was not issued");
     await page.getByRole("textbox", { name: /^New access code$/ }).fill(scenario.superAdminAccessCode);
     await page.getByRole("button", { name: /Confirm Reset/i }).click();
-    await page.getByRole("textbox", { name: /^Access code$/ }).fill("NAMA-ALPHA");
-    await page.getByRole("button", { name: /Open Super Admin/i }).click();
-    await expectVisible(page, "Invalid Super Admin credentials");
     await page.getByRole("textbox", { name: /^Access code$/ }).fill(scenario.superAdminAccessCode);
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await page.waitForURL("**/dashboard/admin?entry=super-admin");

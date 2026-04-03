@@ -2,6 +2,7 @@ import {
   type TenantSessionContract,
   type TenantSessionCreatePayload,
 } from "@/lib/tenant-contracts";
+import { createApiAuthHeaders } from "@/lib/api-auth";
 import { normalizeTenantRole } from "@/lib/auth-session";
 import { type AppSession } from "@/lib/auth-session";
 
@@ -84,6 +85,80 @@ export async function fetchCurrentSession() {
   }
 
   return (await response.json()) as TenantSessionContract;
+}
+
+export async function fetchTenantSessions(tenantName: string) {
+  const response = await fetch(`${sessionApiUrl("/tenant")}?tenant_name=${encodeURIComponent(tenantName)}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...createApiAuthHeaders(),
+    },
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Tenant sessions request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as { tenant_name: string; sessions: TenantSessionContract[] };
+}
+
+export async function revokeTenantSession(payload: { tenant_name: string; session_id: string }) {
+  const response = await fetch(sessionApiUrl("/tenant/revoke"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...createApiAuthHeaders(),
+    },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Tenant session revoke failed: ${response.status}`);
+  }
+
+  return (await response.json()) as { ok: boolean };
+}
+
+export async function fetchSuperAdminSessions() {
+  const response = await fetch(sessionApiUrl("/super-admin"), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...createApiAuthHeaders(),
+    },
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Super Admin sessions request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as { sessions: TenantSessionContract[] };
+}
+
+export async function revokeSuperAdminSession(payload: { session_id: string }) {
+  const response = await fetch(sessionApiUrl("/super-admin/revoke"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...createApiAuthHeaders(),
+    },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Super Admin session revoke failed: ${response.status}`);
+  }
+
+  return (await response.json()) as { ok: boolean };
 }
 
 export async function clearServerSession() {

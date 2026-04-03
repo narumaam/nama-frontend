@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_PLAN_PRICES, readDemoSubscriptionPlan, readDemoTenantRegistry } from "@/lib/demo-admin";
+import { fetchPlatformAuthAudit, type AuthAuditEvent } from "@/lib/audit-api";
 import { MARKET_PRESETS, SUPPORTED_CURRENCIES } from "@/lib/demo-config";
 import { filterDemoEvents, type DemoEventRange, type DemoEventSeverity } from "@/lib/demo-events";
 import { DEFAULT_DEMO_PROFILE } from "@/lib/demo-profile";
 import { writeAppSession } from "@/lib/auth-session";
-import { appSessionFromContract, clearServerSession, fetchCurrentSession } from "@/lib/session-api";
+import { appSessionFromContract, clearServerSession, fetchCurrentSession, fetchSuperAdminSessions, revokeSuperAdminSession } from "@/lib/session-api";
 import { useDemoEvents } from "@/lib/use-demo-events";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { DEMO_SCENARIOS, getScenarioProjectedMrr, resetDemoState, seedDemoScenario, type DemoScenarioKey } from "@/lib/demo-scenarios";
@@ -216,6 +217,8 @@ export default function AdminPage() {
   const [timelineSeverityFilter, setTimelineSeverityFilter] = useState<"All" | DemoEventSeverity>("All");
   const [timelineRangeFilter, setTimelineRangeFilter] = useState<DemoEventRange>("All");
   const [exportMessage, setExportMessage] = useState("Copy or download the filtered audit trail as a founder-safe proof artifact.");
+  const [platformSessions, setPlatformSessions] = useState<Array<{ id: string; email: string; display_name: string; granted_at: string }>>([]);
+  const [platformAuthEvents, setPlatformAuthEvents] = useState<AuthAuditEvent[]>([]);
   const [accessReady, setAccessReady] = useState(false);
   const [superAdminEmail, setSuperAdminEmail] = useState("");
   const currentPlan = readDemoSubscriptionPlan();
@@ -303,6 +306,27 @@ export default function AdminPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSuperAdminSessions()
+      .then((response) => {
+        if (!cancelled) {
+          setPlatformSessions(response.sessions);
+        }
+      })
+      .catch(() => {});
+    void fetchPlatformAuthAudit()
+      .then((response) => {
+        if (!cancelled) {
+          setPlatformAuthEvents(response.events);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function handleExitControlTower() {
     try {
       await clearServerSession();
@@ -310,6 +334,15 @@ export default function AdminPage() {
       clearSuperAdminSession();
       router.push("/super-admin/login");
     }
+  }
+
+  async function handleRevokePlatformSession(sessionId: string) {
+    try {
+      await revokeSuperAdminSession({ session_id: sessionId });
+      setPlatformSessions((current) => current.filter((item) => item.id !== sessionId));
+      const audit = await fetchPlatformAuthAudit();
+      setPlatformAuthEvents(audit.events);
+    } catch {}
   }
 
   const systemHealthLabel = pendingInvites > 0 ? "Monitoring" : releasedArtifacts > 0 || settledInvoices > 0 ? "Live demo active" : "Healthy";
@@ -585,6 +618,49 @@ export default function AdminPage() {
             <InfoTile title="Joined Users" detail={`${totalAcceptedInvites} accepted invites are active in the snapshot`} icon={<Sparkles size={14} />} />
             <InfoTile title="Subscription Revenue" detail={`₹${totalMrr.toLocaleString("en-IN")} monthly across visible tenants`} icon={<BadgeIndianRupee size={14} />} />
             <InfoTile title="Current Flow" detail={`${wonCases} won, ${settledInvoices} paid, ${releasedArtifacts} delivered`} icon={<LayoutTemplate size={14} />} />
+          </div>
+
+          <div className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Platform Sessions</div>
+              <div className="mt-4 space-y-3">
+                {platformSessions.length ? platformSessions.map((session) => (
+                  <div key={session.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#111111] p-3">
+                    <div>
+                      <div className="text-sm font-black text-[#F5F0E8]">{session.display_name}</div>
+                      <div className="mt-1 text-xs text-[#B8B0A0]">{session.email} · {session.granted_at}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRevokePlatformSession(session.id)}
+                      className="rounded-full border border-[#C9A84C]/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]"
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                )) : (
+                  <div className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-sm text-[#B8B0A0]">
+                    No live Super Admin sessions recorded.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Platform Auth Events</div>
+              <div className="mt-4 space-y-3">
+                {platformAuthEvents.slice(0, 5).map((event) => (
+                  <div key={event.id} className="rounded-xl border border-white/10 bg-[#111111] p-3">
+                    <div className="flex items-center justify-between gap-3 text-[9px] font-black uppercase tracking-widest text-[#9F9788]">
+                      <span>{event.category}</span>
+                      <span>{event.action}</span>
+                    </div>
+                    <div className="mt-2 text-sm text-[#F5F0E8]">{event.detail}</div>
+                    <div className="mt-2 text-xs text-[#B8B0A0]">{event.subject_email || event.actor_email || "Platform"} · {event.created_at}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 
+import { requireRouteSession } from "@/app/api/v1/_session-auth";
 import { isDemoApiStoreError, issueSuperAdminSession, listSuperAdminSessions } from "@/lib/demo-api-store";
 import { APP_SESSION_COOKIE, serializeSessionCookie } from "@/lib/session-cookie";
 
 export async function GET() {
+  const session = await requireRouteSession({
+    tenantName: null,
+    allowedRoles: ["super-admin"],
+  });
+  if (session instanceof NextResponse) {
+    return session;
+  }
   return NextResponse.json({
     sessions: listSuperAdminSessions(),
   });

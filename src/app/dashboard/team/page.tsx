@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { canPerformAction, normalizeTenantRole } from "@/lib/auth-session";
+import { fetchTenantAuthAudit, type AuthAuditEvent } from "@/lib/audit-api";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
 import { DEMO_CASE_ASSIGNMENTS } from "@/lib/demo-case-profiles";
@@ -21,6 +22,7 @@ import { SCREEN_HELP } from "@/lib/screen-help";
 import { useAppSession } from "@/lib/use-app-session";
 import { useDemoProfile } from "@/lib/use-demo-profile";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
+import { fetchTenantSessions, revokeTenantSession } from "@/lib/session-api";
 import { ArrowRight, CheckCircle2, ClipboardList, Copy, Download, FileUp, Filter, Mail, Palette, Plus, Send, Shield, Upload, Users, UserPlus2 } from "lucide-react";
 
 type TeamRole = {
@@ -146,6 +148,8 @@ export default function TeamPage() {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [inviteMessage, setInviteMessage] = useState("Invites are ready to send.");
   const [isWorking, setIsWorking] = useState(false);
+  const [tenantSessions, setTenantSessions] = useState<Array<{ id: string; email: string; display_name: string; role: string; granted_at: string }>>([]);
+  const [authEvents, setAuthEvents] = useState<AuthAuditEvent[]>([]);
 
   const filteredInvites = useMemo(
     () => workflow.invites.filter((invite) => invite.role === selectedRole || selectedRole === "All"),
@@ -159,6 +163,8 @@ export default function TeamPage() {
   const visibleOperator = profile.operator || DEFAULT_DEMO_PROFILE.operator;
   const pendingInviteCount = workflow.invites.filter((invite) => invite.status === "Pending").length;
   const acceptedInviteCount = workflow.invites.filter((invite) => invite.status === "Accepted").length;
+  const expiredInviteCount = workflow.invites.filter((invite) => invite.tokenExpiresAt && !invite.tokenUsedAt && Date.parse(invite.tokenExpiresAt) < Date.now()).length;
+  const usedInviteCount = workflow.invites.filter((invite) => Boolean(invite.tokenUsedAt)).length;
   const hierarchyPreview = {
     adminTitle: `${entityLabel} Admin`,
     adminSubtitle: `${visibleCompany} · ${visibleOperator}`,
@@ -179,6 +185,32 @@ export default function TeamPage() {
     setCustomDomain(profile.whiteLabel.customDomain);
     setAccentHex(profile.whiteLabel.accentHex);
   }, [profile]);
+
+  useEffect(() => {
+    if (!session || (session.role !== "customer-admin" && session.role !== "super-admin")) {
+      return;
+    }
+
+    let cancelled = false;
+    void fetchTenantSessions(visibleCompany)
+      .then((response) => {
+        if (!cancelled) {
+          setTenantSessions(response.sessions);
+        }
+      })
+      .catch(() => {});
+    void fetchTenantAuthAudit(visibleCompany)
+      .then((response) => {
+        if (!cancelled) {
+          setAuthEvents(response.events);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, visibleCompany, workflow.invites.length]);
 
   function moveDepartment(targetTitle: string) {
     if (!draggingDept || draggingDept === targetTitle) return;
@@ -371,6 +403,21 @@ export default function TeamPage() {
     setInviteMessage("Invite link copied.");
   }
 
+  async function revokeWorkspaceSession(sessionId: string) {
+    try {
+      await revokeTenantSession({
+        tenant_name: visibleCompany,
+        session_id: sessionId,
+      });
+      setTenantSessions((current) => current.filter((item) => item.id !== sessionId));
+      const audit = await fetchTenantAuthAudit(visibleCompany);
+      setAuthEvents(audit.events);
+      setInviteMessage("Workspace session revoked.");
+    } catch (error) {
+      setInviteMessage(error instanceof Error ? error.message : "Session revoke failed.");
+    }
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
@@ -423,6 +470,62 @@ export default function TeamPage() {
         <Metric label="Accepted Invites" value={`${acceptedInviteCount}`} sub="Employees who already joined the workspace" icon={<CheckCircle2 size={16} />} />
         <Metric label="Hierarchy" value="L1-L5" sub="From super admin to sub-agent" icon={<Shield size={16} />} />
       </div>
+
+      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Invite Health</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <AuthStatCard label="Pending" value={String(pendingInviteCount)} />
+            <AuthStatCard label="Expired" value={String(expiredInviteCount)} />
+            <AuthStatCard label="Used" value={String(usedInviteCount)} />
+          </div>
+
+          <div className="mt-6 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Active Sessions</div>
+          <div className="mt-4 space-y-3">
+            {tenantSessions.length ? tenantSessions.map((tenantSession) => (
+              <div key={tenantSession.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <div>
+                  <div className="text-sm font-black text-[#F5F0E8]">{tenantSession.display_name}</div>
+                  <div className="mt-1 text-xs text-[#B8B0A0]">{tenantSession.email} · {tenantSession.role}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => revokeWorkspaceSession(tenantSession.id)}
+                  className="rounded-full border border-[#C9A84C]/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+                >
+                  Revoke
+                </button>
+              </div>
+            )) : (
+              <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-[#B8B0A0]">
+                No active workspace sessions recorded yet.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+          <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Auth Audit</div>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-[#F5F0E8]">Recent credential and invite activity</h2>
+          <div className="mt-4 space-y-3">
+            {authEvents.slice(0, 6).map((event) => (
+              <div key={event.id} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-widest text-[#9F9788]">
+                  <span>{event.category}</span>
+                  <span>{event.action}</span>
+                </div>
+                <div className="mt-2 text-sm text-[#F5F0E8]">{event.detail}</div>
+                <div className="mt-2 text-xs text-[#B8B0A0]">{event.subject_email || event.actor_email || "Workspace"} · {event.created_at}</div>
+              </div>
+            ))}
+            {!authEvents.length && (
+              <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-[#B8B0A0]">
+                No auth events yet. Invite sends, acceptances, resets, and session issuance will appear here.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -1094,6 +1197,15 @@ function Metric({ label, value, sub, icon }: { label: string; value: string; sub
       </div>
       <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
       <div className="mt-1 text-xs text-[#4A453E]">{sub}</div>
+    </div>
+  );
+}
+
+function AuthStatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
+      <div className="text-[10px] font-black uppercase tracking-widest text-[#9F9788]">{label}</div>
+      <div className="mt-2 text-2xl font-black text-[#F5F0E8]">{value}</div>
     </div>
   );
 }

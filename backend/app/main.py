@@ -7,9 +7,10 @@ from app.api.v1 import (
     documents, financials, analytics, portals, 
     communications, bookings, content, corporate,
     integrations, sentinel, rsi,
-    sourcing, pricing, payments, marketing, demo, tenant_members, tenant_invites, tenant_sessions, tenant_credentials
+    sourcing, pricing, payments, marketing, demo, tenant_members, tenant_invites, tenant_sessions, tenant_credentials, tenant_audit
 )
 from app.db.session import engine, Base
+from app.models import beta_auth as beta_auth_models  # noqa: F401
 
 # For prototyping
 Base.metadata.create_all(bind=engine)
@@ -50,6 +51,7 @@ app.include_router(tenant_members.router, prefix="/api/v1/tenant-members", tags=
 app.include_router(tenant_invites.router, prefix="/api/v1/tenant-invites", tags=["tenant-invites"])
 app.include_router(tenant_sessions.router, prefix="/api/v1/sessions", tags=["tenant-sessions"])
 app.include_router(tenant_credentials.router, prefix="/api/v1/credentials", tags=["tenant-credentials"])
+app.include_router(tenant_audit.router, prefix="/api/v1/auth-audit", tags=["tenant-auth-audit"])
 
 @app.get("/")
 def read_root():

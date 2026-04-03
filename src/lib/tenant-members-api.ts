@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/api";
+import { createApiAuthHeaders } from "@/lib/api-auth";
 import {
   type TenantMemberContract,
   type TenantMembersBulkUpsertPayload,
@@ -34,12 +35,20 @@ export async function promoteInviteMember(payload: TenantInvitePromotionPayload)
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...createApiAuthHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    throw new Error(`Tenant member promotion failed: ${response.status}`);
+    let detail = `Tenant member promotion failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as TenantMemberApiRecord;
@@ -51,12 +60,20 @@ export async function upsertTenantMember(payload: TenantMembersUpsertPayload) {
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...createApiAuthHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    throw new Error(`Tenant member upsert failed: ${response.status}`);
+    let detail = `Tenant member upsert failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as TenantMemberApiRecord;
@@ -68,12 +85,20 @@ export async function bulkUpsertTenantMembers(payload: TenantMembersBulkUpsertPa
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...createApiAuthHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    throw new Error(`Tenant member bulk upsert failed: ${response.status}`);
+    let detail = `Tenant member bulk upsert failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as { tenant_name: string; members: TenantMemberApiRecord[] };

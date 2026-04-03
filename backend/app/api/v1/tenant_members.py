@@ -1,18 +1,26 @@
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-from app.api.v1.demo_credentials import ensure_tenant_member_credential
+from app.api.v1.beta_auth_store import (
+    bulk_upsert_members,
+    list_members,
+    normalize_member_status,
+    normalize_role,
+    now_iso,
+    require_authenticated_session,
+    upsert_member,
+)
+from app.db.session import get_db
 
 router = APIRouter()
 
 TenantMemberRole = Literal["customer-admin", "sales", "finance", "operations", "viewer"]
 TenantMemberStatus = Literal["Seeded", "Invited", "Active"]
 TenantMemberSource = Literal["tenant-profile", "employee-directory", "accepted-invite", "manual", "backend-demo"]
-
-_MEMBER_STORE: dict[str, list["TenantMemberRecord"]] = {}
 
 
 class TenantMemberRecord(BaseModel):
@@ -74,138 +82,6 @@ class PromoteInviteRequest(BaseModel):
     invited_at: Optional[str] = None
 
 
-def _normalize_tenant_name(tenant_name: str) -> str:
-    return tenant_name.strip() or "Nair Luxury Escapes"
-
-
-def _normalize_role(role: str) -> TenantMemberRole:
-    normalized = role.strip().lower()
-    if normalized in {"customer-admin", "customer admin"}:
-        return "customer-admin"
-    if normalized == "sales":
-        return "sales"
-    if normalized in {"operations", "ops"}:
-        return "operations"
-    if normalized == "finance":
-        return "finance"
-    return "viewer"
-
-
-def _normalize_status(status: Optional[str]) -> TenantMemberStatus:
-    normalized = (status or "Seeded").strip().lower()
-    if normalized == "active":
-        return "Active"
-    if normalized == "invited":
-        return "Invited"
-    return "Seeded"
-
-
-def _now_label() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _default_members(tenant_name: str) -> list[TenantMemberRecord]:
-    safe_tenant = _normalize_tenant_name(tenant_name)
-    token = safe_tenant.lower().replace(" ", "")
-    return [
-        TenantMemberRecord(
-            id=f"{token}-admin",
-            tenant_name=safe_tenant,
-            name="Workspace Admin",
-            email=f"admin@{token}.demo",
-            role="customer-admin",
-            designation="Workspace Admin",
-            team="Leadership",
-            status="Active",
-            source="backend-demo",
-            reports_to="Platform",
-            responsibility="Workspace ownership, governance, and team access",
-        ),
-        TenantMemberRecord(
-            id=f"{token}-sales",
-            tenant_name=safe_tenant,
-            name="Sales Lead",
-            email=f"sales@{token}.demo",
-            role="sales",
-            designation="Travel Consultant",
-            team="Sales Desk",
-            status="Active",
-            source="backend-demo",
-            reports_to="Workspace Admin",
-            responsibility="Lead conversion, follow-up, and quote management",
-        ),
-        TenantMemberRecord(
-            id=f"{token}-finance",
-            tenant_name=safe_tenant,
-            name="Finance Lead",
-            email=f"finance@{token}.demo",
-            role="finance",
-            designation="Accounts Lead",
-            team="Billing",
-            status="Active",
-            source="backend-demo",
-            reports_to="Workspace Admin",
-            responsibility="Deposits, invoices, and settlement controls",
-        ),
-        TenantMemberRecord(
-            id=f"{token}-ops",
-            tenant_name=safe_tenant,
-            name="Operations Lead",
-            email=f"ops@{token}.demo",
-            role="operations",
-            designation="Operations Lead",
-            team="Fulfilment",
-            status="Active",
-            source="backend-demo",
-            reports_to="Workspace Admin",
-            responsibility="Bookings, traveler packs, and execution handoff",
-        ),
-    ]
-
-
-def _seed_if_needed(tenant_name: str) -> list[TenantMemberRecord]:
-    tenant_key = _normalize_tenant_name(tenant_name)
-    if tenant_key not in _MEMBER_STORE:
-        _MEMBER_STORE[tenant_key] = _default_members(tenant_key)
-        for member in _MEMBER_STORE[tenant_key]:
-            ensure_tenant_member_credential(tenant_key, member.email, member.role)
-    return _MEMBER_STORE[tenant_key]
-
-
-def _member_key(member: TenantMemberRecord) -> str:
-    return member.email.strip().lower()
-
-
-def _upsert_member(member: TenantMemberRecord) -> TenantMemberRecord:
-    tenant_key = _normalize_tenant_name(member.tenant_name)
-    existing_members = list(_seed_if_needed(tenant_key))
-    next_member = member.model_copy(update={"tenant_name": tenant_key})
-    next_members = [item for item in existing_members if _member_key(item) != _member_key(next_member) and item.id != next_member.id]
-    next_members.insert(0, next_member)
-    _MEMBER_STORE[tenant_key] = next_members
-    ensure_tenant_member_credential(tenant_key, next_member.email, next_member.role)
-    return next_member
-
-
-def _member_from_payload(payload: Any) -> TenantMemberRecord:
-    return TenantMemberRecord(
-        id=payload.id if isinstance(payload, TenantMemberUpsertRequest) and payload.id else f"{payload.tenant_name.strip()}-{payload.email.strip().lower().replace('@', '-')}-{payload.name.strip().lower().replace(' ', '-')}",
-        tenant_name=_normalize_tenant_name(payload.tenant_name),
-        name=payload.name.strip(),
-        email=payload.email.strip().lower(),
-        role=_normalize_role(payload.role),
-        designation=payload.designation.strip(),
-        team=payload.team.strip(),
-        status=_normalize_status(payload.status if isinstance(payload, TenantMemberUpsertRequest) else "Active"),
-        source=payload.source if isinstance(payload, TenantMemberUpsertRequest) else "accepted-invite",
-        reports_to=payload.reports_to.strip() if hasattr(payload, "reports_to") else "Customer Admin",
-        responsibility=payload.responsibility.strip() if hasattr(payload, "responsibility") else "Workspace participation",
-        invite_id=getattr(payload, "invite_id", None),
-        invited_at=getattr(payload, "invited_at", None),
-        accepted_at=getattr(payload, "accepted_at", None),
-    )
-
-
 def _payload_to_member_request(payload: dict[str, Any]) -> TenantMemberUpsertRequest:
     nested = payload.get("member") if isinstance(payload.get("member"), dict) else None
     source = nested or payload
@@ -228,60 +104,112 @@ def _payload_to_member_request(payload: dict[str, Any]) -> TenantMemberUpsertReq
     )
 
 
+def _member_payload_dict(payload: TenantMemberUpsertRequest) -> dict[str, Optional[str]]:
+    return {
+        "tenant_name": payload.tenant_name,
+        "id": payload.id,
+        "name": payload.name,
+        "email": payload.email,
+        "role": normalize_role(payload.role),
+        "designation": payload.designation,
+        "team": payload.team,
+        "status": normalize_member_status(payload.status),
+        "source": payload.source,
+        "reports_to": payload.reports_to,
+        "responsibility": payload.responsibility,
+        "invite_id": payload.invite_id,
+        "invited_at": payload.invited_at,
+        "accepted_at": payload.accepted_at,
+    }
+
+
 @router.get("/health")
 def health_check():
     return {"status": "ready", "module": "TENANT_MEMBERS"}
 
 
 @router.get("", response_model=TenantMembersResponse)
-def list_tenant_members(tenant_name: str = "Nair Luxury Escapes"):
-    tenant_key = _normalize_tenant_name(tenant_name)
+def list_tenant_members(tenant_name: str = "Nair Luxury Escapes", db: Session = Depends(get_db)):
     return TenantMembersResponse(
-        tenant_name=tenant_key,
+        tenant_name=tenant_name.strip() or "Nair Luxury Escapes",
         source="backend-demo",
-        members=list(_seed_if_needed(tenant_key)),
+        members=list_members(db, tenant_name),
     )
 
 
 @router.post("/upsert", response_model=TenantMemberRecord)
-def upsert_tenant_member(payload: dict[str, Any]):
+def upsert_tenant_member(payload: dict[str, Any], request: Request, db: Session = Depends(get_db)):
     request_model = _payload_to_member_request(payload)
     if "@" not in request_model.email:
         raise HTTPException(status_code=400, detail="Valid email required for tenant member upsert")
-    return _upsert_member(_member_from_payload(request_model))
+    is_bootstrap_admin = request_model.role in {"customer-admin", "customer admin"} and request_model.source == "tenant-profile"
+    actor_email = None
+    if not is_bootstrap_admin:
+        actor = require_authenticated_session(
+            db,
+            request,
+            tenant_name=request_model.tenant_name,
+            allowed_roles=["customer-admin", "super-admin"],
+        )
+        actor_email = actor["email"]
+    return upsert_member(db, _member_payload_dict(request_model), actor_email=actor_email)
 
 
 @router.post("/bulk", response_model=TenantMembersResponse)
-def bulk_upsert_tenant_members(payload: dict[str, Any]):
+def bulk_upsert_tenant_members(payload: dict[str, Any], request: Request, db: Session = Depends(get_db)):
     tenant_name = payload.get("tenant_name", "Nair Luxury Escapes")
     raw_members = payload.get("members", [])
     if not raw_members:
         raise HTTPException(status_code=400, detail="At least one member is required for bulk upsert")
-
-    normalized_members = [_member_from_payload(_payload_to_member_request({"tenant_name": tenant_name, "member": member})) for member in raw_members]
-    for member in normalized_members:
-        _upsert_member(member)
-
-    tenant_key = _normalize_tenant_name(tenant_name)
+    actor = require_authenticated_session(
+        db,
+        request,
+        tenant_name=tenant_name,
+        allowed_roles=["customer-admin", "super-admin"],
+    )
+    members = [_member_payload_dict(_payload_to_member_request({"tenant_name": tenant_name, "member": member})) for member in raw_members]
     return TenantMembersResponse(
-        tenant_name=tenant_key,
+        tenant_name=tenant_name,
         source="backend-demo",
-        members=list(_seed_if_needed(tenant_key)),
+        members=bulk_upsert_members(db, tenant_name, members, actor_email=actor["email"]),
     )
 
 
 @router.post("/promote", response_model=TenantMemberRecord)
-def promote_invite_to_member(payload: PromoteInviteRequest):
+def promote_invite_to_member(payload: PromoteInviteRequest, request: Request, db: Session = Depends(get_db)):
     if "@" not in payload.email:
         raise HTTPException(status_code=400, detail="Valid email required for tenant member promotion")
-
-    promoted = _member_from_payload(payload)
-    return _upsert_member(promoted.model_copy(update={"status": "Active", "source": "accepted-invite", "accepted_at": payload.accepted_at or _now_label()}))
+    actor = require_authenticated_session(
+        db,
+        request,
+        tenant_name=payload.tenant_name,
+        allowed_roles=["customer-admin", "super-admin"],
+    )
+    return upsert_member(
+        db,
+        {
+            "tenant_name": payload.tenant_name,
+            "id": payload.invite_id,
+            "name": payload.name,
+            "email": payload.email,
+            "role": payload.role,
+            "designation": payload.designation,
+            "team": payload.team,
+            "status": "Active",
+            "source": "accepted-invite",
+            "reports_to": payload.reports_to,
+            "responsibility": payload.responsibility,
+            "invite_id": payload.invite_id,
+            "invited_at": payload.invited_at,
+            "accepted_at": payload.accepted_at or now_iso(),
+        },
+        actor_email=actor["email"],
+    )
 
 
 @router.post("/bulk-upsert", response_model=TenantMembersResponse)
-def bulk_upsert_alias(payload: TenantMemberBulkUpsertRequest):
-    return bulk_upsert_tenant_members(payload)
+def bulk_upsert_alias(payload: TenantMemberBulkUpsertRequest, request: Request, db: Session = Depends(get_db)):
+    return bulk_upsert_tenant_members(payload.model_dump(), request, db)
 
 
 @router.get("/contract")

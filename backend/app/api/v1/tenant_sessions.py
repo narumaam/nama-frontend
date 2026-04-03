@@ -1,19 +1,23 @@
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-from app.api.v1.demo_credentials import ensure_super_admin_credentials, verify_super_admin_credential, verify_tenant_member_credential
-from app.api.v1.tenant_members import _seed_if_needed
+from app.api.v1.beta_auth_store import (
+    issue_super_admin_session as issue_super_admin_session_record,
+    issue_tenant_session as issue_tenant_session_record,
+    list_sessions,
+    require_authenticated_session,
+    revoke_session,
+)
+from app.db.session import get_db
 
 router = APIRouter()
 
 TenantSessionRole = Literal["super-admin", "customer-admin", "sales", "finance", "operations", "viewer"]
 TenantSessionScope = Literal["platform", "tenant"]
-
-_TENANT_SESSION_STORE: dict[str, list["TenantSessionRecord"]] = {}
-_SUPER_ADMIN_SESSION_STORE: list["TenantSessionRecord"] = []
 
 
 class TenantSessionRecord(BaseModel):
@@ -44,17 +48,10 @@ class TenantSessionCreateRequest(BaseModel):
     access_code: Optional[str] = None
 
 
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _tenant_key(tenant_name: Optional[str]) -> str:
-    return (tenant_name or "NAMA Demo").strip() or "NAMA Demo"
-
-
-def _session_id(scope: TenantSessionScope, email: str) -> str:
-    token = email.strip().lower().replace("@", "-").replace(".", "-")
-    return f"{scope}-{token}-{int(datetime.now(timezone.utc).timestamp())}"
+class TenantSessionRevokeRequest(BaseModel):
+    session_id: str = Field(..., min_length=6)
+    tenant_name: Optional[str] = None
+    scope: TenantSessionScope
 
 
 @router.get("/health")
@@ -63,92 +60,84 @@ def health_check():
 
 
 @router.get("/tenant")
-def list_tenant_sessions(tenant_name: str = "NAMA Demo"):
+def list_tenant_sessions(request: Request, tenant_name: str = "NAMA Demo", db: Session = Depends(get_db)):
+    require_authenticated_session(db, request, tenant_name=tenant_name, allowed_roles=["customer-admin", "super-admin"])
     return {
-        "tenant_name": _tenant_key(tenant_name),
-        "sessions": _TENANT_SESSION_STORE.get(_tenant_key(tenant_name), []),
+        "tenant_name": tenant_name.strip() or "NAMA Demo",
+        "sessions": list_sessions(db, scope="tenant", tenant_name=tenant_name),
     }
 
 
 @router.post("/tenant", response_model=TenantSessionRecord)
-def issue_tenant_session(payload: TenantSessionCreateRequest):
+def issue_tenant_session(payload: TenantSessionCreateRequest, db: Session = Depends(get_db)):
     if payload.scope != "tenant":
         raise HTTPException(status_code=400, detail="Tenant session scope must be tenant")
     if payload.role == "super-admin":
         raise HTTPException(status_code=400, detail="Use super-admin session route for super-admin issuance")
-
-    tenant_key = _tenant_key(payload.tenant_name)
-    if payload.access_code:
-        member = next(
-            (item for item in _seed_if_needed(tenant_key) if item.email == payload.email.strip().lower()),
-            None,
-        )
-        if not member:
-            raise HTTPException(status_code=404, detail="Tenant member not found for that email")
-        if not verify_tenant_member_credential(member.tenant_name, member.email, payload.access_code):
-            raise HTTPException(status_code=401, detail="Invalid tenant member credentials")
-
-        session = TenantSessionRecord(
-            id=_session_id("tenant", member.email),
-            email=member.email,
-            display_name=member.name,
-            role=member.role,
-            scope="tenant",
-            tenant_name=member.tenant_name,
-            member_id=member.id,
-            member_status=member.status,
-            designation=member.designation,
-            team=member.team,
-            granted_at=_now_iso(),
-        )
-        _TENANT_SESSION_STORE.setdefault(tenant_key, []).insert(0, session)
-        return session
-
-    if not payload.display_name or not payload.role:
-        raise HTTPException(status_code=400, detail="display_name and role are required when access_code is not provided")
-
-    session = TenantSessionRecord(
-        id=_session_id("tenant", payload.email),
-        email=payload.email.strip().lower(),
-        display_name=payload.display_name.strip(),
+    return issue_tenant_session_record(
+        db,
+        tenant_name=payload.tenant_name or "NAMA Demo",
+        email=payload.email,
+        access_code=payload.access_code,
+        display_name=payload.display_name,
         role=payload.role,
-        scope="tenant",
-        tenant_name=tenant_key,
         member_id=payload.member_id,
         member_status=payload.member_status,
         designation=payload.designation,
         team=payload.team,
-        granted_at=_now_iso(),
     )
-    _TENANT_SESSION_STORE.setdefault(tenant_key, []).insert(0, session)
-    return session
+
+
+@router.post("/tenant/revoke")
+def revoke_tenant_session(payload: TenantSessionRevokeRequest, request: Request, db: Session = Depends(get_db)):
+    actor = require_authenticated_session(
+        db,
+        request,
+        tenant_name=payload.tenant_name,
+        allowed_roles=["customer-admin", "super-admin"],
+    )
+    return revoke_session(db, session_id=payload.session_id, actor_email=actor["email"])
 
 
 @router.get("/super-admin")
-def list_super_admin_sessions():
+def list_super_admin_sessions(request: Request, db: Session = Depends(get_db)):
+    require_authenticated_session(db, request, tenant_name=None, allowed_roles=["super-admin"])
     return {
-        "sessions": _SUPER_ADMIN_SESSION_STORE,
+        "sessions": list_sessions(db, scope="platform"),
     }
 
 
 @router.post("/super-admin", response_model=TenantSessionRecord)
-def issue_super_admin_session(payload: TenantSessionCreateRequest):
+def issue_super_admin_session(payload: TenantSessionCreateRequest, db: Session = Depends(get_db)):
     if payload.scope != "platform":
         raise HTTPException(status_code=400, detail="Super admin session requires platform scope")
-    if payload.access_code:
-        ensure_super_admin_credentials()
-        if not verify_super_admin_credential(payload.email, payload.access_code):
-            raise HTTPException(status_code=401, detail="Invalid Super Admin credentials")
-    elif payload.role != "super-admin":
-        raise HTTPException(status_code=400, detail="Super admin session requires platform scope and super-admin role")
-
-    session = TenantSessionRecord(
-        id=_session_id("platform", payload.email),
-        email=payload.email.strip().lower(),
-        display_name=(payload.display_name or "NAMA Super Admin").strip(),
-        role="super-admin",
-        scope="platform",
-        granted_at=_now_iso(),
+    return issue_super_admin_session_record(
+        db,
+        email=payload.email,
+        access_code=payload.access_code,
+        display_name=payload.display_name,
     )
-    _SUPER_ADMIN_SESSION_STORE.insert(0, session)
-    return session
+
+
+@router.post("/super-admin/revoke")
+def revoke_super_admin_session(payload: TenantSessionRevokeRequest, request: Request, db: Session = Depends(get_db)):
+    actor = require_authenticated_session(db, request, tenant_name=None, allowed_roles=["super-admin"])
+    return revoke_session(db, session_id=payload.session_id, actor_email=actor["email"])
+
+
+@router.get("/contract")
+def get_contract_shape():
+    return {
+        "module": "TENANT_SESSIONS",
+        "version": "beta-foundation",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "routes": {
+            "tenant_issue": "/api/v1/sessions/tenant",
+            "tenant_list": "/api/v1/sessions/tenant?tenant_name=<tenant>",
+            "tenant_revoke": "/api/v1/sessions/tenant/revoke",
+            "super_admin_issue": "/api/v1/sessions/super-admin",
+            "super_admin_list": "/api/v1/sessions/super-admin",
+            "super_admin_revoke": "/api/v1/sessions/super-admin/revoke",
+            "health": "/api/v1/sessions/health",
+        },
+    }

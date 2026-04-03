@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/api";
+import { createApiAuthHeaders } from "@/lib/api-auth";
 import {
   type TenantInviteAcceptPayload,
   type TenantInviteContract,
@@ -34,12 +35,20 @@ export async function createTenantInvite(payload: TenantInviteCreatePayload) {
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...createApiAuthHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    throw new Error(`Tenant invite creation failed: ${response.status}`);
+    let detail = `Tenant invite creation failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as TenantInviteApiRecord;
@@ -51,12 +60,20 @@ export async function bulkCreateTenantInvites(payload: TenantInvitesBulkCreatePa
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...createApiAuthHeaders(),
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    throw new Error(`Tenant invite bulk creation failed: ${response.status}`);
+    let detail = `Tenant invite bulk creation failed: ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        detail = body.detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
   return (await response.json()) as { tenant_name: string; invites: TenantInviteApiRecord[] };
