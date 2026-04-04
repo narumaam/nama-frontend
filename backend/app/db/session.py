@@ -2,10 +2,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 from dotenv import load_dotenv
+from app.runtime import APP_ENV
 
 load_dotenv()
 
-APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
 DEFAULT_DATABASE_URL = "sqlite:///./nama_dev.db" if APP_ENV == "development" else None
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
 

@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-import { getDemoWorkflowEventName, readDemoWorkflowState, syncTenantInvitesFromApi, type DemoWorkflowState } from "@/lib/demo-workflow";
+import {
+  getDemoWorkflowEventName,
+  readDemoWorkflowState,
+  syncDemoWorkflowFromApi,
+  syncTenantInvitesFromApi,
+  type DemoWorkflowState,
+} from "@/lib/demo-workflow";
 import { readDemoProfile } from "@/lib/demo-profile";
 
 export function useDemoWorkflow() {
@@ -17,8 +23,8 @@ export function useDemoWorkflow() {
     }
 
     refreshWorkflow();
-    void syncTenantInvitesFromApi(profile.company)
-      .then((nextWorkflow) => {
+    void Promise.all([syncTenantInvitesFromApi(profile.company), syncDemoWorkflowFromApi(profile.company)])
+      .then(([, nextWorkflow]) => {
         if (!cancelled) {
           setWorkflow(nextWorkflow);
         }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
-import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
+import { updateDemoCaseWorkflowViaApi } from "@/lib/demo-workflow";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { dealHrefFromSlug, getDemoCaseRoute, normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import { SCREEN_HELP } from "@/lib/screen-help";
@@ -175,11 +175,15 @@ export default function BookingsPage() {
           <button
             type="button"
             onClick={() =>
-              canReleaseGuestPack && updateDemoCaseWorkflow(activeDeal.slug, {
-                bookingState: "Guest pack released",
-                guestPackState: "Released",
-                travelerApprovalState: "Approved for send",
-                travelerPdfState: "Shared",
+              canReleaseGuestPack &&
+              void updateDemoCaseWorkflowViaApi(activeDeal.slug, {
+                action: "booking.release-guest-pack",
+                patch: {
+                  bookingState: "Guest pack released",
+                  guestPackState: "Released",
+                  travelerApprovalState: "Approved for send",
+                  travelerPdfState: "Shared",
+                },
               })
             }
             disabled={!canReleaseGuestPack}
@@ -466,11 +470,15 @@ export default function BookingsPage() {
               <button
                 type="button"
                 onClick={() =>
-                  canReleaseGuestPack && updateDemoCaseWorkflow(activeDeal.slug, {
-                    bookingState: "Guest pack released",
-                    guestPackState: "Released",
-                    travelerApprovalState: "Approved for send",
-                    travelerPdfState: "Shared",
+                  canReleaseGuestPack &&
+                  void updateDemoCaseWorkflowViaApi(activeDeal.slug, {
+                    action: "booking.release-guest-pack",
+                    patch: {
+                      bookingState: "Guest pack released",
+                      guestPackState: "Released",
+                      travelerApprovalState: "Approved for send",
+                      travelerPdfState: "Shared",
+                    },
                   })
                 }
                 disabled={!canReleaseGuestPack}

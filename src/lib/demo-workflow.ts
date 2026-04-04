@@ -4,6 +4,8 @@ import { DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
 import { appendDemoEvent } from "@/lib/demo-events";
 import { readDemoProfile } from "@/lib/demo-profile";
 import { normalizeTenantRole } from "@/lib/auth-session";
+import { applyDemoWorkflowAction, fetchDemoWorkflowCases } from "@/lib/demo-workflow-api";
+import { type DemoWorkflowAction } from "@/lib/demo-workflow-contracts";
 import {
   acceptTenantInvite,
   bulkCreateTenantInvites,
@@ -481,6 +483,13 @@ export async function syncTenantInvitesFromApi(tenantName = getCurrentTenantName
   return nextState;
 }
 
+export async function syncDemoWorkflowFromApi(tenantName = getCurrentTenantName()) {
+  const response = await fetchDemoWorkflowCases(tenantName);
+  return writeDemoWorkflowState({
+    cases: response.cases,
+  });
+}
+
 export function replaceDemoWorkflowState(state: DemoWorkflowInput) {
   const nextState = normalizeWorkflowState(state);
   persistWorkflowState(nextState);
@@ -676,25 +685,10 @@ export async function acceptDemoInviteViaApi(inviteId: string, input: { inviteTo
   };
 }
 
-export function updateDemoCaseWorkflow(slug: string, patch: Partial<DemoCaseWorkflowState>) {
-  const currentState = readDemoWorkflowState();
-  const currentCase = currentState.cases[slug] ?? createDefaultCaseState(slug);
-  const nextCases = {
-    ...currentState.cases,
-    [slug]: normalizeCaseState(slug, {
-      ...currentCase,
-      ...patch,
-      lastUpdated: nowLabel(),
-    }),
-  };
-
-  const nextState = writeDemoWorkflowState({
-    cases: nextCases,
-  });
+function appendWorkflowEventsForTransition(slug: string, currentCase: DemoCaseWorkflowState, nextCase: DemoCaseWorkflowState) {
   const tenant = getCurrentTenantName();
   const route = DEMO_CASE_ROUTES.find((item) => item.slug === slug);
   const destination = route?.destination ?? slug;
-  const nextCase = nextCases[slug];
 
   if (nextCase.leadStage !== currentCase.leadStage) {
     appendDemoEvent({
@@ -779,7 +773,44 @@ export function updateDemoCaseWorkflow(slug: string, patch: Partial<DemoCaseWork
       path: `/dashboard/traveler-pdf/${slug}`,
     });
   }
+}
 
+export function updateDemoCaseWorkflow(slug: string, patch: Partial<DemoCaseWorkflowState>) {
+  const currentState = readDemoWorkflowState();
+  const currentCase = currentState.cases[slug] ?? createDefaultCaseState(slug);
+  const nextCases = {
+    ...currentState.cases,
+    [slug]: normalizeCaseState(slug, {
+      ...currentCase,
+      ...patch,
+      lastUpdated: nowLabel(),
+    }),
+  };
+
+  const nextState = writeDemoWorkflowState({
+    cases: nextCases,
+  });
+  appendWorkflowEventsForTransition(slug, currentCase, nextCases[slug]);
+  return nextState;
+}
+
+export async function updateDemoCaseWorkflowViaApi(
+  slug: string,
+  input: { action: DemoWorkflowAction; patch: Partial<DemoCaseWorkflowState> },
+) {
+  const currentState = readDemoWorkflowState();
+  const currentCase = currentState.cases[slug] ?? createDefaultCaseState(slug);
+  const response = await applyDemoWorkflowAction({
+    tenant_name: getCurrentTenantName(),
+    slug,
+    action: input.action,
+    patch: input.patch,
+  });
+  const nextState = writeDemoWorkflowState({
+    cases: response.cases,
+  });
+  const nextCase = nextState.cases[slug] ?? currentCase;
+  appendWorkflowEventsForTransition(slug, currentCase, nextCase);
   return nextState;
 }
 

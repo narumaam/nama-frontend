@@ -12,7 +12,7 @@ Move from a strong founder/demo alpha to a pilot-safe product foundation with se
 
 ### 1. Auth And Access
 
-Status: Not started
+Status: In progress
 
 Outcome:
 
@@ -20,16 +20,16 @@ Outcome:
 
 Execution checklist:
 
-- [ ] choose auth model for beta: in-house JWT flow or managed auth provider
-- [ ] implement password hashing and secure credential storage
-- [ ] define roles for Super Admin, customer admin, finance, sales, ops, and viewer users
-- [ ] protect tenant routes and Super Admin routes with server-backed session checks
-- [ ] remove demo-only credential shortcuts from production-bound paths
+- [x] choose auth model for beta: in-house contract-backed auth and signed cookie sessions
+- [x] implement password hashing and secure credential storage
+- [x] define roles for Super Admin, customer admin, finance, sales, ops, and viewer users
+- [x] protect tenant routes and Super Admin routes with server-backed session checks
+- [x] remove demo-only credential shortcuts from production-bound paths
 - [ ] document access-control matrix
 
 ### 2. Tenant And Workspace Provisioning
 
-Status: Partial
+Status: In progress
 
 Outcome:
 
@@ -37,10 +37,10 @@ Outcome:
 
 Execution checklist:
 
-- [ ] persist tenant registration to backend storage
+- [x] persist tenant registration to backend storage for the beta auth/member contract layer
 - [ ] persist plan, branding, banking, and domain preferences to backend
 - [ ] introduce tenant IDs and workspace ownership model
-- [ ] create tenant bootstrap flow after registration
+- [x] create tenant bootstrap flow after registration
 - [ ] make `/register` an editable settings flow backed by backend truth
 
 ### 3. Workflow State And Backend Truth
@@ -54,14 +54,14 @@ Outcome:
 Execution checklist:
 
 - [ ] define backend entities for leads, deals, bookings, invoices, traveler artifacts, and invites
-- [ ] map current demo workflow state to backend models
-- [ ] replace local persistence with API-backed mutations in the core path
+- [x] map current demo workflow state to backend models
+- [x] replace local persistence with API-backed mutations in the core path
 - [ ] preserve seeded demo scenarios without coupling the product to localStorage
 - [ ] add migration-safe data model notes
 
 ### 4. Invite Delivery And Team Activation
 
-Status: Partial
+Status: In progress
 
 Outcome:
 
@@ -70,14 +70,14 @@ Outcome:
 Execution checklist:
 
 - [ ] select email provider path for beta
-- [ ] generate signed invite tokens with expiry and revoke support
+- [x] generate signed invite tokens with expiry and revoke support
 - [ ] add invite resend and cancel actions
 - [ ] track invite send, open, accept, and failure states
 - [ ] preserve CSV employee import with backend persistence
 
 ### 5. Payments And Subscription Rails
 
-Status: Partial
+Status: Not started
 
 Outcome:
 
@@ -93,7 +93,7 @@ Execution checklist:
 
 ### 6. Supplier Sandbox Path
 
-Status: Partial
+Status: In progress
 
 Outcome:
 
@@ -117,15 +117,15 @@ Outcome:
 
 Execution checklist:
 
-- [ ] replace alpha-only session gate with real role-backed access
-- [ ] move audit events to durable backend storage
-- [ ] distinguish active sessions from accepted invites in metrics
+- [x] replace alpha-only session gate with real role-backed access
+- [x] move audit events to durable backend storage
+- [x] distinguish active sessions from accepted invites in metrics
 - [ ] track subscription truth from billing systems rather than plan heuristics
 - [ ] define tenant lifecycle states formally
 
 ### 8. Security And Deployment Hardening
 
-Status: Not started
+Status: In progress
 
 Outcome:
 
@@ -133,11 +133,11 @@ Outcome:
 
 Execution checklist:
 
-- [ ] narrow CORS by environment
-- [ ] remove dev fallback secrets outside local development
-- [ ] replace auto table creation with migrations in controlled environments
-- [ ] validate required env vars on startup
-- [ ] document port, secret, and integration handling by environment
+- [x] narrow CORS by environment
+- [x] remove dev fallback secrets outside local development
+- [x] replace auto table creation with migrations in controlled environments
+- [x] validate required env vars on startup
+- [x] document port, secret, and integration handling by environment
 - [ ] add logging and error-reporting expectations
 
 ### 9. Design System And UX Consolidation

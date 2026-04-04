@@ -8,14 +8,10 @@ from sqlalchemy.orm import Session
 from app.api.v1.beta_auth_store import authorize_session
 from app.db.session import get_db
 from app.models.auth import User, UserRole
-import os
+from app.runtime import get_secret_key
 
 ALGORITHM = "HS256"
-APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY and APP_ENV != "development":
-    raise RuntimeError("SECRET_KEY must be configured outside development.")
-SECRET_KEY = SECRET_KEY or "dev-only-secret-key"
+SECRET_KEY = get_secret_key()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login", auto_error=False)
 

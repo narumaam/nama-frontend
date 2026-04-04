@@ -7,8 +7,11 @@ This file is the source of truth for what must be configured in Vercel and Railw
 Set these in the Vercel project:
 
 - `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_APP_URL`
   - Production value should point to the Railway backend base URL, for example:
   - `https://<your-backend>.up.railway.app/api/v1`
+  - App URL should point to the live Vercel frontend origin, for example:
+  - `https://beta.nama.com`
 
 ## Backend (Railway)
 
@@ -16,7 +19,12 @@ Required:
 
 - `NAMA_ENV=production`
 - `SECRET_KEY`
+- `SESSION_COOKIE_SECRET`
 - `DATABASE_URL`
+- `NAMA_AUTO_MIGRATE=true`
+- `SUPER_ADMIN_BOOTSTRAP_CODE`
+- `FRONTEND_APP_URL`
+- `CORS_ALLOWED_ORIGINS`
 
 Travel supply:
 
@@ -57,10 +65,13 @@ Payments:
 Frontend:
 
 - `/`
+- `/workspace/login`
+- `/super-admin/login`
 - `/dashboard`
 - `/dashboard/itineraries`
 - `/kinetic`
 - `/register`
+- `/invite/[inviteId]` using a seeded or test invite
 
 Backend:
 
@@ -69,5 +80,17 @@ Backend:
 - `/api/v1/auth/health`
 - `/api/v1/queries/health`
 - `/api/v1/itineraries/health`
+- `/api/v1/tenant-members/health`
+- `/api/v1/tenant-invites/health`
+- `/api/v1/sessions/health`
+- `/api/v1/credentials/health`
 - `/api/v1/integrations/vault/status`
 - `/api/v1/payments/health`
+
+Auth-specific deploy checks:
+
+- register a tenant admin and verify workspace entry succeeds
+- accept a tenant invite and verify workspace entry succeeds
+- verify signed cookie session survives local storage removal
+- revoke a tenant session and confirm protected routes are denied
+- verify Super Admin login and logout on `/super-admin/login`

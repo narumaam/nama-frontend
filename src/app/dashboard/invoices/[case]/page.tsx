@@ -7,7 +7,7 @@ import { ArrowLeft, CheckCircle2, ChevronRight, Download, Landmark, Receipt } fr
 
 import { canPerformAction } from "@/lib/auth-session";
 import { DEMO_DEAL_CASES, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
-import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
+import { updateDemoCaseWorkflowViaApi } from "@/lib/demo-workflow";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import { useAppSession } from "@/lib/use-app-session";
@@ -54,7 +54,10 @@ export default function InvoicePage() {
             <button
               type="button"
               onClick={() => {
-                updateDemoCaseWorkflow(slug, { invoiceDownloadState: "Downloaded" });
+                void updateDemoCaseWorkflowViaApi(slug, {
+                  action: "artifact.download-invoice",
+                  patch: { invoiceDownloadState: "Downloaded" },
+                });
                 window.print();
               }}
               className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white"
@@ -81,10 +84,13 @@ export default function InvoicePage() {
               type="button"
               onClick={() =>
                 canManageInvoice &&
-                updateDemoCaseWorkflow(slug, {
-                  invoiceState: "Sent",
-                  financeStatus: "Invoice sent to traveler and awaiting settlement",
-                  paymentState: "Settlement in progress",
+                void updateDemoCaseWorkflowViaApi(slug, {
+                  action: "artifact.mark-invoice-sent",
+                  patch: {
+                    invoiceState: "Sent",
+                    financeStatus: "Invoice sent to traveler and awaiting settlement",
+                    paymentState: "Settlement in progress",
+                  },
                 })
               }
               disabled={!canManageInvoice}
@@ -98,16 +104,19 @@ export default function InvoicePage() {
               type="button"
               onClick={() =>
                 canManageInvoice &&
-                updateDemoCaseWorkflow(slug, {
-                  leadStage: "Won",
-                  nextAction: "Share traveler documents and hand off to operations",
-                  nextActionAt: "Ready now",
-                  bookingState: "Ready for handoff",
-                  guestPackState: "Queued",
-                  invoiceDownloadState: "Downloaded",
-                  invoiceState: "Paid",
-                  financeStatus: "Invoice settled and finance release approved",
-                  paymentState: "Payment confirmed",
+                void updateDemoCaseWorkflowViaApi(slug, {
+                  action: "artifact.mark-invoice-paid",
+                  patch: {
+                    leadStage: "Won",
+                    nextAction: "Share traveler documents and hand off to operations",
+                    nextActionAt: "Ready now",
+                    bookingState: "Ready for handoff",
+                    guestPackState: "Queued",
+                    invoiceDownloadState: "Downloaded",
+                    invoiceState: "Paid",
+                    financeStatus: "Invoice settled and finance release approved",
+                    paymentState: "Payment confirmed",
+                  },
                 })
               }
               disabled={!canManageInvoice}

@@ -7,7 +7,7 @@ import { ArrowLeft, CalendarDays, ChevronRight, Download, FileText, MapPin, Phon
 
 import { canPerformAction } from "@/lib/auth-session";
 import { DEMO_DEAL_CASES, PRIMARY_DEMO_DEAL_CASE } from "@/lib/demo-case-profiles";
-import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
+import { updateDemoCaseWorkflowViaApi } from "@/lib/demo-workflow";
 import { getDemoBrandTheme, getDemoWorkspaceDomain, readDemoProfile } from "@/lib/demo-profile";
 import { normalizeDemoCaseSlug } from "@/lib/demo-cases";
 import { useAppSession } from "@/lib/use-app-session";
@@ -49,7 +49,10 @@ export default function TravelerPdfPage() {
             <button
               type="button"
               onClick={() => {
-                updateDemoCaseWorkflow(slug, { travelerPdfState: "Downloaded" });
+                void updateDemoCaseWorkflowViaApi(slug, {
+                  action: "artifact.download-traveler-pdf",
+                  patch: { travelerPdfState: "Downloaded" },
+                });
                 window.print();
               }}
               className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white"
@@ -75,7 +78,13 @@ export default function TravelerPdfPage() {
               <ArtifactStatusCard label="Approval" value={approvalState} />
               <button
                 type="button"
-                onClick={() => canDispatchTravelerPdf && updateDemoCaseWorkflow(slug, { travelerApprovalState: "Approved for send" })}
+                onClick={() =>
+                  canDispatchTravelerPdf &&
+                  void updateDemoCaseWorkflowViaApi(slug, {
+                    action: "artifact.approve-traveler-pdf",
+                    patch: { travelerApprovalState: "Approved for send" },
+                  })
+                }
                 disabled={!canDispatchTravelerPdf}
                 className={`rounded-2xl border px-4 py-3 text-[10px] font-black uppercase tracking-widest ${
                   canDispatchTravelerPdf ? "border-slate-200 bg-slate-50 text-slate-600" : "border-slate-200 bg-slate-100 text-slate-400"
@@ -87,11 +96,14 @@ export default function TravelerPdfPage() {
                 type="button"
                 onClick={() =>
                   canDispatchTravelerPdf &&
-                  updateDemoCaseWorkflow(slug, {
-                    bookingState: "Guest pack released",
-                    guestPackState: "Released",
-                    travelerApprovalState: "Approved for send",
-                    travelerPdfState: "Shared",
+                  void updateDemoCaseWorkflowViaApi(slug, {
+                    action: "artifact.share-traveler-pdf",
+                    patch: {
+                      bookingState: "Guest pack released",
+                      guestPackState: "Released",
+                      travelerApprovalState: "Approved for send",
+                      travelerPdfState: "Shared",
+                    },
                   })
                 }
                 disabled={!canDispatchTravelerPdf}

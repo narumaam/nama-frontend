@@ -1,4 +1,3 @@
-import os
 from datetime import datetime, timezone
 
 from fastapi import FastAPI
@@ -12,15 +11,16 @@ from app.api.v1 import (
 )
 from app.db.bootstrap import bootstrap_database
 from app.models import beta_auth as beta_auth_models  # noqa: F401
+from app.runtime import APP_ENV, get_allowed_cors_origins, validate_runtime_configuration
 
-APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
+validate_runtime_configuration()
 bootstrap_database()
 
 app = FastAPI(title="NAMA Backend OS", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_allowed_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

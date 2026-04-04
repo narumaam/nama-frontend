@@ -5,7 +5,7 @@ import Link from "next/link";
 import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
-import { updateDemoCaseWorkflow } from "@/lib/demo-workflow";
+import { updateDemoCaseWorkflowViaApi } from "@/lib/demo-workflow";
 import { DEFAULT_DEMO_PROFILE, readDemoProfile } from "@/lib/demo-profile";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useAppSession } from "@/lib/use-app-session";
@@ -424,9 +424,13 @@ export default function FinancePage() {
               <button
                 type="button"
                 onClick={() =>
-                  canSendQuote && updateDemoCaseWorkflow(item.slug, {
-                    financeStatus: "Quote approved and sent to the traveler",
-                    paymentState: "Awaiting deposit confirmation",
+                  canSendQuote &&
+                  void updateDemoCaseWorkflowViaApi(item.slug, {
+                    action: "finance.send-quote",
+                    patch: {
+                      financeStatus: "Quote approved and sent to the traveler",
+                      paymentState: "Awaiting deposit confirmation",
+                    },
                   })
                 }
                 disabled={!canSendQuote}
@@ -439,13 +443,17 @@ export default function FinancePage() {
               <button
                 type="button"
                 onClick={() =>
-                  canRecordDeposit && updateDemoCaseWorkflow(item.slug, {
-                    leadStage: "Won",
-                    nextAction: "Release the case into bookings",
-                    nextActionAt: "Ready now",
-                    financeStatus: "Deposit received and finance release approved",
-                    paymentState: "Deposit confirmed",
-                    bookingState: "Ready for handoff",
+                  canRecordDeposit &&
+                  void updateDemoCaseWorkflowViaApi(item.slug, {
+                    action: "finance.record-deposit",
+                    patch: {
+                      leadStage: "Won",
+                      nextAction: "Release the case into bookings",
+                      nextActionAt: "Ready now",
+                      financeStatus: "Deposit received and finance release approved",
+                      paymentState: "Deposit confirmed",
+                      bookingState: "Ready for handoff",
+                    },
                   })
                 }
                 disabled={!canRecordDeposit}

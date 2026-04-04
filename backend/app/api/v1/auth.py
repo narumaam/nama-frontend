@@ -5,16 +5,12 @@ from app.db.session import get_db
 from app.models.auth import User, Tenant
 from jose import jwt
 from datetime import datetime, timedelta
-import os
+from app.runtime import get_secret_key
 
 router = APIRouter()
 
 # Simple JWT Logic for prototype
-APP_ENV = os.getenv("NAMA_ENV", os.getenv("ENV", "development")).lower()
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY and APP_ENV != "development":
-    raise RuntimeError("SECRET_KEY must be configured outside development.")
-SECRET_KEY = SECRET_KEY or "dev-only-secret-key"
+SECRET_KEY = get_secret_key()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

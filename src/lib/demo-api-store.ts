@@ -24,12 +24,20 @@ import {
   SUPER_ADMIN_DEMO_EMAIL,
   createTenantMemberAccessCode,
 } from "@/lib/demo-credentials";
+import { DEMO_CASE_ROUTES } from "@/lib/demo-cases";
+import { DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
+import {
+  type DemoCaseWorkflowContract,
+  type DemoWorkflowAction,
+  type DemoWorkflowUpdatePayload,
+} from "@/lib/demo-workflow-contracts";
 
 type DemoTenantApiState = {
   tenant_name: string;
   members: TenantMemberContract[];
   invites: TenantInviteContract[];
   sessions: TenantSessionContract[];
+  workflow_cases: Record<string, DemoCaseWorkflowContract>;
   credentials: Record<string, DemoCredentialRecord>;
   audit_events: DemoAuthAuditEvent[];
 };
@@ -140,6 +148,16 @@ function inviteExpiryIso() {
 
 function resetExpiryIso() {
   return new Date(Date.now() + 30 * 60 * 1000).toISOString();
+}
+
+function nowLabel() {
+  return new Date().toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function isExpired(timestamp?: string | null) {
@@ -301,6 +319,39 @@ function createSeedInvites(tenantName: string): TenantInviteContract[] {
   }));
 }
 
+function defaultBookingState(financeStatus: string): DemoCaseWorkflowContract["bookingState"] {
+  const normalized = financeStatus.toLowerCase();
+  if (normalized.includes("received") || normalized.includes("approved")) {
+    return "Ready for handoff";
+  }
+  return "Pending finance";
+}
+
+function createSeedWorkflowCase(slug: string): DemoCaseWorkflowContract {
+  const route = DEMO_CASE_ROUTES.find((item) => item.slug === slug) ?? DEMO_CASE_ROUTES[0];
+  const meta = DEMO_LEAD_PROFILE_META[slug] ?? DEMO_LEAD_PROFILE_META[DEMO_CASE_ROUTES[0].slug];
+
+  return {
+    slug,
+    leadStage: meta.stage,
+    nextAction: meta.nextAction,
+    nextActionAt: meta.nextActionAt,
+    financeStatus: route.financeStatus,
+    paymentState: route.paymentState,
+    bookingState: defaultBookingState(route.financeStatus),
+    guestPackState: "Queued",
+    invoiceState: "Draft",
+    invoiceDownloadState: "Ready",
+    travelerPdfState: "Draft",
+    travelerApprovalState: "Awaiting approval",
+    lastUpdated: "03 Apr 2026 · 12:00",
+  };
+}
+
+function createSeedWorkflowCases() {
+  return Object.fromEntries(DEMO_CASE_ROUTES.map((item) => [item.slug, createSeedWorkflowCase(item.slug)]));
+}
+
 function createTenantState(tenantName: string): DemoTenantApiState {
   const resolvedTenant = normalizeTenantNameInput(tenantName);
   return {
@@ -308,6 +359,7 @@ function createTenantState(tenantName: string): DemoTenantApiState {
     members: createSeedMembers(resolvedTenant),
     invites: createSeedInvites(resolvedTenant),
     sessions: [],
+    workflow_cases: createSeedWorkflowCases(),
     credentials: {},
     audit_events: [],
   };
@@ -1021,6 +1073,36 @@ export function revokeSuperAdminSession(payload: { session_id: string }) {
     detail: `${session.display_name} session was revoked.`,
   });
   return { ok: true };
+}
+
+export function listTenantWorkflowCases(tenantName?: string | null) {
+  return {
+    tenant_name: getTenantState(tenantName).tenant_name,
+    cases: { ...getTenantState(tenantName).workflow_cases },
+  };
+}
+
+export function updateTenantWorkflowCase(payload: DemoWorkflowUpdatePayload) {
+  const tenant = getTenantState(payload.tenant_name);
+  const currentCase = tenant.workflow_cases[payload.slug] ?? createSeedWorkflowCase(payload.slug);
+  const nextCase: DemoCaseWorkflowContract = {
+    ...currentCase,
+    ...payload.patch,
+    slug: payload.slug,
+    lastUpdated: nowLabel(),
+  };
+  tenant.workflow_cases[payload.slug] = nextCase;
+  recordTenantAuditEvent(tenant, {
+    category: "member",
+    action: payload.action,
+    actor_email: null,
+    subject_email: null,
+    detail: `${payload.slug} workflow updated through ${payload.action}.`,
+  });
+  return {
+    tenant_name: tenant.tenant_name,
+    cases: { ...tenant.workflow_cases },
+  };
 }
 
 export function listTenantAuthAudit(tenantName?: string | null) {
