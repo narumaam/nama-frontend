@@ -2,7 +2,7 @@
 
 ## 0. Document State
 
-- Branch truth: `codex/beta-foundations` at `7b2fc54`
+- Branch truth: `codex/beta-foundations` at `900e0f6`
 - Scope: Demo, Alpha, and MVP handoff planning
 - This draft should be read as the current product contract, not as an aspirational wishlist
 
@@ -29,6 +29,7 @@ The current branch already proves the following end-to-end:
 - lead, deal, finance, booking, invoice, and traveler artifact continuity
 - route guards and negative route behavior
 - a visible Stitch-inspired dashboard shell
+- analytics now links back into the live operating flow instead of feeling isolated
 
 ## 3. Release Targets
 
@@ -115,6 +116,12 @@ The platform operator logs in through a separate path, reviews tenant health and
 | Traveler PDF | Ready | Dispatch state and guest-pack state are visible |
 | Super Admin | Ready | Separate access path and audit visibility exist |
 | Dashboard shell | Ready | Stitch-style hierarchy is in place and stable |
+| Analytics | Improved | Linked back into the live operating flow, not a dead-end board |
+| Comms | Partial | Useful demo surface, still reads as preview-channel driven |
+| Content | Partial | Asset library is useful but not yet product-complete |
+| Autopilot | Partial | Strong demo story, still visibly agentic-preview in places |
+| EKLA / Evolution | Partial | Learning surfaces are present, but they remain preview-state narratives |
+| DMC | Partial | Good operational story, still not full supplier-truth complete |
 
 ### MVP Path
 
@@ -176,12 +183,13 @@ The platform operator logs in through a separate path, reviews tenant health and
 
 ## 10. MVP Roadmap Snapshot
 
-1. Harden durable backend entities for all core workflow objects.
-2. Close supplier, booking, and payment truth gaps.
-3. Add structured decision and outcome tracking.
-4. Introduce stronger analytics and audit surfaces.
-5. Expand white-label and portal depth.
-6. Replace remaining demo-only assumptions with durable records and backend enforcement.
+1. Finish the Demo/Alpha surface set so every investor-visible route feels coherent.
+2. Harden durable backend entities for all core workflow objects.
+3. Close supplier, booking, and payment truth gaps.
+4. Add structured decision and outcome tracking.
+5. Introduce stronger analytics and audit surfaces.
+6. Expand white-label and portal depth.
+7. Replace remaining demo-only assumptions with durable records and backend enforcement.
 
 ## 11. Acceptance Criteria For This Draft
 

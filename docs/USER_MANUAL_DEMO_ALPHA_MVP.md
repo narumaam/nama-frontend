@@ -12,6 +12,40 @@ NAMA has three practical layers:
 - MVP: the future durable product
 
 The current repo is strongest in the Demo and Alpha layers.
+Analytics, comms, content, autopilot, and evolution are useful walkthrough surfaces, but they are not all equally durable yet.
+
+## 2.2 Module Reality Check
+
+### Ready For Demo And Alpha
+
+- registration
+- team invites
+- leads
+- deals
+- finance
+- bookings
+- invoices
+- traveler PDF
+- super-admin access
+- dashboard shell
+
+### Present But Partial
+
+- analytics
+- comms
+- content
+- DMC
+- autopilot
+- EKLA
+- evolution
+- itineraries
+
+### Future MVP Truth
+
+- persistent backend records for all workflow objects
+- production payment and supplier integrations
+- structured decision traces and outcome learning
+- richer observability and release engineering
 
 ## 2.1 Fast Route Map
 
@@ -132,6 +166,7 @@ Use this route to:
 - If a screen reads like a preview or sandbox, treat it that way.
 - If a route redirects, that is intentional and should prevent dead ends.
 - If something looks stale after a reload, check the session first before assuming the page is broken.
+- Keep the demo story focused on the connected spine: overview, leads, deals, finance, bookings, artifacts, and super-admin.
 
 ## 5. What Not To Expect Yet
 
@@ -140,6 +175,7 @@ Use this route to:
 - full supplier booking truth across all adapters
 - complete analytics truth for every module
 - every long-tail module to be fully hardened
+- fully productized learning or decision-trace flows in the current release
 
 ## 6. Common Troubleshooting
 
@@ -164,6 +200,10 @@ Refresh the page and confirm you are on the right case slug. The latest workflow
 ### 6.4 The Page Says Preview Or Sandbox
 
 That wording is intentional on some surfaces. It means the screen is still part of the current Demo/Alpha story and should be presented honestly until the MVP backend truth is ready.
+
+### 6.5 A Long-Tail Module Feels Narrative-Heavy
+
+Treat that screen as a guided preview unless the module status in the PRD or handoff says it is ready. The core demo should not depend on those screens for a successful walkthrough.
 
 ## 7. Demo Sequence For Presentations
 

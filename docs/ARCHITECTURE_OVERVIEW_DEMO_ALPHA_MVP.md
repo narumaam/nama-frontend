@@ -7,7 +7,7 @@ NAMA is currently a modular travel operating system built as a Next.js frontend 
 ## 1.1 Branch Truth
 
 - Branch: `codex/beta-foundations`
-- Verified head for this documentation pass: `7b2fc54`
+- Verified head for this documentation pass: `900e0f6`
 - Current stable emphasis: demo/alpha continuity, contract-backed sessions, and visible artifact handoff
 
 ## 2. Architectural Layers
@@ -143,6 +143,8 @@ flowchart TD
 - invoice and traveler artifact handoff states
 - admin and audit report depth
 - demo and tenant role smoke assertions
+- analytics continuity back into the working flow
+- docs package now provides a more honest handoff story for Demo, Alpha, and MVP
 
 ### MVP-Focused Next Work
 
@@ -151,6 +153,7 @@ flowchart TD
 - metrics, reporting, and decision history
 - stronger developer-facing API and schema docs
 - a formal event model for decision traces and outcome learning
+- explicit module owners and API contracts for future contributors
 
 ## 6. Key Files
 
@@ -182,6 +185,12 @@ The MVP layer should replace seeded/preview mechanics with durable records, prod
 - Alpha is for operational confidence and repeatability.
 - MVP is for durability, persistence, and integration truth.
 - If a screen says "preview" or "sandbox," that wording should be preserved until the underlying truth is upgraded.
+
+## 7.2 Release Readiness Summary
+
+- Demo is user-facing and rehearsal-ready on the core founder path.
+- Alpha is operationally stable on the current branch, with the remaining work concentrated in long-tail modules and language cleanup.
+- MVP is still a productization phase, not a hidden continuation of the seeded demo store.
 
 ## 8. Architecture Risks
 

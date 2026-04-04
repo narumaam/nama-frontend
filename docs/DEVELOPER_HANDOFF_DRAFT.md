@@ -7,7 +7,7 @@ This repository is a travel operating system with a strong founder-facing Demo/A
 ## 2. Current Branch State
 
 - Branch: `codex/beta-foundations`
-- Latest verified head before this doc pass: `7b2fc54`
+- Latest verified head before this doc pass: `900e0f6`
 - Key verified commands:
   - `npm run lint`
   - `npm run build`
@@ -37,6 +37,39 @@ This repository is a travel operating system with a strong founder-facing Demo/A
 - production payment and supplier integrations
 - full observability and release engineering around MVP rollout
 - eventual decision-trace / learning-layer work should wait until Alpha is done
+
+### 4.1 Module Status Truth
+
+#### Ready For Demo/Alpha
+
+- registration
+- tenant login and Super Admin login
+- tenant invites and acceptance
+- leads
+- deals
+- finance
+- bookings
+- invoices
+- traveler PDF
+- dashboard shell
+- analytics continuity back into the main flow
+
+#### Partial But Presentable
+
+- comms
+- content
+- DMC
+- autopilot
+- EKLA
+- evolution
+- itineraries
+
+#### MVP-Only / Future Truth
+
+- persistent backend models for all workflow objects
+- durable payment and supplier integrations
+- structured decision traces and learning loops
+- full observability and release engineering
 
 ## 5. Important File Map
 
@@ -100,6 +133,7 @@ This repository is a travel operating system with a strong founder-facing Demo/A
 4. Run the smoke suite sequentially, not in parallel.
 5. Avoid deleting `.next` manually inside smoke runners; the current scripts are already structured to be build-safe.
 6. Keep docs and code in sync with the current branch head, not an older mental model.
+7. If you add a new route or visible state transition, update the user manual and PRD in the same pass.
 
 ## 7. Working Rules For A Future Developer
 
@@ -117,6 +151,7 @@ This repository is a travel operating system with a strong founder-facing Demo/A
 3. Expand docs for module owners and API contracts if another developer is introduced.
 4. Prepare release notes and a small regression matrix before any deploy.
 5. Only after Alpha is done, decide whether decision traces become an MVP build item.
+6. Revisit the docs after every major branch head so the handoff stays current.
 
 ## 9. Handoff Notes
 
