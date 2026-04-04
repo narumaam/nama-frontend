@@ -819,6 +819,14 @@ export function setDemoLeadStage(slug: string, stage: DemoLeadStage) {
   return updateDemoCaseWorkflow(slug, preset);
 }
 
+export async function setDemoLeadStageViaApi(slug: string, stage: DemoLeadStage) {
+  const preset = getLeadStagePreset(stage);
+  return updateDemoCaseWorkflowViaApi(slug, {
+    action: "lead.set-stage",
+    patch: preset,
+  });
+}
+
 export function getDemoWorkflowEventName() {
   return DEMO_WORKFLOW_EVENT;
 }

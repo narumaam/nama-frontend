@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-
-import { rmSync } from "node:fs";
-import path from "node:path";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 
@@ -94,7 +91,20 @@ function startAppServer(port) {
 }
 
 async function expectVisible(page, text) {
-  await page.getByText(text, { exact: false }).first().waitFor({ state: "visible", timeout: 20000 });
+  const locator = page.getByText(text, { exact: false });
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < 20000) {
+    const count = await locator.count();
+    for (let index = 0; index < count; index += 1) {
+      if (await locator.nth(index).isVisible()) {
+        return;
+      }
+    }
+    await sleep(250);
+  }
+
+  throw new Error(`Timed out waiting for visible text: ${text}`);
 }
 
 async function expectHeading(page, heading) {
@@ -157,6 +167,11 @@ async function verifySalesRole(page) {
   const wonButton = page.getByRole("button", { name: /^Won$/ });
   await expectEnabled(wonButton, "Sales Won stage button");
   await wonButton.click();
+  await page.goto("/dashboard/leads");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: /^List$/ }).click();
+  await expectVisible(page, "Release into bookings and share traveler documents");
+  await expectVisible(page, "Deposit received and finance release approved");
 }
 
 async function verifyFinanceRole(page) {
@@ -169,6 +184,9 @@ async function verifyFinanceRole(page) {
   await expectEnabled(page.getByRole("button", { name: /^Send Quote$/ }).first(), "Finance Send Quote");
   await expectEnabled(page.getByRole("button", { name: /^Record Deposit$/ }).first(), "Finance Record Deposit");
   await expectEnabled(page.getByRole("button", { name: /Export CSV/i }), "Finance Export CSV");
+  await page.getByRole("button", { name: /^Record Deposit$/ }).first().click();
+  await expectVisible(page, "Deposit confirmed");
+  await expectVisible(page, "Deposit received and finance release approved");
 
   await page.goto(`/dashboard/bookings?case=${CASE_SLUG}`);
   await page.waitForLoadState("networkidle");
@@ -191,11 +209,15 @@ async function verifyOperationsRole(page) {
   const releaseButton = page.getByRole("button", { name: /Release guest pack now/i });
   await expectEnabled(releaseButton, "Operations release guest pack");
   await releaseButton.click();
+  await expectVisible(page, "Guest pack released");
+  await expectVisible(page, "Released guest pack state");
 
   await page.goto(`/dashboard/traveler-pdf/${CASE_SLUG}`);
   await page.waitForLoadState("networkidle");
   await expectEnabled(page.getByRole("button", { name: /Approve for send/i }), "Operations approve for send");
   await expectEnabled(page.getByRole("button", { name: /Mark shared/i }), "Operations mark shared");
+  await page.getByRole("button", { name: /Mark shared/i }).click();
+  await expectVisible(page, "Shared");
 }
 
 async function verifyViewerRole(page) {
@@ -218,7 +240,6 @@ async function verifyViewerRole(page) {
 async function main() {
   const port = process.env.SMOKE_PORT || (await getAvailablePort());
   const baseUrl = process.env.SMOKE_BASE_URL || `http://${HOST}:${port}`;
-  rmSync(path.join(ROOT, ".next"), { recursive: true, force: true });
   const server = startAppServer(port);
   let browser;
 

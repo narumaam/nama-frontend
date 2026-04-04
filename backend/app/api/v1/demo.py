@@ -20,6 +20,7 @@ class DemoWorkflowUpdateRequest(BaseModel):
 
 
 ACTION_ALLOWED_ROLES = {
+    "lead.set-stage": {UserRole.R1_SUPER_ADMIN, UserRole.R2_ORG_ADMIN, UserRole.R3_SALES_MANAGER},
     "finance.send-quote": {UserRole.R2_ORG_ADMIN, UserRole.R3_SALES_MANAGER, UserRole.R5_FINANCE_ADMIN},
     "finance.record-deposit": {UserRole.R2_ORG_ADMIN, UserRole.R5_FINANCE_ADMIN},
     "booking.release-guest-pack": {UserRole.R2_ORG_ADMIN, UserRole.R4_OPS_EXECUTIVE},

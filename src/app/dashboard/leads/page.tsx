@@ -6,7 +6,7 @@ import { canPerformAction } from "@/lib/auth-session";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { DEMO_CASE_ROUTES, getPrimaryDemoCase } from "@/lib/demo-cases";
 import { DEMO_DEAL_CASES, DEMO_LEAD_PROFILE_META } from "@/lib/demo-case-profiles";
-import { setDemoLeadStage } from "@/lib/demo-workflow";
+import { setDemoLeadStageViaApi } from "@/lib/demo-workflow";
 import { SCREEN_HELP } from "@/lib/screen-help";
 import { useAppSession } from "@/lib/use-app-session";
 import { useDemoWorkflow } from "@/lib/use-demo-workflow";
@@ -592,7 +592,7 @@ export default function LeadsPage() {
           onEnrich={() => canEnrichLead && setEnrichedLead(drawerLead)}
           onStageChange={(stage) => {
             if (!canManageLeads) return;
-            setDemoLeadStage(drawerLead.slug, stage);
+            void setDemoLeadStageViaApi(drawerLead.slug, stage);
             setSelectedLead({ ...drawerLead, stage });
           }}
           canEnrich={canEnrichLead}

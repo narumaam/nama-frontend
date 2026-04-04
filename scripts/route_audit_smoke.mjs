@@ -51,6 +51,12 @@ const SUPER_ADMIN_ROUTES = [
   "/dashboard/admin/audit-report",
 ];
 
+const NEGATIVE_DYNAMIC_ROUTES = [
+  "/invite/not-a-real-id",
+  "/dashboard/invoices/not-a-real-case",
+  "/dashboard/traveler-pdf/not-a-real-case",
+];
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -176,6 +182,12 @@ async function main() {
     await loginSuperAdmin(adminPage, baseUrl);
     for (const route of SUPER_ADMIN_ROUTES) {
       await assertHealthyPage(adminPage, baseUrl, route);
+    }
+
+    const negativePage = await browser.newPage();
+    await registerTenant(negativePage, baseUrl);
+    for (const route of NEGATIVE_DYNAMIC_ROUTES) {
+      await assertHealthyPage(negativePage, baseUrl, route);
     }
 
     console.log("\nRoute audit smoke passed.");

@@ -68,6 +68,36 @@ def test_demo_workflow_record_deposit_updates_case_state() -> None:
     assert body["cases"]["maldives-honeymoon"]["paymentState"] == "Deposit confirmed"
 
 
+def test_demo_workflow_sales_can_advance_lead_stage() -> None:
+    session_id = issue_tenant_session(
+        "Aurora Reserve Travel",
+        "sales@aurorareservetravel.demo",
+        "NAMA-AURORARE-SALES",
+    )
+
+    response = client.post(
+        "/api/v1/demo/workflow",
+        headers={"x-nama-session-id": session_id},
+        json={
+            "tenant_name": "Aurora Reserve Travel",
+            "slug": "dubai-bleisure",
+            "action": "lead.set-stage",
+            "patch": {
+                "leadStage": "Won",
+                "nextAction": "Release into bookings and share traveler documents",
+                "nextActionAt": "Ready now",
+                "financeStatus": "Deposit received and finance release approved",
+                "paymentState": "Deposit confirmed",
+                "bookingState": "Ready for handoff",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cases"]["dubai-bleisure"]["leadStage"] == "Won"
+
+
 def test_demo_workflow_rejects_disallowed_role_for_finance_release() -> None:
     session_id = issue_tenant_session(
         "Aurora Reserve Travel",

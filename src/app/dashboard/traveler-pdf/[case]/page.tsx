@@ -24,6 +24,8 @@ export default function TravelerPdfPage() {
   const deal = DEMO_DEAL_CASES[slug] ?? PRIMARY_DEMO_DEAL_CASE;
   const deliveryState = workflow.cases[slug]?.travelerPdfState ?? "Draft";
   const approvalState = workflow.cases[slug]?.travelerApprovalState ?? "Awaiting approval";
+  const bookingState = workflow.cases[slug]?.bookingState ?? "Pending finance";
+  const guestPackState = workflow.cases[slug]?.guestPackState ?? "Queued";
   const canDispatchTravelerPdf = canPerformAction(session, "artifact.travelerDispatch");
 
   return (
@@ -73,9 +75,11 @@ export default function TravelerPdfPage() {
 
         <div className="print-shell rounded-[36px] border border-[#C9A84C]/25 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
           <div className="print-hidden border-b border-slate-200 px-8 py-6">
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-6">
               <ArtifactStatusCard label="Traveler PDF" value={deliveryState} />
               <ArtifactStatusCard label="Approval" value={approvalState} />
+              <ArtifactStatusCard label="Booking State" value={bookingState} />
+              <ArtifactStatusCard label="Guest Pack" value={guestPackState} />
               <button
                 type="button"
                 onClick={() =>

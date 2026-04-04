@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-
-import { rmSync } from "node:fs";
-import path from "node:path";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 
@@ -84,7 +81,6 @@ async function expectVisible(page, text) {
 async function main() {
   const port = process.env.SMOKE_PORT || (await getAvailablePort());
   const baseUrl = process.env.SMOKE_BASE_URL || `http://${HOST}:${port}`;
-  rmSync(path.join(ROOT, ".next"), { recursive: true, force: true });
   const server = startAppServer(port);
   let browser;
 

@@ -185,7 +185,6 @@ async function main() {
   const scenario = getScenario();
   const port = process.env.SMOKE_PORT || (await getAvailablePort());
   const baseUrl = process.env.SMOKE_BASE_URL || `http://${HOST}:${port}`;
-  rmSync(path.join(ROOT, ".next"), { recursive: true, force: true });
   const server = startAppServer(port);
   const tempDir = mkdtempSync(path.join(tmpdir(), `nama-${scenarioKey}-smoke-`));
   const csvPath = path.join(tempDir, "employees.csv");
@@ -266,22 +265,43 @@ async function main() {
     await page.getByRole("button", { name: /^List$/ }).click();
     await page.getByRole("button", { name: /Open contact/i }).first().click();
     await page.getByRole("button", { name: /^Won$/ }).click();
+    await page.goto(`${baseUrl}/dashboard/leads`);
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^List$/ }).click();
+    await expectVisible(page, "Release into bookings and share traveler documents");
+    await expectVisible(page, "Deposit received and finance release approved");
+
+    await page.goto(`${baseUrl}/dashboard/deals?case=${scenario.caseSlug}`);
+    await page.waitForLoadState("networkidle");
+    await expectVisible(page, "Deal Workspace");
+    await expectVisible(page, "Case Orchestration");
+    await expectVisible(page, "One deal, five coordinated layers");
+    await expectVisible(page, "Finance");
+    await expectVisible(page, "Execution");
 
     await page.goto(`${baseUrl}/dashboard/finance`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Record Deposit/i }).first().click();
+    await expectVisible(page, "Deposit confirmed");
+    await expectVisible(page, "Deposit received and finance release approved");
 
     await page.goto(`${baseUrl}/dashboard/bookings?case=${scenario.caseSlug}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Release guest pack now/i }).click();
+    await expectVisible(page, "Guest pack released");
+    await expectVisible(page, "Released guest pack state");
 
     await page.goto(`${baseUrl}/dashboard/invoices/${scenario.caseSlug}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Mark Paid/i }).click();
+    await expectVisible(page, "Paid");
+    await expectVisible(page, "Invoice settled and finance release approved");
 
     await page.goto(`${baseUrl}/dashboard/traveler-pdf/${scenario.caseSlug}`);
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Mark shared/i }).click();
+    await expectVisible(page, "Shared");
+    await expectVisible(page, "Guest pack released");
 
     await page.goto(`${baseUrl}/super-admin/login`);
     await page.waitForLoadState("networkidle");
@@ -291,6 +311,8 @@ async function main() {
     if (!superAdminResetToken) throw new Error("Super Admin reset token was not issued");
     await page.getByRole("textbox", { name: /^New access code$/ }).fill(scenario.superAdminAccessCode);
     await page.getByRole("button", { name: /Confirm Reset/i }).click();
+    await expectVisible(page, "Super Admin credential updated");
+    await page.getByRole("textbox", { name: "Internal email" }).fill("control@nama.internal");
     await page.getByRole("textbox", { name: /^Access code$/ }).fill(scenario.superAdminAccessCode);
     await page.getByRole("button", { name: /Open Super Admin/i }).click();
     await page.waitForURL("**/dashboard/admin?entry=super-admin");
@@ -304,7 +326,24 @@ async function main() {
 }
 
 async function expectVisible(page, text) {
-  await page.getByText(text, { exact: false }).first().waitFor({ state: "visible", timeout: 20000 });
+  const locator = page.getByText(text, { exact: false });
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < 20000) {
+    const count = await locator.count();
+    for (let index = 0; index < count; index += 1) {
+      if (await locator.nth(index).isVisible()) {
+        return;
+      }
+    }
+    await sleep(250);
+  }
+
+  throw new Error(`Timed out waiting for visible text: ${text}`);
+}
+
+async function expectHeading(page, heading) {
+  await page.getByRole("heading", { name: heading }).waitFor({ state: "visible", timeout: 20000 });
 }
 
 main().catch((error) => {

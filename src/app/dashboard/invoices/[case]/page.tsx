@@ -29,6 +29,7 @@ export default function InvoicePage() {
   const balanceDue = deal.finance.quote_total - deal.finance.deposit_due;
   const deliveryState = workflow.cases[slug]?.invoiceState ?? "Draft";
   const downloadState = workflow.cases[slug]?.invoiceDownloadState ?? "Ready";
+  const financeState = workflow.cases[slug]?.financeStatus ?? deal.finance.status;
   const canManageInvoice = canPerformAction(session, "artifact.invoiceManage");
 
   return (
@@ -77,9 +78,10 @@ export default function InvoicePage() {
         </div>
 
         <div className="print-shell rounded-[36px] border border-[#C9A84C]/25 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
-          <div className="print-hidden mb-6 grid gap-3 md:grid-cols-4">
+          <div className="print-hidden mb-6 grid gap-3 md:grid-cols-5">
             <ArtifactStateCard label="Invoice State" value={deliveryState} />
             <ArtifactStateCard label="Download" value={downloadState} />
+            <ArtifactStateCard label="Finance Status" value={financeState} />
             <button
               type="button"
               onClick={() =>

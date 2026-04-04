@@ -8,6 +8,7 @@ import {
 } from "@/lib/demo-workflow-contracts";
 
 const ACTION_ALLOWED_ROLES: Record<DemoWorkflowAction, string[]> = {
+  "lead.set-stage": ["customer-admin", "sales", "super-admin"],
   "finance.send-quote": ["customer-admin", "sales", "finance", "super-admin"],
   "finance.record-deposit": ["customer-admin", "finance", "super-admin"],
   "booking.release-guest-pack": ["customer-admin", "operations", "super-admin"],

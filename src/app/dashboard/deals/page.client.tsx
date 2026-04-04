@@ -83,6 +83,7 @@ export default function DealsClientPage() {
             <Sparkles size={12} className="text-[#C9A84C]" />
             <span className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C]">Alpha Deal Intelligence</span>
           </div>
+          <div className="text-[10px] uppercase tracking-[0.3em] font-mono text-[#B8B0A0]">Deal Workspace</div>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black font-headline tracking-tight text-[#F5F0E8]">{data.guest_name}</h1>
             <ScreenInfoTip content={SCREEN_HELP.deals} />

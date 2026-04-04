@@ -22,6 +22,7 @@ export type DemoCaseWorkflowContract = {
 };
 
 export type DemoWorkflowAction =
+  | "lead.set-stage"
   | "finance.send-quote"
   | "finance.record-deposit"
   | "booking.release-guest-pack"
