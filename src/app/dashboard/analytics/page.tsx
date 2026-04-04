@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import ScreenInfoTip from '@/components/screen-info-tip';
 import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
@@ -23,6 +24,21 @@ import {
   Bell,
   Search
 } from 'lucide-react';
+
+const ANALYTICS_PATHWAYS = [
+  { label: 'Overview', href: '/dashboard', note: 'Start the walkthrough from the command center.' },
+  { label: 'Leads', href: '/dashboard/leads', note: 'Show capture, urgency, and owner load.' },
+  { label: 'Deals', href: '/dashboard/deals?case=maldives-honeymoon', note: 'Open the decision-rich conversion story.' },
+  { label: 'Finance', href: '/dashboard/finance', note: 'Move into margin and deposit control.' },
+  { label: 'Bookings', href: '/dashboard/bookings', note: 'Finish in execution and handoff.' },
+  { label: 'Artifacts', href: '/dashboard/artifacts', note: 'Jump straight to invoice and traveler outputs.' },
+];
+
+const ANALYTICS_CONTINUITY = [
+  { label: 'Decision traces', value: 'Captured', note: 'Human edits, overrides, and approvals feed the learning loop.' },
+  { label: 'Path integrity', value: 'Linked', note: 'Analytics now points back into the live operating surfaces.' },
+  { label: 'Demo story', value: 'Investor-safe', note: 'Use this page to narrate the business, not just the charts.' },
+];
 
 export default function AnalyticsPage() {
   return (
@@ -57,6 +73,38 @@ export default function AnalyticsPage() {
           </button>
         </div>
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 mb-10">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">Dashboard Continuity</div>
+            <h2 className="text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Use analytics as the narration layer, not a dead end</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This surface shows the story of the operating system, then lets the presenter jump directly back into the live workflow where the action happens.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ANALYTICS_PATHWAYS.map((pathway) => (
+              <Link
+                key={pathway.label}
+                href={pathway.href}
+                className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10"
+              >
+                {pathway.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          {ANALYTICS_CONTINUITY.map((item) => (
+            <div key={item.label} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">{item.label}</div>
+              <div className="mt-2 text-sm font-black text-[#F5F0E8]">{item.value}</div>
+              <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{item.note}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
