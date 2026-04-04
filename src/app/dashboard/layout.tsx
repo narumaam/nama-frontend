@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const domainMode = getDemoDomainMode(brandTheme);
-  const accentHex = brandTheme.enabled ? brandTheme.accentHex : "#C9A84C";
+  const accentHex = brandTheme.enabled ? brandTheme.accentHex : "#1e3a8a";
   const accentSoft = `${accentHex}14`;
   const accentBorder = `${accentHex}33`;
   const shellBrand = brandTheme.enabled
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       label: 'AI Control',
       items: [
-        { name: 'Ekla',          href: '/dashboard/ekla',      icon: Cpu,             badge: 'New', badgeColor: 'bg-[#C9A84C]' },
+        { name: 'Ekla',          href: '/dashboard/ekla',      icon: Cpu,             badge: 'New', badgeColor: 'bg-[#1e3a8a]' },
         { name: 'Autopilot OS',  href: '/dashboard/autopilot', icon: Zap,             badge: '2', badgeColor: 'bg-red-500' },
         { name: 'Deals',         href: '/dashboard/deals',     icon: Target,           badge: null },
       ],
@@ -186,14 +186,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!accessReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] px-6 text-sm text-[#B8B0A0]">
+      <div className="flex min-h-screen items-center justify-center bg-[#eef4fb] px-6 text-sm text-[#5b6b8a]">
         Checking workspace access...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex font-body text-left text-[#F5F0E8]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(30,58,138,0.08),_transparent_28%),linear-gradient(180deg,_#f7f9fb_0%,_#eef4fb_100%)] flex font-body text-left text-[#191c1e]">
 
       {mobileNavOpen && (
         <button
@@ -205,30 +205,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* ── Sidebar ───────────────────────────────────────────────────── */}
-      <aside className={`${collapsed ? 'md:w-[68px]' : 'md:w-60'} ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 w-[82vw] max-w-[320px] bg-[#111111] transition-all duration-300 flex flex-col fixed inset-y-0 left-0 z-50 border-r border-[#C9A84C]/10 shrink-0`}>
+      <aside className={`${collapsed ? 'md:w-[68px]' : 'md:w-64'} ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 w-[82vw] max-w-[320px] bg-white/90 backdrop-blur-xl transition-all duration-300 flex flex-col fixed inset-y-0 left-0 z-50 border-r border-slate-200 shadow-[0_24px_70px_rgba(15,23,42,0.08)] shrink-0`}>
 
         {/* Logo */}
-        <div className={`h-[60px] flex items-center border-b border-[#C9A84C]/10 ${collapsed ? 'md:px-4 md:justify-center' : 'px-5 justify-between'}`}>
+        <div className={`h-[64px] flex items-center border-b border-slate-200/80 ${collapsed ? 'md:px-4 md:justify-center' : 'px-5 justify-between'}`}>
           <div className="flex items-center gap-2.5">
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[#0A0A0A] text-xs shadow-[0_0_12px_rgba(201,168,76,0.25)] shrink-0"
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-[0_12px_28px_rgba(30,58,138,0.22)] shrink-0"
               style={{ backgroundColor: accentHex }}
             >
               {shellBrand.badgeGlyph}
             </div>
             {(!collapsed || mobileNavOpen) && (
-              <span className="text-base font-black tracking-tighter font-headline uppercase" style={{ color: accentHex }}>
+              <span className="text-base font-black tracking-tighter font-headline uppercase text-[#10234d]">
                 {shellBrand.shortName}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             {!collapsed && (
-              <button onClick={() => setCollapsed(true)} className="hidden md:block text-[#4A453E] hover:text-[#C9A84C] transition-colors">
-                <ChevronLeft size={15} />
-              </button>
-            )}
-            <button onClick={() => setMobileNavOpen(false)} className="text-[#4A453E] hover:text-[#C9A84C] transition-colors md:hidden">
+            <button onClick={() => setCollapsed(true)} className="hidden md:block text-slate-400 hover:text-[#1e3a8a] transition-colors">
+              <ChevronLeft size={15} />
+            </button>
+          )}
+            <button onClick={() => setMobileNavOpen(false)} className="text-slate-400 hover:text-[#1e3a8a] transition-colors md:hidden">
               <X size={16} />
             </button>
           </div>
@@ -236,7 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Collapse expand button when collapsed */}
         {collapsed && (
-          <button onClick={() => setCollapsed(false)} className="mx-auto mt-3 text-[#4A453E] hover:text-[#C9A84C] transition-colors hidden md:block">
+          <button onClick={() => setCollapsed(false)} className="mx-auto mt-3 text-slate-400 hover:text-[#1e3a8a] transition-colors hidden md:block">
             <ChevronRight size={15} />
           </button>
         )}
@@ -246,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {visibleNavGroups.map(group => (
             <div key={group.label} className="mb-5">
               {(!collapsed || mobileNavOpen) && (
-                <div className="text-[7px] font-black uppercase tracking-[0.25em] text-[#4A453E] font-mono px-3 mb-2">{group.label}</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400 font-mono px-3 mb-2">{group.label}</div>
               )}
               <div className="space-y-0.5">
                 {group.items.map(item => {
@@ -256,17 +256,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       key={item.name}
                       href={item.href}
                       onClick={handleNavigate}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative group ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all relative group ${
                         active
-                          ? 'bg-[#C9A84C]/10 text-[#C9A84C]'
-                          : 'text-[#4A453E] hover:text-[#B8B0A0] hover:bg-white/3'
+                          ? 'bg-[#1e3a8a]/10 text-[#1e3a8a] shadow-sm ring-1 ring-[#1e3a8a]/10'
+                          : 'text-slate-500 hover:text-[#1e3a8a] hover:bg-slate-50'
                       } ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}
                     >
                       {/* Active indicator */}
-                      {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#C9A84C] rounded-r-full" />}
-                      <item.icon size={17} className={active ? 'text-[#C9A84C]' : 'text-[#4A453E] group-hover:text-[#B8B0A0] transition-colors'} />
+                      {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#1e3a8a] rounded-r-full" />}
+                      <item.icon size={17} className={active ? 'text-[#1e3a8a]' : 'text-slate-400 group-hover:text-[#1e3a8a] transition-colors'} />
                       {(!collapsed || mobileNavOpen) && (
-                        <span className={`text-[11px] font-semibold tracking-wide ${active ? 'text-[#C9A84C]' : 'text-[#B8B0A0] group-hover:text-[#F5F0E8]'}`}>
+                        <span className={`text-[12px] font-semibold tracking-wide ${active ? 'text-[#1e3a8a]' : 'text-slate-500 group-hover:text-slate-800'}`}>
                           {item.name}
                         </span>
                       )}
@@ -287,7 +287,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* Kinetic mode button */}
-        <div className={`p-3 border-t border-[#C9A84C]/10 ${collapsed ? 'flex justify-center' : ''}`}>
+        <div className={`p-3 border-t border-slate-200/80 ${collapsed ? 'flex justify-center' : ''}`}>
           <Link
             href="/kinetic"
             onClick={handleNavigate}
@@ -300,17 +300,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* User profile */}
-        <div className={`p-3 border-t border-[#C9A84C]/10 flex items-center gap-3 bg-[#0A0A0A]/30 ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-[#1A1A1A] flex items-center justify-center font-bold border border-[#C9A84C]/20 text-[#C9A84C] text-xs shrink-0">{operatorInitials}</div>
+        <div className={`p-3 border-t border-slate-200/80 flex items-center gap-3 bg-slate-50/80 ${collapsed && !mobileNavOpen ? 'justify-center' : ''}`}>
+          <div className="w-8 h-8 rounded-full bg-[#1e3a8a] flex items-center justify-center font-bold border border-[#1e3a8a]/20 text-white text-xs shrink-0">{operatorInitials}</div>
           {(!collapsed || mobileNavOpen) && (
             <div className="overflow-hidden">
-              <p className="text-[11px] font-bold truncate text-[#F5F0E8]">{demoOperator}</p>
-              <p className="text-[8px] text-[#4A453E] truncate uppercase tracking-widest font-mono">{demoCompany}</p>
-              <p className="text-[8px] text-[#C9A84C] truncate uppercase tracking-widest font-mono">
+              <p className="text-[11px] font-bold truncate text-slate-900">{demoOperator}</p>
+              <p className="text-[8px] text-slate-400 truncate uppercase tracking-widest font-mono">{demoCompany}</p>
+              <p className="text-[8px] text-[#1e3a8a] truncate uppercase tracking-widest font-mono">
                 {demoRoles.join(" + ")} · Base {demoMarket.currency} · {enabledCurrencies.join(", ")}
               </p>
               {session && (
-                <p className="text-[8px] truncate uppercase tracking-widest font-mono text-[#B8B0A0]">
+                <p className="text-[8px] truncate uppercase tracking-widest font-mono text-slate-500">
                   {getRoleLabel(session.role)} · {session.scope}
                 </p>
               )}
@@ -323,7 +323,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <button
                   type="button"
                   onClick={handleExitSuperAdmin}
-                  className="mt-2 text-left text-[9px] font-black uppercase tracking-[0.2em] text-[#C9A84C]"
+                  className="mt-2 text-left text-[9px] font-black uppercase tracking-[0.2em] text-[#1e3a8a]"
                 >
                   Exit Super Admin
                 </button>
@@ -334,36 +334,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────────── */}
-      <main className={`${collapsed ? 'md:ml-[68px]' : 'md:ml-60'} ml-0 flex-1 flex flex-col transition-all duration-300`}>
+      <main className={`${collapsed ? 'md:ml-[68px]' : 'md:ml-64'} ml-0 flex-1 flex flex-col transition-all duration-300`}>
 
         {/* Top header */}
-        <header className="bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#C9A84C]/10 px-4 md:px-7 py-3 md:h-[60px] flex flex-col md:flex-row md:items-center md:justify-between gap-3 sticky top-0 z-40">
+        <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 px-4 md:px-7 py-3 md:h-[64px] flex flex-col md:flex-row md:items-center md:justify-between gap-3 sticky top-0 z-40 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
-              className="md:hidden rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-2 text-[#C9A84C]"
+              className="md:hidden rounded-xl border border-slate-200 bg-white p-2 text-[#1e3a8a]"
               aria-label="Open navigation"
             >
               <Menu size={16} />
             </button>
-            <div className="flex items-center bg-[#111111] rounded-full px-4 py-2 flex-1 md:w-80 border border-[#C9A84C]/10 focus-within:border-[#C9A84C]/30 transition-all min-w-0">
-              <Search size={14} className="text-[#4A453E] mr-2.5 shrink-0" />
+            <div className="flex items-center bg-slate-100/80 rounded-full px-4 py-2 flex-1 md:w-80 border border-slate-200 focus-within:border-[#1e3a8a]/30 transition-all min-w-0 shadow-sm">
+              <Search size={14} className="text-slate-400 mr-2.5 shrink-0" />
               <input
                 type="text"
                 placeholder="Search leads, deals, itineraries..."
-                className="bg-transparent border-none outline-none text-[11px] w-full min-w-0 text-[#F5F0E8] font-body placeholder:text-[#4A453E]"
+                className="bg-transparent border-none outline-none text-[11px] w-full min-w-0 text-slate-900 font-body placeholder:text-slate-400"
               />
             </div>
-            <div className="hidden xl:flex items-center gap-2 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] px-3 py-2">
-              <span className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Artifacts</span>
+            <div className="hidden xl:flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Artifacts</span>
               <select
                 value={artifactCaseSlug}
                 onChange={(event) => setArtifactCaseSlug(event.target.value)}
-                className="bg-transparent text-[10px] font-black uppercase tracking-widest text-[#F5F0E8] outline-none"
+                className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-900 outline-none"
               >
                 {DEMO_CASE_ROUTES.map((item) => (
-                  <option key={item.slug} value={item.slug} className="bg-[#111111] text-[#F5F0E8]">
+                  <option key={item.slug} value={item.slug} className="bg-white text-slate-900">
                     {item.destination}
                   </option>
                 ))}
@@ -371,14 +371,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/invoices/${artifactCaseSlug}`)}
-                className="rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]"
+                className="rounded-xl border border-blue-200 bg-[#1e3a8a] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white"
               >
                 Invoice
               </button>
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/traveler-pdf/${artifactCaseSlug}`)}
-                className="rounded-xl border border-white/10 bg-[#0A0A0A] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500"
               >
                 PDF
               </button>
@@ -388,7 +388,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => setShowHeaderNotice(showHeaderNotice === "notifications" ? null : "notifications")}
-              className="relative p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors"
+              className="relative p-1.5 text-slate-400 hover:text-[#1e3a8a] transition-colors"
             >
               <Bell size={18} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-[#0A0A0A] animate-pulse" />
@@ -396,67 +396,67 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => setShowHeaderNotice(showHeaderNotice === "settings" ? null : "settings")}
-              className="p-1.5 text-[#4A453E] hover:text-[#C9A84C] transition-colors"
+              className="p-1.5 text-slate-400 hover:text-[#1e3a8a] transition-colors"
             >
               <Settings size={18} />
             </button>
           </div>
         </header>
 
-        <div className="p-4 md:p-8 bg-[#0A0A0A] min-h-[calc(100vh-60px)]">
+        <div className="p-4 md:p-8 bg-[radial-gradient(circle_at_top_right,_rgba(30,58,138,0.05),_transparent_24%),linear-gradient(180deg,_#f7f9fb_0%,_#eef4fb_100%)] min-h-[calc(100vh-64px)]">
           {showHeaderNotice && (
-            <div className="mb-6 rounded-2xl border border-[#C9A84C]/15 bg-[#111111] px-5 py-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 shadow-sm backdrop-blur">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#1e3a8a]">
                 {showHeaderNotice === "notifications" ? "Notifications Snapshot" : "Demo Workspace Settings"}
               </p>
-              <p className="mt-2 text-sm text-[#B8B0A0] leading-relaxed">
+              <p className="mt-2 text-sm text-slate-600 leading-relaxed">
                 {showHeaderNotice === "notifications"
                   ? `Three high-priority actions are queued for ${demoCompany}: follow up on ${primaryCase.destination}, confirm ${DEMO_CASE_ROUTES[1].destination} payment, and send the ${DEMO_CASE_ROUTES[2].destination} executive quote.`
                   : `This workspace is branded for ${demoCompany}, operated by ${demoOperator}, with ${demoRoles.join(" + ")} enabled. Base market is ${demoMarket.country} with ${demoMarket.currency} as the control currency, ${enabledCurrencies.join(", ")} available across sales flows, and the tenant can run on either a NAMA-hosted subdomain or its own domain.`}
               </p>
               {showHeaderNotice === "settings" && (
                 <div className="mt-4 grid gap-3 md:grid-cols-5">
-                  <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3">
-                    <div className="flex items-center gap-2 text-[#C9A84C]">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex items-center gap-2 text-[#1e3a8a]">
                       <Globe2 size={13} />
                       <span className="text-[9px] font-black uppercase tracking-widest">Operating Market</span>
                     </div>
-                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{demoMarket.country}</div>
-                    <div className="mt-1 text-xs text-[#B8B0A0]">{demoMarket.language}</div>
+                    <div className="mt-2 text-sm font-black text-slate-900">{demoMarket.country}</div>
+                    <div className="mt-1 text-xs text-slate-500">{demoMarket.language}</div>
                   </div>
-                  <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3">
-                    <div className="flex items-center gap-2 text-[#C9A84C]">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex items-center gap-2 text-[#1e3a8a]">
                       <Landmark size={13} />
                       <span className="text-[9px] font-black uppercase tracking-widest">Currency Model</span>
                     </div>
-                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{demoMarket.currency} base</div>
-                    <div className="mt-1 text-xs text-[#B8B0A0]">{enabledCurrencies.join(", ")} enabled</div>
+                    <div className="mt-2 text-sm font-black text-slate-900">{demoMarket.currency} base</div>
+                    <div className="mt-1 text-xs text-slate-500">{enabledCurrencies.join(", ")} enabled</div>
                   </div>
-                  <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] px-4 py-3">
-                    <div className="flex items-center gap-2 text-[#C9A84C]">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex items-center gap-2 text-[#1e3a8a]">
                       <Cpu size={13} />
                       <span className="text-[9px] font-black uppercase tracking-widest">Business Profile</span>
                     </div>
-                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{demoRoles.join(" + ")}</div>
-                    <div className="mt-1 text-xs text-[#B8B0A0]">{demoMarket.gateway} routed by default</div>
+                    <div className="mt-2 text-sm font-black text-slate-900">{demoRoles.join(" + ")}</div>
+                    <div className="mt-1 text-xs text-slate-500">{demoMarket.gateway} routed by default</div>
                   </div>
-                  <div className="rounded-2xl border bg-[#0A0A0A] px-4 py-3" style={{ borderColor: accentBorder }}>
+                  <div className="rounded-2xl border bg-slate-50 px-4 py-3" style={{ borderColor: accentBorder }}>
                     <div className="flex items-center gap-2" style={{ color: accentHex }}>
                       <Globe2 size={13} />
                       <span className="text-[9px] font-black uppercase tracking-widest">Workspace Domain</span>
                     </div>
-                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{workspaceDomain}</div>
-                    <div className="mt-1 text-xs text-[#B8B0A0]">
+                    <div className="mt-2 text-sm font-black text-slate-900">{workspaceDomain}</div>
+                    <div className="mt-1 text-xs text-slate-500">
                       {domainMode === "nama-subdomain" ? "Hosted under NAMA" : "Bring your own domain"}
                     </div>
                   </div>
-                  <div className="rounded-2xl border bg-[#0A0A0A] px-4 py-3" style={{ borderColor: accentBorder }}>
+                  <div className="rounded-2xl border bg-slate-50 px-4 py-3" style={{ borderColor: accentBorder }}>
                     <div className="flex items-center gap-2" style={{ color: accentHex }}>
                       <Bell size={13} />
                       <span className="text-[9px] font-black uppercase tracking-widest">Support Route</span>
                     </div>
-                    <div className="mt-2 text-sm font-black text-[#F5F0E8]">{brandTheme.supportEmail}</div>
-                    <div className="mt-1 text-xs text-[#B8B0A0]">Visible tenant-facing support mailbox</div>
+                    <div className="mt-2 text-sm font-black text-slate-900">{brandTheme.supportEmail}</div>
+                    <div className="mt-1 text-xs text-slate-500">Visible tenant-facing support mailbox</div>
                   </div>
                 </div>
               )}

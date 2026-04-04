@@ -224,24 +224,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] px-6 py-10 font-body text-[#0F172A]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(201,168,76,0.12),_transparent_28%),linear-gradient(180deg,_#0b0e14_0%,_#111827_100%)] px-4 py-6 font-body text-[#f5f0e8] sm:px-6 lg:px-8">
       {showConfetti && <ConfettiBurst />}
       <div className="mx-auto grid max-w-7xl gap-8 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-[36px] border border-[#C9A84C]/20 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)] xl:p-10">
+        <section className="rounded-[36px] border border-white/10 bg-[#111827] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.32)] xl:p-10">
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0F172A] text-2xl font-black text-white shadow-lg shadow-[#0F172A]/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#C9A84C] text-2xl font-black text-[#0b0e14] shadow-lg shadow-[#C9A84C]/20">
               N
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.32em] text-[#C9A84C]">Alpha Preview</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.32em] text-[#C9A84C]">Command Center</div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-black tracking-tight text-[#0F172A] xl:text-4xl">Workspace Onboarding</h1>
+                <h1 className="text-3xl font-black tracking-tight text-white xl:text-4xl">Workspace Onboarding</h1>
                 <ScreenInfoTip content={SCREEN_HELP.register} />
               </div>
             </div>
           </div>
 
-          <p className="max-w-3xl text-sm leading-relaxed text-slate-600 xl:text-[15px]">
+          <p className="max-w-3xl text-sm leading-relaxed text-slate-300 xl:text-[15px]">
             This is the onboarding layer for the beta workspace. It captures how a business enters NAMA, sets the first workspace-admin credential,
             and lands inside the same contract-backed access model used by member and Super Admin login.
           </p>
@@ -286,7 +286,7 @@ export default function RegisterPage() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Building2 size={15} className="text-[#C9A84C]" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Business Profile</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">Business Profile</span>
                 </div>
                 <ScreenInfoTip content={SCREEN_HELP.registerBusiness} />
               </div>
@@ -301,14 +301,14 @@ export default function RegisterPage() {
                       className={`rounded-2xl border px-4 py-4 text-left transition-all ${
                         active
                           ? "border-[#C9A84C]/40 bg-[#C9A84C]/10"
-                          : "border-slate-200 bg-slate-50 hover:border-[#C9A84C]/30"
+                          : "border-white/10 bg-[#0f172a] hover:border-[#C9A84C]/30"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-black text-[#0F172A]">{role}</div>
+                        <div className="text-sm font-black text-white">{role}</div>
                         {active && <CheckCircle2 size={16} className="text-[#1D9E75]" />}
                       </div>
-                      <div className="mt-2 text-xs leading-relaxed text-slate-500">
+                      <div className="mt-2 text-xs leading-relaxed text-slate-400">
                         {role === "Travel Agency" && "Lead intake, quotes, and customer relationship execution."}
                         {role === "DMC" && "Contracts, supplier ops, and destination-side fulfilment workflow."}
                         {role === "Tour Operator" && "Package logic, departures, and commercial inventory control."}
@@ -323,7 +323,7 @@ export default function RegisterPage() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Globe2 size={15} className="text-[#C9A84C]" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Market Defaults</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">Market Defaults</span>
                 </div>
                 <ScreenInfoTip content={SCREEN_HELP.registerMarket} />
               </div>
@@ -338,16 +338,16 @@ export default function RegisterPage() {
                       className={`rounded-2xl border px-4 py-4 text-left transition-all ${
                         active
                           ? "border-[#C9A84C]/40 bg-[#C9A84C]/10"
-                          : "border-slate-200 bg-slate-50 hover:border-[#C9A84C]/30"
+                          : "border-white/10 bg-[#0f172a] hover:border-[#C9A84C]/30"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-black text-[#0F172A]">{market.country}</div>
-                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="text-sm font-black text-white">{market.country}</div>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-300">
                           {market.currency}
                         </span>
                       </div>
-                      <div className="mt-2 space-y-1 text-xs text-slate-500">
+                      <div className="mt-2 space-y-1 text-xs text-slate-400">
                         <div>Language: {market.language}</div>
                         <div>Gateway: {market.gateway}</div>
                       </div>
@@ -361,21 +361,21 @@ export default function RegisterPage() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Landmark size={15} className="text-[#C9A84C]" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Currency Model</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">Currency Model</span>
                 </div>
                 <ScreenInfoTip content={SCREEN_HELP.registerCurrency} />
               </div>
-              <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+              <div className="rounded-3xl border border-white/10 bg-[#0f172a] p-5">
                 <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Base Currency</div>
-                    <div className="mt-2 text-2xl font-black text-[#0F172A]">{selectedMarket.currency}</div>
-                    <div className="mt-2 text-sm leading-relaxed text-slate-500">
+                  <div className="rounded-2xl border border-white/10 bg-[#111827] p-4">
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Base Currency</div>
+                    <div className="mt-2 text-2xl font-black text-white">{selectedMarket.currency}</div>
+                    <div className="mt-2 text-sm leading-relaxed text-slate-400">
                       This is the accounting and billing anchor for the tenant, driven by primary operating market.
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Additional Selling Currencies</div>
+                  <div className="rounded-2xl border border-white/10 bg-[#111827] p-4">
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Additional Selling Currencies</div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {SUPPORTED_CURRENCIES.map((currency) => {
                         const base = currency === selectedMarket.currency;
@@ -388,8 +388,8 @@ export default function RegisterPage() {
                             onClick={() => toggleCurrency(currency)}
                             className={`rounded-full border px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-all ${
                               active
-                                ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#0F172A]"
-                                : "border-slate-200 bg-slate-50 text-slate-500 hover:border-[#C9A84C]/25"
+                                ? "border-[#C9A84C]/30 bg-[#C9A84C]/10 text-white"
+                                : "border-white/10 bg-[#0b0e14] text-slate-400 hover:border-[#C9A84C]/25"
                             } ${base ? "cursor-default" : ""}`}
                           >
                             {currency} {base ? "· Base" : ""}
@@ -397,7 +397,7 @@ export default function RegisterPage() {
                         );
                       })}
                     </div>
-                    <div className="mt-3 text-sm leading-relaxed text-slate-500">
+                    <div className="mt-3 text-sm leading-relaxed text-slate-400">
                       The business can sell in more than one currency, but still keep one base operating currency for controls, reporting, and subscriptions.
                     </div>
                   </div>
@@ -409,11 +409,11 @@ export default function RegisterPage() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Receipt size={15} className="text-[#C9A84C]" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Banking & Settlement</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">Banking & Settlement</span>
                 </div>
                 <ScreenInfoTip content={SCREEN_HELP.registerBanking} />
               </div>
-              <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+              <div className="rounded-3xl border border-white/10 bg-[#0f172a] p-5">
                 <div className="grid gap-5 lg:grid-cols-2">
                   <Field
                     label="Beneficiary Name"
@@ -463,11 +463,11 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+            <div className="rounded-3xl border border-white/10 bg-[#0f172a] p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Sparkles size={15} className="text-[#C9A84C]" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Workspace Preview</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">Workspace Preview</span>
                 </div>
                 <ScreenInfoTip content={SCREEN_HELP.registerPreview} />
               </div>
@@ -485,11 +485,11 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-[#C9A84C]/15 bg-slate-50 p-5">
+            <div className="rounded-3xl border border-white/10 bg-[#0f172a] p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Shield size={15} className="text-[#C9A84C]" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Plan Fit</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">Plan Fit</span>
                 </div>
                 <ScreenInfoTip content={SCREEN_HELP.registerPlan} />
               </div>
@@ -504,14 +504,14 @@ export default function RegisterPage() {
                       className={`rounded-2xl border px-4 py-4 text-left transition-all ${
                         active
                           ? "border-[#C9A84C]/40 bg-[#C9A84C]/10"
-                          : "border-slate-200 bg-white hover:border-[#C9A84C]/30"
+                          : "border-white/10 bg-[#111827] hover:border-[#C9A84C]/30"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-black text-[#0F172A]">{plan.name}</div>
+                        <div className="text-sm font-black text-white">{plan.name}</div>
                         {active && <CheckCircle2 size={16} className="text-[#1D9E75]" />}
                       </div>
-                      <div className="mt-2 text-xs leading-relaxed text-slate-500">{plan.note}</div>
+                      <div className="mt-2 text-xs leading-relaxed text-slate-400">{plan.note}</div>
                       <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{plan.modules}</div>
                     </button>
                   );
@@ -522,26 +522,26 @@ export default function RegisterPage() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 rounded-2xl bg-[#0F172A] px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-[#0F172A]/10 transition-all hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#C9A84C] px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-[#0b0e14] shadow-lg shadow-[#C9A84C]/15 transition-all hover:brightness-105"
               >
                 Enter Demo Workspace
                 <ArrowRight size={14} />
               </button>
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-500 transition-all hover:border-[#C9A84C]/30 hover:text-[#0F172A]"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0f172a] px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-300 transition-all hover:border-[#C9A84C]/30 hover:text-white"
               >
                 Back to homepage
               </Link>
               <Link
                 href="/workspace/login"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-500 transition-all hover:border-[#C9A84C]/30 hover:text-[#0F172A]"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0f172a] px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-300 transition-all hover:border-[#C9A84C]/30 hover:text-white"
               >
                 Team role login
               </Link>
             </div>
             {submissionMessage ? (
-              <p className="mt-4 rounded-2xl border border-[#D9485F]/20 bg-[#D9485F]/10 px-4 py-3 text-sm text-[#7A1325]">
+              <p className="mt-4 rounded-2xl border border-[#D9485F]/20 bg-[#D9485F]/10 px-4 py-3 text-sm text-[#ffd5dc]">
                 {submissionMessage}
               </p>
             ) : null}
@@ -549,7 +549,7 @@ export default function RegisterPage() {
         </section>
 
         <aside className="space-y-6">
-          <div className="rounded-[36px] border border-[#C9A84C]/20 bg-[#0F172A] p-8 text-white shadow-[0_30px_80px_rgba(15,23,42,0.14)]">
+          <div className="rounded-[36px] border border-white/10 bg-[#0f172a] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
             <div className="mb-4 flex items-center gap-2 text-[#C9A84C]">
               <Shield size={15} />
               <span className="text-[11px] font-black uppercase tracking-[0.24em]">What onboarding proves</span>
@@ -567,12 +567,12 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className="rounded-[36px] border border-[#C9A84C]/20 bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+          <div className="rounded-[36px] border border-white/10 bg-[#111827] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.28)]">
             <div className="mb-4 flex items-center gap-2 text-[#C9A84C]">
               <Users size={15} />
-              <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">Alpha Talk Track</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">Alpha Talk Track</span>
             </div>
-            <div className="space-y-4 text-sm leading-relaxed text-slate-600">
+            <div className="space-y-4 text-sm leading-relaxed text-slate-300">
               <p>
                 “Before subscriptions and credentials, NAMA onboards the business itself: what kind of operator it is, where it operates, which currency and language it defaults to, and how the workspace should behave.”
               </p>
@@ -589,12 +589,12 @@ export default function RegisterPage() {
                 “The plan recommendation is just a guided fit signal for the alpha. It helps the buyer understand which operating model they’re stepping into before full billing is connected.”
               </p>
             </div>
-            <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-slate-50 p-4">
+            <div className="mt-6 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0b0e14] p-4">
               <div className="mb-2 flex items-center gap-2 text-[#C9A84C]">
                 <Languages size={14} />
                 <span className="text-[10px] font-black uppercase tracking-[0.24em]">Preview-safe note</span>
               </div>
-              <p className="text-sm leading-relaxed text-slate-600">
+              <p className="text-sm leading-relaxed text-slate-300">
                 This screen is intentionally preview-safe. It proves the onboarding model without claiming live billing, live SSO, or live provider credentials.
               </p>
             </div>
@@ -622,7 +622,7 @@ function Field({
 
   return (
     <div>
-      <label htmlFor={fieldId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">
+      <label htmlFor={fieldId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">
         {label}
       </label>
       <input
@@ -631,7 +631,7 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-[#0F172A] outline-none transition-all focus:border-[#14B8A6] focus:bg-white focus:ring-4 focus:ring-[#14B8A6]/10"
+        className="w-full rounded-2xl border border-white/10 bg-[#0b0e14] px-4 py-3 font-medium text-white outline-none transition-all placeholder:text-slate-500 focus:border-[#C9A84C]/40 focus:bg-[#111827] focus:ring-4 focus:ring-[#C9A84C]/10"
       />
     </div>
   );
@@ -639,9 +639,9 @@ function Field({
 
 function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/60 bg-white px-4 py-3">
-      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{label}</div>
-      <div className="mt-1 text-sm font-black text-[#0F172A]">{value}</div>
+    <div className="rounded-2xl border border-white/10 bg-[#111827] px-4 py-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">{label}</div>
+      <div className="mt-1 text-sm font-black text-white">{value}</div>
     </div>
   );
 }
@@ -661,7 +661,7 @@ function TextAreaField({
 
   return (
     <div>
-      <label htmlFor={fieldId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">
+      <label htmlFor={fieldId} className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">
         {label}
       </label>
       <textarea
@@ -670,7 +670,7 @@ function TextAreaField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={3}
-        className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-[#0F172A] outline-none transition-all focus:border-[#14B8A6] focus:bg-white focus:ring-4 focus:ring-[#14B8A6]/10"
+        className="w-full resize-none rounded-2xl border border-white/10 bg-[#0b0e14] px-4 py-3 font-medium text-white outline-none transition-all placeholder:text-slate-500 focus:border-[#C9A84C]/40 focus:bg-[#111827] focus:ring-4 focus:ring-[#C9A84C]/10"
       />
     </div>
   );

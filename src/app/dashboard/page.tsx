@@ -116,7 +116,7 @@ export default function DashboardPage() {
   const brandTheme = getDemoBrandTheme(profile);
   const workspaceDomain = getDemoWorkspaceDomain(brandTheme);
   const domainMode = getDemoDomainMode(brandTheme);
-  const accentHex = brandTheme.enabled ? brandTheme.accentHex : "#C9A84C";
+  const accentHex = "#1e3a8a";
   const accentSoft = `${accentHex}14`;
   const accentBorder = `${accentHex}33`;
 
@@ -146,27 +146,27 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700 text-[#0f172a]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C]">
-            <span>Alpha Preview</span>
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-[#1e3a8a]">
+            <span>Command Center</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">Walkthrough Spine</span>
+            <span className="text-slate-400">Walkthrough Spine</span>
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#F5F0E8]">Operations Overview</h1>
+            <h1 className="font-headline text-4xl font-black uppercase tracking-tighter text-[#0f172a]">Operations Overview</h1>
             <ScreenInfoTip content={SCREEN_HELP.overview} />
           </div>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
             This overview is the April 6 preview spine: one configured workspace, one coherent case set, and one guided path from capture through finance, supplier control, and execution.
           </p>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl border bg-[#111111] px-4 py-3" style={{ borderColor: accentBorder }}>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <Sparkles size={16} style={{ color: accentHex }} />
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Preview Status</div>
-            <div className="text-sm font-black text-[#F5F0E8]">Preview cases ready</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Preview Status</div>
+            <div className="text-sm font-black text-[#0f172a]">Preview cases ready</div>
           </div>
         </div>
       </div>
@@ -178,12 +178,12 @@ export default function DashboardPage() {
         <MetricCard label="Deposit Exposure" value={`₹${depositExposure.toLocaleString("en-IN")}`} sub="Needs finance follow-through" icon={<Wallet size={16} />} />
       </div>
 
-      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Founder Shortcut</div>
-            <h2 className="text-xl font-black text-[#F5F0E8]">Launch the best demo path in one click</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#1e3a8a]">Founder Shortcut</div>
+            <h2 className="text-xl font-black text-[#0f172a]">Launch the best demo path in one click</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
               Seed a ready-made scenario and jump straight into either the strongest founder pack or the best risk-review proof artifact.
             </p>
           </div>
@@ -191,34 +191,34 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={launchFounderPack}
-              className="rounded-2xl bg-[#C9A84C] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0A0A0A]"
+              className="rounded-2xl bg-[#1e3a8a] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-sm transition-transform hover:scale-[1.01]"
             >
               Launch Founder Demo Pack
             </button>
             <button
               type="button"
               onClick={launchRiskReview}
-              className="rounded-2xl border border-white/10 bg-[#0A0A0A] px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#0f172a] shadow-sm"
             >
               Launch Risk Review
             </button>
           </div>
         </div>
-        <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">
           {founderLaunchMessage}
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">Member Entry Guidance</div>
-            <h2 className="text-xl font-black text-[#F5F0E8]">Enter the workspace through real team members, not a preview switcher</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#1e3a8a]">Member Entry Guidance</div>
+            <h2 className="text-xl font-black text-[#0f172a]">Enter the workspace through real team members, not a preview switcher</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
               Use the dedicated member login route to enter as the operator, active employees, or accepted invitees already seeded for this tenant. Founder shortcuts stay here on overview, but role-based entry now lives on the login route where the team roster belongs.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#F5F0E8]">
+          <div className="rounded-2xl border border-slate-200 bg-[#f7f9fb] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#0f172a]">
             {tenantMembers.length} member records ready
           </div>
         </div>
@@ -230,51 +230,51 @@ export default function DashboardPage() {
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
             href="/workspace/login"
-            className="rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]"
+            className="rounded-2xl border border-[#1e3a8a]/15 bg-[#1e3a8a]/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#1e3a8a]"
           >
             Open member login
           </Link>
           <Link
             href="/register"
-            className="rounded-2xl border border-white/10 bg-[#0A0A0A] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#F5F0E8]"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#0f172a]"
           >
             Review tenant setup
           </Link>
         </div>
-        <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4">
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
           {memberPreview.length ? (
             <div className="grid gap-3 md:grid-cols-3">
               {memberPreview.map((member) => (
-                <div key={member.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C9A84C]">{member.role.replace("-", " ")}</div>
-                  <div className="mt-2 text-sm font-semibold text-[#F5F0E8]">{member.name}</div>
-                  <div className="mt-1 break-all font-mono text-xs text-[#B8B0A0]">{member.email}</div>
-                  <div className="mt-3 text-[10px] uppercase tracking-[0.18em] text-[#9F9788]">
+                <div key={member.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#1e3a8a]">{member.role.replace("-", " ")}</div>
+                  <div className="mt-2 text-sm font-semibold text-[#0f172a]">{member.name}</div>
+                  <div className="mt-1 break-all font-mono text-xs text-slate-500">{member.email}</div>
+                  <div className="mt-3 text-[10px] uppercase tracking-[0.18em] text-slate-400">
                     {member.status} · {member.source.replace("-", " ")}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-sm leading-relaxed text-[#B8B0A0]">
+            <div className="text-sm leading-relaxed text-slate-600">
               The member registry is not populated yet. The login route will stay ready for roster-backed entry as soon as the tenant operator, employee list, or accepted invites are present.
             </div>
           )}
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.25em] text-[#C9A84C]">Canonical Preview Journey</div>
-            <h2 className="text-lg font-black text-[#F5F0E8] sm:text-xl">One lead, one journey, five operating layers</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            <div className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#1e3a8a]">Canonical Preview Journey</div>
+            <h2 className="text-lg font-black text-[#0f172a] sm:text-xl">One lead, one journey, five operating layers</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
               Use this strip as the walkthrough anchor: capture demand, convert it into a structured deal, show finance control, normalize supplier input, then move into execution.
             </p>
           </div>
           <Link
             href={`/dashboard/deals?case=${PRIMARY_CASE.slug}`}
-            className="w-full rounded-full border bg-[#0A0A0A] px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest transition-colors md:w-auto"
+            className="w-full rounded-full border px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest transition-colors md:w-auto"
             style={{ borderColor: accentBorder, color: accentHex, backgroundColor: accentSoft }}
           >
             Start walkthrough with {PRIMARY_CASE.destination}
@@ -282,29 +282,29 @@ export default function DashboardPage() {
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {PREVIEW_JOURNEY.map((step, index) => (
-            <Link key={step.label} href={step.href} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 transition-colors hover:border-[#C9A84C]/20">
-              <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
+            <Link key={step.label} href={step.href} className="rounded-2xl border border-slate-200 bg-[#f7f9fb] p-4 transition-colors hover:border-[#1e3a8a]/20 hover:bg-white">
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#1e3a8a]">
                 {String(index + 1).padStart(2, "0")} · {step.label}
               </div>
-              <div className="mt-2 text-sm font-semibold text-[#F5F0E8]">{step.detail}</div>
-              <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Next click</div>
+              <div className="mt-2 text-sm font-semibold text-[#0f172a]">{step.detail}</div>
+              <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Next click</div>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <Bot size={14} className="text-[#C9A84C]" />
-              <h2 className="text-lg font-black text-[#F5F0E8]">Onboarding Snapshot</h2>
+              <Bot size={14} className="text-[#1e3a8a]" />
+              <h2 className="text-lg font-black text-[#0f172a]">Onboarding Snapshot</h2>
             </div>
-            <p className="max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+            <p className="max-w-3xl text-sm leading-relaxed text-slate-600">
               The workspace carries forward the operating choices made in onboarding: company identity, operator, hybrid business roles, market defaults, base currency, selling currencies, and gateway route.
             </p>
           </div>
-          <Link href="/register" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
+          <Link href="/register" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#1e3a8a]">
             Review onboarding <ChevronRight size={14} />
           </Link>
         </div>
@@ -338,40 +338,40 @@ export default function DashboardPage() {
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 lg:col-span-3">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-3 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Sparkles size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel Capture</h2>
+            <Sparkles size={14} className="text-[#1e3a8a]" />
+            <h2 className="text-lg font-black text-[#0f172a]">Omnichannel Capture</h2>
           </div>
-          <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
+          <p className="mb-5 text-sm leading-relaxed text-slate-600">
             Website forms, WhatsApp, email, and call transcripts all land in one CRM lane so the team sees one continuous traveler story before it becomes a deal.
           </p>
           <div className="grid gap-3 md:grid-cols-2">
             {CAPTURE_SIGNALS.map((signal) => (
-              <div key={signal.channel} className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+              <div key={signal.channel} className="rounded-2xl border border-slate-200 bg-[#f7f9fb] p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{signal.channel}</span>
-                  <span className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{signal.tone}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#1e3a8a]">{signal.channel}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{signal.tone}</span>
                 </div>
-                <div className="mb-1 text-sm font-black text-[#F5F0E8]">{signal.lead}</div>
-                <div className="text-xs leading-relaxed text-[#B8B0A0]">{signal.note}</div>
-                <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#1D9E75]">{signal.source}</div>
+                <div className="mb-1 text-sm font-black text-[#0f172a]">{signal.lead}</div>
+                <div className="text-xs leading-relaxed text-slate-600">{signal.note}</div>
+                <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-[#1e3a8a]">{signal.source}</div>
               </div>
             ))}
           </div>
         </section>
 
-        <aside className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 lg:col-span-2">
+        <aside className="rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Clock3 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Walkthrough Guide</h2>
+            <Clock3 size={14} className="text-[#1e3a8a]" />
+            <h2 className="text-lg font-black text-[#0f172a]">Walkthrough Guide</h2>
           </div>
           <div className="space-y-4">
             {WALKTHROUGH_GUIDE.map((step) => (
-              <Link key={step.title} href={step.href} className="block rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4 transition-colors hover:border-[#C9A84C]/20">
-                <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{step.title}</div>
-                <div className="text-sm leading-relaxed text-[#B8B0A0]">{step.body}</div>
-                <div className="mt-3 text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">{step.cta}</div>
+              <Link key={step.title} href={step.href} className="block rounded-2xl border border-slate-200 bg-[#f7f9fb] p-4 transition-colors hover:border-[#1e3a8a]/20 hover:bg-white">
+                <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-[#1e3a8a]">{step.title}</div>
+                <div className="text-sm leading-relaxed text-slate-600">{step.body}</div>
+                <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-slate-400">{step.cta}</div>
               </Link>
             ))}
           </div>
@@ -379,45 +379,45 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 lg:col-span-2">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="font-headline text-xl font-black uppercase tracking-tight text-[#F5F0E8]">Priority Cases</h2>
-              <p className="mt-1 text-sm text-[#B8B0A0]">Open any case to walk the same alpha through CRM, deal conversion, finance, supplier control, and execution.</p>
+              <h2 className="font-headline text-xl font-black uppercase tracking-tight text-[#0f172a]">Priority Cases</h2>
+              <p className="mt-1 text-sm text-slate-600">Open any case to walk the same alpha through CRM, deal conversion, finance, supplier control, and execution.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Link href="/dashboard/finance" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
+              <Link href="/dashboard/finance" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#1e3a8a]">
                 Finance checkpoint <ChevronRight size={14} />
               </Link>
-              <Link href="/dashboard/autopilot" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#C9A84C]">
+              <Link href="/dashboard/autopilot" className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#1e3a8a]">
                 Autopilot sidebar <ChevronRight size={14} />
               </Link>
             </div>
           </div>
           <div className="space-y-4">
             {cases.map((item) => (
-              <Link key={item.slug} href={`/dashboard/deals?case=${item.slug}`} className="block rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5 transition-all hover:border-[#C9A84C]/30">
+              <Link key={item.slug} href={`/dashboard/deals?case=${item.slug}`} className="block rounded-2xl border border-slate-200 bg-[#f7f9fb] p-5 transition-all hover:border-[#1e3a8a]/25 hover:bg-white">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="mb-2 flex items-center gap-2">
                       <span
                         className={`rounded-full border px-2 py-1 text-[8px] font-mono font-black uppercase tracking-widest ${
                           item.priority === "CRITICAL"
-                            ? "border-red-400/20 bg-red-400/10 text-red-400"
-                            : "border-[#C9A84C]/20 bg-[#C9A84C]/10 text-[#C9A84C]"
+                            ? "border-red-400/20 bg-red-50 text-red-500"
+                            : "border-[#1e3a8a]/20 bg-[#1e3a8a]/10 text-[#1e3a8a]"
                         }`}
                       >
                         {item.priority}
                       </span>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{item.destination}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.destination}</span>
                     </div>
-                    <h3 className="text-lg font-black text-[#F5F0E8]">{item.guest_name}</h3>
-                    <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#B8B0A0]">{item.query}</p>
+                    <h3 className="text-lg font-black text-[#0f172a]">{item.guest_name}</h3>
+                    <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">{item.query}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-[9px] font-mono uppercase tracking-widest text-[#4A453E]">Quote</div>
-                    <div className="text-xl font-black text-[#C9A84C]">₹{item.quote_total.toLocaleString("en-IN")}</div>
-                    <div className="mt-2 max-w-[160px] text-[10px] text-[#1D9E75]">{item.status}</div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Quote</div>
+                    <div className="text-xl font-black text-[#1e3a8a]">₹{item.quote_total.toLocaleString("en-IN")}</div>
+                    <div className="mt-2 max-w-[160px] text-[10px] font-black uppercase tracking-widest text-emerald-600">{item.status}</div>
                   </div>
                 </div>
               </Link>
@@ -425,10 +425,10 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <aside className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Wallet size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Preview Focus</h2>
+            <Wallet size={14} className="text-[#1e3a8a]" />
+            <h2 className="text-lg font-black text-[#0f172a]">Preview Focus</h2>
           </div>
           <div className="space-y-3">
             <FocusCard
@@ -446,13 +446,13 @@ export default function DashboardPage() {
 
 function MetricCard({ label, value, sub, icon }: { label: string; value: string; sub: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-5">
-      <div className="mb-3 flex items-center gap-2 text-[#C9A84C]">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex items-center gap-2 text-[#1e3a8a]">
         {icon}
-        <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</span>
       </div>
-      <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
-      <div className="mt-2 text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{sub}</div>
+      <div className="text-2xl font-black text-[#0f172a]">{value}</div>
+      <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">{sub}</div>
     </div>
   );
 }
@@ -469,19 +469,19 @@ function SnapshotCard({
   borderColor?: string;
 }) {
   return (
-    <div className="rounded-2xl border bg-[#0A0A0A] p-4" style={{ borderColor: borderColor || "#C9A84C1A" }}>
-      <div className="text-[10px] font-mono uppercase tracking-widest text-[#4A453E]">{label}</div>
-      <div className="mt-2 text-sm font-black text-[#F5F0E8]">{value}</div>
-      <div className="mt-1 text-xs leading-relaxed text-[#B8B0A0]">{sub}</div>
+    <div className="rounded-2xl border bg-white p-4 shadow-sm" style={{ borderColor: borderColor || "#1e3a8a1a" }}>
+      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+      <div className="mt-2 text-sm font-black text-[#0f172a]">{value}</div>
+      <div className="mt-1 text-xs leading-relaxed text-slate-600">{sub}</div>
     </div>
   );
 }
 
 function FocusCard({ title, note }: { title: string; note: string }) {
   return (
-    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
-      <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]">{title}</div>
-      <div className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{note}</div>
+    <div className="rounded-2xl border border-slate-200 bg-[#f7f9fb] p-4">
+      <div className="text-[10px] font-black uppercase tracking-widest text-[#1e3a8a]">{title}</div>
+      <div className="mt-2 text-sm leading-relaxed text-slate-600">{note}</div>
     </div>
   );
 }
