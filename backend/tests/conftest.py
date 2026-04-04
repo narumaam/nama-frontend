@@ -8,10 +8,12 @@ from app.models.beta_auth import (
     BetaTenantInvite,
     BetaTenantMember,
 )
+from app.api.v1.demo_founder_contract_store import reset_founder_contract_state
 
 
 @pytest.fixture(autouse=True)
 def reset_beta_auth_tables():
+    reset_founder_contract_state()
     db = SessionLocal()
     try:
         db.query(BetaAuthAuditEvent).delete()
