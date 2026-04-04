@@ -1,5 +1,11 @@
 # NAMA PRD v3.3 Draft
 
+## 0. Document State
+
+- Branch truth: `codex/beta-foundations` at `7b2fc54`
+- Scope: Demo, Alpha, and MVP handoff planning
+- This draft should be read as the current product contract, not as an aspirational wishlist
+
 ## 1. Product Vision
 
 NAMA is the operating system for travel businesses that turns a fragmented agency workflow into one coherent tenant workspace. The product must help a founder register a branded workspace, activate staff, work leads through deals and finance, execute bookings, and produce customer-facing artifacts with enough truth and continuity to support a live demo, an Alpha release, and an eventual MVP.
@@ -11,6 +17,18 @@ NAMA is the operating system for travel businesses that turns a fragmented agenc
 - Demo and Alpha should be believable, deterministic, and repeatable.
 - UI surfaces may be visually rich, but the underlying state transitions must stay honest.
 - Anything that looks production-like should either be backed by contract truth or clearly marked as preview/sandbox.
+- When a module is still partial, the doc and the UI should say so plainly.
+
+## 2.1 Current Proof Points
+
+The current branch already proves the following end-to-end:
+- tenant registration and workspace provisioning
+- tenant member invites and acceptance
+- workspace login and Super Admin login
+- session persistence through reloads and localStorage loss
+- lead, deal, finance, booking, invoice, and traveler artifact continuity
+- route guards and negative route behavior
+- a visible Stitch-inspired dashboard shell
 
 ## 3. Release Targets
 
@@ -24,6 +42,7 @@ The Demo release must let a founder practice the story end to end:
 - record finance activity
 - release bookings and traveler artifacts
 - inspect admin and audit surfaces
+- rehearse the same path repeatedly without hidden state surprises
 
 ### Alpha
 
@@ -33,6 +52,7 @@ The Alpha release must feel operationally stable:
 - demo flows must survive reloads and localStorage loss
 - key surfaces must read like one product
 - proof artifacts and admin reporting must stay coherent
+- investor-facing screens must feel like one system, not a collection of proofs
 
 ### MVP
 
@@ -41,6 +61,7 @@ The MVP should move the core journey from demo-state truth to durable product tr
 - authenticated write paths for core workflow actions
 - real payment and supplier rails where supported
 - event and decision tracking that can be used for reporting and learning
+- durable data, not seeded demo state, should become the default source of truth
 
 ## 4. Primary Users
 
@@ -84,16 +105,16 @@ The platform operator logs in through a separate path, reviews tenant health and
 
 | Module | Current status | Notes |
 | --- | --- | --- |
-| Registration | Ready | Tenant onboarding is operational and branded |
+| Registration | Ready | Workspace provisioning, brand setup, and session handoff work |
 | Team / invites | Ready | Invite acceptance and tenant member activation work |
-| Leads | Ready | Stage changes flow through the workflow contract |
+| Leads | Ready | Stage changes flow through the workflow contract and persist visibly |
 | Deals | Ready | Same-origin case route exists and resolves correctly |
 | Finance | Ready | Deposit and finance state are visible and testable |
 | Bookings | Ready | Guest pack release and booking readiness are coherent |
-| Invoices | Ready | Invoice state and finance state are visible |
+| Invoices | Ready | Invoice state and finance state are visible downstream |
 | Traveler PDF | Ready | Dispatch state and guest-pack state are visible |
 | Super Admin | Ready | Separate access path and audit visibility exist |
-| Dashboard shell | Ready | Stitch-style hierarchy is in place |
+| Dashboard shell | Ready | Stitch-style hierarchy is in place and stable |
 
 ### MVP Path
 
@@ -112,7 +133,7 @@ The platform operator logs in through a separate path, reviews tenant health and
 | Integration vault | Partial | Environment and contract work exist, broader secrets flow remains |
 | Finance ledger | Partial | Foundational truth is improving, full ledgering remains |
 | Sentinel auditor | Partial | Route and smoke audit exist, full observability still needed |
-| Evolution engine | Conceptual | Roadmap item, not alpha-critical |
+| Evolution engine | Conceptual | Roadmap item, not alpha-critical yet |
 
 ## 7. APIs And Integrations
 
@@ -151,6 +172,7 @@ The platform operator logs in through a separate path, reviews tenant health and
 - Negative route checks must not expose dead ends.
 - Auth/session checks must be server-backed where applicable.
 - Visual language must stay coherent across dashboard, onboarding, and artifact screens.
+- Docs must stay aligned to the current branch head, not an older memory of the product.
 
 ## 10. MVP Roadmap Snapshot
 
@@ -159,6 +181,7 @@ The platform operator logs in through a separate path, reviews tenant health and
 3. Add structured decision and outcome tracking.
 4. Introduce stronger analytics and audit surfaces.
 5. Expand white-label and portal depth.
+6. Replace remaining demo-only assumptions with durable records and backend enforcement.
 
 ## 11. Acceptance Criteria For This Draft
 
@@ -166,4 +189,3 @@ The platform operator logs in through a separate path, reviews tenant health and
 - Alpha is stable enough for operator rehearsal.
 - MVP work is clearly separated from demo-only behavior.
 - The document can be handed to a developer without extra verbal context.
-
