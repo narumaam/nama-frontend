@@ -127,18 +127,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navGroups = [
     {
-      label: 'AI Control',
-      items: [
-        { name: 'Ekla',          href: '/dashboard/ekla',      icon: Cpu,             badge: 'New', badgeColor: 'bg-[#1e3a8a]' },
-        { name: 'Autopilot OS',  href: '/dashboard/autopilot', icon: Zap,             badge: '2', badgeColor: 'bg-red-500' },
-        { name: 'Deals',         href: '/dashboard/deals',     icon: Target,           badge: null },
-      ],
-    },
-    {
       label: 'Operations',
       items: [
         { name: 'Overview',      href: '/dashboard',           icon: LayoutDashboard,  badge: null },
         { name: 'Leads',         href: '/dashboard/leads',     icon: Users,            badge: null },
+        { name: 'Deals',         href: '/dashboard/deals',     icon: Target,           badge: null },
         { name: 'DMC Hub',       href: '/dashboard/dmc',       icon: FileText,         badge: null },
         { name: 'Team & Access', href: '/dashboard/team',      icon: Settings,         badge: null },
         { name: 'Itineraries',   href: '/dashboard/itineraries', icon: Map,            badge: null },
@@ -153,6 +146,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Analytics',     href: '/dashboard/analytics', icon: Activity,         badge: null },
         { name: 'Finance',       href: '/dashboard/finance',   icon: CreditCard,       badge: null },
         { name: 'Content',       href: '/dashboard/content',   icon: FileText,         badge: null },
+      ],
+    },
+    {
+      label: 'Orchestration',
+      items: [
+        { name: 'Ekla',          href: '/dashboard/ekla',      icon: Cpu,             badge: 'New', badgeColor: 'bg-[#1e3a8a]' },
+        { name: 'Autopilot OS',   href: '/dashboard/autopilot', icon: Zap,             badge: '2', badgeColor: 'bg-red-500' },
       ],
     },
   ];
