@@ -1,5 +1,7 @@
 # NAMA Monday Demo Runbook
 
+> Superseded by [HOSTED_DEMO_PACKAGE.md](/Users/radhika/Documents/New%20project/nama-live/docs/HOSTED_DEMO_PACKAGE.md) for the final hosted-demo path.
+
 This runbook is the safe, repeatable demo path for Monday afternoon.
 
 ## Objective
