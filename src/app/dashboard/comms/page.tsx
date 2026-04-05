@@ -48,7 +48,7 @@ const THREADS: ThreadCard[] = [
     tone: item.intakeTone,
     note:
       item.intakeChannel === "Website"
-        ? "A preview inquiry lands directly from the homepage and becomes a deal without manual cleanup."
+        ? "A tracked inquiry lands directly from the homepage and becomes a deal without manual cleanup."
         : item.intakeChannel === "Phone"
           ? "The call summary is attached to the same record so the next rep has context immediately."
           : "The email is normalized into destination, duration, travelers, and follow-up status.",
@@ -61,11 +61,11 @@ const THREADS: ThreadCard[] = [
   })),
   {
     channel: "WhatsApp",
-    source: "Placeholder messaging rail",
+    source: "Tracked messaging rail",
     guest: DEMO_CASE_ROUTES[1].guest,
     caseName: DEMO_CASE_ROUTES[1].caseName,
-    tone: "Demo-safe",
-    note: "Shown in the workflow as an expected channel, but not presented as a live production connector.",
+    tone: "Controlled",
+    note: "Shown as a controlled intake channel, then routed back to the same CRM record and follow-up queue.",
     status: "Illustrated",
   },
 ];
@@ -104,7 +104,16 @@ const SOURCE_SUMMARY = [
   { label: "Website", value: "1 lead", icon: Sparkles },
   { label: "Phone", value: "1 transcript", icon: Phone },
   { label: "Email", value: "1 thread", icon: Mail },
-  { label: "WhatsApp", value: "1 placeholder", icon: MessageCircle },
+  { label: "WhatsApp", value: "1 tracked thread", icon: MessageCircle },
+];
+
+const COMM_CONTINUITY = [
+  { label: "Overview", href: "/dashboard" },
+  { label: "Leads", href: "/dashboard/leads" },
+  { label: "Deal", href: dealHrefFromSlug(PRIMARY_CASE.slug) },
+  { label: "Finance", href: "/dashboard/finance" },
+  { label: "Bookings", href: "/dashboard/bookings" },
+  { label: "Artifacts", href: `/dashboard/traveler-pdf/${PRIMARY_CASE.slug}` },
 ];
 
 export default function CommsPage() {
@@ -139,11 +148,11 @@ export default function CommsPage() {
             </span>
             <span className="flex items-center gap-2 rounded-full border border-[#1D9E75]/20 bg-[#1D9E75]/10 px-3 py-1 text-[9px] font-black font-mono uppercase tracking-widest text-[#1D9E75]">
               <Sparkles size={12} />
-              Preview channels
+              Connected channels
             </span>
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
-            Website, phone, email, and a WhatsApp placeholder all resolve into the same CRM story for the April preview.
+            Website, phone, email, and WhatsApp all resolve into the same CRM story so the hosted walkthrough never loses continuity.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
@@ -166,6 +175,29 @@ export default function CommsPage() {
         </div>
       </header>
 
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">Route Continuity</div>
+            <h2 className="text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Keep comms tied to the founder flow instead of feeling like a side channel</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              This surface is safest when every message, transcript, and follow-up links back into the same deal, finance, booking, and artifact path.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {COMM_CONTINUITY.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {SOURCE_SUMMARY.map((item) => (
           <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
@@ -179,7 +211,7 @@ export default function CommsPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">Omnichannel Intake</h2>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
-            These cards show how the preview captures demand from the same commercial channels your team already uses, then stores the outcome in one CRM lane.
+            These cards show how NAMA captures demand from the same commercial channels your team already uses, then stores the outcome in one CRM lane.
           </p>
           <div className="space-y-3">
             {THREADS.map((thread) => (
@@ -215,7 +247,7 @@ export default function CommsPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">Sales Transcript</h2>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
-            The preview uses a deterministic transcript so the rep can show how voice, message, and CRM context stay attached to the same lead.
+            The transcript is deterministic for the walkthrough so the rep can show how voice, message, and CRM context stay attached to the same lead.
           </p>
           <div className="mb-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="flex items-center justify-between gap-3">
@@ -283,7 +315,7 @@ export default function CommsPage() {
       <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="mb-4 flex items-center gap-2">
             <MessageSquare size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">Preview Positioning</h2>
+            <h2 className="text-lg font-black text-[#F5F0E8]">Presenter Notes</h2>
           </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
@@ -295,7 +327,7 @@ export default function CommsPage() {
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Safe wording</div>
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
-              Use “deterministic CRM intake” and “preview-safe capture” instead of implying the messaging rails are already live in production.
+              Use “deterministic CRM intake” and “controlled capture” instead of implying the messaging rails are already live in production.
             </p>
           </div>
         </div>
@@ -356,7 +388,7 @@ function MetricCard({ label, value, icon: Icon }: { label: string; value: string
         <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
       </div>
       <div className="text-2xl font-black text-[#F5F0E8]">{value}</div>
-      <div className="mt-1 text-xs text-[#4A453E]">Seeded demo content</div>
+      <div className="mt-1 text-xs text-[#4A453E]">Seeded content</div>
     </div>
   );
 }

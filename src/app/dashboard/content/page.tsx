@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import ScreenInfoTip from '@/components/screen-info-tip';
 import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
@@ -30,15 +31,15 @@ export default function ContentLibraryPage() {
           <nav className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2 font-black">
             <span>Content Workspace</span>
             <ChevronRight size={10} />
-            <span className="opacity-50 font-bold">Reusable Asset Library</span>
+            <span className="opacity-50 font-bold">Demo-safe Asset Library</span>
           </nav>
           <div className="flex items-center gap-3">
-            <h1 className="font-headline text-5xl font-black tracking-tighter text-[#F5F0E8] uppercase leading-none">Asset Library</h1>
+            <h1 className="font-headline text-5xl font-black tracking-tighter text-[#F5F0E8] uppercase leading-none">Content Studio</h1>
             <ScreenInfoTip content={SCREEN_HELP.content} />
           </div>
           <p className="font-mono text-xs text-[#B8B0A0] mt-4 flex items-center gap-3 font-bold uppercase tracking-widest">
             <span className="w-2 h-2 rounded-full bg-[#1D9E75] shadow-[0_0_10px_rgba(29,158,117,0.5)] animate-pulse"></span>
-            ACTIVE PREVIEW SET: 1,248 ASSETS INDEXED
+            DEMO ASSET SET: 1,248 ASSETS INDEXED
           </p>
         </div>
         <div className="flex gap-4">
@@ -52,6 +53,36 @@ export default function ContentLibraryPage() {
           </button>
         </div>
       </header>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111]/70 p-5 mb-10 shrink-0">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C] mb-2">Route Continuity</div>
+            <h2 className="text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Keep asset work anchored to itineraries, comms, DMC, and artifacts</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              The hosted demo is safest when content feels like a supporting layer of the same trip, not a separate toy library.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Overview", href: "/dashboard" },
+              { label: "Core Deal", href: "/dashboard/deals?case=maldives-honeymoon" },
+              { label: "Itineraries", href: "/dashboard/itineraries" },
+              { label: "Comms", href: "/dashboard/comms" },
+              { label: "DMC", href: "/dashboard/dmc" },
+              { label: "Artifacts", href: "/dashboard/artifacts" },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 shrink-0">
@@ -159,18 +190,18 @@ export default function ContentLibraryPage() {
                 typeBorder="border-[#1D9E75]/20"
               />
               <AssetRow 
-                name="Broken Asset Links" 
-                id="ERR-2210-SYS" 
+                name="Asset QA Queue" 
+                id="QA-2210-SYS" 
                 type="System" 
                 region="Global Hub" 
-                version="ERROR" 
-                rating="3.2" 
-                status="Corrupted" 
-                statusColor="text-red-500" 
-                icon={<AlertTriangle size={18} className="text-red-500" />} 
-                typeBg="bg-red-500/10" 
-                typeText="text-red-500"
-                typeBorder="border-red-500/20"
+                version="v0.9" 
+                rating="4.1" 
+                status="In review" 
+                statusColor="text-[#C9A84C]" 
+                icon={<AlertTriangle size={18} className="text-[#C9A84C]" />} 
+                typeBg="bg-[#C9A84C]/10" 
+                typeText="text-[#C9A84C]"
+                typeBorder="border-[#C9A84C]/20"
               />
             </tbody>
           </table>

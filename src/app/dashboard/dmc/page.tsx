@@ -67,7 +67,7 @@ const OPERATIONS_THREADS = [
     lane: "Driver / Transport",
     partner: "DXB Executive Transfers",
     message: "Need updated airport pickup nameboard, arrival terminal, and emergency ops contact.",
-    channel: "WhatsApp placeholder",
+    channel: "WhatsApp thread",
   },
   {
     lane: "Activity Vendor",
@@ -156,6 +156,34 @@ export default function DmcPage() {
           </button>
         </div>
       </header>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] font-mono text-[#C9A84C] mb-2">Route Continuity</div>
+            <h2 className="text-lg font-black text-[#F5F0E8] uppercase tracking-tight">Keep supplier work tied back to the same deal, finance, and booking path</h2>
+            <p className="mt-2 max-w-3xl text-sm text-[#B8B0A0] leading-relaxed">
+              This surface is safest when the operator can move from contract intake back into quoting and fulfillment without feeling like they left the main journey.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Deal", href: dealHrefFromSlug(activeCase.slug) },
+              { label: "Finance", href: "/dashboard/finance" },
+              { label: "Bookings", href: `/dashboard/bookings?case=${activeCase.slug}` },
+              { label: "Artifacts", href: `/dashboard/traveler-pdf/${activeCase.slug}` },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {SERVICE_STACK.map((item) => (
@@ -274,7 +302,7 @@ export default function DmcPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">Contract Intake & Normalization</h2>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-[#B8B0A0]">
-            Contracts do not arrive in one clean template. They come as PDFs, scanned images, emails, DOCX files, WhatsApp screenshots, and mixed vendor notes. This preview shows how NAMA turns those into structured commercial blocks.
+            Contracts do not arrive in one clean template. They come as PDFs, scanned images, emails, DOCX files, WhatsApp screenshots, and mixed vendor notes. This workflow shows how NAMA turns those into structured commercial blocks.
           </p>
           <div className="space-y-3">
             {CONTRACT_INBOX.map((contract) => (
@@ -330,7 +358,7 @@ export default function DmcPage() {
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Safe wording</div>
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
-              Present this as “AI-assisted contract normalization in a preview-safe flow,” not as a claim that every vendor format is already fully automated in production.
+              Present this as “AI-assisted contract normalization in a controlled flow,” not as a claim that every vendor format is already fully automated in production.
             </p>
           </div>
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
@@ -344,8 +372,8 @@ export default function DmcPage() {
               </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <PreviewField label="Source format" value={selectedContract.format} />
-              <PreviewField label="Publishing mode" value={selectedContract.status === "Parsed" || selectedContract.status === "Structured" ? "Ready for quote blocks" : "Review before release"} />
+              <DetailField label="Source format" value={selectedContract.format} />
+              <DetailField label="Publishing mode" value={selectedContract.status === "Parsed" || selectedContract.status === "Structured" ? "Ready for quote blocks" : "Review before release"} />
             </div>
             <div className="mt-3 rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
               <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Structured commercial note</div>
@@ -424,7 +452,7 @@ export default function DmcPage() {
           <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">What not to imply</div>
             <p className="text-sm leading-relaxed text-[#B8B0A0]">
-              Don’t claim every upload is live OCR with no review. Position it as a preview-safe DMC operating flow that shows intake, normalization, and supplier communication clearly.
+              Don’t claim every upload is live OCR with no review. Position it as a controlled DMC operating flow that shows intake, normalization, and supplier communication clearly.
             </p>
           </div>
         </div>
@@ -445,7 +473,7 @@ function MetricCard({ label, value, icon }: { label: string; value: string; icon
   );
 }
 
-function PreviewField({ label, value }: { label: string; value: string }) {
+function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-[#C9A84C]/10 bg-[#111111] p-3">
       <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>

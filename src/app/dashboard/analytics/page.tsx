@@ -55,11 +55,11 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#C9A84C] mb-2">
             <span>Analytics Workspace</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">Pipeline Intelligence</span>
+            <span className="opacity-50">Founder Demo Intelligence</span>
           </div>
           <p className="text-[#B8B0A0] text-sm flex items-center gap-2 font-mono uppercase tracking-widest">
             <span className="w-2 h-2 rounded-full bg-[#1D9E75] animate-pulse shadow-[0_0_8px_#1D9E75]"></span>
-            Preview intelligence cycle: April 2026
+            Demo intelligence cycle: April 2026
           </p>
         </div>
         <div className="flex gap-3">
@@ -104,6 +104,20 @@ export default function AnalyticsPage() {
             </div>
           ))}
         </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link href="/dashboard" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+            Back to overview
+          </Link>
+          <Link href="/dashboard/leads" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+            Leads
+          </Link>
+          <Link href="/dashboard/finance" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+            Finance
+          </Link>
+          <Link href="/dashboard/bookings" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+            Bookings
+          </Link>
+        </div>
       </section>
 
       {/* KPI Grid */}
@@ -112,7 +126,7 @@ export default function AnalyticsPage() {
           label="Total Lead Pipeline" 
           value="₹8,42,50,000" 
           change="+12.4%" 
-          comparison="vs preview baseline" 
+          comparison="vs prior baseline" 
           icon={<IndianRupee className="text-6xl text-[#C9A84C] opacity-5 group-hover:opacity-10 transition-opacity" />}
           borderColor="border-[#C9A84C]"
           isPositive={true}
@@ -133,8 +147,7 @@ export default function AnalyticsPage() {
           comparison="faster first response" 
           icon={<Clock className="text-6xl text-[#C9A84C] opacity-5 group-hover:opacity-10 transition-opacity" />}
           borderColor="border-[#C9A84C]/40"
-          isPositive={false}
-          error={true}
+          isPositive={true}
         />
         <KPICard 
           label="Primary Channel" 
@@ -193,7 +206,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="mt-8 p-4 bg-[#111111] rounded-lg border border-[#C9A84C]/10">
             <p className="text-[11px] text-[#B8B0A0] italic leading-relaxed">
-              <span className="text-[#1D9E75] font-black font-mono mr-2">CORE INSIGHT:</span> Referral leads convert faster in the preview set. Strategy: shift acquisition spend toward higher-intent channels.
+              <span className="text-[#1D9E75] font-black font-mono mr-2">CORE INSIGHT:</span> Referral leads convert faster in the current set. Strategy: shift acquisition spend toward higher-intent channels.
             </p>
           </div>
         </div>
@@ -205,7 +218,7 @@ export default function AnalyticsPage() {
         <div className="lg:col-span-7 bg-[#111111] p-6 rounded-xl border border-[#C9A84C]/10 shadow-xl">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-headline font-black text-lg tracking-tighter uppercase text-[#F5F0E8]">Agent Leaderboard</h3>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#C9A84C] border border-[#C9A84C]/30 px-2 py-1 rounded bg-[#C9A84C]/5">Active Preview Cycle</div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-[#C9A84C] border border-[#C9A84C]/30 px-2 py-1 rounded bg-[#C9A84C]/5">Demo Intelligence Cycle</div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -272,6 +285,32 @@ export default function AnalyticsPage() {
           </button>
         </div>
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6 shadow-xl mb-10">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">Demo Continuity</div>
+            <div className="mt-2 text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Analytics is the explanation layer, not the exit point</div>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
+              Use these metrics to explain why the founder path works, then jump back into the live operating surfaces so the demo stays concrete and grounded.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Overview
+            </Link>
+            <Link href="/dashboard/deals?case=maldives-honeymoon" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Core deal
+            </Link>
+            <Link href="/dashboard/finance" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Finance
+            </Link>
+            <Link href="/dashboard/bookings" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Bookings
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

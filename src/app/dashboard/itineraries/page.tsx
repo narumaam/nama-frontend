@@ -21,6 +21,7 @@ import {
   Ticket, 
   Plus,
   ChevronRight,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -42,7 +43,7 @@ export default function ItinerariesPage() {
           <div className="flex items-center gap-2 text-[10px] font-mono text-[#C9A84C] uppercase tracking-[0.3em] mb-2">
             <span>Itinerary Workspace</span>
             <ChevronRight size={10} />
-            <span className="opacity-50">Trip Design Layer</span>
+            <span className="opacity-50">Trip Design + Fulfillment</span>
           </div>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black tracking-tighter uppercase font-headline text-[#F5F0E8]">
@@ -61,13 +62,84 @@ export default function ItinerariesPage() {
             <Sparkles size={14} fill="currentColor" /> Generate Draft
           </button>
           <button className="flex items-center gap-2 px-5 py-2.5 bg-[#111111] text-[#F5F0E8] border border-[#C9A84C]/15 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1A1A1A] transition-all">
-            <Eye size={14} /> Preview Flow
+            <Eye size={14} /> Open Traveler Flow
           </button>
           <Link href={`/dashboard/traveler-pdf/${workspaceCase.slug}`} className="flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-[#0A0A0A] rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(201,168,76,0.2)]">
             <FileText size={14} /> Export Traveler PDF
           </Link>
         </div>
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C] mb-2">Route Continuity</div>
+            <h2 className="text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Use itinerary as the handoff into quote, finance, booking, and traveler docs</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">
+              This screen should feel like the working bridge between trip design and fulfillment, so the demo can move from planning into pricing, payment, confirmation, and traveler delivery without breaking rhythm.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 xl:w-[460px]">
+            {[
+              { label: "Open deal", href: `/dashboard/deals?case=${workspaceCase.slug}` },
+              { label: "Open finance", href: "/dashboard/finance" },
+              { label: "Open bookings", href: `/dashboard/bookings?case=${workspaceCase.slug}` },
+              { label: "Open traveler PDF", href: `/dashboard/traveler-pdf/${workspaceCase.slug}` },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-2xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-3 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-[1.35fr_0.9fr]">
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">What to show</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <DemoStep
+              step="1"
+              title="Trip view"
+              description="Open the day cards and show the itinerary as a live working plan, not a standalone mock."
+            />
+            <DemoStep
+              step="2"
+              title="Handoff"
+              description="Jump to deal, finance, and bookings so the audience sees how the trip moves through the operating flow."
+            />
+            <DemoStep
+              step="3"
+              title="Traveler docs"
+              description="Finish with the traveler PDF so support, bank, and brand details stay consistent end to end."
+            />
+          </div>
+        </div>
+        <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">Fail-safe path</div>
+          <p className="mt-3 text-sm leading-relaxed text-[#B8B0A0]">
+            If the presenter loses the thread, go straight back to deal, finance, bookings, and traveler PDF in that order. That keeps the story in the execution path and avoids lingering on a single itinerary screen.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href={`/dashboard/deals?case=${workspaceCase.slug}`} className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Deal
+            </Link>
+            <Link href="/dashboard/finance" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Finance
+            </Link>
+            <Link href={`/dashboard/bookings?case=${workspaceCase.slug}`} className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Bookings
+            </Link>
+            <Link href={`/dashboard/traveler-pdf/${workspaceCase.slug}`} className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/10">
+              Traveler PDF
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Main Workspace */}
       <div className="flex-1 flex overflow-hidden rounded-3xl border border-[#C9A84C]/15 bg-[#111111]/50 shadow-2xl backdrop-blur-sm">
@@ -220,7 +292,7 @@ export default function ItinerariesPage() {
 
         <aside className="w-[340px] max-w-[38vw] border-l border-[#C9A84C]/15 bg-[#0A0A0A] p-6 overflow-y-auto no-scrollbar shrink-0 hidden 2xl:block">
           <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
-            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">Traveler PDF Shell</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">Traveler Handoff</div>
             <div className="mt-4 rounded-3xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -241,7 +313,7 @@ export default function ItinerariesPage() {
               </div>
             </div>
             <div className="mt-4 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#0A0A0A] p-4 text-sm leading-relaxed text-[#B8B0A0]">
-              The traveler PDF now carries the same brand, support, domain, and remittance identity already shown in quote, comms, finance, and bookings.
+              The traveler PDF carries the same brand, support, domain, and remittance identity already shown in quote, comms, finance, and bookings, so the handoff stays consistent from trip design to delivery.
             </div>
           </div>
         </aside>
@@ -292,36 +364,29 @@ function TimelineBlock({
   );
 }
 
-const Users = ({
-  size = 24,
-  className,
-}: {
-  size?: number;
-  className?: string;
-}) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
 function TravelerPdfField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
       <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">{label}</div>
       <div className="mt-1 text-sm font-semibold leading-relaxed text-[#F5F0E8]">{value}</div>
+    </div>
+  );
+}
+
+function DemoStep({
+  step,
+  title,
+  description,
+}: {
+  step: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
+      <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C]">Step {step}</div>
+      <div className="mt-2 text-sm font-black uppercase tracking-tight text-[#F5F0E8]">{title}</div>
+      <p className="mt-2 text-sm leading-relaxed text-[#B8B0A0]">{description}</p>
     </div>
   );
 }
