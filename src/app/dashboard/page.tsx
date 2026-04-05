@@ -102,6 +102,24 @@ const PREVIEW_JOURNEY = [
   { label: "Execute", href: "/dashboard/bookings", detail: "Documents, payments, and handoff" },
 ];
 
+const DEMO_CONTINUITY = [
+  {
+    title: "Autopilot",
+    href: "/dashboard/autopilot",
+    detail: "Control-layer case routing, follow-up, and live attention feed.",
+  },
+  {
+    title: "Ekla",
+    href: "/dashboard/ekla",
+    detail: "Orchestration layer for the agency operating story and workflow handoff.",
+  },
+  {
+    title: "Evolution",
+    href: "/dashboard/evolution",
+    detail: "Learning layer shown as support, not the finish line of the demo.",
+  },
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const profile = useDemoProfile();
@@ -159,14 +177,14 @@ export default function DashboardPage() {
             <ScreenInfoTip content={SCREEN_HELP.overview} />
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-            This overview is the April 6 preview spine: one configured workspace, one coherent case set, and one guided path from capture through finance, supplier control, and execution.
+            This overview is the April 6 demo spine: one configured workspace, one coherent case set, and one guided path from capture through finance, supplier control, and execution.
           </p>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <Sparkles size={16} style={{ color: accentHex }} />
           <div>
-            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Preview Status</div>
-            <div className="text-sm font-black text-[#0f172a]">Preview cases ready</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Demo Status</div>
+            <div className="text-sm font-black text-[#0f172a]">Demo cases ready</div>
           </div>
         </div>
       </div>
@@ -263,10 +281,37 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#1e3a8a]">Demo Continuity Rails</div>
+            <h2 className="text-xl font-black text-[#0f172a]">Keep the walkthrough anchored in the operating path</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+              Autopilot, Ekla, and Evolution are presentable support views. If you open them during the demo, come back through overview, leads, the core deal, finance, and bookings so the story stays grounded.
+            </p>
+          </div>
+          <Link
+            href={`/dashboard/deals?case=${PRIMARY_CASE.slug}`}
+            className="rounded-2xl border border-[#1e3a8a]/15 bg-[#1e3a8a]/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#1e3a8a]"
+          >
+            Return to core case
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          {DEMO_CONTINUITY.map((item) => (
+            <Link key={item.title} href={item.href} className="rounded-2xl border border-slate-200 bg-[#f7f9fb] p-4 transition-colors hover:border-[#1e3a8a]/20 hover:bg-white">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#1e3a8a]">{item.title}</div>
+              <div className="mt-2 text-sm font-semibold text-[#0f172a]">{item.detail}</div>
+              <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Continue here if needed</div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <div className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#1e3a8a]">Canonical Preview Journey</div>
+            <div className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#1e3a8a]">Canonical Demo Journey</div>
             <h2 className="text-lg font-black text-[#0f172a] sm:text-xl">One lead, one journey, five operating layers</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
               Use this strip as the walkthrough anchor: capture demand, convert it into a structured deal, show finance control, normalize supplier input, then move into execution.
@@ -428,7 +473,7 @@ export default function DashboardPage() {
         <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Wallet size={14} className="text-[#1e3a8a]" />
-            <h2 className="text-lg font-black text-[#0f172a]">Preview Focus</h2>
+            <h2 className="text-lg font-black text-[#0f172a]">Demo Focus</h2>
           </div>
           <div className="space-y-3">
             <FocusCard

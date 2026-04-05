@@ -233,7 +233,7 @@ export default function AutopilotPage() {
             <ScreenInfoTip content={SCREEN_HELP.autopilot} />
           </div>
           <p className="text-[#4A453E] mt-2 text-[11px] font-mono uppercase tracking-widest">
-            Preview cases are driving the walkthrough · You only see what needs your attention
+            Demo-safe cases are driving the walkthrough · You only see what needs your attention
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#C9A84C]">
@@ -251,7 +251,7 @@ export default function AutopilotPage() {
               'Website intake',
               'Phone transcript',
               'Email capture',
-              'WhatsApp placeholder',
+              'WhatsApp intake',
             ].map((tag) => (
               <span key={tag} className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#B8B0A0]">
                 {tag}
@@ -270,6 +270,29 @@ export default function AutopilotPage() {
             ))}
           </div>
         </div>
+
+        <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">Demo Continuity</div>
+              <div className="mt-2 text-sm font-black text-[#F5F0E8]">Autopilot is a support rail, not the end of the walkthrough</div>
+              <div className="mt-1 text-[10px] leading-relaxed text-[#B8B0A0]">
+                Use this screen to show live attention and control, then return to the leads, the core deal, and finance so the demo stays anchored in the working path.
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/dashboard/leads" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors">
+                Back to leads
+              </Link>
+              <Link href={dealHrefFromLeadId(PRIMARY_CASE.leadId)} className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors">
+                Open core deal
+              </Link>
+              <Link href="/dashboard/finance" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors">
+                Finance checkpoint
+              </Link>
+            </div>
+          </div>
+        </section>
 
         {/* Autopilot toggle */}
         <div className="flex items-center justify-between xl:justify-end gap-4">
@@ -406,6 +429,29 @@ export default function AutopilotPage() {
           </Link>
         </div>
       </div>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">Hosted Demo Safety</div>
+            <div className="mt-2 text-sm font-black text-[#F5F0E8]">Keep the audience moving back into the core path after this screen</div>
+            <div className="mt-1 text-[10px] leading-relaxed text-[#B8B0A0]">
+              The feed and agent swarm are presentable proof points. The safest live demo flow still returns to overview, leads, the core deal, finance, and bookings before ending.
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors">
+              Overview
+            </Link>
+            <Link href="/dashboard/leads" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors">
+              Leads
+            </Link>
+            <Link href="/dashboard/bookings" className="rounded-full border border-[#C9A84C]/15 bg-[#0A0A0A] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors">
+              Bookings
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -102,7 +102,7 @@ const MONDAY_STORY = [
 const ACTIVE_SIGNALS = [
   { label: "Website intake", state: "Automated", icon: Globe2 },
   { label: "Phone transcript", state: "Normalized", icon: PhoneCall },
-  { label: "WhatsApp placeholder", state: "Demo-safe", icon: MessageSquare },
+  { label: "WhatsApp intake", state: "Demo-safe", icon: MessageSquare },
   { label: "Quote assembly", state: "Prepared", icon: Target },
   { label: "Finance guardrail", state: "Active", icon: CreditCard },
   { label: "Ops handoff", state: "Sequenced", icon: Users },
@@ -123,9 +123,29 @@ export default function EklaPage() {
             <ScreenInfoTip content={SCREEN_HELP.ekla} />
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
-            Ekla is the preview expression of NAMA’s core idea: the travel agency should run like an operating system.
+            Ekla is the demo-safe orchestration layer for NAMA’s core idea: the travel agency should run like an operating system.
             It captures raw demand, assembles the commercial response, sequences follow-ups, and escalates only the parts that still need people.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/dashboard"
+              className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            >
+              Back to overview
+            </Link>
+            <Link
+              href="/dashboard/leads"
+              className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            >
+              Open leads
+            </Link>
+            <Link
+              href="/dashboard/finance"
+              className="rounded-xl border border-[#C9A84C]/15 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            >
+              Finance control
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -178,7 +198,7 @@ export default function EklaPage() {
         <aside className="xl:col-span-5 rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
           <div className="mb-5 flex items-center gap-2">
             <Clock3 size={14} className="text-[#C9A84C]" />
-            <h2 className="text-lg font-black text-[#F5F0E8]">How To Pitch It In The Preview</h2>
+            <h2 className="text-lg font-black text-[#F5F0E8]">How To Pitch It In The Demo</h2>
           </div>
           <div className="space-y-4">
             {MONDAY_STORY.map((item) => (
@@ -240,7 +260,44 @@ export default function EklaPage() {
             ))}
           </div>
           <div className="mt-5 rounded-2xl border border-dashed border-[#C9A84C]/20 bg-[#111111] p-4 text-sm leading-relaxed text-[#B8B0A0]">
-            Safe line for the preview: “Ekla is the operating layer that makes the agency move on its own. This walkthrough shows deterministic cases and control loops, not live third-party credentials.”
+            Safe line for the demo: “Ekla is the operating layer that makes the agency move on its own. This walkthrough shows deterministic cases and control loops, not live third-party credentials.”
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/dashboard/autopilot"
+              className="rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            >
+              Back to Autopilot
+            </Link>
+            <Link
+              href={dealHrefFromSlug(PRIMARY_DEMO_DEAL_CASE.slug)}
+              className="rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10"
+            >
+              Open core deal
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#C9A84C] font-mono">Demo Continuity</div>
+            <div className="mt-2 text-sm font-black text-[#F5F0E8]">Use Ekla as the operating story, not the finish line</div>
+            <div className="mt-1 text-[10px] leading-relaxed text-[#B8B0A0]">
+              This layer shows how demand is assembled into a case. For the live demo, return through overview, leads, and the core deal path before ending.
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard" className="rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10">
+              Overview
+            </Link>
+            <Link href="/dashboard/leads" className="rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10">
+              Leads
+            </Link>
+            <Link href="/dashboard/finance" className="rounded-xl border border-[#C9A84C]/15 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#C9A84C] transition-all hover:bg-[#C9A84C]/10">
+              Finance
+            </Link>
           </div>
         </div>
       </section>

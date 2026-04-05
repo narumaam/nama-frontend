@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import ScreenInfoTip from '@/components/screen-info-tip';
 import { SCREEN_HELP } from '@/lib/screen-help';
 import { 
@@ -47,8 +48,28 @@ export default function EvolutionPage() {
             <ScreenInfoTip content={SCREEN_HELP.evolution} />
           </div>
           <p className="text-[#B8B0A0] font-mono text-xs mt-2 uppercase tracking-wide">
-            Self-optimizing feedback loops · <span className="text-[#7B61FF] font-black uppercase">Active analysis</span> · Preview-safe learning view
+            Self-optimizing feedback loops · <span className="text-[#7B61FF] font-black uppercase">Active analysis</span> · Demo-safe learning view
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/dashboard"
+              className="rounded-xl border border-[#7B61FF]/20 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#7B61FF] transition-all hover:bg-[#7B61FF]/10"
+            >
+              Overview
+            </Link>
+            <Link
+              href="/dashboard/leads"
+              className="rounded-xl border border-[#7B61FF]/20 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#7B61FF] transition-all hover:bg-[#7B61FF]/10"
+            >
+              Leads
+            </Link>
+            <Link
+              href="/dashboard/finance"
+              className="rounded-xl border border-[#7B61FF]/20 bg-[#111111] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#7B61FF] transition-all hover:bg-[#7B61FF]/10"
+            >
+              Finance
+            </Link>
+          </div>
         </div>
         <button 
           onClick={handleOptimize}
@@ -157,7 +178,7 @@ export default function EvolutionPage() {
           <div className="bg-[#111111] border border-[#C9A84C]/15 rounded-3xl p-8 shadow-xl">
             <h4 className="font-black text-[11px] uppercase tracking-[0.2em] font-mono text-[#F5F0E8] mb-8">Model Configuration</h4>
             <div className="space-y-6">
-              <ModelParam label="Learning Baseline" value="Preview operator model" />
+              <ModelParam label="Learning Baseline" value="Demo-safe operator model" />
               <ModelParam label="Fine-Tuning" value="NAMA Travel Instruct v3" />
               <ModelParam label="Temperature" value="0.4 (Optimized)" />
               <div className="pt-4 border-t border-[#C9A84C]/10">
@@ -190,11 +211,34 @@ export default function EvolutionPage() {
           {/* RSI Explanation */}
           <div className="bg-[#7B61FF]/5 border border-[#7B61FF]/20 rounded-3xl p-6">
             <p className="text-[10px] text-[#B8B0A0] leading-relaxed italic">
-              &ldquo;This view shows how NAMA improves prompts, routing, and operating decisions over time. Present it as a preview-safe learning layer, not as unchecked autonomous retraining in production.&rdquo;
+              &ldquo;This view shows how NAMA improves prompts, routing, and operating decisions over time. Present it as a demo-safe learning layer, not as unchecked autonomous retraining in production.&rdquo;
             </p>
           </div>
         </div>
       </div>
+
+      <section className="rounded-3xl border border-[#7B61FF]/20 bg-[#111111] p-6 shadow-xl">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#7B61FF] font-mono">Hosted Demo Safety</div>
+            <div className="mt-2 text-sm font-black text-[#F5F0E8]">Keep Evolution as support context, not the final live-demo stop</div>
+            <div className="mt-1 text-[10px] leading-relaxed text-[#B8B0A0]">
+              This screen is for learning visibility. For a clean hosted walkthrough, return to overview, leads, and finance after showing the loop.
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/autopilot" className="rounded-xl border border-[#7B61FF]/20 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#7B61FF] transition-all hover:bg-[#7B61FF]/10">
+              Back to Autopilot
+            </Link>
+            <Link href="/dashboard" className="rounded-xl border border-[#7B61FF]/20 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#7B61FF] transition-all hover:bg-[#7B61FF]/10">
+              Overview
+            </Link>
+            <Link href="/dashboard/bookings" className="rounded-xl border border-[#7B61FF]/20 bg-[#0A0A0A] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#7B61FF] transition-all hover:bg-[#7B61FF]/10">
+              Bookings
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
