@@ -24,6 +24,8 @@ If you are only launching one URL for today, use `getnama.app` as the public fac
 
 Use this order for the hosted Demo.
 
+For a compact one-page version of the same flow, see [HOSTED_DEMO_ROUTE_MAP.md](/Users/radhika/Documents/New%20project/nama-live/docs/HOSTED_DEMO_ROUTE_MAP.md).
+
 | Step | Route | What it proves |
 | --- | --- | --- |
 | 1 | `/` | Brand, positioning, and immediate trust |
