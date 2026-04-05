@@ -2,12 +2,12 @@
 
 ## Purpose
 
-This is the final operator package for the hosted Demo. It is the shortest safe path to show NAMA as a coherent travel operating system without wandering into weaker preview surfaces.
+This is the final operator package for the hosted Demo. It is the shortest safe path to show NAMA as a coherent travel operating system without wandering into weaker support surfaces.
 
 ## Current Branch Truth
 
 - Branch: `codex/beta-foundations`
-- Verified head at the time of this package: `0a315ad`
+- Verified head at the time of this package: latest pushed state on the branch
 - The core founder path is stable and tested.
 - The same-origin demo routes, contract-backed workflow state, and super-admin controls are in place.
 
@@ -58,7 +58,7 @@ For a compact one-page version of the same flow, see [HOSTED_DEMO_ROUTE_MAP.md](
 - Do not make claims of live supplier or payment production rails.
 - Do not linger on pages that still read as conceptual boards.
 - Do not improvise outside the route map if a screen is slow; use the fallback path instead.
-- Do not describe preview-safe flows as final production truth.
+- Do not describe support-layer flows as final production truth.
 
 ## Fail-Safe Backup Path
 
@@ -100,6 +100,22 @@ If time gets tight, use only these routes:
 6. `/dashboard/admin?entry=super-admin`
 
 That sequence still tells the full story: onboarding, commercial workflow, finance control, artifacts, and oversight.
+
+## Alpha-Live Safe Route
+
+If you want the cleanest Alpha framing tomorrow morning, use this shorter route and then stop:
+
+1. `/register`
+2. `/dashboard`
+3. `/dashboard/leads`
+4. `/dashboard/deals?case=maldives-honeymoon`
+5. `/dashboard/finance`
+6. `/dashboard/bookings`
+7. `/dashboard/invoices/maldives-honeymoon`
+8. `/dashboard/traveler-pdf/maldives-honeymoon`
+9. `/dashboard/admin?entry=super-admin`
+
+Use this route whenever the goal is credibility first and breadth second.
 
 ## Application-Facing Product Summary
 

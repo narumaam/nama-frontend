@@ -57,7 +57,8 @@ Recommended path:
 6. `/dashboard/traveler-pdf/[case]`
 7. `/dashboard/artifacts`
 
-This is the strongest demo and alpha path today.
+This is the strongest safe Demo and Alpha path today.
+If you open a supporting screen like analytics, content, comms, DMC, autopilot, EKLA, or evolution, come back to the founder path immediately after the point is made.
 
 ## 5. Use Super Admin
 
@@ -83,7 +84,7 @@ The following areas exist, but should be described carefully:
 - EKLA
 - evolution
 
-These are present and useful for narrative continuity, but several are still preview-weighted rather than fully operational.
+These are present and useful for narrative continuity, but several are still support-layer screens rather than fully operational product surfaces.
 
 ## 7. Recommended Demo Narrative
 
@@ -93,7 +94,23 @@ These are present and useful for narrative continuity, but several are still pre
 - Open branded invoice and traveler PDF
 - End in Super Admin with audit visibility
 
-## 8. Operational Notes
+## 8. Safe Route Summary
+
+If time is tight, use this order and stop there:
+
+1. `/register`
+2. `/dashboard`
+3. `/dashboard/leads`
+4. `/dashboard/deals?case=maldives-honeymoon`
+5. `/dashboard/finance`
+6. `/dashboard/bookings`
+7. `/dashboard/invoices/maldives-honeymoon`
+8. `/dashboard/traveler-pdf/maldives-honeymoon`
+9. `/dashboard/admin?entry=super-admin`
+
+That route is the clearest present-day Alpha story and is the safest one for tomorrow’s live handoff.
+
+## 9. Operational Notes
 
 - Run smokes sequentially, not in parallel
 - Use founder smoke for the main journey

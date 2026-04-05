@@ -33,6 +33,22 @@ This board is the short-form operating view of current readiness.
 - EKLA
 - evolution
 
+## Safe Demo Route
+
+Use this when you want the shortest credible live story:
+
+1. `/register`
+2. `/dashboard`
+3. `/dashboard/leads`
+4. `/dashboard/deals?case=maldives-honeymoon`
+5. `/dashboard/finance`
+6. `/dashboard/bookings`
+7. `/dashboard/invoices/maldives-honeymoon`
+8. `/dashboard/traveler-pdf/maldives-honeymoon`
+9. `/dashboard/admin?entry=super-admin`
+
+If the walkthrough branches into analytics, content, or one of the narrative screens, return to the core route immediately after the point is made.
+
 ## Alpha Status
 
 ### Strong
@@ -50,6 +66,12 @@ This board is the short-form operating view of current readiness.
 - analytics truth
 - supplier and message provider depth
 
+### Presenter Story
+
+- Alpha is credible when shown as a bounded live operating layer, not a complete product claim.
+- The founder path is the anchor; supporting surfaces should always return to the core route.
+- Keep Autopilot, EKLA, and evolution as supporting context only.
+
 ## MVP Status
 
 ### Ready To Start
@@ -64,6 +86,10 @@ This board is the short-form operating view of current readiness.
 - truthful sandbox external rails
 - stronger operational analytics
 - deeper module completion
+
+### Handoff Rule
+
+Do not describe Alpha support surfaces as MVP-complete. The MVP roadmap should stay separate from the live Demo/Alpha story until the next build phase starts.
 
 ## Module Snapshot
 
