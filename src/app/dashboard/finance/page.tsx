@@ -126,7 +126,7 @@ const FINANCE_GUARDRAILS = [
   {
     title: "Margin floor",
     state: "Protected",
-    detail: "All three preview cases stay above the visible commercial floor, so finance reads as controlled instead of reactive.",
+    detail: "All three operating cases stay above the visible commercial floor, so finance reads as controlled instead of reactive.",
   },
   {
     title: "Deposit timing",
@@ -216,7 +216,7 @@ export default function FinancePage() {
       </header>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Quote Volume" value={`₹${totalQuote.toLocaleString("en-IN")}`} sub="Across 3 preview cases" icon={BadgeIndianRupee} />
+        <MetricCard label="Quote Volume" value={`₹${totalQuote.toLocaleString("en-IN")}`} sub="Across 3 operating cases" icon={BadgeIndianRupee} />
         <MetricCard label="Gross Profit" value={`₹${totalProfit.toLocaleString("en-IN")}`} sub="Commercial surplus in view" icon={Target} />
         <MetricCard label="Deposit Pipeline" value={`₹${totalDeposit.toLocaleString("en-IN")}`} sub="Pending collection across cases" icon={TrendingUp} />
         <MetricCard label="Average Margin" value={`${avgMargin.toFixed(1)}%`} sub="Weighted across the active set" icon={Sparkles} />
@@ -254,7 +254,7 @@ export default function FinancePage() {
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <h2 className="font-headline text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Performance Vector</h2>
-              <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Case economics across the April preview set</p>
+              <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Case economics across the April operating set</p>
             </div>
             <div className="flex gap-6">
               <LegendItem color="bg-[#C9A84C]" label="Quote value" />
@@ -381,7 +381,7 @@ export default function FinancePage() {
           <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-6">
             <div className="mb-4 flex items-center gap-2">
               <Sparkles size={14} className="text-[#C9A84C]" />
-              <h2 className="text-lg font-black text-[#F5F0E8]">How to frame this in the preview</h2>
+              <h2 className="text-lg font-black text-[#F5F0E8]">How to frame this in the live walkthrough</h2>
             </div>
             <div className="grid gap-3">
               <PositioningCard
@@ -390,7 +390,7 @@ export default function FinancePage() {
               />
               <PositioningCard
                 title="Safe wording"
-                detail="Call this a preview-safe finance control layer. It shows commercial logic and collections workflow without claiming live reconciliation rails are fully wired end to end."
+                detail="Call this a live finance control layer. It shows commercial logic and collections workflow without claiming live reconciliation rails are fully wired end to end."
               />
               <PositioningCard
                 title="Walkthrough handoff"
@@ -486,7 +486,7 @@ export default function FinancePage() {
         <div className="flex items-center justify-between gap-4 border-b border-[#C9A84C]/10 bg-[#151515] px-6 py-5">
           <div>
             <h2 className="font-headline text-lg font-black uppercase tracking-tight text-[#F5F0E8]">Intelligence Ledger</h2>
-            <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Recent preview transmissions</p>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.25em] text-[#4A453E]">Recent operating transmissions</p>
           </div>
           <div className="flex gap-3">
             <button
