@@ -6,6 +6,13 @@ This is the safest hosted investor-demo route for the current `codex/beta-founda
 
 Use this sequence for live walkthroughs. It prioritizes the strongest working surfaces and avoids the weakest narrative-only modules unless they are explicitly introduced as appendix material.
 
+## Live Surface Map
+
+- `getnama.app`: public waitlist and brand entry
+- `demo.getnama.app`: live app demo
+- `ekla.getnama.app`: EKLA support surface
+- `kosha.getnama.app`: Kosha remittance surface
+
 ## Primary Demo Path
 
 1. `/register`
@@ -33,6 +40,8 @@ These are acceptable appendix screens if the main route is already landed cleanl
 - `/dashboard/itineraries`
 
 Use these only as supporting proof that the product is becoming a broader operating system. Do not let them replace the main founder flow.
+
+If the presenter wants to widen the story outside the main founder path, `ekla.getnama.app` and `kosha.getnama.app` are better live proofs than the most conceptual dashboard screens.
 
 ## Screens To Contain Carefully
 

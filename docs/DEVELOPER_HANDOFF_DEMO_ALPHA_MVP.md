@@ -6,12 +6,20 @@
 - Current head should be checked before new work begins
 - Strongest verified path is the founder journey plus tenant-role and super-admin access flows
 
+## Live Surfaces
+
+- `getnama.app` is the public waitlist and brand entry.
+- `demo.getnama.app` is the live app demo.
+- `ekla.getnama.app` is the EKLA support surface.
+- `kosha.getnama.app` is the remittance surface.
+
 ## What Is Reliable Today
 
 - Auth, sessions, invites, and workspace activation
 - Founder-path continuity from leads to artifacts
 - Super Admin route separation
 - Build and smoke coverage for key routes
+- Live domain splits for waitlist, demo, EKLA, and Kosha
 
 ## What Needs Attention First
 
@@ -63,6 +71,7 @@
 - Avoid widening preview-only language on weak modules
 - Prefer API-first state changes over local-only page state
 - Treat Demo, Alpha, and MVP as one codebase with different maturity layers, not separate products
+- Keep the live domain map explicit so `getnama.app`, `demo.getnama.app`, `ekla.getnama.app`, and `kosha.getnama.app` do not drift back onto the wrong project
 
 ## Post-Alpha Reminder
 

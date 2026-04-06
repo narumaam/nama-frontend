@@ -17,6 +17,14 @@ This is the final operator package for the hosted Demo. It is the shortest safe 
 - Demo / rehearsal: `demo.getnama.app`
 - Alpha / invite-only: `alpha.getnama.app`
 - MVP / product: `app.getnama.app`
+- EKLA surface: `ekla.getnama.app`
+- Kosha remittance demo: `kosha.getnama.app`
+
+Current live truth:
+- `getnama.app` is the public waitlist and brand entry.
+- `demo.getnama.app` is the live app demo surface.
+- `ekla.getnama.app` is the EKLA operating surface.
+- `kosha.getnama.app` is the remittance demo surface.
 
 If you are only launching one URL for today, use `getnama.app` as the public face and keep the Demo path under the same brand with a clear route map.
 
@@ -51,6 +59,7 @@ For a compact one-page version of the same flow, see [HOSTED_DEMO_ROUTE_MAP.md](
 - Use `/dashboard/finance` to show the margin and deposit control layer.
 - Use `/dashboard/bookings?case=maldives-honeymoon`, `/dashboard/invoices/maldives-honeymoon`, and `/dashboard/traveler-pdf/maldives-honeymoon` to show downstream handoff and artifact visibility.
 - Finish with `/dashboard/admin?entry=super-admin` to show the platform oversight layer and close the story with control.
+- If the audience asks for side surfaces, use `ekla.getnama.app` for orchestration context and `kosha.getnama.app` for remittance context, then return to the core flow.
 
 ## What To Avoid
 
@@ -59,6 +68,7 @@ For a compact one-page version of the same flow, see [HOSTED_DEMO_ROUTE_MAP.md](
 - Do not linger on pages that still read as conceptual boards.
 - Do not improvise outside the route map if a screen is slow; use the fallback path instead.
 - Do not describe support-layer flows as final production truth.
+- Do not imply `ekla.getnama.app` or `kosha.getnama.app` are the primary investor walkthrough. They are supporting proof surfaces.
 
 ## Fail-Safe Backup Path
 

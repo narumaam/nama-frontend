@@ -4,6 +4,13 @@
 
 This board is the short-form operating view of current readiness.
 
+## Current Live Surfaces
+
+- `getnama.app` is the public waitlist and brand entry.
+- `demo.getnama.app` is the live app demo.
+- `ekla.getnama.app` is the EKLA support surface.
+- `kosha.getnama.app` is the Kosha remittance surface.
+
 ## Demo Status
 
 ### Strong
@@ -32,6 +39,11 @@ This board is the short-form operating view of current readiness.
 - autopilot
 - EKLA
 - evolution
+
+### Live Adjacent Proof
+
+- `ekla.getnama.app`
+- `kosha.getnama.app`
 
 ## Safe Demo Route
 
@@ -71,6 +83,7 @@ If the walkthrough branches into analytics, content, or one of the narrative scr
 - Alpha is credible when shown as a bounded live operating layer, not a complete product claim.
 - The founder path is the anchor; supporting surfaces should always return to the core route.
 - Keep Autopilot, EKLA, and evolution as supporting context only.
+- Use `ekla.getnama.app` and `kosha.getnama.app` as supporting live proof only if the audience asks for adjacent surfaces.
 
 ## MVP Status
 

@@ -4,6 +4,13 @@
 
 This manual is for founders, demo presenters, internal reviewers, and the next developer who needs to understand the current usable flow.
 
+## Live Domains
+
+- `getnama.app` for the public waitlist and brand entry
+- `demo.getnama.app` for the live app demo
+- `ekla.getnama.app` for EKLA support proof
+- `kosha.getnama.app` for the remittance demo
+
 ## 1. Register A Workspace
 
 Open `/register`.
@@ -83,6 +90,7 @@ The following areas exist, but should be described carefully:
 - autopilot
 - EKLA
 - evolution
+- kosha as a primary founder walkthrough surface
 
 These are present and useful for narrative continuity, but several are still support-layer screens rather than fully operational product surfaces.
 
