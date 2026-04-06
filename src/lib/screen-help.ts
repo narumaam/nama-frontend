@@ -100,6 +100,15 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
       "Case cards and ledger rows show how finance stays attached to the same case set.",
     ],
   },
+  integrations: {
+    title: "Integration Vault",
+    description: "This screen shows the current readiness of external rails and provider connections across the operating system.",
+    bullets: [
+      "Connection cards distinguish live-ready rails from providers that still need credentials.",
+      "Use this screen as an operator control view, not as a setup wizard.",
+      "The goal is to show which commercial, communication, and supply rails are available to activate next.",
+    ],
+  },
   autopilot: {
     title: "Autopilot Command Center",
     description: "This screen summarizes what the agent swarm is doing and which cases need human attention now.",

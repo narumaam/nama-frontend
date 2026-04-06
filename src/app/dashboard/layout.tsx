@@ -145,6 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ...(superAdminAccess ? [{ name: 'Super Admin', href: '/dashboard/admin', icon: Shield, badge: null }] : []),
         { name: 'Analytics',     href: '/dashboard/analytics', icon: Activity,         badge: null },
         { name: 'Finance',       href: '/dashboard/finance',   icon: CreditCard,       badge: null },
+        { name: 'Integration Vault', href: '/dashboard/integrations', icon: Globe2,   badge: null },
         { name: 'Content',       href: '/dashboard/content',   icon: FileText,         badge: null },
       ],
     },
