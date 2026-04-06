@@ -3,11 +3,11 @@ import type { ScreenHelpContent } from "@/components/screen-info-tip";
 export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
   register: {
     title: "Workspace Onboarding",
-    description: "Use this screen to define the tenant profile before entering the preview workspace.",
+    description: "Use this screen to define the tenant profile before entering the workspace.",
     bullets: [
       "Company Name and Workspace Operator set the visible tenant identity.",
       "Business Profile and Market Defaults control role, language, gateway, and base currency behavior.",
-      "Currency Model and Plan Fit explain how the tenant should operate inside the alpha preview.",
+      "Currency Model and Plan Fit explain how the tenant should operate inside the workspace.",
     ],
   },
   registerBusiness: {
@@ -15,7 +15,7 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     description: "Use this section to describe what kind of travel business the tenant actually is.",
     bullets: [
       "A tenant can carry more than one identity, so this is intentionally multi-select.",
-      "The selected roles shape the operating narrative shown later in the preview.",
+      "The selected roles shape the operating model shown across the workspace.",
       "Keep this focused on business model, not plan or team structure.",
     ],
   },
@@ -24,7 +24,7 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     description: "This section sets the operating market anchor before deeper workspace setup begins.",
     bullets: [
       "Country drives the default language, billing gateway, and base currency choice.",
-      "These are preview defaults, so they demonstrate logic without claiming live provisioning.",
+      "These defaults establish how the workspace behaves by market and region.",
       "Use this to explain that regional behavior changes by tenant rather than staying global.",
     ],
   },
@@ -51,7 +51,7 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     description: "This summary helps the user confirm the tenant defaults before entering the dashboard.",
     bullets: [
       "Use it as a readback of the selected business type, market, commerce, and banking settings.",
-      "The values here should feel like a safe handoff into the rest of the alpha.",
+      "The values here should feel like a clear handoff into the rest of the workspace.",
       "It reinforces that onboarding is defining the workspace, not collecting payment details yet.",
     ],
   },
@@ -60,8 +60,8 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     description: "This section frames subscription fit as guided recommendation rather than a hard commercial step.",
     bullets: [
       "Use plan selection to explain operating depth, not live billing commitment.",
-      "Each card maps the tenant to a fuller control model inside the alpha.",
-      "The recommendation stays preview-safe while still helping the story land commercially.",
+      "Each card maps the tenant to a fuller control model inside the product.",
+      "The recommendation should feel commercially clear without overcommitting live billing behavior.",
     ],
   },
   overview: {
@@ -69,8 +69,8 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     description: "This screen is the walkthrough spine for the alpha and connects the main operating layers.",
     bullets: [
       "Top metrics summarize case volume, urgency, and deposit exposure.",
-      "Canonical Preview Journey shows the order to click through the workflow.",
-      "Priority Cases and Preview Focus help the presenter anchor the narrative around the same case set.",
+      "The guided journey shows the order to click through the workflow.",
+      "Priority Cases and focus cards help anchor the walkthrough around the same case set.",
     ],
   },
   leads: {
@@ -111,7 +111,7 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
   },
   comms: {
     title: "Comms Command",
-    description: "This is the omnichannel CRM layer for website, phone, email, and placeholder messaging rails.",
+    description: "This is the omnichannel CRM layer for website, phone, email, and messaging intake.",
     bullets: [
       "Omnichannel Intake shows the source cards that feed the same CRM story.",
       "Transcript and follow-up queue explain what the team should do next.",
@@ -150,7 +150,7 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     description: "This section is the permission logic behind the visible team workspace.",
     bullets: [
       "Permission Matrix explains who can view, act, and escalate across the tenant.",
-      "Role Templates show reusable staffing patterns before real user provisioning exists.",
+      "Role Templates show reusable staffing patterns across the tenant.",
       "Admin Summary keeps the visible naming decisions aligned with the rest of the page.",
     ],
   },
@@ -170,7 +170,7 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
       "The toggle protects branding settings until white label is turned on.",
       "Workspace name, badge, support, domain, and accent fields are the tenant-editable identity layer.",
       "The domain can be either a NAMA-hosted subdomain or the customer's own connected domain, with clear brand setup guidance.",
-      "The preview panel proves the controls have visible product impact without touching live infrastructure.",
+      "The summary panel shows the visible product impact of those branding controls.",
     ],
   },
   admin: {
@@ -229,9 +229,9 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
   },
   analytics: {
     title: "Analytics Workspace",
-    description: "This screen presents preview analytics for pipeline value, ROI, response efficiency, and agent performance.",
+    description: "This screen presents analytics for pipeline value, ROI, response efficiency, and agent performance.",
     bullets: [
-      "KPI cards summarize the top-level health of the preview pipeline.",
+      "KPI cards summarize the top-level health of the active pipeline.",
       "Charts and leaderboards show performance by time, channel, and team.",
       "Use this screen as a readout layer, not as an operational control surface.",
     ],
@@ -259,13 +259,13 @@ export const SCREEN_HELP: Record<string, ScreenHelpContent> = {
     description: "This page explains the autonomous operator narrative behind the workflow.",
     bullets: [
       "The top panels explain what Ekla automates across capture, quote, follow-up, and execution.",
-      "Agency Stack and story cards help pitch the product concept in the preview.",
-      "Control Signals are the presenter-safe proof points to call out live.",
+      "Agency Stack and story cards explain how the operating model fits together.",
+      "Control Signals are the key proof points to call out live.",
     ],
   },
   evolution: {
     title: "Agentic Evolution",
-    description: "This is the preview-safe learning and optimization layer for the operating system.",
+    description: "This is the learning and optimization layer for the operating system.",
     bullets: [
       "Top KPIs summarize improvement, accuracy, and learning cycles.",
       "Recursive Self-Improvement Feed explains what the system is learning from recent behavior.",

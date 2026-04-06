@@ -381,7 +381,7 @@ export default function TeamPage() {
             );
             await syncTenantMembersFromApi(visibleCompany);
           } catch {
-            // Local fallback remains the safety net for frontend-only demos.
+            // Local fallback remains the safety net for frontend-only access.
           }
 
           upsertDemoEmployees(employees);
@@ -432,7 +432,7 @@ export default function TeamPage() {
             <ScreenInfoTip content={SCREEN_HELP.team} />
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#B8B0A0]">
-            Preview-safe workspace for customer admins to create individual invites, preview bulk user uploads, assign roles, and show the hierarchy and team ownership model without touching live credentials.
+            Live workspace for customer admins to create individual invites, review bulk user uploads, assign roles, and show the hierarchy and team ownership model without touching live credentials.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
             <span className="rounded-full border border-[#C9A84C]/15 bg-[#111111] px-3 py-1.5 text-[#C9A84C]">{visibleCompany}</span>
@@ -918,7 +918,7 @@ export default function TeamPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Visible Hierarchy Diagram</span>
                 </div>
                 <p className="mb-4 text-xs leading-relaxed text-[#B8B0A0]">
-                  Drag the department cards to reorder the visible hierarchy for each business entity. This is a preview-safe interaction layer to show configurability on screen.
+                  Drag the department cards to reorder the visible hierarchy for each business entity. This interaction layer shows configurability on screen.
                 </p>
                 <div className="rounded-3xl border border-[#C9A84C]/10 bg-[#111111] p-4 sm:p-5">
                   <div className="mx-auto w-full max-w-[260px] rounded-2xl border border-[#C9A84C]/20 bg-[#C9A84C]/10 px-4 py-4 text-center">
@@ -967,7 +967,7 @@ export default function TeamPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Configurable Nomenclature</span>
                 </div>
                 <div className="mb-4 rounded-2xl border border-[#C9A84C]/10 bg-[#111111] p-4">
-                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Visible preview</div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-[#4A453E]">Visible workspace</div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <PreviewField label="Business entity" value={entityLabel} />
                     <PreviewField label="Team label" value={teamLabel} />
@@ -1151,7 +1151,7 @@ export default function TeamPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Preview-safe Notes</span>
                 </div>
                 <ul className="space-y-3 text-sm text-[#B8B0A0] leading-relaxed">
-                  <li>Assignments are rendered as static preview work so the alpha stays stable while the workflow model is reviewed.</li>
+                  <li>Assignments are rendered as static workspace work so the alpha stays stable while the workflow model is reviewed.</li>
                   <li>The screen shows how ownership, team, and designation mapping would look for a customer admin.</li>
                   <li>Real provisioning can be connected later without changing the visible flow.</li>
                 </ul>
@@ -1166,7 +1166,7 @@ export default function TeamPage() {
             <h2 className="text-lg font-black text-[#F5F0E8]">What This Proves</h2>
           </div>
           <p className="text-sm leading-relaxed text-[#B8B0A0]">
-            A customer admin can create users one by one, preview a bulk CSV import, assign roles and designations, show a visible hierarchy diagram, and rename the business structure to match their own entity. This keeps the alpha focused on operational control without needing live auth provisioning.
+            A customer admin can create users one by one, review a bulk CSV import, assign roles and designations, show a visible hierarchy diagram, and rename the business structure to match their own entity. This keeps the alpha focused on operational control without needing live auth provisioning.
           </p>
           <div className="mt-5 rounded-2xl border border-[#C9A84C]/10 bg-[#0A0A0A] p-4">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-2">Preview Positioning</div>
