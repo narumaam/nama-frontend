@@ -52,12 +52,13 @@ Use this when you want the shortest credible live story:
 1. `/register`
 2. `/dashboard`
 3. `/dashboard/leads`
-4. `/dashboard/deals?case=maldives-honeymoon`
-5. `/dashboard/finance`
-6. `/dashboard/bookings`
-7. `/dashboard/invoices/maldives-honeymoon`
-8. `/dashboard/traveler-pdf/maldives-honeymoon`
-9. `/dashboard/admin?entry=super-admin`
+4. `/dashboard/itineraries`
+5. `/dashboard/deals?case=maldives-honeymoon`
+6. `/dashboard/finance`
+7. `/dashboard/bookings`
+8. `/dashboard/invoices/maldives-honeymoon`
+9. `/dashboard/traveler-pdf/maldives-honeymoon`
+10. `/dashboard/admin?entry=super-admin`
 
 If the walkthrough branches into analytics, content, or one of the narrative screens, return to the core route immediately after the point is made.
 

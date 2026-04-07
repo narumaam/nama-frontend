@@ -75,19 +75,25 @@ const WALKTHROUGH_GUIDE = [
     cta: "Click into leads",
   },
   {
-    title: "3. Deal conversion",
+    title: "3. Itinerary creation",
+    body: `Open the ${PRIMARY_CASE.destination} itinerary workspace to show that the trip is being assembled before the quote, finance, and traveler-facing handoff.`,
+    href: "/dashboard/itineraries",
+    cta: "Open itinerary workspace",
+  },
+  {
+    title: "4. Deal conversion",
     body: `Use the ${PRIMARY_CASE.destination} case for triage, itinerary logic, quote framing, vendor position, and the conversion story.`,
     href: `/dashboard/deals?case=${PRIMARY_CASE.slug}`,
     cta: `Open ${PRIMARY_CASE.destination} deal`,
   },
   {
-    title: "4. Finance-lite",
+    title: "5. Finance-lite",
     body: "Show margin visibility, deposit pressure, and release readiness as a dedicated control layer instead of a hidden spreadsheet step.",
     href: "/dashboard/finance",
     cta: "Open finance control",
   },
   {
-    title: "5. Supplier to execution",
+    title: "6. Supplier to execution",
     body: "Close on DMC normalization and bookings handoff to prove the alpha runs as one operating system.",
     href: "/dashboard/bookings",
     cta: "Open booking execution",
@@ -96,6 +102,7 @@ const WALKTHROUGH_GUIDE = [
 
 const PREVIEW_JOURNEY = [
   { label: "Capture", href: "/dashboard/leads", detail: "Website, WhatsApp, email, and phone" },
+  { label: "Design", href: "/dashboard/itineraries", detail: "Draft the itinerary before the commercial handoff" },
   { label: "Convert", href: `/dashboard/deals?case=${PRIMARY_CASE.slug}`, detail: "Triage, itinerary, quote, and close logic" },
   { label: "Control", href: "/dashboard/finance", detail: "Margin, deposits, and release checks" },
   { label: "Normalize", href: "/dashboard/dmc", detail: "Contracts, suppliers, and DMC ops" },
@@ -177,7 +184,7 @@ export default function DashboardPage() {
             <ScreenInfoTip content={SCREEN_HELP.overview} />
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-            This overview is the April 6 demo spine: one configured workspace, one coherent case set, and one guided path from capture through finance, supplier control, and execution.
+            This overview is the April 6 demo spine: one configured workspace, one coherent case set, and one guided path from capture through itinerary creation, finance, supplier control, and execution.
           </p>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -314,18 +321,18 @@ export default function DashboardPage() {
             <div className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#1e3a8a]">Canonical Demo Journey</div>
             <h2 className="text-lg font-black text-[#0f172a] sm:text-xl">One lead, one journey, five operating layers</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-              Use this strip as the walkthrough anchor: capture demand, convert it into a structured deal, show finance control, normalize supplier input, then move into execution.
+              Use this strip as the walkthrough anchor: capture demand, build the itinerary, convert it into a structured deal, show finance control, normalize supplier input, then move into execution.
             </p>
           </div>
           <Link
-            href={`/dashboard/deals?case=${PRIMARY_CASE.slug}`}
+            href="/dashboard/itineraries"
             className="w-full rounded-full border px-4 py-2 text-center text-[9px] font-black uppercase tracking-widest transition-colors md:w-auto"
             style={{ borderColor: accentBorder, color: accentHex, backgroundColor: accentSoft }}
           >
-            Start walkthrough with {PRIMARY_CASE.destination}
+            Start with itinerary workspace
           </Link>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           {PREVIEW_JOURNEY.map((step, index) => (
             <Link key={step.label} href={step.href} className="rounded-2xl border border-slate-200 bg-[#f7f9fb] p-4 transition-colors hover:border-[#1e3a8a]/20 hover:bg-white">
               <div className="text-[9px] font-black uppercase tracking-widest text-[#1e3a8a]">
@@ -478,8 +485,9 @@ export default function DashboardPage() {
           <div className="space-y-3">
             <FocusCard
               title={PRIMARY_CASE.destination}
-              note="Use this as the primary case because it spans urgency, margin, supplier fit, and deposit timing."
+              note="Use this as the primary case because it spans itinerary creation, urgency, margin, supplier fit, and deposit timing."
             />
+            <FocusCard title="Itinerary first" note="Open the itinerary workspace before the deal screen so the audience sees the trip being created, not only priced." />
             <FocusCard title="Finance-lite" note="Show finance between deal and bookings so execution feels earned through release control." />
             <FocusCard title="DMC continuity" note="Use supplier normalization as proof that the alpha is not only front-end CRM polish." />
           </div>

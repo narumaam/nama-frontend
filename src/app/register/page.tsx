@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ScreenInfoTip from "@/components/screen-info-tip";
 import { upsertDemoTenantRegistration, writeDemoSubscriptionPlan, type DemoSubscriptionPlan } from "@/lib/demo-admin";
-import { createIssuedTenantSession } from "@/lib/auth-session";
+import { createIssuedTenantSession, createTenantAdminSession } from "@/lib/auth-session";
 import { bootstrapTenantCredential } from "@/lib/credential-api";
 import { BUSINESS_ROLES, MARKET_PRESETS, SUPPORTED_CURRENCIES, findMarketPreset, type BusinessRole, type DemoPlan, type SupportedCurrency } from "@/lib/demo-config";
 import { appendDemoEvent } from "@/lib/demo-events";
@@ -207,9 +207,18 @@ export default function RegisterPage() {
         team: issuedSession.team,
       });
     } catch (error) {
-      setShowConfetti(false);
-      setSubmissionMessage(error instanceof Error ? error.message : "Workspace onboarding failed.");
-      return;
+      createTenantAdminSession(nextProfile.operator, nextProfile.company);
+      appendDemoEvent({
+        type: "tenant_registered",
+        severity: "warning",
+        tenant: nextProfile.company,
+        title: "Workspace entered with demo-safe fallback",
+        detail:
+          error instanceof Error
+            ? `API-backed onboarding hit a hosted-path issue (${error.message}). The demo continued with a local workspace-admin session.`
+            : "API-backed onboarding hit a hosted-path issue. The demo continued with a local workspace-admin session.",
+        path: "/dashboard",
+      });
     }
     window.setTimeout(() => {
       router.push("/dashboard");

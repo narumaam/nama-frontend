@@ -1,4 +1,3 @@
-import { apiUrl } from "@/lib/api";
 import {
   type TenantCredentialBootstrapPayload,
   type TenantCredentialResetConfirmPayload,
@@ -6,7 +5,7 @@ import {
   type TenantCredentialResetResponse,
 } from "@/lib/tenant-contracts";
 
-const CREDENTIAL_API_BASE = apiUrl("/credentials");
+const CREDENTIAL_API_BASE = "/api/v1/credentials";
 
 function credentialApiUrl(path: string) {
   return `${CREDENTIAL_API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
