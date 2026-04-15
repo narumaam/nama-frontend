@@ -1,0 +1,55 @@
+name: Deploy Backend to Railway
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'requirements.txt'
+      - 'nixpacks.toml'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  deploy-railway:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          npm install -g @railway/cli
+
+      - name: Deploy backend to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service backend
+        continue-on-error: false
+
+  run-migrations:
+    needs: deploy-railway
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          npm install -g @railway/cli
+
+      - name: Run Alembic migrations
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway run alembic upgrade head
+        continue-on-error: false

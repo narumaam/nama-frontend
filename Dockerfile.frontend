@@ -1,0 +1,74 @@
+# Multi-stage Dockerfile for NAMA Next.js Frontend
+# Optimized for production with minimal final image size
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 1: DEPENDENCIES
+# Install npm dependencies
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine as deps
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+
+# Install production dependencies only
+RUN npm ci --only=production
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 2: BUILDER
+# Build Next.js application
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine as builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install all dependencies (including dev dependencies needed for build)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build Next.js application with backend URL build argument
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+RUN npm run build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 3: RUNNER
+# Minimal production image
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine as runner
+
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Copy production dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy built application from builder stage
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/package.json ./package.json
+
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=3000
+
+# Expose port
+EXPOSE 3000
+
+# Health check: verify Next.js is responding
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start Next.js production server
+CMD ["npm", "start"]

@@ -1,0 +1,9 @@
+# Requirements for PostgreSQL migration tooling
+# Install with: pip install -r deploy/requirements-migration.txt
+
+# Core database drivers
+psycopg2-binary==2.9.9          # PostgreSQL adapter for Python
+sqlalchemy>=2.0,<3.0            # SQL toolkit and ORM
+
+# Optional but recommended
+python-dotenv>=1.0              # Load .env files for DATABASE_URL

@@ -1,0 +1,8 @@
+.env
+*.db
+*.db-journal
+__pycache__/
+.next/
+node_modules/
+.pytest_cache/
+*.pyc

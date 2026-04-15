@@ -1,0 +1,304 @@
+"""
+HS-3: Payment Endpoints — Webhook Receivers + Payment Status
+-------------------------------------------------------------
+HS-3 Acceptance Gates wired here:
+  ✓ Stripe webhook: verify HMAC signature → 400 if invalid
+  ✓ Razorpay webhook: verify HMAC signature → 400 if invalid
+  ✓ Both webhooks write event to DB before any processing (at-least-once)
+  ✓ No sync payment processing in HTTP handler
+"""
+
+import json
+from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
+from sqlalchemy.orm import Session
+from typing import Optional
+from pydantic import BaseModel
+
+from app.db.session import get_db
+from app.api.v1.deps import require_tenant, get_token_claims
+from app.models.payments import Payment, PaymentStatus, PaymentProvider, LedgerEntry
+from app.core.payments import (
+    verify_stripe_signature,
+    verify_razorpay_signature,
+    persist_webhook_event,
+)
+from app.core.rls import tenant_query
+
+router = APIRouter()
+
+
+# ── Schemas ───────────────────────────────────────────────────────────────────
+
+class PaymentOut(BaseModel):
+    id: int
+    booking_id: int
+    tenant_id: int
+    idempotency_key: str
+    amount: float
+    currency: str
+    provider: str
+    provider_ref: Optional[str] = None
+    status: str
+    failure_reason: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class LedgerEntryOut(BaseModel):
+    id: int
+    entry_type: str
+    amount: float
+    currency: str
+    description: str
+    reference: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ── Payment status ─────────────────────────────────────────────────────────────
+
+@router.get("/booking/{booking_id}", response_model=PaymentOut)
+def get_payment_for_booking(
+    booking_id: int,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    """Fetch payment record for a booking — tenant-scoped."""
+    payment = (
+        db.query(Payment)
+        .filter(Payment.booking_id == booking_id, Payment.tenant_id == tenant_id)
+        .order_by(Payment.created_at.desc())
+        .first()
+    )
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    return payment
+
+
+@router.get("/ledger", response_model=list[LedgerEntryOut])
+def get_ledger(
+    booking_id: Optional[int] = None,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    """Ledger entries for this tenant, optionally filtered by booking."""
+    q = db.query(LedgerEntry).filter(LedgerEntry.tenant_id == tenant_id)
+    if booking_id:
+        q = q.filter(LedgerEntry.booking_id == booking_id)
+    return q.order_by(LedgerEntry.created_at.desc()).all()
+
+
+# ── Stripe webhook ────────────────────────────────────────────────────────────
+
+@router.post("/webhooks/stripe", status_code=status.HTTP_200_OK)
+async def stripe_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    HS-3: Stripe webhook receiver.
+      1. Verify HMAC signature — 400 if invalid (gate: no processing of tampered events)
+      2. Persist event to DB before any processing
+      3. Enqueue background processing — HTTP handler returns 200 immediately
+
+    Acceptance Gate: invalid Stripe-Signature header → HTTP 400, nothing processed.
+    """
+    body = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    # Gate: reject if signature invalid
+    if not verify_stripe_signature(body, sig_header):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Stripe webhook signature",
+        )
+
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    event_id = payload.get("id", "")
+    event_type = payload.get("type", "")
+
+    # Persist event — idempotent, returns None if already seen
+    event = persist_webhook_event(db, PaymentProvider.STRIPE, event_id, event_type, payload)
+    if event is None:
+        return {"status": "already_processed"}
+
+    # Enqueue processing (non-blocking)
+    background_tasks.add_task(_handle_stripe_event, event.id, payload)
+
+    return {"status": "queued", "event_id": event_id}
+
+
+def _handle_stripe_event(event_db_id: int, payload: dict) -> None:
+    """
+    Background handler for Stripe events.
+    Called after the HTTP response is sent — never blocks the webhook handler.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    import os
+
+    engine = create_engine(os.getenv("DATABASE_URL", ""))
+    db = sessionmaker(bind=engine)()
+    try:
+        from app.models.payments import WebhookEvent
+        from datetime import datetime, timezone
+
+        event_type = payload.get("type", "")
+        data = payload.get("data", {}).get("object", {})
+
+        if event_type == "payment_intent.succeeded":
+            provider_ref = data.get("id")
+            payment = db.query(Payment).filter(Payment.provider_ref == provider_ref).first()
+            if payment:
+                payment.status = PaymentStatus.COMPLETED
+
+                from app.models.bookings import Booking as BookingModel
+                from app.schemas.bookings import BookingStatus
+                booking = db.query(BookingModel).filter(BookingModel.id == payment.booking_id).first()
+                if booking:
+                    booking.status = BookingStatus.CONFIRMED.value
+
+                db.add(LedgerEntry(
+                    tenant_id=payment.tenant_id,
+                    booking_id=payment.booking_id,
+                    payment_id=payment.id,
+                    entry_type="CREDIT",
+                    amount=payment.amount,
+                    currency=payment.currency,
+                    description=f"Stripe payment confirmed: {provider_ref}",
+                    reference=provider_ref,
+                ))
+
+        elif event_type == "payment_intent.payment_failed":
+            provider_ref = data.get("id")
+            error_msg = data.get("last_payment_error", {}).get("message", "Unknown error")
+            payment = db.query(Payment).filter(Payment.provider_ref == provider_ref).first()
+            if payment:
+                payment.status = PaymentStatus.FAILED
+                payment.failure_reason = error_msg
+
+                from app.models.bookings import Booking as BookingModel
+                from app.schemas.bookings import BookingStatus
+                booking = db.query(BookingModel).filter(BookingModel.id == payment.booking_id).first()
+                if booking:
+                    booking.status = BookingStatus.CANCELLED.value  # Compensating transaction
+
+        # Mark event as processed
+        we = db.query(WebhookEvent).filter(WebhookEvent.id == event_db_id).first()
+        if we:
+            we.processed = True
+            we.processed_at = datetime.now(timezone.utc)
+
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        # In production: increment attempts, alert if attempts > 5
+        print(f"[STRIPE HANDLER] Error processing event {event_db_id}: {exc}")
+    finally:
+        db.close()
+
+
+# ── Razorpay webhook ──────────────────────────────────────────────────────────
+
+@router.post("/webhooks/razorpay", status_code=status.HTTP_200_OK)
+async def razorpay_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    HS-3: Razorpay webhook receiver.
+    Same pattern as Stripe: verify → persist → enqueue → return 200.
+
+    Acceptance Gate: missing/invalid X-Razorpay-Signature → HTTP 400.
+    """
+    body = await request.body()
+
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    # Razorpay passes order_id + payment_id + signature for payment events
+    event_type = payload.get("event", "")
+    payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
+    order_id = payment_data.get("order_id", "")
+    payment_id = payment_data.get("id", "")
+    signature = request.headers.get("x-razorpay-signature", "")
+
+    # Gate: reject if signature invalid
+    if not verify_razorpay_signature(order_id, payment_id, signature):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Razorpay webhook signature",
+        )
+
+    event_id = f"rp_{order_id}_{payment_id}_{event_type}"
+    event = persist_webhook_event(db, PaymentProvider.RAZORPAY, event_id, event_type, payload)
+    if event is None:
+        return {"status": "already_processed"}
+
+    background_tasks.add_task(_handle_razorpay_event, event.id, payload)
+    return {"status": "queued", "event_id": event_id}
+
+
+def _handle_razorpay_event(event_db_id: int, payload: dict) -> None:
+    """Background handler for Razorpay events — mirrors Stripe handler structure."""
+    import os
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from datetime import datetime, timezone
+
+    engine = create_engine(os.getenv("DATABASE_URL", ""))
+    db = sessionmaker(bind=engine)()
+    try:
+        event_type = payload.get("event", "")
+        payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
+        provider_ref = payment_data.get("id")
+
+        payment = db.query(Payment).filter(Payment.provider_ref == provider_ref).first()
+        if payment:
+            from app.models.bookings import Booking as BookingModel
+            from app.schemas.bookings import BookingStatus
+
+            if event_type == "payment.captured":
+                payment.status = PaymentStatus.COMPLETED
+                booking = db.query(BookingModel).filter(BookingModel.id == payment.booking_id).first()
+                if booking:
+                    booking.status = BookingStatus.CONFIRMED.value
+                db.add(LedgerEntry(
+                    tenant_id=payment.tenant_id,
+                    booking_id=payment.booking_id,
+                    payment_id=payment.id,
+                    entry_type="CREDIT",
+                    amount=payment.amount,
+                    currency=payment.currency,
+                    description=f"Razorpay payment captured: {provider_ref}",
+                    reference=provider_ref,
+                ))
+            elif event_type == "payment.failed":
+                payment.status = PaymentStatus.FAILED
+                payment.failure_reason = payment_data.get("error_description", "Payment failed")
+                booking = db.query(BookingModel).filter(BookingModel.id == payment.booking_id).first()
+                if booking:
+                    booking.status = BookingStatus.CANCELLED.value  # Compensating transaction
+
+        from app.models.payments import WebhookEvent
+        we = db.query(WebhookEvent).filter(WebhookEvent.id == event_db_id).first()
+        if we:
+            we.processed = True
+            we.processed_at = datetime.now(timezone.utc)
+
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        print(f"[RAZORPAY HANDLER] Error processing event {event_db_id}: {exc}")
+    finally:
+        db.close()
