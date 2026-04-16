@@ -290,15 +290,86 @@ export const financeApi = {
   profit: (bookingId: number) => api.get<BookingProfit>(`/api/v1/finance/booking/${bookingId}/profit`),
 }
 
-// Analytics
-export const analyticsApi = {
-  dashboard: () => api.get<DashboardStats>('/api/v1/analytics/dashboard'),
-}
+// Analytics (moved/extended above — keeping for backward compat)
+// analyticsApi is defined above with anomalies support
 
 // Comms
 export const commsApi = {
   draft: (data: {context: string; lead_id: number}) =>
     api.post<{whatsapp: string; email: string}>('/api/v1/comms/draft', data),
+}
+
+// Quotations (M3)
+export interface Quotation {
+  id: number
+  tenant_id: number
+  lead_id?: number
+  itinerary_id?: number
+  lead_name: string
+  destination: string
+  base_price: number
+  margin_pct: number
+  total_price: number
+  currency: string
+  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
+  notes?: string
+  valid_until?: string
+  sent_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface QuotationCreate {
+  lead_name: string
+  destination: string
+  base_price: number
+  margin_pct?: number
+  currency?: string
+  lead_id?: number
+  itinerary_id?: number
+  notes?: string
+  valid_until?: string
+}
+
+export const quotationsApi = {
+  list: (params?: { status?: string; page?: number; size?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.status) q.set('status', params.status)
+    if (params?.page)   q.set('page',   String(params.page))
+    if (params?.size)   q.set('size',   String(params.size))
+    return api.get<{ items: Quotation[]; total: number; page: number; size: number }>(`/api/v1/quotations/?${q}`)
+  },
+  get: (id: number) => api.get<Quotation>(`/api/v1/quotations/${id}`),
+  create: (data: QuotationCreate) => api.post<Quotation>('/api/v1/quotations/', data),
+  update: (id: number, data: Partial<QuotationCreate> & { status?: string }) =>
+    api.patch<Quotation>(`/api/v1/quotations/${id}`, data),
+  send: (id: number) => api.post<Quotation>(`/api/v1/quotations/${id}/send`, {}),
+  delete: (id: number) => api.delete<void>(`/api/v1/quotations/${id}`),
+}
+
+// BYOK Settings (M15)
+export interface ByokKey {
+  id: number
+  provider: string
+  label?: string
+  key_masked: string
+  is_active: boolean
+  created_at: string
+  last_used_at?: string
+}
+
+export const settingsApi = {
+  listKeys: () => api.get<ByokKey[]>('/api/v1/settings/api-keys'),
+  addKey: (data: { provider: string; api_key: string; label?: string }) =>
+    api.post<ByokKey>('/api/v1/settings/api-keys', data),
+  deleteKey: (id: number) => api.delete<void>(`/api/v1/settings/api-keys/${id}`),
+  subscription: () => api.get<{ plan_id: string; plan_name: string; seats: number; byok_enabled: boolean; period_end?: string }>('/api/v1/settings/subscription'),
+}
+
+// Anomalies for analytics dashboard
+export const analyticsApi = {
+  dashboard: () => api.get<DashboardStats>('/api/v1/analytics/dashboard'),
+  anomalies: () => api.get<{ id: string; message: string; severity: string; metric: string }[]>('/api/v1/analytics/anomalies').catch(() => []),
 }
 
 // Content

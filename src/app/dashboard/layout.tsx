@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
   Search, LogOut, Store, Key, FileQuestion, Menu,
-  Inbox,
+  Inbox, GitBranch,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -15,7 +15,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout } = useRouter ? { user: null, logout: () => {} } : { user: null, logout: () => {} };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { user: _user, logout: _logout } = { user: null, logout: () => {} };
   const auth = useAuth();
   const router = useRouter();
 
@@ -47,9 +48,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Bookings',     href: '/dashboard/bookings',    icon: Briefcase },
     { name: 'Vendors',      href: '/dashboard/vendors',     icon: Store },
     { name: 'Comms',        href: '/dashboard/comms',       icon: MessageSquare },
-    { name: 'Finance',      href: '/dashboard/finance',     icon: CreditCard },
-    { name: 'Content',      href: '/dashboard/content',     icon: FileText },
-    { name: 'Settings',     href: '/dashboard/settings',    icon: Settings },
+    { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard },
+    { name: 'Content',      href: '/dashboard/content',      icon: FileText },
+    { name: 'Automations',  href: '/dashboard/automations',  icon: GitBranch },
+    { name: 'Settings',     href: '/dashboard/settings',     icon: Settings },
   ];
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (

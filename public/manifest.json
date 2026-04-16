@@ -1,0 +1,48 @@
+{
+  "name": "NAMA OS — AI Travel Platform",
+  "short_name": "NAMA OS",
+  "description": "AI-first travel operating system for DMCs and tour operators",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#14B8A6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Query Inbox",
+      "short_name": "Queries",
+      "description": "Triage incoming travel queries",
+      "url": "/dashboard/queries",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Leads",
+      "short_name": "Leads",
+      "description": "View and manage CRM leads",
+      "url": "/dashboard/leads",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Quotation",
+      "short_name": "Quote",
+      "description": "Create a new quotation",
+      "url": "/dashboard/quotations",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["business", "productivity", "travel"]
+}

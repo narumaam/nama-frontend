@@ -16,6 +16,7 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.12
+cryptography==43.0.3  # Fernet AES-256 for BYOK key encryption (M15)
 
 # ── Config & Env ───────────────────────────────────────────────────────────────
 python-dotenv==1.0.1

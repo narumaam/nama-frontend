@@ -28,7 +28,7 @@ from app.api.v1 import (
     auth, tenants, itineraries, bidding, queries,
     documents, financials, analytics, portals,
     communications, bookings, content, corporate,
-    leads,
+    leads, quotations,
 )
 from app.api.v1 import payments as payments_router
 from app.api.v1 import ai_admin
@@ -150,6 +150,7 @@ app.include_router(auth.router,            prefix="/api/v1",              tags=[
 #   CRM & Triage pipeline
 app.include_router(queries.router,         prefix="/api/v1/queries",      tags=["queries"])
 app.include_router(leads.router,           prefix="/api/v1/leads",        tags=["leads"])
+app.include_router(quotations.router,      prefix="/api/v1/quotations",   tags=["quotations"])
 
 #   Core platform
 app.include_router(tenants.router,         prefix="/api/v1/tenants",      tags=["tenants"])

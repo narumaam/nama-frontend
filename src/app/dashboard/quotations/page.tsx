@@ -1,30 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { leadsApi, itinerariesApi, Lead, ItineraryOut } from '@/lib/api'
+import { leadsApi, itinerariesApi, quotationsApi, Lead, ItineraryOut, Quotation } from '@/lib/api'
 import {
   FileText, Plus, Loader, AlertCircle, CheckCircle,
   Clock, Send, Download, Eye, X, ChevronRight,
   Sparkles, DollarSign,
 } from 'lucide-react'
-
-// Local quotation state (will persist to backend once M3 backend endpoint added)
-interface Quotation {
-  id: string
-  lead_id?: number
-  itinerary_id?: number
-  lead_name?: string
-  destination?: string
-  total_price: number
-  currency: string
-  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
-  created_at: string
-  expires_at?: string
-  notes?: string
-  margin_pct: number
-  duration_days?: number
-  travelers: number
-}
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT:    'bg-slate-100 text-slate-600',
@@ -42,8 +24,8 @@ function QuotationCard({ q, onView }: { q: Quotation; onView: (q: Quotation) => 
     >
       <div className="flex items-start justify-between mb-3">
         <div>
-          <div className="font-bold text-slate-900">{q.lead_name || `Quote #${q.id.slice(-6)}`}</div>
-          <div className="text-xs text-slate-400 mt-0.5">{q.destination || 'Destination TBD'} · {q.duration_days ? `${q.duration_days}D` : '—'} · {q.travelers} pax</div>
+          <div className="font-bold text-slate-900">{q.lead_name || `Quote #${String(q.id).slice(-6)}`}</div>
+          <div className="text-xs text-slate-400 mt-0.5">{q.destination || 'Destination TBD'}</div>
         </div>
         <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${STATUS_STYLES[q.status]}`}>
           {q.status}
@@ -72,35 +54,31 @@ export default function QuotationsPage() {
   const [showNew, setShowNew] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [error, setError] = useState<string | null>(null)
 
   // New quote form
   const [form, setForm] = useState({
-    lead_id: '', itinerary_id: '', margin_pct: '20',
-    notes: '', expires_days: '7',
+    lead_id: '', itinerary_id: '', lead_name: '', destination: '',
+    base_price: '0', margin_pct: '20', notes: '',
   })
   const [creating, setCreating] = useState(false)
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     setLoading(true)
+    setError(null)
     try {
-      // Load leads and itineraries for the form
-      const [leadsData, itinData] = await Promise.all([
+      const [quotsData, leadsData, itinData] = await Promise.all([
+        quotationsApi.list({ size: 100 }).catch(() => ({ items: [] as Quotation[], total: 0, page: 1, size: 100 })),
         leadsApi.list({ size: 50 }).catch(() => ({ items: [] })),
         itinerariesApi.list().catch(() => []),
       ])
+      setQuotations(quotsData.items || [])
       setLeads(leadsData.items || [])
       setItineraries(Array.isArray(itinData) ? itinData : [])
-
-      // Load quotations from localStorage as temporary storage
-      // (will be replaced by GET /api/v1/quotations once M3 backend is live)
-      const stored = localStorage.getItem('nama_quotations')
-      if (stored) setQuotations(JSON.parse(stored))
-    } catch {
-      // Non-critical
+    } catch (e) {
+      setError('Failed to load quotations')
     } finally {
       setLoading(false)
     }
@@ -111,44 +89,41 @@ export default function QuotationsPage() {
     try {
       const lead = leads.find(l => l.id === Number(form.lead_id))
       const itin = itineraries.find(i => i.id === Number(form.itinerary_id))
-      const basePrice = itin?.total_price || 0
-      const margin = Number(form.margin_pct) / 100
-      const totalPrice = Math.round(basePrice * (1 + margin))
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + Number(form.expires_days))
 
-      const newQuote: Quotation = {
-        id: `q-${Date.now()}`,
-        lead_id: lead?.id,
+      const created = await quotationsApi.create({
+        lead_name:    form.lead_name || lead?.full_name || 'Unknown',
+        destination:  form.destination || lead?.destination || itin?.title || 'TBD',
+        base_price:   Number(form.base_price) || itin?.total_price || 0,
+        margin_pct:   Number(form.margin_pct),
+        currency:     itin?.currency || lead?.currency || 'INR',
+        lead_id:      lead?.id,
         itinerary_id: itin?.id,
-        lead_name: lead?.full_name || undefined,
-        destination: lead?.destination || itin?.title,
-        total_price: totalPrice,
-        currency: itin?.currency || lead?.currency || 'INR',
-        status: 'DRAFT',
-        created_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-        notes: form.notes,
-        margin_pct: Number(form.margin_pct),
-        duration_days: lead?.duration_days || itin?.duration_days,
-        travelers: lead?.travelers_count || 2,
-      }
+        notes:        form.notes || undefined,
+      })
 
-      const updated = [newQuote, ...quotations]
-      setQuotations(updated)
-      localStorage.setItem('nama_quotations', JSON.stringify(updated))
+      setQuotations([created, ...quotations])
       setShowNew(false)
-      setForm({ lead_id: '', itinerary_id: '', margin_pct: '20', notes: '', expires_days: '7' })
+      setForm({ lead_id: '', itinerary_id: '', lead_name: '', destination: '', base_price: '0', margin_pct: '20', notes: '' })
+    } catch (e: any) {
+      setError(e.message || 'Failed to create quotation')
     } finally {
       setCreating(false)
     }
   }
 
-  const handleStatusChange = (id: string, status: Quotation['status']) => {
-    const updated = quotations.map(q => q.id === id ? { ...q, status } : q)
-    setQuotations(updated)
-    localStorage.setItem('nama_quotations', JSON.stringify(updated))
-    if (selectedQuote?.id === id) setSelectedQuote({ ...selectedQuote, status })
+  const handleStatusChange = async (id: number, newStatus: Quotation['status']) => {
+    try {
+      let updated: Quotation
+      if (newStatus === 'SENT') {
+        updated = await quotationsApi.send(id)
+      } else {
+        updated = await quotationsApi.update(id, { status: newStatus })
+      }
+      setQuotations(quotations.map(q => q.id === id ? updated : q))
+      if (selectedQuote?.id === id) setSelectedQuote(updated)
+    } catch (e: any) {
+      setError(e.message || 'Status update failed')
+    }
   }
 
   const filtered = statusFilter === 'ALL' ? quotations : quotations.filter(q => q.status === statusFilter)
@@ -252,6 +227,16 @@ export default function QuotationsPage() {
               </button>
             </div>
             <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Client Name *</label>
+                  <input type="text" placeholder="e.g. Rahul Sharma" value={form.lead_name} onChange={e => setForm({...form, lead_name: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Destination *</label>
+                  <input type="text" placeholder="e.g. Bali, 7 Days" value={form.destination} onChange={e => setForm({...form, destination: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm" />
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">Link to Lead (optional)</label>
                 <select value={form.lead_id} onChange={e => setForm({...form, lead_id: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm">
@@ -268,12 +253,12 @@ export default function QuotationsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Margin %</label>
-                  <input type="number" min="0" max="100" value={form.margin_pct} onChange={e => setForm({...form, margin_pct: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm" />
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Base Price (₹)</label>
+                  <input type="number" min="0" value={form.base_price} onChange={e => setForm({...form, base_price: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Expires in (days)</label>
-                  <input type="number" min="1" max="60" value={form.expires_days} onChange={e => setForm({...form, expires_days: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm" />
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Margin %</label>
+                  <input type="number" min="0" max="100" value={form.margin_pct} onChange={e => setForm({...form, margin_pct: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm" />
                 </div>
               </div>
               <div>
@@ -298,8 +283,8 @@ export default function QuotationsPage() {
           <div className="bg-white rounded-[28px] p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-xl font-extrabold text-[#0F172A]">{selectedQuote.lead_name || `Quote #${selectedQuote.id.slice(-6)}`}</h2>
-                <p className="text-sm text-slate-400 mt-0.5">{selectedQuote.destination} · {selectedQuote.duration_days}D · {selectedQuote.travelers} pax</p>
+                <h2 className="text-xl font-extrabold text-[#0F172A]">{selectedQuote.lead_name || `Quote #${selectedQuote.id}`}</h2>
+                <p className="text-sm text-slate-400 mt-0.5">{selectedQuote.destination}</p>
               </div>
               <button onClick={() => setSelectedQuote(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl"><X size={18} /></button>
             </div>
@@ -313,7 +298,7 @@ export default function QuotationsPage() {
               {[
                 { label: 'Status', value: selectedQuote.status },
                 { label: 'Created', value: new Date(selectedQuote.created_at).toLocaleDateString() },
-                { label: 'Expires', value: selectedQuote.expires_at ? new Date(selectedQuote.expires_at).toLocaleDateString() : '—' },
+                { label: 'Sent', value: selectedQuote.sent_at ? new Date(selectedQuote.sent_at).toLocaleDateString() : '—' },
                 { label: 'Lead ID', value: selectedQuote.lead_id ? `#${selectedQuote.lead_id}` : '—' },
               ].map(({ label, value }) => (
                 <div key={label} className="bg-slate-50 rounded-xl p-3">
