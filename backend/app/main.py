@@ -69,6 +69,9 @@ import app.models.bookings    # noqa: F401  (M7 — Booking)
 import app.models.payments    # noqa: F401  (HS-3)
 import app.models.ai_usage    # noqa: F401  (HS-4)
 import app.models.webhooks    # noqa: F401  (M19 — Inbound webhooks)
+import app.models.content     # noqa: F401  (M12 — Content library)
+import app.models.corporate   # noqa: F401  (M10 — Corporate / B2B2C)
+import app.models.portals     # noqa: F401  (M13 — Client portals)
 
 Base.metadata.create_all(bind=engine)
 
