@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
   Search, LogOut, Store, Key, FileQuestion, Menu,
-  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar,
+  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -67,6 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Vendors',      href: '/dashboard/vendors',      icon: Store },
     { name: 'Comms',        href: '/dashboard/comms',        icon: MessageSquare },
     { name: 'Intentra',     href: '/dashboard/intentra',     icon: Radar, badge: 'Live' },
+    { name: 'Documents',    href: '/dashboard/documents',    icon: FolderOpen },
     { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard },
     { name: 'Content',      href: '/dashboard/content',      icon: FileText },
     { name: 'Automations',  href: '/dashboard/automations',  icon: GitBranch },
