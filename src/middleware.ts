@@ -20,8 +20,8 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = !!authCookie && authCookie.length > 10
 
   if (!isAuthenticated) {
-    // Redirect unauthenticated users to homepage with redirect hint
-    const redirectUrl = new URL('/', request.url)
+    // Redirect unauthenticated users to the dedicated login page with a redirect hint
+    const redirectUrl = new URL('/login', request.url)
     redirectUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(redirectUrl)
   }

@@ -150,12 +150,12 @@ const LandingPage = () => {
           <a href="#pricing" className="hover:text-[#0F172A] transition-colors text-left">Pricing</a>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowLogin(true)}
+          <Link
+            href="/login"
             className="text-sm font-semibold text-slate-600 hover:text-[#0F172A] transition-colors px-3 py-2"
           >
             Log In
-          </button>
+          </Link>
           <Link href="/register" className="bg-[#0F172A] text-white text-sm px-5 py-2 rounded-full font-medium hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-[#0F172A]/10">
             Get Started
           </Link>
