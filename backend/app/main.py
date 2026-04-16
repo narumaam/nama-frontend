@@ -68,6 +68,7 @@ import app.models.itineraries # noqa: F401  (M8 — Itinerary)
 import app.models.bookings    # noqa: F401  (M7 — Booking)
 import app.models.payments    # noqa: F401  (HS-3)
 import app.models.ai_usage    # noqa: F401  (HS-4)
+import app.models.webhooks    # noqa: F401  (M19 — Inbound webhooks)
 
 Base.metadata.create_all(bind=engine)
 
