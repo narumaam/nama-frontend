@@ -75,7 +75,7 @@ export interface ItineraryBlock {
   title: string
   description: string
   time_start?: string
-  cost_net: number
+  cost_net?: number      // optional — seed data and AI output may omit internal cost
   price_gross: number
   currency: string
 }
