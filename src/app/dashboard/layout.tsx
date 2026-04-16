@@ -2,21 +2,24 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Map, 
-  Briefcase, 
-  MessageSquare, 
-  CreditCard, 
-  FileText, 
-  Settings, 
+import { useRouter } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Users,
+  Map,
+  Briefcase,
+  MessageSquare,
+  CreditCard,
+  FileText,
+  Settings,
   Zap,
   Menu,
   X,
   Bell,
-  Search
+  Search,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 export default function DashboardLayout({
   children,
@@ -24,6 +27,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
+  // Derive initials and display name from email (e.g. "prateek@nama.com" → "P")
+  const initials = user?.email ? user.email[0].toUpperCase() : '?';
+  const displayEmail = user?.email ?? 'Loading...';
+  const displayRole = user?.role ?? '';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -75,14 +90,27 @@ export default function DashboardLayout({
           </Link>
         </div>
 
-        <div className="p-6 flex items-center space-x-3 text-left">
-          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold">RI</div>
-          {isSidebarOpen && (
-            <div className="overflow-hidden">
-              <p className="text-sm font-bold truncate text-white">Radhika Iyer</p>
-              <p className="text-xs text-slate-400 truncate">DMC Admin</p>
+        <div className="p-4 border-t border-white/5 text-left">
+          <div className="flex items-center space-x-3 px-2 py-2">
+            <div className="w-10 h-10 rounded-full bg-[#14B8A6]/20 border border-[#14B8A6]/40 flex items-center justify-center font-bold text-[#14B8A6] flex-shrink-0">
+              {initials}
             </div>
-          )}
+            {isSidebarOpen && (
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-bold truncate text-white">{displayEmail}</p>
+                <p className="text-xs text-slate-400 truncate capitalize">{displayRole}</p>
+              </div>
+            )}
+            {isSidebarOpen && (
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                className="p-1.5 text-slate-500 hover:text-red-400 transition-colors flex-shrink-0"
+              >
+                <LogOut size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </aside>
 

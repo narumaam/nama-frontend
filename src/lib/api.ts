@@ -1,4 +1,10 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// In production on Vercel, leave BASE as empty string so requests hit /api/:path*
+// which is rewritten by vercel.json to the Railway backend. Locally, use localhost.
+const BASE = process.env.NEXT_PUBLIC_API_URL !== undefined
+  ? process.env.NEXT_PUBLIC_API_URL
+  : (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? ''
+      : 'http://localhost:8000')
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
