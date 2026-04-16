@@ -386,20 +386,29 @@ export interface Destination {
   country: string
   description: string
   cover_image?: string
+  // Extended fields for content library
+  category?: string
+  image_url?: string
 }
 
 export interface ContentAsset {
   id?: number
   url: string
-  type: string
+  type?: string       // legacy field
+  asset_type?: string // preferred
   tags?: string[]
+  title?: string
 }
 
 export interface ContentBlock {
   id?: number
   title: string
-  category: string
-  preview: string
+  category?: string   // legacy field
+  preview?: string    // legacy field
+  // Extended fields
+  content: string
+  block_type?: string
+  destination?: string
 }
 
 export const contentApi = {
