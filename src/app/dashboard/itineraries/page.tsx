@@ -95,6 +95,77 @@ const SEED_ITINERARIES: ItineraryOut[] = [
   },
 ]
 
+const fmt = (n: number, currency = 'INR') =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
+
+function generateProposalHTML(it: ItineraryOut): string {
+  const days = it.days_json || (it as any).days || [];
+  const totalFormatted = fmt(it.total_price || 0, it.currency || 'INR');
+  const dayRows = days.map((d: any) => `
+    <div class="day">
+      <div class="day-header">Day ${d.day_number} — ${d.title}</div>
+      <p class="day-narrative">${d.narrative || ''}</p>
+      ${(d.blocks || []).map((b: any) => `
+        <div class="block">
+          <span class="block-type ${(b.type||'').toLowerCase()}">${b.type || ''}</span>
+          <strong>${b.title || ''}</strong>
+          <span class="block-desc">${b.description || ''}</span>
+          ${b.price_gross ? `<span class="block-price">${fmt(b.price_gross, b.currency || it.currency || 'INR')}</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${it.title}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1e293b;padding:40px;max-width:860px;margin:0 auto}
+    .header{border-bottom:3px solid #14B8A6;padding-bottom:24px;margin-bottom:32px}
+    .brand{font-size:11px;font-weight:900;letter-spacing:4px;color:#14B8A6;text-transform:uppercase;margin-bottom:8px}
+    h1{font-size:28px;font-weight:900;color:#0f172a;line-height:1.2;margin-bottom:8px}
+    .meta{display:flex;gap:24px;font-size:13px;color:#64748b;margin-top:12px;flex-wrap:wrap}
+    .meta span{display:flex;align-items:center;gap:6px}
+    .meta strong{color:#1e293b}
+    .reasoning{background:#f0fdfb;border-left:4px solid #14B8A6;padding:16px 20px;margin-bottom:32px;border-radius:0 8px 8px 0}
+    .reasoning p{font-size:13px;color:#0f766e;line-height:1.6}
+    .day{margin-bottom:28px;break-inside:avoid}
+    .day-header{background:#0f172a;color:#14B8A6;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:10px 16px;border-radius:8px 8px 0 0}
+    .day-narrative{font-size:13px;color:#475569;padding:12px 16px;background:#f8fafc;line-height:1.6;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0}
+    .block{display:flex;align-items:baseline;gap:10px;padding:10px 16px;border:1px solid #e2e8f0;border-top:none;flex-wrap:wrap}
+    .block:last-child{border-radius:0 0 8px 8px}
+    .block-type{font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:#f1f5f9;color:#64748b;flex-shrink:0}
+    .block-type.hotel{background:#fef3c7;color:#92400e}
+    .block-type.flight{background:#dbeafe;color:#1d4ed8}
+    .block-type.transfer{background:#f3e8ff;color:#7e22ce}
+    .block-type.activity{background:#dcfce7;color:#166534}
+    .block-type.meal{background:#fce7f3;color:#9d174d}
+    .block strong{font-size:13px;color:#1e293b;flex:1}
+    .block-desc{font-size:12px;color:#94a3b8;flex-basis:100%;padding-left:0;margin-top:2px}
+    .block-price{font-size:13px;font-weight:700;color:#14B8A6;white-space:nowrap;margin-left:auto}
+    .total{margin-top:32px;padding:20px 24px;background:#0f172a;border-radius:12px;display:flex;justify-content:space-between;align-items:center}
+    .total-label{font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#94a3b8}
+    .total-value{font-size:24px;font-weight:900;color:#14B8A6}
+    .footer{margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center}
+    @media print{body{padding:20px}button{display:none}}
+  </style></head><body>
+  <div class="header">
+    <div class="brand">NAMA OS — Travel Proposal</div>
+    <h1>${it.title}</h1>
+    <div class="meta">
+      <span>📍 <strong>${it.destination}</strong></span>
+      <span>📅 <strong>${it.duration_days} days</strong></span>
+      <span>🗓️ <strong>${new Date(it.created_at || Date.now()).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</strong></span>
+    </div>
+  </div>
+  ${it.agent_reasoning ? `<div class="reasoning"><p>${it.agent_reasoning}</p></div>` : ''}
+  ${dayRows}
+  <div class="total">
+    <span class="total-label">Total Package Value</span>
+    <span class="total-value">${totalFormatted}</span>
+  </div>
+  <div class="footer">Prepared exclusively for you by NAMA OS · getnama.app · Powered by AI Travel Intelligence</div>
+  </body></html>`;
+}
+
 export default function ItinerariesPage() {
   const [loading, setLoading] = useState(false);
   const [itinerary, setItinerary] = useState<ItineraryOut | null>(null);
@@ -105,6 +176,8 @@ export default function ItinerariesPage() {
   const [copied, setCopied] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
 
   // Form state
   const [form, setForm] = useState<ItineraryRequest>({
@@ -196,6 +269,54 @@ export default function ItinerariesPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleExportPDF = () => {
+    if (!itinerary) return;
+    setPdfLoading(true);
+    try {
+      const html = generateProposalHTML(itinerary);
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(() => {
+          win.print();
+          setPdfLoading(false);
+        }, 600);
+      } else {
+        setPdfLoading(false);
+        setShareToast('Pop-up blocked — please allow pop-ups and try again.');
+        setTimeout(() => setShareToast(null), 3500);
+      }
+    } catch {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!itinerary) return;
+    const totalFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: itinerary.currency || 'INR', maximumFractionDigits: 0 }).format(itinerary.total_price || 0);
+    const text = `✈️ *${itinerary.title}*\n\n📍 Destination: ${itinerary.destination}\n📅 Duration: ${itinerary.duration_days} days\n💰 Total: ${totalFormatted}\n\nYour personalised travel itinerary is ready! Please reply to confirm and we'll lock in your booking.\n\n_Sent via NAMA OS_`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    setShareToast('WhatsApp opened with your proposal!');
+    setTimeout(() => setShareToast(null), 3000);
+  };
+
+  const handleCopyShareText = () => {
+    if (!itinerary) return;
+    const totalFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: itinerary.currency || 'INR', maximumFractionDigits: 0 }).format(itinerary.total_price || 0);
+    const shareLink = typeof window !== 'undefined' ? `${window.location.origin}/proposal/${itinerary.id}` : `/proposal/${itinerary.id}`;
+    const text = `✈️ ${itinerary.title}\n📍 ${itinerary.destination} · ${itinerary.duration_days} days · ${totalFormatted}\n\nView your personalised itinerary: ${shareLink}\n\nReply to confirm and we'll lock in your booking!`;
+    navigator.clipboard.writeText(text);
+    setShareToast('Share link + summary copied!');
+    setTimeout(() => setShareToast(null), 2500);
+  };
+
+  const handleOpenProposalView = () => {
+    if (!itinerary?.id) return;
+    window.open(`/proposal/${itinerary.id}`, '_blank');
   };
 
   const days = itinerary?.days_json || itinerary?.days || [];
@@ -505,21 +626,58 @@ export default function ItinerariesPage() {
                   </div>
                   <ChevronRight size={16} className="text-green-400 group-hover:text-green-600 transition-colors" />
                 </button>
-                <button className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group">
+                <button
+                  onClick={handleExportPDF}
+                  disabled={pdfLoading || !itinerary}
+                  className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group disabled:opacity-40"
+                >
                   <div className="flex items-center font-bold text-sm text-slate-600">
-                    <Download size={18} className="mr-3" /> Export as PDF
+                    {pdfLoading ? <Loader size={18} className="mr-3 animate-spin" /> : <Download size={18} className="mr-3" />}
+                    Export as PDF
                   </div>
                   <ChevronRight size={16} className="text-slate-300 group-hover:text-[#14B8A6] transition-colors" />
                 </button>
-                <button className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group">
+                <button
+                  onClick={handleShareWhatsApp}
+                  disabled={!itinerary}
+                  className="w-full flex justify-between items-center p-4 rounded-2xl bg-green-50 hover:bg-green-100 transition-colors group disabled:opacity-40"
+                >
+                  <div className="flex items-center font-bold text-sm text-green-700">
+                    <Share2 size={18} className="mr-3" /> WhatsApp Proposal
+                  </div>
+                  <ChevronRight size={16} className="text-green-400 group-hover:text-green-600 transition-colors" />
+                </button>
+                <button
+                  onClick={handleOpenProposalView}
+                  disabled={!itinerary}
+                  className="w-full flex justify-between items-center p-4 rounded-2xl bg-[#14B8A6]/5 hover:bg-[#14B8A6]/10 transition-colors group disabled:opacity-40"
+                >
+                  <div className="flex items-center font-bold text-sm text-[#14B8A6]">
+                    <Share2 size={18} className="mr-3" /> Client View ↗
+                  </div>
+                  <ChevronRight size={16} className="text-[#14B8A6]/40 group-hover:text-[#14B8A6] transition-colors" />
+                </button>
+                <button
+                  onClick={handleCopyShareText}
+                  disabled={!itinerary}
+                  className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group disabled:opacity-40"
+                >
                   <div className="flex items-center font-bold text-sm text-slate-600">
-                    <Share2 size={18} className="mr-3" /> Share with Client
+                    <Download size={18} className="mr-3" /> Copy Share Link
                   </div>
                   <ChevronRight size={16} className="text-slate-300 group-hover:text-[#14B8A6] transition-colors" />
                 </button>
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Share / PDF Toast */}
+      {shareToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-semibold animate-in slide-in-from-bottom-4">
+          <span className="text-[#14B8A6]">✓</span>
+          {shareToast}
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ import { leadsApi, itinerariesApi, quotationsApi, Lead, ItineraryOut, Quotation 
 import {
   FileText, Plus, Loader, AlertCircle, CheckCircle,
   Clock, Send, Download, Eye, X, ChevronRight,
-  Sparkles, DollarSign,
+  Sparkles, DollarSign, Share2,
 } from 'lucide-react'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -58,6 +58,46 @@ function QuotationCard({ q, onView }: { q: Quotation; onView: (q: Quotation) => 
   )
 }
 
+function generateQuotePDF(q: Quotation): string {
+  const totalFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: q.currency || 'INR', maximumFractionDigits: 0 }).format(q.total_price);
+  const baseFormatted  = new Intl.NumberFormat('en-IN', { style: 'currency', currency: q.currency || 'INR', maximumFractionDigits: 0 }).format(q.base_price);
+  const marginAmt = q.total_price - q.base_price;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Quotation — ${q.destination}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1e293b;padding:48px;max-width:720px;margin:0 auto}
+    .brand{font-size:10px;font-weight:900;letter-spacing:4px;color:#14B8A6;text-transform:uppercase;margin-bottom:6px}
+    h1{font-size:26px;font-weight:900;color:#0f172a;margin-bottom:4px}
+    .sub{font-size:14px;color:#64748b;margin-bottom:32px}
+    .price-box{background:#0f172a;border-radius:16px;padding:28px 32px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:center}
+    .price-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b}
+    .price-value{font-size:32px;font-weight:900;color:#14B8A6}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+    .meta-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+    .meta-card label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px}
+    .meta-card span{font-size:15px;font-weight:700;color:#1e293b}
+    .notes{background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:16px;margin-bottom:28px;font-size:13px;color:#78350f}
+    .footer{margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center}
+    @media print{body{padding:24px}button{display:none}}
+  </style></head><body>
+  <div class="brand">NAMA OS — Travel Quotation</div>
+  <h1>${q.destination}</h1>
+  <div class="sub">Prepared for ${q.lead_name || 'Valued Client'} · ${new Date(q.created_at).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</div>
+  <div class="price-box">
+    <div><div class="price-label">Total Package Value</div><div class="price-value">${totalFormatted}</div></div>
+    <div style="text-align:right"><div class="price-label">Your Margin Included</div><div style="font-size:20px;font-weight:900;color:#f472b6">${q.margin_pct}% · ${new Intl.NumberFormat('en-IN',{style:'currency',currency:q.currency||'INR',maximumFractionDigits:0}).format(marginAmt)}</div></div>
+  </div>
+  <div class="meta-grid">
+    <div class="meta-card"><label>Destination</label><span>${q.destination}</span></div>
+    <div class="meta-card"><label>Status</label><span>${q.status}</span></div>
+    <div class="meta-card"><label>Base Cost</label><span>${baseFormatted}</span></div>
+    <div class="meta-card"><label>Margin</label><span>${q.margin_pct}%</span></div>
+  </div>
+  ${q.notes ? `<div class="notes"><strong>Notes:</strong> ${q.notes}</div>` : ''}
+  <div class="footer">This quotation is valid for 7 days · NAMA OS · getnama.app · Powered by AI Travel Intelligence</div>
+  </body></html>`;
+}
+
 export default function QuotationsPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
@@ -67,6 +107,8 @@ export default function QuotationsPage() {
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [error, setError] = useState<string | null>(null)
+  const [quoteToast, setQuoteToast] = useState<string | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   // New quote form
   const [form, setForm] = useState({
@@ -138,6 +180,30 @@ export default function QuotationsPage() {
       setError(e.message || 'Status update failed')
     }
   }
+
+  const handleExportQuotePDF = (q: Quotation) => {
+    setPdfLoading(true);
+    const html = generateQuotePDF(q);
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); setPdfLoading(false); }, 600);
+    } else {
+      setPdfLoading(false);
+      setQuoteToast('Pop-up blocked — please allow pop-ups.');
+      setTimeout(() => setQuoteToast(null), 3000);
+    }
+  };
+
+  const handleShareQuoteWhatsApp = (q: Quotation) => {
+    const totalFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: q.currency || 'INR', maximumFractionDigits: 0 }).format(q.total_price);
+    const text = `✈️ *Travel Quotation — ${q.destination}*\n\nDear ${q.lead_name || 'Valued Guest'},\n\nYour personalised travel quotation is ready.\n\n📍 Destination: *${q.destination}*\n💰 Total Package: *${totalFormatted}*\n📅 Validity: 7 days from today\n\nPlease reply *YES* to confirm and we'll begin your booking.\n\n_Sent via NAMA OS · getnama.app_`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    setQuoteToast('WhatsApp opened with your quotation!');
+    setTimeout(() => setQuoteToast(null), 3000);
+  };
 
   const filtered = statusFilter === 'ALL' ? quotations : quotations.filter(q => q.status === statusFilter)
 
@@ -343,7 +409,33 @@ export default function QuotationsPage() {
                 ))}
               </div>
             </div>
+
+            {/* Export & Share Actions */}
+            <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleExportQuotePDF(selectedQuote)}
+                disabled={pdfLoading}
+                className="flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40"
+              >
+                {pdfLoading ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
+                Export PDF
+              </button>
+              <button
+                onClick={() => handleShareQuoteWhatsApp(selectedQuote)}
+                className="flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-xl font-bold text-sm transition-all"
+              >
+                <Share2 size={16} /> WhatsApp
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {quoteToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-semibold">
+          <span className="text-[#14B8A6]">✓</span>
+          {quoteToast}
         </div>
       )}
     </div>
