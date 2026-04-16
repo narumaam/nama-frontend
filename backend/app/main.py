@@ -94,11 +94,59 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # 2. CORS
-ALLOWED_ORIGINS = os.getenv(
+_ALLOWED_ORIGINS_RAW = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,https://app.namatravel.com",
-).split(",")
+    # Defaults: local dev + Vercel production aliases.
+    # In Railway Dashboard, set ALLOWED_ORIGINS to your exact Vercel URLs (comma-separated).
+    "http://localhost:3000,https://app.namatravel.com,https://nama-frontend.vercel.app,https://nama-web.vercel.app",
+)
+ALLOWED_ORIGINS = [o.strip() for o in _ALLOWED_ORIGINS_RAW.split(",") if o.strip()]
 
+# ── Custom CORS middleware to support *.vercel.app preview deployments ─────────
+# FastAPI's built-in CORSMiddleware doesn't support wildcard subdomains.
+# This middleware adds regex-based origin matching so every Vercel preview URL
+# (e.g. nama-frontend-xyz.vercel.app) passes CORS without hardcoding each one.
+import re as _re
+
+_VERCEL_PREVIEW_RE = _re.compile(
+    r'^https://[a-z0-9\-]+-[a-z0-9]+-narayanmallapur-3085s-projects\.vercel\.app$'
+)
+_LOCALHOST_RE = _re.compile(r'^http://localhost:\d+$')
+
+def _is_allowed_origin(origin: str) -> bool:
+    if origin in ALLOWED_ORIGINS:
+        return True
+    if _VERCEL_PREVIEW_RE.match(origin):
+        return True
+    if _LOCALHOST_RE.match(origin):
+        return True
+    return False
+
+
+@app.middleware("http")
+async def cors_middleware(request: Request, call_next):
+    origin = request.headers.get("origin", "")
+    is_allowed = _is_allowed_origin(origin) if origin else False
+
+    if request.method == "OPTIONS":
+        response = Response(status_code=204)
+        if is_allowed:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Max-Age"] = "600"
+        return response
+
+    response = await call_next(request)
+    if is_allowed:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# Standard CORSMiddleware kept as a belt-and-suspenders fallback for non-credential requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

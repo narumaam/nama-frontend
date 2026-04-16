@@ -64,10 +64,10 @@ proc_name      = "nama-os"
 #   export DATABASE_URL="postgresql://..."
 #   gunicorn app.main:app --config gunicorn.conf.py
 
-raw_env = [
-    "DATABASE_URL=sqlite:////tmp/nama_perf.db",
-    "REDIS_URL=redis://localhost:6379/0",   # falls back to fakeredis if unavailable
-]
+# raw_env intentionally removed — DO NOT add DATABASE_URL or REDIS_URL here.
+# raw_env entries unconditionally overwrite host-injected env vars (Railway, Render, etc.),
+# silently replacing the real Neon PostgreSQL URL with SQLite at gunicorn boot time.
+# Set all secrets/URLs in Railway Dashboard → Variables instead.
 
 # ── Pre-fork hooks ─────────────────────────────────────────────────────────────
 def pre_fork(server, worker):
