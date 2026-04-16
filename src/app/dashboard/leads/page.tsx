@@ -68,7 +68,7 @@ const SEED_LEADS: Lead[] = [
   { id: 8, tenant_id: 1, sender_id: '+919534567890', source: 'EMAIL',    full_name: 'Sneha Patel',   email: 'sneha.patel@gmail.com',   phone: '+91 95345 67890', destination: 'Santorini',  duration_days: 8,  travelers_count: 2, budget_per_person: 200000, currency: 'INR', travel_style: 'HONEYMOON', status: 'LOST',          priority: 3, triage_confidence: 65, suggested_reply: undefined, created_at: TS(7) },
 ]
 
-type TabType = 'overview' | 'notes' | 'activity'
+type TabType = 'overview' | 'notes' | 'activity' | 'ai'
 type InquiryMode = 'ai' | 'manual'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -94,6 +94,119 @@ function followUpLabel(dateStr: string | null): { text: string; color: string } 
   if (diffDays === 0) return { text: 'Due today!', color: 'text-amber-700 bg-amber-50' }
   if (diffDays === 1) return { text: 'Tomorrow', color: 'text-blue-700 bg-blue-50' }
   return { text: due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), color: 'text-slate-600 bg-slate-100' }
+}
+
+// ── AI Scoring Engine ──────────────────────────────────────────────────────────
+
+interface AIScore {
+  conversionPct: number
+  temp: LeadTemp
+  signals: { label: string; value: string; positive: boolean; weight: number }[]
+  qualification: string
+  recommendation: string
+  risks: string[]
+  strengths: string[]
+  nextBestAction: string
+}
+
+function computeAIScore(lead: Lead): AIScore {
+  const conf = lead.triage_confidence || 0
+  const budget = lead.budget_per_person || 0
+  const pax = lead.travelers_count || 1
+  const totalTrip = budget * pax
+
+  // Signals
+  const signals: AIScore['signals'] = [
+    {
+      label: 'AI Triage Confidence',
+      value: `${conf}%`,
+      positive: conf >= 75,
+      weight: Math.round(conf * 0.35),
+    },
+    {
+      label: 'Budget Signal',
+      value: budget > 0 ? `₹${budget.toLocaleString('en-IN')}/pax` : 'Not specified',
+      positive: budget >= 50000,
+      weight: budget >= 150000 ? 25 : budget >= 75000 ? 18 : budget >= 25000 ? 10 : 0,
+    },
+    {
+      label: 'Group Size',
+      value: `${pax} pax`,
+      positive: pax >= 4,
+      weight: pax >= 6 ? 15 : pax >= 4 ? 10 : pax >= 2 ? 5 : 2,
+    },
+    {
+      label: 'Priority Level',
+      value: lead.priority === 1 ? 'High' : lead.priority === 2 ? 'Medium' : 'Low',
+      positive: lead.priority === 1,
+      weight: lead.priority === 1 ? 20 : lead.priority === 2 ? 10 : 2,
+    },
+    {
+      label: 'Pipeline Stage',
+      value: lead.status?.replace('_', ' ') || 'NEW',
+      positive: ['QUALIFIED', 'PROPOSAL_SENT', 'WON'].includes(lead.status || ''),
+      weight: lead.status === 'WON' ? 25 : lead.status === 'PROPOSAL_SENT' ? 18 : lead.status === 'QUALIFIED' ? 15 : lead.status === 'CONTACTED' ? 8 : 3,
+    },
+    {
+      label: 'Source Quality',
+      value: lead.source || 'Unknown',
+      positive: ['WHATSAPP', 'PHONE'].includes(lead.source || ''),
+      weight: lead.source === 'PHONE' ? 12 : lead.source === 'WHATSAPP' ? 10 : lead.source === 'EMAIL' ? 7 : 5,
+    },
+    {
+      label: 'Travel Style',
+      value: lead.travel_style?.replace('_', ' ') || 'Not set',
+      positive: ['LUXURY', 'HONEYMOON', 'WILDLIFE'].includes(lead.travel_style || ''),
+      weight: ['LUXURY', 'HONEYMOON'].includes(lead.travel_style || '') ? 12 : 5,
+    },
+  ]
+
+  const rawScore = signals.reduce((s, sig) => s + sig.weight, 0)
+  const conversionPct = Math.min(97, Math.max(12, Math.round(rawScore * 0.9 + 10)))
+  const temp = getLeadTemp(lead)
+
+  // Qualification narrative
+  const style = lead.travel_style?.toLowerCase().replace('_', ' ') || 'travel'
+  const dest = lead.destination || 'destination'
+  const qualification = temp === 'HOT'
+    ? `Strong buying signals across all dimensions. ${lead.full_name?.split(' ')[0] || 'This lead'} shows ${conf}% triage confidence with a ${style} budget of ₹${(totalTrip).toLocaleString('en-IN')} for ${pax} pax. ${lead.status === 'PROPOSAL_SENT' ? 'Proposal has been sent — follow up within 24h.' : 'Ready for proposal — strike while the iron is hot.'}`
+    : temp === 'WARM'
+    ? `Moderate intent with ${conf}% confidence. ${lead.full_name?.split(' ')[0] || 'This lead'} is interested in ${dest} ${style} but needs nurturing. ${budget < 50000 ? 'Budget is in the value range — emphasise value and inclusions.' : 'Budget qualifies for a good package.'}`
+    : `Early-stage lead with low conversion signals. ${conf < 60 ? 'Low triage confidence suggests the inquiry may be exploratory.' : 'Has potential but needs stronger qualification.'} Nurture with destination content before investing heavy effort.`
+
+  // Strengths
+  const strengths: string[] = []
+  if (conf >= 85) strengths.push(`High AI triage confidence (${conf}%)`)
+  if (budget >= 100000) strengths.push(`Premium budget: ₹${budget.toLocaleString('en-IN')}/pax`)
+  if (pax >= 6) strengths.push(`Large group (${pax} pax) — high revenue potential`)
+  if (pax >= 2 && pax <= 4) strengths.push('Ideal group size for packages')
+  if (['LUXURY', 'HONEYMOON'].includes(lead.travel_style || '')) strengths.push('High-margin travel segment')
+  if (lead.source === 'PHONE') strengths.push('Phone inquiry = highest intent signal')
+  if (lead.status === 'QUALIFIED' || lead.status === 'PROPOSAL_SENT') strengths.push('Advanced pipeline stage')
+  if (strengths.length === 0) strengths.push('Lead is in system and can be nurtured')
+
+  // Risks
+  const risks: string[] = []
+  if (conf < 65) risks.push('Low triage confidence — verify intent manually')
+  if (!budget || budget < 15000) risks.push('Budget unspecified or below minimum threshold')
+  if (lead.status === 'LOST') risks.push('Already marked as lost — re-engagement needed')
+  if (!lead.email && !lead.phone) risks.push('No contact details — cannot follow up')
+  if (risks.length === 0) risks.push('No significant risks identified')
+
+  // Recommendation
+  const recommendation = temp === 'HOT'
+    ? `🔥 Priority action: Call within 2h. Prepare a tailored ${dest} proposal with 3 options (good/better/best). Offer a 24h booking hold.`
+    : temp === 'WARM'
+    ? `☀️ Send a personalised ${dest} destination guide. Follow up in 2-3 days. Ask budget & dates questions to qualify further.`
+    : `❄️ Add to nurture sequence. Send ${dest || 'travel'} inspiration content. Re-engage in 1 week with a new offer or deal.`
+
+  const nextBestAction = temp === 'HOT'
+    ? 'Send proposal now →'
+    : temp === 'WARM'
+    ? 'Share destination guide →'
+    : 'Add to nurture sequence →'
+
+  return { conversionPct, temp, signals, qualification, recommendation, risks, strengths, nextBestAction }
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -521,10 +634,10 @@ export default function LeadsPage() {
               </div>
               {/* Tabs */}
               <div className="flex gap-1 mt-4 bg-slate-100 p-1 rounded-xl">
-                {(['overview','notes','activity'] as TabType[]).map(t => (
+                {(['overview','notes','activity','ai'] as TabType[]).map(t => (
                   <button key={t} onClick={() => setActiveTab(t)}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${activeTab === t ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}>
-                    {t === 'notes' ? `Notes (${noteLog.length})` : t === 'activity' ? `Activity (${activityLog.length})` : 'Overview'}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all capitalize ${activeTab === t ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}>
+                    {t === 'notes' ? `Notes (${noteLog.length})` : t === 'activity' ? `Activity (${activityLog.length})` : t === 'ai' ? '✦ AI Score' : 'Overview'}
                   </button>
                 ))}
               </div>
@@ -698,6 +811,112 @@ export default function LeadsPage() {
                   )}
                 </div>
               )}
+
+              {/* ── AI SCORE TAB ── */}
+              {activeTab === 'ai' && (() => {
+                const score = computeAIScore(selectedLead)
+                const ringColor = score.temp === 'HOT' ? '#ef4444' : score.temp === 'WARM' ? '#f59e0b' : '#94a3b8'
+                const circumference = 2 * Math.PI * 36
+                const dashOffset = circumference * (1 - score.conversionPct / 100)
+                return (
+                  <div className="space-y-5">
+                    {/* Conversion Probability Ring */}
+                    <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-5 text-center">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Conversion Probability</div>
+                      <div className="relative w-24 h-24 mx-auto mb-3">
+                        <svg className="w-24 h-24 -rotate-90" viewBox="0 0 80 80">
+                          <circle cx="40" cy="40" r="36" fill="none" stroke="#e2e8f0" strokeWidth="7" />
+                          <circle
+                            cx="40" cy="40" r="36" fill="none"
+                            stroke={ringColor} strokeWidth="7"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={dashOffset}
+                            strokeLinecap="round"
+                            style={{ transition: 'stroke-dashoffset 1s ease' }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-black text-slate-800">{score.conversionPct}%</span>
+                        </div>
+                      </div>
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${score.temp === 'HOT' ? 'bg-red-50 text-red-600' : score.temp === 'WARM' ? 'bg-amber-50 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
+                        {score.temp === 'HOT' ? '🔥' : score.temp === 'WARM' ? '☀️' : '❄️'} {score.temp} Lead
+                      </div>
+                    </div>
+
+                    {/* Qualification */}
+                    <div className="bg-white rounded-xl border border-slate-100 p-4">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">AI Assessment</div>
+                      <p className="text-xs text-slate-700 leading-relaxed">{score.qualification}</p>
+                    </div>
+
+                    {/* Signal Breakdown */}
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Intent Signals</div>
+                      <div className="space-y-2">
+                        {score.signals.map(sig => (
+                          <div key={sig.label} className="flex items-center gap-3">
+                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sig.positive ? 'bg-green-500' : 'bg-red-400'}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-semibold text-slate-600 truncate">{sig.label}</span>
+                                <span className="text-[10px] text-slate-400 ml-2 flex-shrink-0">{sig.value}</span>
+                              </div>
+                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-700 ${sig.positive ? 'bg-green-400' : 'bg-red-300'}`}
+                                  style={{ width: `${Math.min(100, sig.weight * 4)}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Strengths */}
+                    <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-green-700 mb-2">Strengths</div>
+                      <div className="space-y-1">
+                        {score.strengths.map((s, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-green-800">
+                            <span className="flex-shrink-0 mt-0.5">✓</span>
+                            <span>{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Risks */}
+                    <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2">Risk Flags</div>
+                      <div className="space-y-1">
+                        {score.risks.map((r, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-red-700">
+                            <span className="flex-shrink-0 mt-0.5">⚠</span>
+                            <span>{r}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Recommendation */}
+                    <div className="bg-[#0f172a] rounded-xl p-4 text-white">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-[#14B8A6] mb-2">NAMA Recommendation</div>
+                      <p className="text-xs leading-relaxed opacity-90">{score.recommendation}</p>
+                      <button
+                        onClick={() => {
+                          const wa = `Hello ${selectedLead.full_name?.split(' ')[0]}! I wanted to follow up on your ${selectedLead.destination || 'trip'} inquiry 🌏`
+                          window.open(`https://wa.me/${selectedLead.phone?.replace(/\s+/g, '')}?text=${encodeURIComponent(wa)}`, '_blank')
+                        }}
+                        className="mt-3 w-full py-2 rounded-lg bg-[#14B8A6] text-white text-xs font-bold hover:bg-[#0d9488] transition-colors"
+                      >
+                        {score.nextBestAction}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* ── ACTIVITY TAB ── */}
               {activeTab === 'activity' && (
