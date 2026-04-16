@@ -7,13 +7,15 @@ import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
   Search, LogOut, Store, Key, FileQuestion, Menu,
-  Inbox, GitBranch, BarChart2, Plug, Activity,
+  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoBannerDismissed, setDemoBannerDismissed] = useState(false);
   const pathname = usePathname();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user: _user, logout: _logout } = { user: null, logout: () => {} };
@@ -30,8 +32,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, []);
 
+  // Detect demo mode
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsDemoMode(localStorage.getItem('nama_demo_mode') === '1');
+    }
+  }, []);
+
   const handleLogout = () => {
+    localStorage.removeItem('nama_demo_mode');
     auth.logout();
+    router.push('/');
+  };
+
+  const handleExitDemo = () => {
+    localStorage.removeItem('nama_demo_mode');
     router.push('/');
   };
 
@@ -125,22 +140,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* User */}
       <div className="px-3 pb-4 pt-2 border-t border-white/5">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-8 h-8 rounded-full bg-[#14B8A6]/20 border border-[#14B8A6]/40 flex items-center justify-center font-black text-[#14B8A6] text-xs flex-shrink-0">
-            {initials}
+        {isDemoMode ? (
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="w-8 h-8 rounded-full bg-[#14B8A6]/20 border border-[#14B8A6]/40 flex items-center justify-center font-black text-[#14B8A6] text-xs flex-shrink-0">
+              <Play size={12} fill="currentColor" />
+            </div>
+            {(sidebarOpen || mobile) && (
+              <>
+                <div className="flex-1 overflow-hidden min-w-0">
+                  <p className="text-xs font-bold text-[#14B8A6] truncate">Demo Mode</p>
+                  <p className="text-[10px] text-slate-500 truncate">Sample data only</p>
+                </div>
+                <button onClick={handleExitDemo} title="Exit Demo" className="p-1.5 text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
+                  <LogOut size={14} />
+                </button>
+              </>
+            )}
           </div>
-          {(sidebarOpen || mobile) && (
-            <>
-              <div className="flex-1 overflow-hidden min-w-0">
-                <p className="text-xs font-bold text-white truncate">{displayEmail}</p>
-                <p className="text-[10px] text-slate-500 truncate capitalize">{displayRole}</p>
-              </div>
-              <button onClick={handleLogout} title="Logout" className="p-1.5 text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
-                <LogOut size={14} />
-              </button>
-            </>
-          )}
-        </div>
+        ) : (
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="w-8 h-8 rounded-full bg-[#14B8A6]/20 border border-[#14B8A6]/40 flex items-center justify-center font-black text-[#14B8A6] text-xs flex-shrink-0">
+              {initials}
+            </div>
+            {(sidebarOpen || mobile) && (
+              <>
+                <div className="flex-1 overflow-hidden min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{displayEmail}</p>
+                  <p className="text-[10px] text-slate-500 truncate capitalize">{displayRole}</p>
+                </div>
+                <button onClick={handleLogout} title="Logout" className="p-1.5 text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
+                  <LogOut size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -190,6 +224,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           </div>
         </header>
+
+        {/* Demo Mode Banner */}
+        {isDemoMode && !demoBannerDismissed && (
+          <div className="bg-gradient-to-r from-[#14B8A6]/10 via-[#0891b2]/10 to-[#14B8A6]/10 border-b border-[#14B8A6]/20 px-4 py-2.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#14B8A6]/20 flex items-center justify-center">
+                <Play size={10} fill="currentColor" className="text-[#14B8A6]" />
+              </div>
+              <p className="text-xs font-semibold text-slate-700 truncate">
+                <span className="font-black text-[#14B8A6]">Demo Mode</span>
+                {' '}— You&apos;re exploring sample data. No real account needed.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href="/register"
+                className="flex items-center gap-1.5 bg-[#0F172A] text-white text-[11px] font-black px-3 py-1.5 rounded-full hover:bg-slate-800 transition-all active:scale-95"
+              >
+                Get Started Free <ArrowRight size={10} />
+              </Link>
+              <button
+                onClick={() => setDemoBannerDismissed(true)}
+                className="p-1 text-slate-400 hover:text-slate-600 transition-colors rounded"
+                title="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Page content */}
         <div className="p-4 md:p-6 lg:p-8 flex-1">

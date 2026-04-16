@@ -217,6 +217,9 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex items-center gap-3">
+            <Link href="/demo" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-[#14B8A6] border border-[#14B8A6]/30 bg-[#14B8A6]/5 hover:bg-[#14B8A6]/10 transition-all px-3 py-2 rounded-full">
+              <Play size={12} fill="currentColor" /> Try Demo
+            </Link>
             <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-[#0F172A] transition-colors px-3 py-2">
               Log In
             </Link>
@@ -257,6 +260,12 @@ export default function LandingPage() {
               className="flex items-center gap-2 bg-[#0F172A] text-white text-base px-8 py-4 rounded-full font-bold hover:shadow-2xl hover:shadow-[#0F172A]/20 hover:-translate-y-0.5 transition-all active:scale-95"
             >
               Start Free Pilot <ArrowRight size={18} />
+            </Link>
+            <Link
+              href="/demo"
+              className="flex items-center gap-2 bg-[#14B8A6] text-[#0F172A] text-base px-8 py-4 rounded-full font-bold hover:shadow-2xl hover:shadow-[#14B8A6]/30 hover:-translate-y-0.5 transition-all active:scale-95"
+            >
+              <Play size={18} fill="currentColor" /> View Live Demo
             </Link>
             <Link
               href="/pricing"
