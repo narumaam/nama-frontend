@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
   Search, LogOut, Store, Key, FileQuestion, Menu,
-  Inbox, GitBranch,
+  Inbox, GitBranch, BarChart2, Plug,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -50,8 +50,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Comms',        href: '/dashboard/comms',       icon: MessageSquare },
     { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard },
     { name: 'Content',      href: '/dashboard/content',      icon: FileText },
-    { name: 'Automations',  href: '/dashboard/automations',  icon: GitBranch },
-    { name: 'Settings',     href: '/dashboard/settings',     icon: Settings },
+    { name: 'Automations',   href: '/dashboard/automations',   icon: GitBranch },
+    { name: 'Reports',       href: '/dashboard/reports',       icon: BarChart2 },
+    { name: 'Integrations',  href: '/dashboard/integrations',  icon: Plug },
+    { name: 'Settings',      href: '/dashboard/settings',      icon: Settings },
   ];
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (

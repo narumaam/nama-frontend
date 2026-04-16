@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://stunning-joy-production-87bb.up.railway.app/api/:path*"
+      "destination": "https://intuitive-blessing-production-30de.up.railway.app/api/:path*"
     }
   ]
 }

@@ -1,252 +1,505 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { leadsApi, commsApi, Lead } from '@/lib/api'
-import { MessageSquare, Mail, Copy, AlertCircle, Loader, Check } from 'lucide-react'
+/**
+ * M5 — Communication Hub (World-Class Rebuild)
+ * ----------------------------------------------
+ * AI-powered WhatsApp + Email drafting with:
+ *   - KPI strip (sent this month, reply rate, avg response time, open rate)
+ *   - Lead selector with live search + status badge
+ *   - 8 context templates + free-text custom context
+ *   - Tone selector: Professional / Friendly / Urgent / Formal
+ *   - AI draft with character count (WA: 4096, Email: unlimited)
+ *   - Draft history (last 10, click to reload)
+ *   - Copy + WhatsApp deep-link + mailto shortcut
+ *   - Message log table (simulated sent history)
+ */
 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  MessageSquare, Mail, Copy, Check, Loader, AlertCircle,
+  Plus, Search, Send, Clock, ChevronDown, Zap,
+  BarChart2, Phone, RefreshCw, Smile, Briefcase,
+  AlertTriangle, Star, History, X,
+} from "lucide-react";
+import { leadsApi, commsApi, Lead } from "@/lib/api";
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const CONTEXT_TEMPLATES = [
+  { value: "Follow Up", label: "Follow Up", icon: Clock, description: "Gentle check-in after initial enquiry" },
+  { value: "Quote Sent", label: "Quote Sent", icon: Send, description: "Nudge after sending a quotation" },
+  { value: "Payment Reminder", label: "Payment Reminder", icon: AlertTriangle, description: "Politely remind about pending payment" },
+  { value: "Booking Confirmed", label: "Booking Confirmed ✓", icon: Check, description: "Celebrate the booking confirmation" },
+  { value: "Itinerary Ready", label: "Itinerary Ready", icon: Zap, description: "Inform client itinerary is prepared" },
+  { value: "Trip Reminder", label: "Pre-trip Reminder", icon: Star, description: "7 days before departure checklist" },
+  { value: "Post-trip Feedback", label: "Post-trip Feedback", icon: Smile, description: "Request review after the trip" },
+  { value: "Custom", label: "Custom Context…", icon: Plus, description: "Write your own message context" },
+];
+
+const TONES = [
+  { value: "Professional", label: "Professional", icon: Briefcase },
+  { value: "Friendly", label: "Friendly", icon: Smile },
+  { value: "Urgent", label: "Urgent", icon: AlertTriangle },
+  { value: "Formal", label: "Formal", icon: Star },
+];
+
+const MOCK_HISTORY = [
+  { id: 1, lead: "Ravi Mehta", context: "Quote Sent", channel: "whatsapp", sent_at: "2 hrs ago", status: "delivered" },
+  { id: 2, lead: "Priya Singh", context: "Follow Up", channel: "email", sent_at: "Yesterday", status: "opened" },
+  { id: 3, lead: "Ananya Rao", context: "Booking Confirmed ✓", channel: "whatsapp", sent_at: "2 days ago", status: "replied" },
+  { id: 4, lead: "Karan Kapoor", context: "Payment Reminder", channel: "email", sent_at: "3 days ago", status: "delivered" },
+  { id: 5, lead: "Deepika Nair", context: "Itinerary Ready", channel: "whatsapp", sent_at: "4 days ago", status: "replied" },
+];
+
+const STATUS_COLOR: Record<string, string> = {
+  delivered: "bg-blue-50 text-blue-600",
+  opened:    "bg-amber-50 text-amber-600",
+  replied:   "bg-emerald-50 text-emerald-600",
+  failed:    "bg-red-50 text-red-600",
+};
+
+// ── Character counter ──────────────────────────────────────────────────────────
+function CharCount({ text, max }: { text: string; max: number }) {
+  const count = text.length;
+  const pct   = (count / max) * 100;
+  const color = pct > 90 ? "text-red-500" : pct > 75 ? "text-amber-500" : "text-slate-400";
+  return (
+    <span className={`text-[11px] font-bold ${color}`}>{count}/{max}</span>
+  );
+}
+
+// ── Lead card in selector ──────────────────────────────────────────────────────
+function LeadOption({ lead, selected, onClick }: { lead: Lead; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+        selected ? "bg-[#14B8A6]/10 border border-[#14B8A6]/30" : "hover:bg-slate-50 border border-transparent"
+      }`}
+    >
+      <div className="w-8 h-8 bg-gradient-to-br from-[#14B8A6] to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+        {(lead.full_name || "L")[0]}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-bold text-slate-800 truncate">{lead.full_name || `Lead #${lead.id}`}</div>
+        <div className="text-[11px] text-slate-400 truncate">{lead.destination || "No destination"}</div>
+      </div>
+      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full flex-shrink-0 ${
+        lead.status === "NEW" ? "bg-blue-50 text-blue-600" :
+        lead.status === "QUALIFIED" ? "bg-emerald-50 text-emerald-600" :
+        "bg-slate-100 text-slate-500"
+      }`}>
+        {lead.status || "NEW"}
+      </span>
+    </button>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
 export default function CommsPage() {
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null)
-  const [context, setContext] = useState('Follow Up')
-  const [drafted, setDrafted] = useState<{whatsapp: string; email: string} | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [leadsLoading, setLeadsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState<'whatsapp' | 'email' | null>(null)
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'email'>('whatsapp')
+  const [leads, setLeads]         = useState<Lead[]>([]);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [leadSearch, setLeadSearch]     = useState("");
+  const [showLeadDropdown, setShowLeadDropdown] = useState(false);
+  const [context, setContext]     = useState("Follow Up");
+  const [customContext, setCustomContext] = useState("");
+  const [tone, setTone]           = useState("Friendly");
+  const [drafted, setDrafted]     = useState<{ whatsapp: string; email: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<"whatsapp" | "email">("whatsapp");
+  const [loading, setLoading]     = useState(false);
+  const [leadsLoading, setLeadsLoading] = useState(true);
+  const [error, setError]         = useState<string | null>(null);
+  const [copied, setCopied]       = useState<"whatsapp" | "email" | null>(null);
+  const [draftHistory, setDraftHistory] = useState<Array<{ context: string; lead: string; draft: typeof drafted; ts: string }>>([]);
+  const [showHistory, setShowHistory]   = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchLeads()
-  }, [])
+    leadsApi.list({ size: 100 }).then((d) => {
+      setLeads(d.items || []);
+      if (d.items?.length) setSelectedLead(d.items[0]);
+    }).catch(() => {}).finally(() => setLeadsLoading(false));
+  }, []);
 
-  const fetchLeads = async () => {
-    setLeadsLoading(true)
-    try {
-      const data = await leadsApi.list({ size: 50 })
-      setLeads(data.items)
-      if (data.items.length > 0) {
-        setSelectedLeadId(data.items[0].id)
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowLeadDropdown(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load leads')
-    } finally {
-      setLeadsLoading(false)
-    }
-  }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filteredLeads = leads.filter((l) =>
+    !leadSearch || (l.full_name || "").toLowerCase().includes(leadSearch.toLowerCase()) ||
+    (l.destination || "").toLowerCase().includes(leadSearch.toLowerCase())
+  );
 
   const handleDraft = async () => {
-    if (!selectedLeadId) {
-      setError('Please select a lead')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
+    if (!selectedLead) { setError("Please select a lead first"); return; }
+    setLoading(true);
+    setError(null);
     try {
-      const result = await commsApi.draft({
-        context,
-        lead_id: selectedLeadId,
-      })
-      setDrafted(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to draft message')
+      const effectiveContext = context === "Custom" ? customContext : `${context} (tone: ${tone})`;
+      const result = await commsApi.draft({ context: effectiveContext, lead_id: selectedLead.id });
+      setDrafted(result);
+      setDraftHistory((h) => [
+        { context: context === "Custom" ? customContext : context, lead: selectedLead.full_name || `Lead #${selectedLead.id}`, draft: result, ts: "Just now" },
+        ...h.slice(0, 9),
+      ]);
+    } catch (e: any) {
+      setError(e.message || "Failed to draft message");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleCopy = (text: string, type: 'whatsapp' | 'email') => {
-    navigator.clipboard.writeText(text)
-    setCopied(type)
-    setTimeout(() => setCopied(null), 2000)
-  }
+  const handleCopy = (text: string, type: "whatsapp" | "email") => {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
-  const selectedLead = leads.find((l) => l.id === selectedLeadId)
+  const whatsappDeepLink = drafted?.whatsapp && selectedLead?.phone
+    ? `https://wa.me/${selectedLead.phone.replace(/\D/g, "")}?text=${encodeURIComponent(drafted.whatsapp)}`
+    : null;
+
+  const mailtoLink = drafted?.email && selectedLead?.email
+    ? `mailto:${selectedLead.email}?subject=${encodeURIComponent("Your Travel Enquiry")}&body=${encodeURIComponent(drafted.email)}`
+    : null;
+
+  // KPIs (simulated)
+  const kpis = [
+    { label: "Sent This Month", value: "247",  icon: Send,        color: "bg-[#14B8A6] text-white" },
+    { label: "Reply Rate",      value: "68%",  icon: MessageSquare, color: "bg-violet-500 text-white" },
+    { label: "Avg Response",    value: "4.2h", icon: Clock,       color: "bg-blue-500 text-white" },
+    { label: "Open Rate",       value: "82%",  icon: BarChart2,   color: "bg-amber-500 text-white" },
+  ];
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-end">
+      {/* Header */}
+      <div className="flex justify-between items-end flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Communication Hub</h1>
-          <p className="text-slate-500 mt-2 font-medium">AI-powered message drafting for WhatsApp and Email.</p>
+          <p className="text-slate-500 mt-2 font-medium">AI-powered WhatsApp & Email drafting for every lead interaction.</p>
         </div>
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex items-center gap-2 text-sm font-bold text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50"
+        >
+          <History size={15} /> Draft History ({draftHistory.length})
+        </button>
+      </div>
+
+      {/* KPI Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpis.map((k) => (
+          <div key={k.label} className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4">
+            <div className={`w-10 h-10 ${k.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+              <k.icon size={18} />
+            </div>
+            <div>
+              <div className="text-2xl font-black text-[#0F172A]">{k.value}</div>
+              <div className="text-xs text-slate-400 font-medium">{k.label}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
-          <AlertCircle size={20} />
-          <span className="font-medium">{error}</span>
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700">
+          <AlertCircle size={18} className="flex-shrink-0" />
+          <span className="text-sm font-medium">{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto"><X size={14} /></button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-6">
-            <h3 className="font-bold text-[#0F172A] mb-4">Select Lead</h3>
-
-            {leadsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader size={24} className="animate-spin text-slate-400" />
-              </div>
-            ) : leads.length === 0 ? (
-              <div className="text-sm text-slate-500 text-center py-8">No leads available</div>
-            ) : (
-              <select
-                value={selectedLeadId || ''}
-                onChange={(e) => setSelectedLeadId(Number(e.target.value))}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all bg-white"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── Left panel: Controls ─────────────────────────────────────────── */}
+        <div className="lg:col-span-1 space-y-5">
+          {/* Lead selector */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-5">
+            <h3 className="font-extrabold text-[#0F172A] text-sm mb-3">1. Select Lead</h3>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowLeadDropdown(!showLeadDropdown)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 border border-slate-200 rounded-xl hover:border-[#14B8A6] transition-colors"
               >
-                {leads.map((lead) => (
-                  <option key={lead.id} value={lead.id}>
-                    {lead.full_name || `Lead #${lead.id}`} - {lead.destination || 'Unknown'}
-                  </option>
-                ))}
-              </select>
-            )}
+                {selectedLead ? (
+                  <>
+                    <div className="w-7 h-7 bg-[#14B8A6] rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                      {(selectedLead.full_name || "L")[0]}
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 flex-1 text-left truncate">
+                      {selectedLead.full_name || `Lead #${selectedLead.id}`}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm text-slate-400 flex-1 text-left">Select a lead…</span>
+                )}
+                <ChevronDown size={14} className="text-slate-400 flex-shrink-0" />
+              </button>
+
+              {showLeadDropdown && (
+                <div className="absolute z-20 top-full mt-1 w-full bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+                  <div className="p-2 border-b border-slate-100">
+                    <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2">
+                      <Search size={13} className="text-slate-400" />
+                      <input
+                        autoFocus
+                        value={leadSearch}
+                        onChange={(e) => setLeadSearch(e.target.value)}
+                        placeholder="Search leads…"
+                        className="bg-transparent text-sm outline-none flex-1 text-slate-700 placeholder-slate-400"
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto p-2">
+                    {leadsLoading ? (
+                      <div className="flex justify-center py-4"><Loader size={18} className="animate-spin text-slate-300" /></div>
+                    ) : filteredLeads.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">No leads found</p>
+                    ) : (
+                      filteredLeads.map((l) => (
+                        <LeadOption
+                          key={l.id} lead={l}
+                          selected={selectedLead?.id === l.id}
+                          onClick={() => { setSelectedLead(l); setShowLeadDropdown(false); setLeadSearch(""); }}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {selectedLead && (
-              <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200 text-sm space-y-2">
-                <div>
-                  <span className="text-slate-500 font-medium">Email:</span>
-                  <div className="text-slate-900 font-medium">{selectedLead.email}</div>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium">Destination:</span>
-                  <div className="text-slate-900 font-medium">{selectedLead.destination}</div>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium">Status:</span>
-                  <div className="text-slate-900 font-medium">{selectedLead.status}</div>
-                </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {[
+                  { label: "Destination", value: selectedLead.destination || "—" },
+                  { label: "Status", value: selectedLead.status || "NEW" },
+                  { label: "Budget", value: selectedLead.budget_per_person ? `₹${selectedLead.budget_per_person.toLocaleString("en-IN")}` : "—" },
+                  { label: "Travelers", value: String(selectedLead.travelers_count || "—") },
+                ].map((f) => (
+                  <div key={f.label} className="bg-slate-50 rounded-xl p-2.5">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{f.label}</div>
+                    <div className="text-xs font-bold text-slate-700 mt-0.5 truncate">{f.value}</div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-6">
-            <h3 className="font-bold text-[#0F172A] mb-4">Message Context</h3>
-
-            <select
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all bg-white mb-4"
-            >
-              <option value="Follow Up">Follow Up</option>
-              <option value="Quote Sent">Quote Sent</option>
-              <option value="Payment Reminder">Payment Reminder</option>
-              <option value="Booking Confirmed">Booking Confirmed</option>
-            </select>
-
-            <button
-              onClick={handleDraft}
-              disabled={loading || !selectedLeadId}
-              className="w-full bg-[#14B8A6] text-[#0F172A] py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#0fa39f] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader size={18} className="animate-spin" /> Drafting...
-                </>
-              ) : (
-                <>
-                  <MessageSquare size={18} /> Draft with AI
-                </>
-              )}
-            </button>
+          {/* Context */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-5">
+            <h3 className="font-extrabold text-[#0F172A] text-sm mb-3">2. Message Context</h3>
+            <div className="grid grid-cols-2 gap-1.5 mb-3">
+              {CONTEXT_TEMPLATES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setContext(t.value)}
+                  className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-left text-xs font-semibold transition-all border ${
+                    context === t.value
+                      ? "bg-[#14B8A6]/10 border-[#14B8A6]/40 text-[#14B8A6]"
+                      : "border-slate-100 text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  <t.icon size={11} className="flex-shrink-0" />
+                  <span className="truncate">{t.label}</span>
+                </button>
+              ))}
+            </div>
+            {context === "Custom" && (
+              <textarea
+                value={customContext}
+                onChange={(e) => setCustomContext(e.target.value)}
+                placeholder="Describe what you want to say…"
+                rows={3}
+                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#14B8A6] resize-none"
+              />
+            )}
           </div>
+
+          {/* Tone */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-5">
+            <h3 className="font-extrabold text-[#0F172A] text-sm mb-3">3. Tone</h3>
+            <div className="grid grid-cols-2 gap-1.5">
+              {TONES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setTone(t.value)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    tone === t.value
+                      ? "bg-[#0F172A] border-[#0F172A] text-white"
+                      : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  <t.icon size={12} />
+                  {t.value}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Draft button */}
+          <button
+            onClick={handleDraft}
+            disabled={loading || !selectedLead}
+            className="w-full bg-[#14B8A6] text-[#0F172A] py-3.5 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-[#0FA898] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            {loading ? (
+              <><Loader size={16} className="animate-spin" /> Drafting with AI…</>
+            ) : (
+              <><Zap size={16} fill="currentColor" /> Draft with AI</>
+            )}
+          </button>
         </div>
 
-        <div className="lg:col-span-2">
+        {/* ── Right panel: Draft output ────────────────────────────────────── */}
+        <div className="lg:col-span-2 space-y-5">
           {!drafted ? (
-            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-12 text-center">
+            <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-16 text-center">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare size={32} className="text-slate-400" />
+                <MessageSquare size={28} className="text-slate-300" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Ready to draft?</h3>
-              <p className="text-slate-500">Select a lead and context, then click "Draft with AI" to generate messages.</p>
+              <h3 className="text-lg font-extrabold text-slate-700 mb-1">Ready to draft</h3>
+              <p className="text-slate-400 text-sm max-w-xs mx-auto">Pick a lead, choose context & tone, then hit "Draft with AI".</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="flex gap-2 border-b border-slate-200">
-                <button
-                  onClick={() => setActiveTab('whatsapp')}
-                  className={`px-6 py-3 font-bold text-sm transition-colors ${
-                    activeTab === 'whatsapp'
-                      ? 'text-[#14B8A6] border-b-2 border-[#14B8A6]'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  <MessageSquare size={16} className="inline mr-2" />
-                  WhatsApp
-                </button>
-                <button
-                  onClick={() => setActiveTab('email')}
-                  className={`px-6 py-3 font-bold text-sm transition-colors ${
-                    activeTab === 'email'
-                      ? 'text-[#14B8A6] border-b-2 border-[#14B8A6]'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  <Mail size={16} className="inline mr-2" />
-                  Email
-                </button>
+            <>
+              {/* Tab switcher */}
+              <div className="flex bg-slate-100 p-1 rounded-xl w-fit gap-1">
+                {(["whatsapp", "email"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
+                      activeTab === tab ? "bg-white text-[#0F172A] shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {tab === "whatsapp" ? <Phone size={14} /> : <Mail size={14} />}
+                    {tab === "whatsapp" ? "WhatsApp" : "Email"}
+                  </button>
+                ))}
               </div>
 
-              <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-6">
-                {activeTab === 'whatsapp' && (
-                  <div className="space-y-4">
-                    <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 whitespace-pre-wrap text-sm text-slate-700 leading-relaxed font-medium max-h-96 overflow-y-auto">
-                      {drafted.whatsapp}
+              {/* Draft card */}
+              <div className="bg-white border border-slate-100 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs ${activeTab === "whatsapp" ? "bg-[#25D366]" : "bg-blue-500"}`}>
+                      {activeTab === "whatsapp" ? <Phone size={12} /> : <Mail size={12} />}
                     </div>
-                    <button
-                      onClick={() => handleCopy(drafted.whatsapp, 'whatsapp')}
-                      className={`w-full px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${
-                        copied === 'whatsapp'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      {copied === 'whatsapp' ? (
-                        <>
-                          <Check size={18} /> Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={18} /> Copy to Clipboard
-                        </>
-                      )}
-                    </button>
+                    <span className="text-sm font-bold text-slate-600 capitalize">{activeTab} draft</span>
                   </div>
-                )}
-
-                {activeTab === 'email' && (
-                  <div className="space-y-4">
-                    <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 whitespace-pre-wrap text-sm text-slate-700 leading-relaxed font-medium max-h-96 overflow-y-auto">
-                      {drafted.email}
-                    </div>
-                    <button
-                      onClick={() => handleCopy(drafted.email, 'email')}
-                      className={`w-full px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${
-                        copied === 'email'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
+                  <CharCount
+                    text={activeTab === "whatsapp" ? (drafted.whatsapp || "") : (drafted.email || "")}
+                    max={activeTab === "whatsapp" ? 4096 : 10000}
+                  />
+                </div>
+                <div className="bg-slate-50 rounded-xl p-5 whitespace-pre-wrap text-sm text-slate-700 leading-relaxed min-h-[200px] max-h-80 overflow-y-auto border border-slate-200">
+                  {activeTab === "whatsapp" ? drafted.whatsapp : drafted.email}
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => handleCopy(activeTab === "whatsapp" ? drafted.whatsapp : drafted.email, activeTab)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      copied === activeTab ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {copied === activeTab ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
+                  </button>
+                  {activeTab === "whatsapp" && whatsappDeepLink && (
+                    <a
+                      href={whatsappDeepLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#25D366] text-white hover:bg-[#20bb5a] transition-all"
                     >
-                      {copied === 'email' ? (
-                        <>
-                          <Check size={18} /> Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={18} /> Copy to Clipboard
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
+                      <Send size={14} /> Open in WhatsApp
+                    </a>
+                  )}
+                  {activeTab === "email" && mailtoLink && (
+                    <a
+                      href={mailtoLink}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-500 text-white hover:bg-blue-600 transition-all"
+                    >
+                      <Mail size={14} /> Open in Mail
+                    </a>
+                  )}
+                  <button
+                    onClick={handleDraft}
+                    className="px-3 py-2.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    title="Re-draft"
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
+            </>
           )}
+
+          {/* Sent history log */}
+          <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-[#0F172A] text-sm">Recent Sent Messages</h3>
+              <span className="text-xs text-slate-400">Last 30 days</span>
+            </div>
+            <div className="divide-y divide-slate-50">
+              {MOCK_HISTORY.map((msg) => (
+                <div key={msg.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.channel === "whatsapp" ? "bg-[#25D366]" : "bg-blue-500"}`}>
+                    {msg.channel === "whatsapp" ? <Phone size={12} className="text-white" /> : <Mail size={12} className="text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{msg.lead}</p>
+                    <p className="text-xs text-slate-400">{msg.context}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${STATUS_COLOR[msg.status]}`}>{msg.status}</span>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{msg.sent_at}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Draft history drawer */}
+      {showHistory && draftHistory.length > 0 && (
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <h3 className="font-extrabold text-[#0F172A] text-sm mb-4 flex items-center gap-2">
+            <History size={15} /> Draft History (this session)
+          </h3>
+          <div className="space-y-2">
+            {draftHistory.map((h, i) => (
+              <button
+                key={i}
+                onClick={() => { setDrafted(h.draft); setShowHistory(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl text-left transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800">{h.lead} — {h.context}</p>
+                  <p className="text-xs text-slate-400">{h.ts}</p>
+                </div>
+                <ArrowRight size={14} className="text-slate-400 flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
+}
+
+function ArrowRight({ size, className }: { size: number; className: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
 }

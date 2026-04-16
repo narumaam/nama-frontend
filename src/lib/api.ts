@@ -262,8 +262,15 @@ export const vendorsApi = {
     const q = new URLSearchParams()
     if (params?.category) q.set('category', params.category)
     if (params?.status) q.set('status', params.status)
-    return api.get<Vendor[]>(`/api/v1/bidding/vendors?${q}`)
+    return api.get<Vendor[]>(`/api/v1/vendors?${q}`)
   },
+  get: (id: number) => api.get<Vendor>(`/api/v1/vendors/${id}`),
+  create: (data: Partial<Vendor> & { vendor_code: string; name: string }) =>
+    api.post<Vendor>('/api/v1/vendors', data),
+  update: (id: number, data: Partial<Vendor>) =>
+    api.patch<Vendor>(`/api/v1/vendors/${id}`, data),
+  deactivate: (id: number) => api.delete<void>(`/api/v1/vendors/${id}`),
+  stats: () => api.get<{ total_active: number; preferred_count: number; avg_rating?: number; by_category: Record<string, number> }>('/api/v1/vendors/stats/summary'),
 }
 
 // Itineraries

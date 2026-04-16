@@ -28,12 +28,13 @@ from app.api.v1 import (
     auth, tenants, itineraries, bidding, queries,
     documents, financials, analytics, portals,
     communications, bookings, content, corporate,
-    leads, quotations,
+    leads, quotations, vendors,
 )
 from app.api.v1 import payments as payments_router
 from app.api.v1 import ai_admin
 from app.api.v1 import admin as platform_admin
 from app.api.v1 import settings as settings_router
+from app.api.v1 import webhooks as webhooks_router
 from app.db.session import engine, Base, init_performance_indexes
 from app.core.cache_warmer import start_background_warmer
 from app.core.rate_limiter import RateLimitMiddleware
@@ -174,6 +175,12 @@ app.include_router(payments_router.router, prefix="/api/v1/payments",     tags=[
 app.include_router(ai_admin.router,        prefix="/api/v1/ai",           tags=["ai-admin"])
 app.include_router(platform_admin.router,  prefix="/api/v1/admin",        tags=["admin"])
 app.include_router(settings_router.router, prefix="/api/v1/settings",     tags=["settings"])
+
+#   Inbound webhooks (WhatsApp, Razorpay, generic)
+app.include_router(webhooks_router.router, prefix="/api/v1/webhooks",     tags=["webhooks"])
+
+#   Vendor / supplier management (M6)
+app.include_router(vendors.router,         prefix="/api/v1/vendors",      tags=["vendors"])
 
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
