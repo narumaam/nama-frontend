@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
   Search, LogOut, Store, Key, FileQuestion, Menu,
-  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight,
+  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -58,21 +58,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayRole = auth.user?.role ?? '';
 
   const navigation = [
-    { name: 'Dashboard',    href: '/dashboard',            icon: LayoutDashboard },
-    { name: 'Query Inbox',  href: '/dashboard/queries',     icon: Inbox },
-    { name: 'Leads',        href: '/dashboard/leads',       icon: Users },
-    { name: 'Quotations',   href: '/dashboard/quotations',  icon: FileQuestion },
-    { name: 'Itineraries',  href: '/dashboard/itineraries', icon: Map },
-    { name: 'Bookings',     href: '/dashboard/bookings',    icon: Briefcase },
-    { name: 'Vendors',      href: '/dashboard/vendors',     icon: Store },
-    { name: 'Comms',        href: '/dashboard/comms',       icon: MessageSquare },
+    { name: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard },
+    { name: 'Query Inbox',  href: '/dashboard/queries',      icon: Inbox },
+    { name: 'Leads',        href: '/dashboard/leads',        icon: Users },
+    { name: 'Quotations',   href: '/dashboard/quotations',   icon: FileQuestion },
+    { name: 'Itineraries',  href: '/dashboard/itineraries',  icon: Map },
+    { name: 'Bookings',     href: '/dashboard/bookings',     icon: Briefcase },
+    { name: 'Vendors',      href: '/dashboard/vendors',      icon: Store },
+    { name: 'Comms',        href: '/dashboard/comms',        icon: MessageSquare },
+    { name: 'Intentra',     href: '/dashboard/intentra',     icon: Radar, badge: 'Live' },
     { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard },
     { name: 'Content',      href: '/dashboard/content',      icon: FileText },
-    { name: 'Automations',   href: '/dashboard/automations',   icon: GitBranch },
-    { name: 'Reports',       href: '/dashboard/reports',       icon: BarChart2 },
-    { name: 'Integrations',  href: '/dashboard/integrations',  icon: Plug },
-    { name: 'Settings',      href: '/dashboard/settings',      icon: Settings },
-    { name: 'System Status', href: '/dashboard/status',         icon: Activity },
+    { name: 'Automations',  href: '/dashboard/automations',  icon: GitBranch },
+    { name: 'Reports',      href: '/dashboard/reports',      icon: BarChart2 },
+    { name: 'Integrations', href: '/dashboard/integrations', icon: Plug },
+    { name: 'Settings',     href: '/dashboard/settings',     icon: Settings },
+    { name: 'System Status',href: '/dashboard/status',       icon: Activity },
   ];
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
@@ -118,11 +119,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <item.icon size={18} className={`flex-shrink-0 ${isActive ? 'text-[#14B8A6]' : 'text-slate-500 group-hover:text-slate-300'}`} />
               {(sidebarOpen || mobile) && (
-                <span className={`text-sm font-semibold ${isActive ? 'font-bold text-[#14B8A6]' : ''}`}>
+                <span className={`text-sm font-semibold flex-1 ${isActive ? 'font-bold text-[#14B8A6]' : ''}`}>
                   {item.name}
                 </span>
               )}
-              {isActive && (sidebarOpen || mobile) && (
+              {(sidebarOpen || mobile) && 'badge' in item && item.badge && (
+                <span className="ml-auto text-[9px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded-full bg-[#14B8A6]/20 text-[#14B8A6] border border-[#14B8A6]/30 flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-[#14B8A6] animate-pulse inline-block" />
+                  {item.badge}
+                </span>
+              )}
+              {isActive && !(('badge' in item) && item.badge) && (sidebarOpen || mobile) && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#14B8A6]" />
               )}
             </Link>
