@@ -2,9 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Zap, X, Loader, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 const LandingPage = () => {
+  const router = useRouter();
+  const { login } = useAuth();
   const [query, setQuery] = useState("Hi NAMA! My husband and I want to visit Bali for a week in December. We want a private villa with a pool and some spa time. Our budget is around $4000 total.");
   const [result, setResult] = useState({
     destination: "Bali, Indonesia",
@@ -15,15 +19,29 @@ const LandingPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
-  const [systemHealth, setSystemHealth] = useState("green");
+  const [systemHealth, setSystemHealth] = useState("checking");
+
+  // Login modal state
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
+    // Check for ?redirect= param — show login modal if redirected from protected route
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('redirect')) setShowLogin(true);
+  }, []);
+
+  useEffect(() => {
+    // Use Vercel proxy — no direct Railway URL
     const checkHealth = async () => {
       try {
-        const res = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/health');
+        const res = await fetch('/api/v1/health');
         if (res.ok) setSystemHealth("green");
         else setSystemHealth("orange");
-      } catch (err) {
+      } catch {
         setSystemHealth("red");
       }
     };
@@ -32,11 +50,26 @@ const LandingPage = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+    try {
+      await login(loginEmail, loginPassword);
+      const params = new URLSearchParams(window.location.search);
+      router.push(params.get('redirect') || '/dashboard');
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : 'Login failed. Check your credentials.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   const handleTriage = async () => {
     setLoading(true);
     setStatus("Analyzing...");
     try {
-      const response = await fetch('https://stunning-joy-production-87bb.up.railway.app/api/v1/queries/ingest', {
+      const response = await fetch('/api/v1/queries/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -91,12 +124,81 @@ const LandingPage = () => {
           <Link href="/kinetic" className="hover:text-[#0F172A] transition-colors font-semibold text-[#14B8A6] text-left">Kinetic OS</Link>
           <a href="#pricing" className="hover:text-[#0F172A] transition-colors text-left">Pricing</a>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowLogin(true)}
+            className="text-sm font-semibold text-slate-600 hover:text-[#0F172A] transition-colors px-3 py-2"
+          >
+            Log In
+          </button>
           <Link href="/register" className="bg-[#0F172A] text-white text-sm px-5 py-2 rounded-full font-medium hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-[#0F172A]/10">
             Get Started
           </Link>
         </div>
       </nav>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <div className="w-10 h-10 bg-[#0F172A] rounded-xl flex items-center justify-center text-white font-bold text-xl mb-3">N</div>
+                <h2 className="text-2xl font-extrabold text-[#0F172A]">Welcome back</h2>
+                <p className="text-slate-500 text-sm font-medium mt-1">Sign in to your NAMA workspace</p>
+              </div>
+              <button onClick={() => { setShowLogin(false); setLoginError(''); }} className="p-2 text-slate-400 hover:text-slate-600 self-start">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              {loginError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+                  <AlertCircle size={16} />
+                  {loginError}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="admin@company.com"
+                  required
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all font-medium text-[#0F172A]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all font-medium text-[#0F172A]"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full bg-[#0F172A] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50"
+              >
+                {loginLoading ? <><Loader size={18} className="animate-spin" /> Signing in...</> : 'Sign In to Dashboard'}
+              </button>
+            </form>
+
+            <p className="mt-6 text-center text-sm text-slate-400 font-medium">
+              No account?{' '}
+              <Link href="/register" className="text-[#14B8A6] font-bold hover:underline" onClick={() => setShowLogin(false)}>
+                Create one free
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
 
       <section id="vision" className="relative px-6 pt-24 pb-32 max-w-7xl mx-auto flex flex-col items-center text-center">
         <div className="inline-block px-4 py-1.5 mb-8 bg-slate-100 rounded-full text-xs font-semibold tracking-wider text-slate-500 uppercase">
