@@ -5,7 +5,8 @@ import { leadsApi, itinerariesApi, quotationsApi, Lead, ItineraryOut, Quotation 
 import {
   FileText, Plus, Loader, AlertCircle, CheckCircle,
   Clock, Send, Download, Eye, X, ChevronRight,
-  Sparkles, DollarSign, Share2,
+  Sparkles, DollarSign, Share2, TrendingUp, TrendingDown,
+  Minus, BarChart3, Info, Zap,
 } from 'lucide-react'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -27,6 +28,143 @@ const SEED_QUOTATIONS: Quotation[] = [
   { id: 106, tenant_id: 1, lead_id: 8, lead_name: 'Sneha Patel',   destination: 'Santorini',  base_price: 380000, margin_pct: 20, total_price: 456000, currency: 'INR', status: 'REJECTED', created_at: QTS(9), updated_at: QTS(8) },
   { id: 107, tenant_id: 1, lead_id: 3, lead_name: 'Ananya Rao',    destination: 'Kedarnath',  base_price: 55000,  margin_pct: 18, total_price: 64900,  currency: 'INR', status: 'DRAFT',    created_at: QTS(0), updated_at: QTS(0) },
 ]
+
+// ── Smart Pricing Intelligence ─────────────────────────────────────────────────
+interface PricingBenchmark {
+  destination: string;
+  avgMarginPct: number;
+  marketLow: number;    // per person in INR
+  marketMid: number;
+  marketHigh: number;
+  demandTrend: 'UP' | 'DOWN' | 'STABLE';
+  demandPct: number;
+  tip: string;
+  segment: string;
+}
+
+const PRICING_BENCHMARKS: Record<string, PricingBenchmark> = {
+  'Maldives':   { destination: 'Maldives',   avgMarginPct: 22, marketLow: 150000, marketMid: 250000, marketHigh: 500000, demandTrend: 'UP',     demandPct: 34, tip: 'High demand — push margins to 25%+. Overwater villas command premium.', segment: 'LUXURY' },
+  'Bali':       { destination: 'Bali',       avgMarginPct: 20, marketLow: 60000,  marketMid: 120000, marketHigh: 220000, demandTrend: 'UP',     demandPct: 18, tip: 'Competitive segment. Differentiate with unique experiences, not just hotels.', segment: 'PREMIUM' },
+  'Kenya':      { destination: 'Kenya',      avgMarginPct: 24, marketLow: 200000, marketMid: 350000, marketHigh: 600000, demandTrend: 'UP',     demandPct: 22, tip: 'Safari demand surging. Scarcity of good dates — use urgency in pitch.', segment: 'LUXURY' },
+  'Dubai':      { destination: 'Dubai',      avgMarginPct: 16, marketLow: 45000,  marketMid: 90000,  marketHigh: 180000, demandTrend: 'STABLE', demandPct: 2,  tip: 'Price-sensitive segment. Focus on bundled value. Keep margins 15-18%.', segment: 'MID' },
+  'Rajasthan':  { destination: 'Rajasthan',  avgMarginPct: 22, marketLow: 25000,  marketMid: 65000,  marketHigh: 150000, demandTrend: 'STABLE', demandPct: -3, tip: 'Heritage segment with loyal customers. Bundle cultural experiences for upsell.', segment: 'MID' },
+  'Santorini':  { destination: 'Santorini',  avgMarginPct: 25, marketLow: 120000, marketMid: 200000, marketHigh: 400000, demandTrend: 'UP',     demandPct: 15, tip: 'Europe honeymoon segment growing. High aspirational value — price confidently.', segment: 'LUXURY' },
+  'Kedarnath':  { destination: 'Kedarnath',  avgMarginPct: 18, marketLow: 12000,  marketMid: 22000,  marketHigh: 40000,  demandTrend: 'STABLE', demandPct: 5,  tip: 'Pilgrimage segment: value-driven. Reliability and safety are key selling points.', segment: 'BUDGET' },
+  'Leh Ladakh': { destination: 'Leh Ladakh', avgMarginPct: 20, marketLow: 20000,  marketMid: 38000,  marketHigh: 75000,  demandTrend: 'DOWN',   demandPct: -8, tip: 'Off-season approaching. Offer early-booking discounts. Adventure differentiates.', segment: 'MID' },
+};
+
+const DEFAULT_BENCHMARK: PricingBenchmark = {
+  destination: 'General', avgMarginPct: 20, marketLow: 50000, marketMid: 120000, marketHigh: 250000,
+  demandTrend: 'STABLE', demandPct: 0, tip: 'Set margins 18-22% for most destinations. Higher for luxury, lower for budget.', segment: 'MID',
+};
+
+function getPricingBenchmark(destination: string): PricingBenchmark {
+  const key = Object.keys(PRICING_BENCHMARKS).find(k =>
+    destination?.toLowerCase().includes(k.toLowerCase())
+  );
+  return key ? PRICING_BENCHMARKS[key] : { ...DEFAULT_BENCHMARK, destination: destination || 'General' };
+}
+
+function MarginHealthBar({ actual, benchmark }: { actual: number; benchmark: number }) {
+  const diff = actual - benchmark;
+  const pct = Math.min(100, Math.max(0, (actual / 35) * 100));
+  const color = actual >= benchmark + 2 ? 'bg-green-500' : actual >= benchmark - 2 ? 'bg-[#14B8A6]' : actual >= benchmark - 5 ? 'bg-amber-400' : 'bg-red-400';
+  const label = actual >= benchmark + 2 ? 'Above Market ↑' : actual >= benchmark - 2 ? 'On Target ✓' : actual >= benchmark - 5 ? 'Below Market ↓' : 'Underpriced ⚠';
+  const labelColor = actual >= benchmark + 2 ? 'text-green-700' : actual >= benchmark - 2 ? 'text-[#14B8A6]' : actual >= benchmark - 5 ? 'text-amber-700' : 'text-red-600';
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1.5">
+        <span className={`font-bold ${labelColor}`}>{label}</span>
+        <span className="text-slate-400">{diff >= 0 ? '+' : ''}{diff.toFixed(1)}% vs benchmark ({benchmark}%)</span>
+      </div>
+      <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function SmartPricingInsight({ q }: { q: Quotation }) {
+  const bench = getPricingBenchmark(q.destination || '');
+  const perPax = q.base_price; // treat base_price as cost
+  const trend = bench.demandTrend;
+  const TrendIcon = trend === 'UP' ? TrendingUp : trend === 'DOWN' ? TrendingDown : Minus;
+  const trendColor = trend === 'UP' ? 'text-green-600' : trend === 'DOWN' ? 'text-red-500' : 'text-slate-500';
+
+  const pricePosition =
+    perPax < bench.marketLow ? 'LOW' :
+    perPax <= bench.marketMid ? 'MID' :
+    perPax <= bench.marketHigh ? 'HIGH' : 'PREMIUM';
+
+  const positionColors: Record<string, string> = {
+    LOW: 'text-amber-700 bg-amber-50', MID: 'text-blue-700 bg-blue-50',
+    HIGH: 'text-purple-700 bg-purple-50', PREMIUM: 'text-emerald-700 bg-emerald-50',
+  };
+
+  return (
+    <div className="mt-5 pt-5 border-t border-slate-100 space-y-4">
+      <div className="flex items-center gap-2">
+        <Zap size={14} className="text-[#14B8A6]" />
+        <span className="text-xs font-black uppercase tracking-widest text-slate-500">Smart Pricing Intelligence</span>
+      </div>
+
+      {/* Margin Health */}
+      <MarginHealthBar actual={q.margin_pct} benchmark={bench.avgMarginPct} />
+
+      {/* Market Range */}
+      <div className="bg-slate-50 rounded-xl p-3">
+        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Market Rate Range — {bench.destination}</div>
+        <div className="flex items-center gap-1 mb-2">
+          {['Budget', 'Mid', 'Premium'].map((tier, i) => {
+            const val = [bench.marketLow, bench.marketMid, bench.marketHigh][i];
+            const isActive = (i === 0 && pricePosition === 'LOW') || (i === 1 && pricePosition === 'MID') || (i === 2 && (pricePosition === 'HIGH' || pricePosition === 'PREMIUM'));
+            return (
+              <div key={tier} className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold ${isActive ? 'bg-[#14B8A6] text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                <div>{tier}</div>
+                <div>₹{(val/1000).toFixed(0)}k</div>
+              </div>
+            );
+          })}
+        </div>
+        <div className={`text-center text-[11px] font-bold px-2 py-1 rounded-lg ${positionColors[pricePosition]}`}>
+          Your base price is in the <strong>{pricePosition}</strong> range
+        </div>
+      </div>
+
+      {/* Demand Signal */}
+      <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 px-3 py-2.5">
+        <div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Network Demand Signal</div>
+          <div className="font-bold text-sm text-slate-800 mt-0.5">{bench.destination}</div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <TrendIcon size={16} className={trendColor} />
+          <span className={`text-sm font-black ${trendColor}`}>
+            {bench.demandPct > 0 ? '+' : ''}{bench.demandPct}%
+          </span>
+        </div>
+      </div>
+
+      {/* Tip */}
+      <div className="flex items-start gap-2 bg-[#14B8A6]/5 border border-[#14B8A6]/20 rounded-xl p-3">
+        <Info size={13} className="text-[#14B8A6] flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-slate-600 leading-relaxed">{bench.tip}</p>
+      </div>
+
+      {/* Recommended price */}
+      {q.margin_pct < bench.avgMarginPct - 2 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <div className="text-xs font-bold text-amber-800 mb-1">💡 Pricing Opportunity</div>
+          <p className="text-xs text-amber-700">
+            At {bench.avgMarginPct}% (benchmark), your total price would be{' '}
+            <strong>₹{Math.round(q.base_price * (1 + bench.avgMarginPct / 100)).toLocaleString('en-IN')}</strong>{' '}
+            — an extra <strong>₹{Math.round(q.base_price * (bench.avgMarginPct - q.margin_pct) / 100).toLocaleString('en-IN')}</strong> in margin.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function QuotationCard({ q, onView }: { q: Quotation; onView: (q: Quotation) => void }) {
   return (
@@ -247,6 +385,55 @@ export default function QuotationsPage() {
         ))}
       </div>
 
+      {/* Portfolio Margin Intelligence */}
+      {quotations.length > 0 && (() => {
+        const avgMargin = Math.round(quotations.reduce((s, q) => s + (q.margin_pct || 0), 0) / quotations.length);
+        const underpriced = quotations.filter(q => {
+          const bench = getPricingBenchmark(q.destination || '');
+          return q.margin_pct < bench.avgMarginPct - 2;
+        });
+        const topDest = quotations.reduce((acc, q) => {
+          const d = q.destination || 'Other';
+          acc[d] = (acc[d] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        const topDestName = Object.entries(topDest).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+        const topBench = topDestName ? getPricingBenchmark(topDestName) : null;
+        return (
+          <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-2xl p-5 flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#14B8A6]/20 flex items-center justify-center flex-shrink-0">
+                <BarChart3 size={18} className="text-[#14B8A6]" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#14B8A6]">Margin Intelligence</div>
+                <div className="text-white font-bold text-sm">Portfolio Average: {avgMargin}% margin</div>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-white/10 hidden md:block" />
+            {underpriced.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-sm text-amber-300 font-semibold">
+                  {underpriced.length} quote{underpriced.length > 1 ? 's' : ''} below benchmark margin
+                </span>
+              </div>
+            )}
+            {topBench && topBench.demandTrend === 'UP' && (
+              <div className="flex items-center gap-2">
+                <TrendingUp size={14} className="text-green-400" />
+                <span className="text-sm text-green-300 font-semibold">
+                  {topBench.destination} demand +{topBench.demandPct}% — price with confidence
+                </span>
+              </div>
+            )}
+            <div className="ml-auto text-[10px] text-slate-500 font-medium hidden xl:block">
+              Powered by NAMA Intelligence Network
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Filter tabs */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit flex-wrap">
         {['ALL', 'DRAFT', 'SENT', 'ACCEPTED', 'REJECTED'].map(s => (
@@ -409,6 +596,9 @@ export default function QuotationsPage() {
                 ))}
               </div>
             </div>
+
+            {/* Smart Pricing Intelligence */}
+            <SmartPricingInsight q={selectedQuote} />
 
             {/* Export & Share Actions */}
             <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
