@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     companyName: '',
@@ -62,7 +64,7 @@ export default function RegisterPage() {
       });
 
       // Step 2: Register admin user
-      const userRes = await authApi.registerUser({
+      await authApi.registerUser({
         email: formData.email,
         password: formData.password,
         full_name: formData.fullName,
@@ -70,14 +72,9 @@ export default function RegisterPage() {
         tenant_id: orgRes.tenant_id,
       });
 
-      // Store auth token
-      localStorage.setItem('nama_token', userRes.access_token);
-      localStorage.setItem('nama_user', JSON.stringify({
-        userId: userRes.user_id,
-        tenantId: orgRes.tenant_id,
-        role: 'ADMIN',
-        email: formData.email,
-      }));
+      // Step 3: Login via auth context — sets both localStorage + nama_auth cookie
+      // so the Edge middleware allows the /dashboard redirect
+      await login(formData.email, formData.password);
 
       router.push('/dashboard');
     } catch (err) {
