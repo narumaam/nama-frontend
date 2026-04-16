@@ -1,17 +1,18 @@
 """add quotations table
 
 Revision ID: a1b2c3d4e5f6
-Revises: f5d48c026bb0
+Revises: f5d48c026bb1
 Create Date: 2026-04-16 00:00:00.000000
 
 M3 — Quotations table for travel proposals/pricing.
+Chain: f5d48c026bb0 → f5d48c026bb1 → a1b2c3d4e5f6 → b2c3d4e5f6a7
 """
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
 revision: str = 'a1b2c3d4e5f6'
-down_revision: Union[str, Sequence[str], None] = 'f5d48c026bb0'
+down_revision: Union[str, Sequence[str], None] = 'f5d48c026bb1'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
