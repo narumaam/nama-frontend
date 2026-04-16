@@ -17,9 +17,11 @@ export default function DemoPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Mark this session as demo mode — the dashboard layout picks this up
-    // to show the "Demo Mode" banner.
+    // Set localStorage flag — picked up by dashboard layout for the banner
     localStorage.setItem('nama_demo_mode', '1')
+    // Set a cookie so the Edge middleware lets the visitor into /dashboard
+    // without a real auth token. SameSite=Lax is safe; no sensitive data.
+    document.cookie = 'nama_demo=1; path=/; max-age=3600; SameSite=Lax'
     // Small delay so the loading screen is visible (feels intentional, not broken)
     const t = setTimeout(() => router.replace('/dashboard'), 1200)
     return () => clearTimeout(t)

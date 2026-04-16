@@ -13,9 +13,9 @@
  *   #F97316        orange (highlight)
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Eye, EyeOff, Loader, AlertCircle, CheckCircle2,
   ArrowRight, Zap, BarChart2, Globe, Shield,
@@ -35,8 +35,9 @@ const TESTIMONIALS = [
   { name: 'Karan T.',  company: 'Horizon Travels',    quote: 'NAMA replaced 3 tools and 2 spreadsheets.',        avatar: 'K' },
 ]
 
-export default function LoginPage() {
-  const router = useRouter()
+function LoginPageInner() {
+  const router       = useRouter()
+  const searchParams = useSearchParams()
   const { login, user } = useAuth()
 
   const [email,    setEmail]    = useState('')
@@ -46,6 +47,9 @@ export default function LoginPage() {
   const [error,    setError]    = useState('')
   const [success,  setSuccess]  = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
+
+  // Detect session-expired redirect from API layer
+  const sessionExpired = searchParams.get('expired') === '1'
 
   // Redirect if already logged in
   useEffect(() => {
@@ -197,6 +201,14 @@ export default function LoginPage() {
               <p className="text-slate-500 font-medium mt-2 text-sm">Sign in to your NAMA workspace</p>
             </div>
 
+            {/* Session expired notice */}
+            {sessionExpired && (
+              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm font-medium mb-5">
+                <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-amber-500" />
+                Your session has expired. Please sign in again to continue.
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
 
               {/* Error */}
@@ -312,5 +324,13 @@ export default function LoginPage() {
       </div>
 
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
   )
 }

@@ -21,13 +21,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
 
-  // 401 → token expired/invalid → force logout and redirect to login
+  // 401 → token expired/invalid → force logout and redirect to login with banner
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('nama_token')
       localStorage.removeItem('nama_user')
-      document.cookie = 'nama_auth=; path=/; max-age=0'
-      window.location.href = '/?session_expired=1'
+      document.cookie = 'nama_auth=; path=/; max-age=0; SameSite=Strict'
+      document.cookie = 'nama_demo=; path=/; max-age=0; SameSite=Lax'
+      localStorage.removeItem('nama_demo_mode')
+      window.location.href = '/login?expired=1'
     }
     throw new Error('Session expired. Please log in again.')
   }

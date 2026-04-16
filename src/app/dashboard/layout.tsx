@@ -41,12 +41,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = () => {
     localStorage.removeItem('nama_demo_mode');
+    document.cookie = 'nama_demo=; path=/; max-age=0; SameSite=Lax';
     auth.logout();
     router.push('/');
   };
 
   const handleExitDemo = () => {
     localStorage.removeItem('nama_demo_mode');
+    // Clear the cookie so middleware no longer grants demo access
+    document.cookie = 'nama_demo=; path=/; max-age=0; SameSite=Lax';
     router.push('/');
   };
 
