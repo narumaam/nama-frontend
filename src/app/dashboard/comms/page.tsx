@@ -69,6 +69,143 @@ const STATUS_COLOR: Record<string, string> = {
   failed:    "bg-red-50 text-red-600",
 };
 
+// ── Follow-up Template Library ─────────────────────────────────────────────────
+interface FollowUpTemplate {
+  id: string;
+  category: 'NEW_LEAD' | 'QUOTE' | 'BOOKING' | 'PRE_TRIP' | 'POST_TRIP' | 'REENGAGEMENT';
+  label: string;
+  timing: string;
+  emoji: string;
+  whatsapp: (name: string, dest: string, agent: string) => string;
+  email: (name: string, dest: string, agent: string) => string;
+}
+
+const FOLLOW_UP_TEMPLATES: FollowUpTemplate[] = [
+  // ── NEW LEAD
+  {
+    id: 'nl-1',
+    category: 'NEW_LEAD',
+    label: 'Warm Welcome',
+    timing: 'Within 1h of inquiry',
+    emoji: '👋',
+    whatsapp: (n, d, a) => `Hi ${n}! 👋 Thank you for reaching out about your ${d} trip — I'm ${a} from NAMA Travel.\n\nI'd love to create something special for you. Could you share your preferred travel dates and the number of travellers? I'll put together a tailored itinerary right away! 🌏`,
+    email: (n, d, a) => `Subject: Your ${d} Trip Enquiry — Let's Make It Happen! ✈️\n\nDear ${n},\n\nThank you so much for reaching out! I'm ${a} from NAMA Travel, and I'm thrilled to help you plan your ${d} experience.\n\nTo create a personalised itinerary, could you share:\n• Preferred travel dates\n• Number of travellers\n• Any specific experiences in mind?\n\nI'll have a proposal ready for you within 24 hours.\n\nWarm regards,\n${a} | NAMA Travel`,
+  },
+  {
+    id: 'nl-2',
+    category: 'NEW_LEAD',
+    label: '24h No-Response Nudge',
+    timing: '24h after first message',
+    emoji: '🔔',
+    whatsapp: (n, d, a) => `Hi ${n}! 🌟 Just checking in — I sent you a message yesterday about your ${d} trip.\n\nI've been looking at some amazing options for you and don't want you to miss out on the best availability. Would you have 5 minutes to connect today? 📞`,
+    email: (n, d, a) => `Subject: Following up — ${d} Trip Ideas Ready for You\n\nHi ${n},\n\nI wanted to follow up on your ${d} enquiry. I've been curating some wonderful options that I think you'll love!\n\nAre you available for a quick call this week? I can walk you through the top 3 itineraries I've shortlisted.\n\nBest,\n${a} | NAMA Travel`,
+  },
+  // ── QUOTE
+  {
+    id: 'q-1',
+    category: 'QUOTE',
+    label: 'Quote Sent — 2h Follow-up',
+    timing: '2h after sending quote',
+    emoji: '📋',
+    whatsapp: (n, d, a) => `Hi ${n}! 😊 Just wanted to check — did you get a chance to look at the ${d} proposal I shared?\n\nHappy to walk you through it or answer any questions. We can also customise the itinerary to fit your preferences perfectly! 🗺️`,
+    email: (n, d, a) => `Subject: Your ${d} Proposal — Any Questions?\n\nHi ${n},\n\nI hope you've had a chance to review the ${d} itinerary I sent over. I've put together something I think you'll really enjoy!\n\nIf you have any questions — about the hotels, activities, or pricing — I'm here to help. We can also tweak anything to better match your vision.\n\nLooking forward to hearing your thoughts!\n\nBest,\n${a}`,
+  },
+  {
+    id: 'q-2',
+    category: 'QUOTE',
+    label: 'Quote — 48h Urgency',
+    timing: '48h after sending quote',
+    emoji: '⏰',
+    whatsapp: (n, d, a) => `Hi ${n}! Hope all's well 🙏 A quick heads-up — the rates on your ${d} package are valid until this Friday, after which hotel availability may change.\n\nWould you like to secure a 24-hour hold while you decide? No payment needed yet — just keeps the best rooms reserved for you! 🏨`,
+    email: (n, d, a) => `Subject: ${d} Package — Rates Valid Until Friday\n\nDear ${n},\n\nI wanted to flag that the pricing on your ${d} itinerary is valid until this Friday. After that, hotel inventory and rates may change for your dates.\n\nIf you'd like, I can place a 24-hour hold on your preferred accommodations — this keeps everything reserved while you finalise your decision.\n\nShall I go ahead with the hold?\n\nBest,\n${a}`,
+  },
+  {
+    id: 'q-3',
+    category: 'QUOTE',
+    label: 'Lost Quote — Re-engagement',
+    timing: '1 week after no response',
+    emoji: '💡',
+    whatsapp: (n, d, a) => `Hi ${n}! It's ${a} from NAMA — I know life gets busy! 😊\n\nI have a new offer for ${d} that just came in — a great deal I thought you might like. Would you want me to share the details? Takes only 2 minutes to review! ✨`,
+    email: (n, d, a) => `Subject: New Deal Alert — ${d} Package Just In\n\nHi ${n},\n\nI completely understand things get busy! I wanted to reach out because we just received a special offer for ${d} that I immediately thought of you.\n\nNo obligation at all — just wanted to make sure you don't miss it. Can I send over the details?\n\nWarmly,\n${a}`,
+  },
+  // ── BOOKING
+  {
+    id: 'b-1',
+    category: 'BOOKING',
+    label: 'Booking Confirmed 🎉',
+    timing: 'Immediately on booking',
+    emoji: '🎉',
+    whatsapp: (n, d, a) => `${n}, your ${d} trip is CONFIRMED! 🎉🌍\n\nI'm so excited for you! Here's what happens next:\n✅ You'll receive your booking documents within 24 hours\n✅ I'll share a detailed pre-trip checklist\n✅ I'm available 24/7 for any questions\n\nThis is going to be an incredible trip! 🙌`,
+    email: (n, d, a) => `Subject: ✅ Your ${d} Trip is Confirmed!\n\nDear ${n},\n\nFantastic news — your ${d} trip is officially confirmed! 🎉\n\nYou can expect:\n• Booking confirmation documents within 24 hours\n• A detailed pre-trip checklist\n• Hotel vouchers and e-tickets\n\nThank you for choosing NAMA Travel. This is going to be an unforgettable experience!\n\nWith excitement,\n${a}`,
+  },
+  {
+    id: 'b-2',
+    category: 'BOOKING',
+    label: 'Balance Payment Reminder',
+    timing: '15 days before balance due',
+    emoji: '💳',
+    whatsapp: (n, d, a) => `Hi ${n}! 👋 A gentle reminder — the balance payment for your ${d} trip is due in 15 days.\n\nYou can transfer to the account details I shared earlier. Once received, I'll send over all your travel documents! 🎒\n\nLet me know if you have any questions or need a payment link.`,
+    email: (n, d, a) => `Subject: Balance Payment Due — ${d} Trip\n\nDear ${n},\n\nI hope you're getting excited for your upcoming ${d} trip!\n\nThis is a friendly reminder that the balance payment is due in 15 days. Once received, I'll dispatch all your travel documents, vouchers, and e-tickets.\n\nPlease let me know if you need any assistance with the payment process.\n\nBest regards,\n${a}`,
+  },
+  // ── PRE-TRIP
+  {
+    id: 'pt-1',
+    category: 'PRE_TRIP',
+    label: '7-Day Departure Checklist',
+    timing: '7 days before travel',
+    emoji: '🎒',
+    whatsapp: (n, d, a) => `Hi ${n}! 🎒 Only 7 days to go until your ${d} adventure!\n\nQuick checklist:\n✅ Passport valid for 6+ months\n✅ Visa arranged\n✅ Travel insurance activated\n✅ Foreign currency exchanged\n✅ Emergency numbers saved\n\nI've got your back every step of the way! Have a question? Just ping me. 🌟`,
+    email: (n, d, a) => `Subject: 7 Days to ${d} — Your Pre-Departure Checklist\n\nDear ${n},\n\nI can't believe it's almost time for your ${d} trip — how exciting!\n\nHere's your pre-departure checklist:\n□ Passport valid for 6+ months beyond travel date\n□ Visa arranged & printed\n□ Travel insurance policy downloaded\n□ Foreign currency exchanged\n□ Accommodation confirmations printed/saved\n□ Emergency contact numbers saved (${a}: available 24/7)\n\nHave a wonderful trip!\n\nBest,\n${a}`,
+  },
+  {
+    id: 'pt-2',
+    category: 'PRE_TRIP',
+    label: 'Day-Before Arrival',
+    timing: '1 day before departure',
+    emoji: '✈️',
+    whatsapp: (n, d, a) => `Hi ${n}! ✈️ Tomorrow is the big day!\n\nYour driver will be waiting at arrivals with a name board. Please save their number: [Driver's Number]\n\nHave a smooth flight and let me know the moment you land! I'll be thinking of you. 🌴`,
+    email: (n, d, a) => `Subject: Tomorrow is the Day — ${d} Here You Come!\n\nDear ${n},\n\nHow exciting — you leave for ${d} tomorrow! 🎉\n\nA quick reminder: your airport transfer will be waiting at the arrivals exit. Please reach out to me the moment you land so I know you've arrived safely.\n\nHave an incredible journey!\n\n${a}`,
+  },
+  // ── POST-TRIP
+  {
+    id: 'post-1',
+    category: 'POST_TRIP',
+    label: 'Welcome Back + Review Ask',
+    timing: '2 days after return',
+    emoji: '⭐',
+    whatsapp: (n, d, a) => `Welcome back, ${n}! 🏠 Hope you had an amazing time in ${d}!\n\nI'd love to hear all about it — and if you're happy with how everything went, a quick Google review would mean the world to us 🙏\n\nAlso… shall we start planning the next adventure? 😄✈️`,
+    email: (n, d, a) => `Subject: Welcome Back from ${d}! How Was It?\n\nDear ${n},\n\nWelcome home from ${d}! I hope every moment was magical.\n\nIf you have a spare minute, I'd be so grateful for a Google review — it helps us continue helping travellers like yourself.\n\nAnd of course, when you're ready for the next adventure, I'm here! 😊\n\nWarm regards,\n${a}`,
+  },
+  // ── RE-ENGAGEMENT
+  {
+    id: 're-1',
+    category: 'REENGAGEMENT',
+    label: '3-Month Cold Re-engage',
+    timing: '90 days of silence',
+    emoji: '🔄',
+    whatsapp: (n, d, a) => `Hi ${n}! It's ${a} from NAMA — hope you're doing great! 😊\n\nWe have some exciting new deals for ${d} and thought of you instantly. Prices are at their lowest for the next season — would you like me to send over a quick comparison? No pressure at all! 🌏`,
+    email: (n, d, a) => `Subject: Still Dreaming of ${d}? We Have Something for You!\n\nHi ${n},\n\nI hope this finds you well! I wanted to reach out as we've just launched some exciting packages for ${d} that offer exceptional value.\n\nNo strings attached — I'd love to share a 2-minute summary. Shall I send it over?\n\nWarmly,\n${a}`,
+  },
+  {
+    id: 're-2',
+    category: 'REENGAGEMENT',
+    label: 'Seasonal Offer Alert',
+    timing: 'Seasonal campaign push',
+    emoji: '🎯',
+    whatsapp: (n, d, a) => `Hi ${n}! 🎯 Quick one — we've just unlocked early-bird pricing for ${d} for the upcoming season. Rates are typically 20-30% lower when booked 90+ days out.\n\nWant me to hold a slot while you check your dates? 🗓️`,
+    email: (n, d, a) => `Subject: Early-Bird Alert — ${d} Deals Just Opened\n\nHi ${n},\n\nExciting news — early-bird packages for ${d} are now available, typically 20-30% below peak rates.\n\nThese allocations fill quickly. Shall I reserve a slot for your preferred dates while you decide?\n\nBest,\n${a}`,
+  },
+];
+
+const TEMPLATE_CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
+  NEW_LEAD:     { label: 'New Lead',    color: 'text-blue-700',   bg: 'bg-blue-50 border-blue-100' },
+  QUOTE:        { label: 'Quote',       color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+  BOOKING:      { label: 'Booking',     color: 'text-green-700',  bg: 'bg-green-50 border-green-100' },
+  PRE_TRIP:     { label: 'Pre-Trip',    color: 'text-purple-700', bg: 'bg-purple-50 border-purple-100' },
+  POST_TRIP:    { label: 'Post-Trip',   color: 'text-[#14B8A6]',  bg: 'bg-teal-50 border-teal-100' },
+  REENGAGEMENT: { label: 'Re-engage',   color: 'text-rose-700',   bg: 'bg-rose-50 border-rose-100' },
+};
+
 // ── Character counter ──────────────────────────────────────────────────────────
 function CharCount({ text, max }: { text: string; max: number }) {
   const count = text.length;
@@ -123,6 +260,8 @@ export default function CommsPage() {
   const [copied, setCopied]       = useState<"whatsapp" | "email" | null>(null);
   const [draftHistory, setDraftHistory] = useState<Array<{ context: string; lead: string; draft: typeof drafted; ts: string }>>([]);
   const [showHistory, setShowHistory]   = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateFilter, setTemplateFilter] = useState<string>('ALL');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -201,12 +340,20 @@ export default function CommsPage() {
           <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Communication Hub</h1>
           <p className="text-slate-500 mt-2 font-medium">AI-powered WhatsApp & Email drafting for every lead interaction.</p>
         </div>
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="flex items-center gap-2 text-sm font-bold text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50"
-        >
-          <History size={15} /> Draft History ({draftHistory.length})
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setShowTemplates(!showTemplates); setShowHistory(false); }}
+            className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl border transition-all ${showTemplates ? 'bg-[#14B8A6] text-white border-[#14B8A6]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+          >
+            <Zap size={15} /> Quick Templates
+          </button>
+          <button
+            onClick={() => { setShowHistory(!showHistory); setShowTemplates(false); }}
+            className="flex items-center gap-2 text-sm font-bold text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50"
+          >
+            <History size={15} /> History ({draftHistory.length})
+          </button>
+        </div>
       </div>
 
       {/* KPI Strip */}
@@ -483,6 +630,121 @@ export default function CommsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Quick Templates Library ── */}
+      {showTemplates && (
+        <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 className="font-extrabold text-[#0F172A] text-sm flex items-center gap-2">
+                <Zap size={15} className="text-[#14B8A6]" /> 1-Click Follow-up Templates
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">Select a lead above, then apply any template to instantly populate your draft.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {['ALL', ...Object.keys(TEMPLATE_CATEGORIES)].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setTemplateFilter(cat)}
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all ${
+                    templateFilter === cat
+                      ? 'bg-[#0f172a] text-white border-[#0f172a]'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {cat === 'ALL' ? 'All Templates' : TEMPLATE_CATEGORIES[cat].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Template Grid */}
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {FOLLOW_UP_TEMPLATES
+              .filter(t => templateFilter === 'ALL' || t.category === templateFilter)
+              .map(tpl => {
+                const catCfg = TEMPLATE_CATEGORIES[tpl.category];
+                const name = selectedLead?.full_name?.split(' ')[0] || '[Name]';
+                const dest = selectedLead?.destination || '[Destination]';
+                const agent = 'Prateek';
+                const preview = tpl.whatsapp(name, dest, agent);
+                return (
+                  <div
+                    key={tpl.id}
+                    className={`rounded-xl border p-4 flex flex-col gap-3 ${catCfg.bg} hover:shadow-md transition-all`}
+                  >
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{tpl.emoji}</span>
+                          <span className={`text-xs font-black ${catCfg.color}`}>{tpl.label}</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Clock size={10} className="text-slate-400" />
+                          <span className="text-[10px] text-slate-400">{tpl.timing}</span>
+                        </div>
+                      </div>
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${catCfg.bg} ${catCfg.color}`}>
+                        {catCfg.label}
+                      </span>
+                    </div>
+
+                    {/* Preview */}
+                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 flex-1">
+                      {preview}
+                    </p>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setDrafted({
+                            whatsapp: tpl.whatsapp(name, dest, agent),
+                            email: tpl.email(name, dest, agent),
+                          });
+                          setShowTemplates(false);
+                          // WhatsApp deep link immediately if lead selected
+                          if (selectedLead?.phone) {
+                            const wa = tpl.whatsapp(name, dest, agent);
+                            window.open(`https://wa.me/${selectedLead.phone.replace(/\D/g,'')}?text=${encodeURIComponent(wa)}`, '_blank');
+                          }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#25D366] text-white text-xs font-bold hover:bg-green-600 transition-colors"
+                      >
+                        <MessageSquare size={12} /> WhatsApp
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDrafted({
+                            whatsapp: tpl.whatsapp(name, dest, agent),
+                            email: tpl.email(name, dest, agent),
+                          });
+                          setActiveTab('email');
+                          setShowTemplates(false);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500 text-white text-xs font-bold hover:bg-blue-600 transition-colors"
+                      >
+                        <Mail size={12} /> Email
+                      </button>
+                      <button
+                        onClick={() => {
+                          const text = tpl.whatsapp(name, dest, agent);
+                          navigator.clipboard.writeText(text);
+                        }}
+                        className="w-8 flex items-center justify-center py-2 rounded-lg bg-white/60 text-slate-500 hover:bg-white transition-colors border border-slate-200"
+                        title="Copy WhatsApp text"
+                      >
+                        <Copy size={11} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {/* Draft history drawer */}
       {showHistory && draftHistory.length > 0 && (
