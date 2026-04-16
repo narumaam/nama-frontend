@@ -30,10 +30,14 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Protect all dashboard sub-routes and the Kinetic command center
+  // Protect all dashboard sub-routes, Kinetic command center, and internal portals
   matcher: [
     '/dashboard',
     '/dashboard/:path*',
     '/kinetic',
+    '/owner',
+    '/owner/:path*',
+    '/super-admin',
+    '/super-admin/:path*',
   ],
 }

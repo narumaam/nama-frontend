@@ -32,6 +32,7 @@ from app.api.v1 import (
 )
 from app.api.v1 import payments as payments_router
 from app.api.v1 import ai_admin
+from app.api.v1 import admin as platform_admin
 from app.db.session import engine, Base, init_performance_indexes
 from app.core.cache_warmer import start_background_warmer
 from app.core.rate_limiter import RateLimitMiddleware
@@ -169,6 +170,7 @@ app.include_router(payments_router.router, prefix="/api/v1/payments",     tags=[
 
 #   AI admin — usage, budget, health, kill-switch (HS-4)
 app.include_router(ai_admin.router,        prefix="/api/v1/ai",           tags=["ai-admin"])
+app.include_router(platform_admin.router,  prefix="/api/v1/admin",        tags=["admin"])
 
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
