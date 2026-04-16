@@ -1,5 +1,6 @@
 # NAMA Backend — Railway production image
 # Build context = backend/ (rootDirectory=backend in Railway)
+# Trigger rebuild: 2026-04-16
 FROM python:3.10-slim
 
 WORKDIR /app
