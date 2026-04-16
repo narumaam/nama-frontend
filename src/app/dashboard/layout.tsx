@@ -10,6 +10,7 @@ import {
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import NamaCopilot from '@/components/NamaCopilot';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -271,6 +272,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </main>
+
+      {/* NAMA Copilot — floating AI assistant, available on all dashboard pages */}
+      <NamaCopilot />
     </div>
   );
 }
