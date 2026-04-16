@@ -20,6 +20,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers['Authorization'] = `Bearer ${token}`
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
+
+  // 401 → token expired/invalid → force logout and redirect to login
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nama_token')
+      localStorage.removeItem('nama_user')
+      document.cookie = 'nama_auth=; path=/; max-age=0'
+      window.location.href = '/?session_expired=1'
+    }
+    throw new Error('Session expired. Please log in again.')
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Request failed' }))
     throw new Error(err.detail || `HTTP ${res.status}`)
@@ -141,20 +153,42 @@ export interface BookingProfit {
   currency: string
 }
 
+// Matches backend DashboardSummary / KPIEntry schema exactly
+export interface KPIEntry {
+  label: string
+  value: number
+  trend: number   // % change
+  status: string  // 'UP' | 'DOWN' | 'NEUTRAL'
+}
+
 export interface DashboardStats {
-  gmv: { value: number; trend: number; status: string }
-  conversion_rate: { value: number; trend: number; status: string }
-  total_leads: { value: number; trend: number; status: string }
-  active_itineraries: { value: number; trend: number; status: string }
+  gmv: KPIEntry
+  aov: KPIEntry              // Average Order Value — new field from backend
+  conversion_rate: KPIEntry
+  total_leads: KPIEntry
+  active_itineraries: KPIEntry
+  currency: string
 }
 
 // Auth
 export const authApi = {
-  login: (email: string, password: string) =>
-    api.post<{access_token: string; user_id: number; tenant_id: number; role: string; email: string}>(
-      '/api/v1/login',
-      { email, password }
-    ),
+  // Backend uses OAuth2PasswordRequestForm → MUST be application/x-www-form-urlencoded
+  // with field name "username" (not "email") per OAuth2 spec
+  login: async (email: string, password: string): Promise<{access_token: string; user_id: number; tenant_id: number; role: string; email: string}> => {
+    const body = new URLSearchParams()
+    body.append('username', email)
+    body.append('password', password)
+    const res = await fetch(`${BASE}/api/v1/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Login failed' }))
+      throw new Error(err.detail || `HTTP ${res.status}`)
+    }
+    return res.json()
+  },
   registerOrg: (data: {organization_name: string; admin_email: string; admin_password: string}) =>
     api.post<{tenant_id: number; access_token: string}>('/api/v1/tenants/register-org', data),
   registerUser: (data: {email: string; password: string; full_name: string; role: string; tenant_id: number}) =>
@@ -171,7 +205,65 @@ export const leadsApi = {
     return api.get<{items: Lead[]; total: number; page: number; size: number}>(`/api/v1/leads/?${q}`)
   },
   get: (id: number) => api.get<Lead>(`/api/v1/leads/${id}`),
+  create: (data: Partial<Lead>) => api.post<Lead>('/api/v1/leads/', data),
   update: (id: number, data: Partial<Lead>) => api.patch<Lead>(`/api/v1/leads/${id}`, data),
+  assign: (leadId: number, userId: number) =>
+    api.post<Lead>(`/api/v1/leads/${leadId}/assign?user_id=${userId}`, {}),
+  delete: (id: number) => api.delete<void>(`/api/v1/leads/${id}`),
+}
+
+// Query Triage (M1)
+export interface TriageRequest {
+  raw_message: string
+  source?: string
+  sender_id?: string
+}
+
+export interface TriageResult {
+  lead_id: number
+  destination?: string
+  duration_days?: number
+  travelers_count?: number
+  budget_per_person?: number
+  currency?: string
+  travel_style?: string
+  triage_confidence: number
+  suggested_reply?: string
+}
+
+export const queriesApi = {
+  ingest: (data: TriageRequest) => api.post<TriageResult>('/api/v1/queries/ingest', data),
+}
+
+// Vendors (M6)
+export interface Vendor {
+  id: number
+  tenant_id: number
+  vendor_code: string
+  name: string
+  category: string
+  status: string
+  contact_name?: string
+  contact_email?: string
+  contact_phone?: string
+  country?: string
+  city?: string
+  default_currency: string
+  markup_pct: number
+  is_preferred: boolean
+  is_verified: boolean
+  rating?: number
+  tags?: string[]
+  created_at: string
+}
+
+export const vendorsApi = {
+  list: (params?: {category?: string; status?: string}) => {
+    const q = new URLSearchParams()
+    if (params?.category) q.set('category', params.category)
+    if (params?.status) q.set('status', params.status)
+    return api.get<Vendor[]>(`/api/v1/bidding/vendors?${q}`)
+  },
 }
 
 // Itineraries
@@ -185,6 +277,8 @@ export const itinerariesApi = {
 export const bookingsApi = {
   list: () => api.get<Booking[]>('/api/v1/bookings/'),
   get: (id: number) => api.get<Booking>(`/api/v1/bookings/${id}`),
+  create: (data: {itinerary_id: number; lead_id: number}) =>
+    api.post<Booking>('/api/v1/bookings/', data),
   confirm: (id: number) => api.post(`/api/v1/bookings/${id}/confirm`, {}),
   cancel: (id: number) => api.post(`/api/v1/bookings/${id}/cancel`, {}),
 }

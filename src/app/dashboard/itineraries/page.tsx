@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { BentoCard } from '@/components/BentoCard';
-import { itinerariesApi, leadsApi, ItineraryOut, Lead, ItineraryRequest } from '@/lib/api';
+import { itinerariesApi, leadsApi, bookingsApi, ItineraryOut, Lead, ItineraryRequest } from '@/lib/api';
 
 const STYLES = ['Luxury', 'Adventure', 'Cultural', 'Family', 'Budget', 'Wellness'];
 
@@ -31,6 +31,8 @@ export default function ItinerariesPage() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
 
   // Form state
   const [form, setForm] = useState<ItineraryRequest>({
@@ -90,6 +92,26 @@ export default function ItinerariesPage() {
       setLoading(false);
     }
   };
+
+  const handleConvertToBooking = async () => {
+    if (!itinerary?.id) {
+      setError('Save the itinerary first before converting to booking.')
+      return
+    }
+    setBookingLoading(true)
+    setBookingSuccess(null)
+    try {
+      const booking = await bookingsApi.create({
+        itinerary_id: itinerary.id,
+        lead_id: itinerary.lead_id || form.lead_id || 0,
+      })
+      setBookingSuccess(`Booking #${booking.id} created — status: ${booking.status}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create booking')
+    } finally {
+      setBookingLoading(false)
+    }
+  }
 
   const handleCopyCaption = () => {
     const caption = itinerary?.social_post?.caption || itinerary?.social_caption;
@@ -382,6 +404,11 @@ export default function ItinerariesPage() {
             <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm text-left">
               <h3 className="text-xl font-black text-[#0F172A] tracking-tighter mb-6">Actions</h3>
               <div className="space-y-4">
+                {bookingSuccess && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-emerald-700 text-xs font-bold">
+                    ✓ {bookingSuccess}
+                  </div>
+                )}
                 <button
                   onClick={() => setShowForm(true)}
                   className="w-full flex justify-between items-center p-4 rounded-2xl bg-[#14B8A6]/5 hover:bg-[#14B8A6]/10 transition-colors group"
@@ -390,6 +417,17 @@ export default function ItinerariesPage() {
                     <Plus size={18} className="mr-3" /> New Itinerary
                   </div>
                   <ChevronRight size={16} className="text-[#14B8A6] group-hover:translate-x-1 transition-transform" />
+                </button>
+                <button
+                  onClick={handleConvertToBooking}
+                  disabled={bookingLoading || !itinerary?.id}
+                  className="w-full flex justify-between items-center p-4 rounded-2xl bg-green-50 hover:bg-green-100 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center font-bold text-sm text-green-700">
+                    {bookingLoading ? <Loader size={18} className="mr-3 animate-spin" /> : <CreditCard size={18} className="mr-3" />}
+                    Convert to Booking
+                  </div>
+                  <ChevronRight size={16} className="text-green-400 group-hover:text-green-600 transition-colors" />
                 </button>
                 <button className="w-full flex justify-between items-center p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors group">
                   <div className="flex items-center font-bold text-sm text-slate-600">

@@ -27,11 +27,21 @@ const LandingPage = () => {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [sessionToast, setSessionToast] = useState(false);
 
   useEffect(() => {
-    // Check for ?redirect= param — show login modal if redirected from protected route
     const params = new URLSearchParams(window.location.search);
     if (params.get('redirect')) setShowLogin(true);
+    // Show session expired toast
+    if (params.get('session_expired')) {
+      setSessionToast(true);
+      setShowLogin(true);
+      // Remove param from URL without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('session_expired');
+      window.history.replaceState({}, '', url.toString());
+      setTimeout(() => setSessionToast(false), 6000);
+    }
   }, []);
 
   useEffect(() => {
@@ -102,6 +112,21 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#14B8A6] selection:text-white">
+
+      {/* Session expired toast */}
+      {sessionToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 rounded-2xl px-5 py-4 shadow-xl max-w-sm w-full mx-4 animate-bounce-once">
+          <AlertCircle size={18} className="flex-shrink-0 text-amber-600" />
+          <div className="flex-1">
+            <p className="font-bold text-sm">Session expired</p>
+            <p className="text-xs text-amber-600">Please log in again to continue.</p>
+          </div>
+          <button onClick={() => setSessionToast(false)} className="text-amber-400 hover:text-amber-600">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex justify-between items-center transition-all duration-300">
         <div className="flex items-center space-x-2 text-left">
           <div className="w-8 h-8 bg-[#0F172A] rounded-lg flex items-center justify-center">

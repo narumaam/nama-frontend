@@ -16,6 +16,7 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchBookings()
@@ -49,8 +50,12 @@ export default function BookingsPage() {
   }
 
   const handleCancel = async (bookingId: number) => {
-    if (!confirm('Are you sure you want to cancel this booking?')) return
-
+    // First call sets the confirm state; second call (confirmed) executes
+    if (cancelConfirmId !== bookingId) {
+      setCancelConfirmId(bookingId)
+      return
+    }
+    setCancelConfirmId(null)
     setActionLoading(bookingId)
     try {
       await bookingsApi.cancel(bookingId)
@@ -143,14 +148,33 @@ export default function BookingsPage() {
                         </button>
                       )}
                       {booking.status !== 'CANCELLED' && (
-                        <button
-                          onClick={() => handleCancel(booking.id)}
-                          disabled={actionLoading === booking.id}
-                          className="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                        >
-                          <XCircle size={14} />
-                          Cancel
-                        </button>
+                        cancelConfirmId === booking.id ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-red-600 font-bold">Sure?</span>
+                            <button
+                              onClick={() => handleCancel(booking.id)}
+                              disabled={actionLoading === booking.id}
+                              className="px-2 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700 transition-colors"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setCancelConfirmId(null)}
+                              className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-bold hover:bg-slate-300 transition-colors"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleCancel(booking.id)}
+                            disabled={actionLoading === booking.id}
+                            className="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            <XCircle size={14} />
+                            Cancel
+                          </button>
+                        )
                       )}
                     </div>
                   </td>
