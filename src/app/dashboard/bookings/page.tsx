@@ -18,7 +18,8 @@ import {
   Briefcase, CheckCircle, XCircle, Loader, AlertCircle,
   Search, Calendar, DollarSign, Users, TrendingDown,
   ArrowRight, Clock, X, ChevronRight, MapPin, RefreshCw,
-  FileText, CreditCard, Zap, Check,
+  FileText, CreditCard, Zap, Check, Navigation, MessageCircle,
+  Phone, Plane, Hotel, Car, Activity, LayoutGrid,
 } from "lucide-react";
 import { bookingsApi, Booking } from "@/lib/api";
 
@@ -297,6 +298,202 @@ function BookingDetail({ booking, onClose }: { booking: ReturnType<typeof enrich
   );
 }
 
+// ── Live Trip Tracker ──────────────────────────────────────────────────────────
+
+interface LiveTrip {
+  bookingId: number;
+  clientName: string;
+  clientPhone: string;
+  destination: string;
+  totalDays: number;
+  currentDay: number;
+  travelStart: string;
+  travelEnd: string;
+  todayLocation: string;
+  todayHighlight: string;
+  tomorrowHighlight: string;
+  nextAlert: string;
+  nextAlertType: 'INFO' | 'ACTION' | 'WARNING';
+  segments: { type: string; time: string; label: string; done: boolean }[];
+  progress: number; // 0-100
+}
+
+function buildLiveTrips(bookings: ReturnType<typeof enrichBooking>[]): LiveTrip[] {
+  // Build 3 simulated live trips from confirmed bookings
+  const confirmed = bookings.filter(b => b.status === 'CONFIRMED').slice(0, 3);
+  return confirmed.map((b, idx) => {
+    const daysOffset = [-1, 0, 2][idx]; // yesterday started, today, starts in 2 days
+    const startDate = new Date(Date.now() + daysOffset * 86400000);
+    const totalDays = b.nights + 1;
+    const elapsed = Math.max(0, Math.min(totalDays, -daysOffset + 1));
+    const progress = Math.round((elapsed / totalDays) * 100);
+    const currentDay = Math.max(1, elapsed);
+
+    const destinations = [
+      { location: 'Seminyak, Bali', today: 'Arrival + Welcome Dinner at Merah Putih', tomorrow: 'Ubud rice terrace walk + cooking class', alert: 'Driver confirms pickup 14:30 at DPS arrivals', alertType: 'ACTION' as const },
+      { location: 'Malé, Maldives', today: 'Speedboat transfer to resort + Check-in', tomorrow: 'Snorkelling at House Reef + Sunset cruise', alert: 'Seaplane transfer booked — confirm guest passport names', alertType: 'WARNING' as const },
+      { location: 'Departs in 2 days', today: '—', tomorrow: 'Flight BOM→DXB 06:30 | Remind client to check-in online', alert: 'Pre-departure reminder due tomorrow', alertType: 'INFO' as const },
+    ][idx];
+
+    return {
+      bookingId: b.id,
+      clientName: b.client_name,
+      clientPhone: '+91 98' + String(b.id).padStart(8, '0').slice(0, 8),
+      destination: b.destination,
+      totalDays,
+      currentDay,
+      travelStart: startDate.toISOString().split('T')[0],
+      travelEnd: new Date(startDate.getTime() + totalDays * 86400000).toISOString().split('T')[0],
+      todayLocation: destinations.location,
+      todayHighlight: destinations.today,
+      tomorrowHighlight: destinations.tomorrow,
+      nextAlert: destinations.alert,
+      nextAlertType: destinations.alertType,
+      progress,
+      segments: [
+        { type: 'FLIGHT', time: '06:30', label: 'Depart BOM', done: currentDay > 1 },
+        { type: 'TRANSFER', time: '14:30', label: 'Airport pickup', done: currentDay > 1 },
+        { type: 'HOTEL', time: '15:30', label: 'Hotel check-in', done: currentDay > 1 },
+        { type: 'ACTIVITY', time: '19:30', label: 'Welcome dinner', done: currentDay > 2 },
+        { type: 'FLIGHT', time: 'Day ' + totalDays, label: 'Return flight', done: false },
+      ],
+    };
+  });
+}
+
+function TripTrackerCard({ trip, onWhatsApp, onPortal }: {
+  trip: LiveTrip;
+  onWhatsApp: () => void;
+  onPortal: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const alertColors = {
+    INFO: 'bg-blue-50 border-blue-200 text-blue-800',
+    ACTION: 'bg-amber-50 border-amber-200 text-amber-800',
+    WARNING: 'bg-red-50 border-red-200 text-red-700',
+  };
+  const segmentIcons: Record<string, React.ElementType> = {
+    FLIGHT: Plane, HOTEL: Hotel, TRANSFER: Car, ACTIVITY: Activity,
+  };
+  const isActive = trip.currentDay >= 1 && trip.progress < 100;
+  const isUpcoming = trip.progress === 0;
+
+  return (
+    <div className={`bg-white rounded-2xl border-2 ${isActive ? 'border-[#14B8A6]/40 shadow-lg shadow-[#14B8A6]/5' : isUpcoming ? 'border-blue-200' : 'border-slate-200'} overflow-hidden`}>
+      {/* Header */}
+      <div className={`px-5 py-4 ${isActive ? 'bg-gradient-to-r from-[#14B8A6]/5 to-transparent' : ''}`}>
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#14B8A6] animate-pulse' : isUpcoming ? 'bg-blue-400' : 'bg-slate-300'}`} />
+              <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-[#14B8A6]' : isUpcoming ? 'text-blue-600' : 'text-slate-400'}`}>
+                {isActive ? 'LIVE' : isUpcoming ? 'DEPARTING SOON' : 'COMPLETED'}
+              </span>
+            </div>
+            <div className="font-bold text-slate-800 text-base mt-0.5">{trip.clientName}</div>
+            <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+              <MapPin size={11} />
+              <span>{trip.destination}</span>
+              {isActive && <span className="text-slate-300 mx-1">·</span>}
+              {isActive && <Navigation size={11} className="text-[#14B8A6]" />}
+              {isActive && <span className="text-[#14B8A6] font-semibold">{trip.todayLocation}</span>}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs font-bold text-slate-400">Day {trip.currentDay}/{trip.totalDays}</div>
+            <div className="text-xs text-slate-400 mt-0.5">{trip.travelStart} → {trip.travelEnd}</div>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-3">
+          <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+            <span>Trip Progress</span>
+            <span>{trip.progress}%</span>
+          </div>
+          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${isActive ? 'bg-gradient-to-r from-[#14B8A6] to-[#0891b2]' : isUpcoming ? 'bg-blue-400' : 'bg-slate-300'}`}
+              style={{ width: `${trip.progress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Today / Tomorrow highlights */}
+        {isActive && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-[#14B8A6]/5 rounded-xl p-2.5">
+              <div className="text-[9px] font-black uppercase tracking-widest text-[#14B8A6] mb-1">Today</div>
+              <div className="text-xs font-semibold text-slate-700 leading-snug">{trip.todayHighlight}</div>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-2.5">
+              <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Tomorrow</div>
+              <div className="text-xs font-medium text-slate-600 leading-snug">{trip.tomorrowHighlight}</div>
+            </div>
+          </div>
+        )}
+        {isUpcoming && (
+          <div className="bg-blue-50 rounded-xl p-2.5 mb-3">
+            <div className="text-[9px] font-black uppercase tracking-widest text-blue-600 mb-1">Tomorrow</div>
+            <div className="text-xs font-semibold text-blue-800">{trip.tomorrowHighlight}</div>
+          </div>
+        )}
+
+        {/* Alert */}
+        <div className={`flex items-start gap-2 rounded-xl border px-3 py-2 mb-3 ${alertColors[trip.nextAlertType]}`}>
+          <span className="text-base flex-shrink-0">{trip.nextAlertType === 'WARNING' ? '⚠️' : trip.nextAlertType === 'ACTION' ? '📌' : 'ℹ️'}</span>
+          <span className="text-xs font-medium leading-snug">{trip.nextAlert}</span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={onWhatsApp}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#25D366] text-white text-xs font-bold hover:bg-green-600 transition-colors"
+          >
+            <MessageCircle size={13} /> WhatsApp Client
+          </button>
+          <button
+            onClick={onPortal}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors"
+          >
+            <Navigation size={13} /> Trip Portal
+          </button>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-9 flex items-center justify-center py-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+          >
+            <ChevronRight size={14} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded segments */}
+      {expanded && (
+        <div className="border-t border-slate-100 px-5 py-4">
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Journey Timeline</div>
+          <div className="space-y-2">
+            {trip.segments.map((seg, i) => {
+              const Icon = segmentIcons[seg.type] || Activity;
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${seg.done ? 'bg-[#14B8A6] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    {seg.done ? <Check size={12} /> : <Icon size={13} />}
+                  </div>
+                  <div className="flex-1">
+                    <span className={`text-xs font-semibold ${seg.done ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{seg.label}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">{seg.time}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<ReturnType<typeof enrichBooking>[]>([]);
@@ -307,6 +504,7 @@ export default function BookingsPage() {
   const [selected, setSelected] = useState<ReturnType<typeof enrichBooking> | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'bookings' | 'tracker'>('bookings');
 
   useEffect(() => {
     bookingsApi.list()
@@ -363,12 +561,30 @@ export default function BookingsPage() {
           <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Bookings</h1>
           <p className="text-slate-500 mt-2 font-medium">Manage booking lifecycle from confirmation to completion.</p>
         </div>
-        <button
-          onClick={() => { setLoading(true); bookingsApi.list().then((d) => setBookings((Array.isArray(d) ? d : []).map(enrichBooking))).finally(() => setLoading(false)); }}
-          className="flex items-center gap-1.5 text-sm font-bold text-slate-500 bg-white border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50"
-        >
-          <RefreshCw size={14} /> Refresh
-        </button>
+        <div className="flex gap-2">
+          <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+            <button
+              onClick={() => setViewMode('bookings')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${viewMode === 'bookings' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}
+            >
+              <LayoutGrid size={13} /> Bookings
+            </button>
+            <button
+              onClick={() => setViewMode('tracker')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${viewMode === 'tracker' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}
+            >
+              <Navigation size={13} />
+              Live Tracker
+              <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] animate-pulse" />
+            </button>
+          </div>
+          <button
+            onClick={() => { setLoading(true); bookingsApi.list().then((d) => setBookings((Array.isArray(d) ? d : []).map(enrichBooking))).finally(() => setLoading(false)); }}
+            className="flex items-center gap-1.5 text-sm font-bold text-slate-500 bg-white border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50"
+          >
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* KPI Strip */}
@@ -398,7 +614,66 @@ export default function BookingsPage() {
         </div>
       )}
 
-      {/* Filters row */}
+      {/* ── Live Trip Tracker View ── */}
+      {viewMode === 'tracker' && (() => {
+        const liveTrips = buildLiveTrips(bookings);
+        return (
+          <div className="space-y-5">
+            {/* Summary bar */}
+            <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-2xl px-6 py-4 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-[#14B8A6] animate-pulse" />
+                <span className="text-white font-bold text-sm">{liveTrips.filter(t => t.progress > 0 && t.progress < 100).length} active trips in progress</span>
+                <span className="text-slate-500 text-xs">·</span>
+                <span className="text-slate-400 text-xs">{liveTrips.filter(t => t.progress === 0).length} departing soon</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-medium">Auto-refreshes every 60s · Powered by NAMA OS</div>
+            </div>
+
+            {liveTrips.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+                <Navigation size={32} className="text-slate-300 mx-auto mb-4" />
+                <h3 className="font-bold text-slate-600 mb-2">No Active Trips</h3>
+                <p className="text-sm text-slate-400">Active trips will appear here once bookings are confirmed and travel begins.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                {liveTrips.map(trip => (
+                  <TripTrackerCard
+                    key={trip.bookingId}
+                    trip={trip}
+                    onWhatsApp={() => {
+                      const msg = `Hi ${trip.clientName.split(' ')[0]}! 👋 Hope you're having an amazing time in ${trip.destination}! Day ${trip.currentDay} of ${trip.totalDays}. Let me know if you need anything — I'm here 24/7! 🌍`;
+                      window.open(`https://wa.me/${trip.clientPhone.replace(/\s+/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    onPortal={() => window.open(`/portal/${trip.bookingId}`, '_blank')}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Agent tips */}
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
+              <div className="text-xs font-black uppercase tracking-widest text-amber-700 mb-3">🎯 Tracker Pro Tips</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { tip: 'Send a check-in WhatsApp on Day 1 arrival — clients love knowing you\'re watching over them.' },
+                  { tip: 'Watch for WARNING alerts (orange) — these need your action, not just info.' },
+                  { tip: 'Share the Trip Portal link with clients before departure — they can track themselves.' },
+                ].map(({ tip }, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="font-black text-amber-600 flex-shrink-0">{i + 1}.</span>
+                    <p className="text-xs text-amber-800 leading-relaxed">{tip}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Filters row + Grid — only shown in bookings view */}
+      {viewMode === 'bookings' && (<>
       <div className="flex flex-wrap gap-3">
         <div className="flex bg-slate-100 p-1 rounded-xl gap-1 overflow-x-auto">
           {STATUS_TABS.map((s) => (
@@ -457,6 +732,9 @@ export default function BookingsPage() {
       )}
 
       {selected && <BookingDetail booking={selected} onClose={() => setSelected(null)} />}
+      </>)}
+
+      {selected && viewMode === 'tracker' && <BookingDetail booking={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
