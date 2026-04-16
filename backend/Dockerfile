@@ -24,5 +24,8 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE 8080
 
-# gunicorn reads PORT env var via gunicorn.conf.py
-CMD gunicorn app.main:app --config gunicorn.conf.py
+# Run Alembic migrations then start Gunicorn
+# entrypoint.sh: waits for PG, runs alembic upgrade head, then starts gunicorn
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app --config gunicorn.conf.py"]

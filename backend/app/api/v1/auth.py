@@ -248,3 +248,49 @@ def register_user(
         role=payload.role,
         email=new_user.email,
     )
+
+
+# ── Forgot Password ───────────────────────────────────────────────────────────
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Request a password reset link.
+
+    Security: Always returns 200 regardless of whether the email exists,
+    to prevent email enumeration attacks. In production, send a reset
+    email via SendGrid/SES with a short-lived signed token.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Look up user (silently ignore if not found — anti-enumeration)
+    user = db.query(User).filter(User.email == payload.email.lower().strip()).first()
+
+    if user and user.is_active:
+        # In production: generate a reset token and send via email
+        # For MVP: log the action (real email sending wired in M16 Comms)
+        import secrets as _secrets
+        reset_token = _secrets.token_urlsafe(32)
+        logger.info(
+            "Password reset requested for user_id=%s email=%s token_prefix=%s",
+            user.id, user.email, reset_token[:8]
+        )
+        # TODO (M16): call email service
+        # email_service.send_reset_link(user.email, reset_token)
+
+    # Always return success — prevents email enumeration
+    return ForgotPasswordResponse(
+        message="If that email address is registered, you'll receive a reset link shortly."
+    )
