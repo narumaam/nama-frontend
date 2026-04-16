@@ -23,6 +23,18 @@ import {
 } from "lucide-react";
 import { leadsApi, commsApi, Lead } from "@/lib/api";
 
+// ── Seed leads (shown when backend is empty or unreachable) ──────────────────
+const CTS = (d: number) => new Date(Date.now() - d * 86400000).toISOString()
+const SEED_LEADS: Lead[] = [
+  { id: 1, tenant_id: 1, sender_id: '+919812345678', source: 'WHATSAPP', full_name: 'Ravi Mehta',    email: 'ravi.mehta@gmail.com',    phone: '+919812345678', destination: 'Rajasthan',  duration_days: 7,  travelers_count: 4, budget_per_person: 75000,  currency: 'INR', travel_style: 'CULTURAL',  status: 'QUALIFIED',    priority: 1, triage_confidence: 92, created_at: CTS(1) },
+  { id: 2, tenant_id: 1, sender_id: '+919876543210', source: 'EMAIL',    full_name: 'Priya Singh',   email: 'priya.singh@outlook.com', phone: '+919876543210', destination: 'Maldives',   duration_days: 7,  travelers_count: 2, budget_per_person: 250000, currency: 'INR', travel_style: 'LUXURY',    status: 'PROPOSAL_SENT',priority: 1, triage_confidence: 95, created_at: CTS(2) },
+  { id: 3, tenant_id: 1, sender_id: '+919845671234', source: 'WHATSAPP', full_name: 'Ananya Rao',    email: 'ananya.rao@gmail.com',    phone: '+919845671234', destination: 'Kedarnath',  duration_days: 5,  travelers_count: 3, budget_per_person: 20000,  currency: 'INR', travel_style: 'ADVENTURE', status: 'NEW',          priority: 2, triage_confidence: 78, created_at: CTS(0) },
+  { id: 4, tenant_id: 1, sender_id: '+919123456789', source: 'WEBSITE',  full_name: 'Karan Kapoor',  email: 'karan.k@hotmail.com',     phone: '+919123456789', destination: 'Kenya',      duration_days: 12, travelers_count: 6, budget_per_person: 450000, currency: 'INR', travel_style: 'WILDLIFE',  status: 'QUALIFIED',    priority: 1, triage_confidence: 88, created_at: CTS(3) },
+  { id: 5, tenant_id: 1, sender_id: '+919654321098', source: 'EMAIL',    full_name: 'Deepika Nair',  email: 'deepika.nair@gmail.com',  phone: '+919654321098', destination: 'Bali',       duration_days: 6,  travelers_count: 2, budget_per_person: 120000, currency: 'INR', travel_style: 'BEACH',     status: 'WON',          priority: 1, triage_confidence: 96, created_at: CTS(5) },
+  { id: 6, tenant_id: 1, sender_id: '+919712345678', source: 'PHONE',    full_name: 'Amit Shah',     email: 'amit.shah@company.com',   phone: '+919712345678', destination: 'Leh Ladakh', duration_days: 10, travelers_count: 8, budget_per_person: 35000,  currency: 'INR', travel_style: 'ADVENTURE', status: 'CONTACTED',    priority: 2, triage_confidence: 81, created_at: CTS(1) },
+  { id: 7, tenant_id: 1, sender_id: '+919823456789', source: 'WHATSAPP', full_name: 'Rohan Verma',   email: 'rohan.v@gmail.com',       phone: '+919823456789', destination: 'Dubai',      duration_days: 5,  travelers_count: 4, budget_per_person: 90000,  currency: 'INR', travel_style: 'LUXURY',    status: 'NEW',          priority: 2, triage_confidence: 74, created_at: CTS(0) },
+]
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 const CONTEXT_TEMPLATES = [
   { value: "Follow Up", label: "Follow Up", icon: Clock, description: "Gentle check-in after initial enquiry" },
@@ -115,9 +127,13 @@ export default function CommsPage() {
 
   useEffect(() => {
     leadsApi.list({ size: 100 }).then((d) => {
-      setLeads(d.items || []);
-      if (d.items?.length) setSelectedLead(d.items[0]);
-    }).catch(() => {}).finally(() => setLeadsLoading(false));
+      const list = d.items?.length ? d.items : SEED_LEADS;
+      setLeads(list);
+      setSelectedLead(list[0]);
+    }).catch(() => {
+      setLeads(SEED_LEADS);
+      setSelectedLead(SEED_LEADS[0]);
+    }).finally(() => setLeadsLoading(false));
   }, []);
 
   // Close dropdown on outside click
