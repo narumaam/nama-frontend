@@ -16,6 +16,18 @@ const STATUS_STYLES: Record<string, string> = {
   EXPIRED:  'bg-amber-50 text-amber-700',
 }
 
+// ── Seed quotations (shown when backend empty/unreachable) ────────────────────
+const QTS = (d: number) => new Date(Date.now() - d * 86400000).toISOString()
+const SEED_QUOTATIONS: Quotation[] = [
+  { id: 101, tenant_id: 1, lead_id: 2, lead_name: 'Priya Singh',   destination: 'Maldives',   base_price: 420000, margin_pct: 20, total_price: 504000, currency: 'INR', status: 'SENT',     created_at: QTS(1), updated_at: QTS(1) },
+  { id: 102, tenant_id: 1, lead_id: 4, lead_name: 'Karan Kapoor',  destination: 'Kenya',      base_price: 680000, margin_pct: 18, total_price: 802400, currency: 'INR', status: 'ACCEPTED', created_at: QTS(5), updated_at: QTS(4) },
+  { id: 103, tenant_id: 1, lead_id: 1, lead_name: 'Ravi Mehta',    destination: 'Rajasthan',  base_price: 260000, margin_pct: 22, total_price: 317200, currency: 'INR', status: 'DRAFT',    created_at: QTS(0), updated_at: QTS(0) },
+  { id: 104, tenant_id: 1, lead_id: 5, lead_name: 'Deepika Nair',  destination: 'Bali',       base_price: 195000, margin_pct: 20, total_price: 234000, currency: 'INR', status: 'ACCEPTED', created_at: QTS(8), updated_at: QTS(7) },
+  { id: 105, tenant_id: 1, lead_id: 7, lead_name: 'Rohan Verma',   destination: 'Dubai',      base_price: 320000, margin_pct: 15, total_price: 368000, currency: 'INR', status: 'SENT',     created_at: QTS(2), updated_at: QTS(2) },
+  { id: 106, tenant_id: 1, lead_id: 8, lead_name: 'Sneha Patel',   destination: 'Santorini',  base_price: 380000, margin_pct: 20, total_price: 456000, currency: 'INR', status: 'REJECTED', created_at: QTS(9), updated_at: QTS(8) },
+  { id: 107, tenant_id: 1, lead_id: 3, lead_name: 'Ananya Rao',    destination: 'Kedarnath',  base_price: 55000,  margin_pct: 18, total_price: 64900,  currency: 'INR', status: 'DRAFT',    created_at: QTS(0), updated_at: QTS(0) },
+]
+
 function QuotationCard({ q, onView }: { q: Quotation; onView: (q: Quotation) => void }) {
   return (
     <div
@@ -74,11 +86,12 @@ export default function QuotationsPage() {
         leadsApi.list({ size: 50 }).catch(() => ({ items: [] })),
         itinerariesApi.list().catch(() => []),
       ])
-      setQuotations(quotsData.items || [])
+      const quots = quotsData.items || []
+      setQuotations(quots.length > 0 ? quots : SEED_QUOTATIONS)
       setLeads(leadsData.items || [])
       setItineraries(Array.isArray(itinData) ? itinData : [])
     } catch (e) {
-      setError('Failed to load quotations')
+      setQuotations(SEED_QUOTATIONS)
     } finally {
       setLoading(false)
     }

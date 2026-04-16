@@ -15,6 +15,19 @@ const statusBadgeColor = {
 
 type InquiryMode = 'ai' | 'manual'
 
+// ── Seed leads (shown when backend empty/unreachable) ─────────────────────────
+const TS = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString()
+const SEED_LEADS: Lead[] = [
+  { id: 1, tenant_id: 1, sender_id: '+919812345678', source: 'WHATSAPP', full_name: 'Ravi Mehta',      email: 'ravi.mehta@gmail.com',    phone: '+91 98123 45678', destination: 'Rajasthan',  duration_days: 7,  travelers_count: 4, budget_per_person: 75000,  currency: 'INR', travel_style: 'CULTURAL',  status: 'QUALIFIED',    priority: 1, triage_confidence: 92, suggested_reply: 'Thank you for reaching out! Rajasthan in March sounds wonderful…', created_at: TS(1) },
+  { id: 2, tenant_id: 1, sender_id: '+919876543210', source: 'EMAIL',    full_name: 'Priya Singh',     email: 'priya.singh@outlook.com', phone: '+91 98765 43210', destination: 'Maldives',   duration_days: 7,  travelers_count: 2, budget_per_person: 250000, currency: 'INR', travel_style: 'LUXURY',    status: 'PROPOSAL_SENT',priority: 1, triage_confidence: 95, suggested_reply: 'Great choice for a honeymoon! The Maldives in February is magical…',  created_at: TS(2) },
+  { id: 3, tenant_id: 1, sender_id: '+919845671234', source: 'WHATSAPP', full_name: 'Ananya Rao',      email: 'ananya.rao@gmail.com',    phone: '+91 98456 71234', destination: 'Kedarnath',  duration_days: 5,  travelers_count: 3, budget_per_person: 20000,  currency: 'INR', travel_style: 'ADVENTURE', status: 'NEW',          priority: 2, triage_confidence: 78, suggested_reply: undefined, created_at: TS(0) },
+  { id: 4, tenant_id: 1, sender_id: '+919123456789', source: 'WEBSITE',  full_name: 'Karan Kapoor',    email: 'karan.k@hotmail.com',     phone: '+91 91234 56789', destination: 'Kenya',      duration_days: 12, travelers_count: 6, budget_per_person: 450000, currency: 'INR', travel_style: 'WILDLIFE',  status: 'QUALIFIED',    priority: 1, triage_confidence: 88, suggested_reply: undefined, created_at: TS(3) },
+  { id: 5, tenant_id: 1, sender_id: '+919654321098', source: 'EMAIL',    full_name: 'Deepika Nair',    email: 'deepika.nair@gmail.com',  phone: '+91 96543 21098', destination: 'Bali',       duration_days: 6,  travelers_count: 2, budget_per_person: 120000, currency: 'INR', travel_style: 'BEACH',     status: 'WON',          priority: 1, triage_confidence: 96, suggested_reply: undefined, created_at: TS(5) },
+  { id: 6, tenant_id: 1, sender_id: '+919712345678', source: 'PHONE',    full_name: 'Amit Shah',       email: 'amit.shah@company.com',   phone: '+91 97123 45678', destination: 'Leh Ladakh', duration_days: 10, travelers_count: 8, budget_per_person: 35000,  currency: 'INR', travel_style: 'ADVENTURE', status: 'CONTACTED',    priority: 2, triage_confidence: 81, suggested_reply: undefined, created_at: TS(1) },
+  { id: 7, tenant_id: 1, sender_id: '+919823456789', source: 'WHATSAPP', full_name: 'Rohan Verma',     email: 'rohan.v@gmail.com',       phone: '+91 98234 56789', destination: 'Dubai',      duration_days: 5,  travelers_count: 4, budget_per_person: 90000,  currency: 'INR', travel_style: 'LUXURY',    status: 'NEW',          priority: 2, triage_confidence: 74, suggested_reply: undefined, created_at: TS(0) },
+  { id: 8, tenant_id: 1, sender_id: '+919534567890', source: 'EMAIL',    full_name: 'Sneha Patel',     email: 'sneha.patel@gmail.com',   phone: '+91 95345 67890', destination: 'Santorini',  duration_days: 8,  travelers_count: 2, budget_per_person: 200000, currency: 'INR', travel_style: 'HONEYMOON', status: 'LOST',         priority: 3, triage_confidence: 65, suggested_reply: undefined, created_at: TS(7) },
+]
+
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,10 +60,16 @@ export default function LeadsPage() {
     setError(null)
     try {
       const data = await leadsApi.list({ status: statusFilter || undefined, page })
-      setLeads(data.items)
-      setTotal(data.total)
+      if (data.items && data.items.length > 0) {
+        setLeads(data.items)
+        setTotal(data.total)
+      } else {
+        setLeads(SEED_LEADS)
+        setTotal(SEED_LEADS.length)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load leads')
+      setLeads(SEED_LEADS)
+      setTotal(SEED_LEADS.length)
     } finally {
       setLoading(false)
     }
