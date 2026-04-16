@@ -254,6 +254,7 @@ export interface Vendor {
   is_verified: boolean
   rating?: number
   tags?: string[]
+  notes?: string
   created_at: string
 }
 
