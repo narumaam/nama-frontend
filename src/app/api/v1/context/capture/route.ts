@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/api-auth';
 
 type ContextType = 'LEAD_VIEWED' | 'ITINERARY_OPENED' | 'QUOTATION_VIEWED' | 'VENDOR_VIEWED' | 'MODULE_CHANGED';
 
@@ -31,6 +32,9 @@ interface ContextCapture {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = requireSession(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json() as ContextCapture;
 

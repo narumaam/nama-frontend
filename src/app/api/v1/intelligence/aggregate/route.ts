@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireApiKey } from '@/lib/api-auth';
 
 const AGGREGATE_DATA = {
   generated_at: new Date().toISOString(),
@@ -52,6 +53,9 @@ const AGGREGATE_DATA = {
 };
 
 export async function GET(request: NextRequest) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   const { searchParams } = new URL(request.url);
   const period = searchParams.get('period') || '7d';
 

@@ -39,16 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userData = { userId: res.user_id, tenantId: res.tenant_id, role: res.role, email: res.email }
     localStorage.setItem('nama_token', res.access_token)
     localStorage.setItem('nama_user', JSON.stringify(userData))
-    // Set cookie so Next.js middleware can verify auth server-side
-    document.cookie = `nama_auth=${res.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`
+    // Set HttpOnly cookie server-side — cannot use document.cookie for HttpOnly
+    // The server response carries Set-Cookie with HttpOnly; Secure; SameSite=Strict
+    await fetch('/api/auth/set-cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: res.access_token }),
+    })
     setUser({ token: res.access_token, ...userData })
   }
 
   const logout = () => {
     localStorage.removeItem('nama_token')
     localStorage.removeItem('nama_user')
-    // Clear auth cookie so middleware redirects immediately
-    document.cookie = 'nama_auth=; path=/; max-age=0; SameSite=Strict'
+    // Clear the HttpOnly auth cookie server-side
+    fetch('/api/auth/set-cookie', { method: 'DELETE' }).catch(() => {})
     setUser(null)
   }
 

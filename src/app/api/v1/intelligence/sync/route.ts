@@ -36,6 +36,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireApiKey } from '@/lib/api-auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,9 @@ function validatePayload(body: unknown): { valid: boolean; error?: string } {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const validation = validatePayload(body);
