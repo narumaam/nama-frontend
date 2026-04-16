@@ -7,11 +7,11 @@ import { Shield, LogOut, BarChart3, Users, Building2, Settings } from 'lucide-re
 import Link from 'next/link'
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout, loading } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading) {
+    if (!isLoading) {
       if (!user) {
         router.push('/?redirect=/owner')
         return
@@ -20,9 +20,9 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         router.push('/dashboard')
       }
     }
-  }, [user, loading, router])
+  }, [user, isLoading, router])
 
-  if (loading || !user || user.role !== 'R0_NAMA_OWNER') {
+  if (isLoading || !user || user.role !== 'R0_NAMA_OWNER') {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
         <div className="text-white/50 text-sm font-medium animate-pulse">Loading NAMA OS…</div>

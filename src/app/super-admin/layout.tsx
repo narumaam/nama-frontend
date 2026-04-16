@@ -9,11 +9,11 @@ import Link from 'next/link'
 const ALLOWED_ROLES = ['R0_NAMA_OWNER', 'R1_SUPER_ADMIN']
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout, loading } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading) {
+    if (!isLoading) {
       if (!user) {
         router.push('/?redirect=/super-admin')
         return
@@ -22,9 +22,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         router.push('/dashboard')
       }
     }
-  }, [user, loading, router])
+  }, [user, isLoading, router])
 
-  if (loading || !user || !ALLOWED_ROLES.includes(user.role)) {
+  if (isLoading || !user || !ALLOWED_ROLES.includes(user.role)) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
         <div className="text-white/50 text-sm font-medium animate-pulse">Loading NAMA OS…</div>
