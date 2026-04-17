@@ -76,10 +76,6 @@ export default function RegisterPage() {
   }
 
   async function enterWithGoogle(idToken: string) {
-    if (!form.companyName.trim()) {
-      setError('Please enter your company name before continuing with Google.')
-      return
-    }
     setError('')
     setLoading(true)
     const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://intuitive-blessing-production-30de.up.railway.app'
@@ -420,25 +416,16 @@ export default function RegisterPage() {
                         setGoogleEmail((p.email as string) ?? '')
                       } catch {}
                       setError('')
+                      void enterWithGoogle(cred.credential)
                     }
                   }}
                   onError={() => setError('Google sign-in failed. Enter details below instead.')}
                   theme="outline" text="continue_with" shape="rectangular" width="360"
                 />
-                {googleEmail && (
-                  <p className="mt-2 text-xs text-emerald-600 font-medium">
-                    ✓ Signed in as <strong>{googleEmail}</strong> — enter your company name below, then click Enter with Google.
+                {googleEmail && loading && (
+                  <p className="mt-2 text-xs text-emerald-600 font-medium animate-pulse">
+                    ✓ Signed in as <strong>{googleEmail}</strong> — creating your workspace…
                   </p>
-                )}
-                {googleToken && (
-                  <button
-                    type="button"
-                    onClick={() => void enterWithGoogle(googleToken)}
-                    disabled={loading}
-                    className="mt-3 w-full flex items-center justify-center gap-2 bg-[#14B8A6] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#0ea5a0] transition-colors disabled:opacity-60"
-                  >
-                    {loading ? 'Creating workspace…' : 'Enter with Google →'}
-                  </button>
                 )}
               </div>
 
