@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
+import { GoogleProvider } from "@/components/google-provider";
 import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {

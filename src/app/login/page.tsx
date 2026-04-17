@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, Suspense } from 'react'
+import { GoogleLogin } from '@react-oauth/google'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -61,6 +62,31 @@ function LoginPageInner() {
     const t = setInterval(() => setActiveTestimonial(i => (i + 1) % TESTIMONIALS.length), 4000)
     return () => clearInterval(t)
   }, [])
+
+
+  const handleGoogleLogin = async (credential: string) => {
+    setError(''); setLoading(true)
+    const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://intuitive-blessing-production-30de.up.railway.app'
+    try {
+      const resp = await fetch(`${API}/api/v1/auth/google/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: credential }),
+      })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({})) as { detail?: string }
+        throw new Error(err.detail ?? `Google login failed (${resp.status})`)
+      }
+      const session = await resp.json() as { id: string; email: string; display_name: string; role: string; tenant_name: string }
+      localStorage.setItem('nama_session_id', session.id)
+      localStorage.setItem('nama_session_email', session.email)
+      localStorage.setItem('nama_session_role', session.role)
+      localStorage.setItem('nama_session_tenant', session.tenant_name)
+      setSuccess(true)
+      setTimeout(() => router.push('/dashboard'), 600)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed.')
+    } finally { setLoading(false) }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -209,7 +235,22 @@ function LoginPageInner() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <div className="mb-6">
+                <p className="text-xs text-slate-400 mb-3 font-medium">Continue with Google</p>
+                <GoogleLogin
+                  onSuccess={(cred) => { if (cred.credential) void handleGoogleLogin(cred.credential) }}
+                  onError={() => setError('Google sign-in failed.')}
+                  theme="filled_black" text="signin_with" shape="rectangular" width="360"
+                />
+                <div className="flex items-center gap-3 mt-5">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-xs text-slate-500">or sign in with email</span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+              </div>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
 
               {/* Error */}
               {error && (
