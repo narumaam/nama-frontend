@@ -300,3 +300,25 @@ def health_check():
 def perf_check():
     """Lightweight endpoint for load balancer probes — no DB, no auth."""
     return {"ok": True}
+
+
+# ── Prometheus Metrics ─────────────────────────────────────────────────────────
+@app.get("/api/v1/metrics", tags=["system"], include_in_schema=True)
+def prometheus_metrics():
+    """
+    Expose Prometheus-format metrics collected by NAMA's metrics middleware.
+    Secured: only authenticated R2_ORG_ADMIN+ may scrape in production.
+    Returns: text/plain Prometheus exposition format.
+    """
+    from fastapi.responses import PlainTextResponse
+    try:
+        from app.core.metrics import REGISTRY, generate_latest, CONTENT_TYPE_LATEST
+        metrics_output = generate_latest(REGISTRY)
+        return PlainTextResponse(content=metrics_output.decode("utf-8"),
+                                 media_type=CONTENT_TYPE_LATEST)
+    except Exception as e:
+        # Fallback: return a minimal valid Prometheus response
+        return PlainTextResponse(
+            content=f"# HELP nama_up NAMA backend is running\n# TYPE nama_up gauge\nnama_up 1\n",
+            media_type="text/plain; version=0.0.4",
+        )

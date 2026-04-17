@@ -11,9 +11,12 @@ Endpoints:
   DELETE /leads/{id}       — soft-delete (sets status=LOST)
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 
 from app.db.session import get_db
 from app.api.v1.deps import require_tenant, get_token_claims, RoleChecker
@@ -119,3 +122,129 @@ def delete_lead(
                 payload=LeadUpdate(status=LeadStatus.LOST))
     # Invalidate leads list cache for this tenant on write
     distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+
+
+# ── Schemas for notes / activities ────────────────────────────────────────────
+
+class NoteIn(BaseModel):
+    content: str = Field(..., min_length=1, max_length=2000)
+    author:  Optional[str] = Field(None, max_length=100)
+
+
+class NoteOut(BaseModel):
+    id:         str
+    content:    str
+    author:     Optional[str]
+    created_at: str
+
+
+class ActivityOut(BaseModel):
+    id:          str
+    type:        str
+    title:       str
+    description: Optional[str]
+    timestamp:   str
+
+
+# ── Notes endpoint ────────────────────────────────────────────────────────────
+
+_NOTE_SEP    = "\n[NOTE_SEP]\n"
+_NOTE_PREFIX = "[NOTE]"
+
+
+def _parse_notes(raw: Optional[str]) -> List[NoteOut]:
+    """Parse structured notes stored in the lead's `notes` text column."""
+    if not raw:
+        return []
+    notes = []
+    for i, chunk in enumerate(raw.split(_NOTE_SEP)):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if chunk.startswith(_NOTE_PREFIX):
+            inner = chunk[len(_NOTE_PREFIX):].strip()
+            parts   = inner.split(" | ", 2)
+            ts      = parts[0].strip() if len(parts) > 0 else ""
+            author  = parts[1].strip() if len(parts) > 1 else None
+            content = parts[2].strip() if len(parts) > 2 else inner
+        else:
+            ts      = ""
+            author  = None
+            content = chunk
+        notes.append(NoteOut(id=f"note-{i}", content=content, author=author, created_at=ts))
+    return list(reversed(notes))
+
+
+@router.post(
+    "/{lead_id}/notes",
+    response_model=List[NoteOut],
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a note to a lead",
+)
+def create_note(
+    lead_id:   int,
+    body:      NoteIn,
+    db:        Session = Depends(get_db),
+    tenant_id: int     = Depends(require_tenant),
+    _:         dict    = Depends(_any_agent_role),
+):
+    lead = get_lead(db, lead_id=lead_id, tenant_id=tenant_id)
+    now         = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    author_part = body.author or "Staff"
+    new_entry   = f"{_NOTE_PREFIX} {now} | {author_part} | {body.content}"
+    existing    = (lead.notes or "").strip()
+    lead.notes  = f"{existing}{_NOTE_SEP}{new_entry}" if existing else new_entry
+    lead.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(lead)
+    distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+    return _parse_notes(lead.notes)
+
+
+# ── Activities endpoint ───────────────────────────────────────────────────────
+
+@router.get(
+    "/{lead_id}/activities",
+    response_model=List[ActivityOut],
+    summary="Get activity timeline for a lead",
+)
+def list_activities(
+    lead_id:   int,
+    db:        Session = Depends(get_db),
+    tenant_id: int     = Depends(require_tenant),
+    _:         dict    = Depends(_any_agent_role),
+):
+    lead = get_lead(db, lead_id=lead_id, tenant_id=tenant_id)
+
+    activities: List[ActivityOut] = []
+
+    def _add(ev_type: str, title: str, desc: str, ts):
+        if ts is None:
+            return
+        ts_str = ts.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(ts, "strftime") else str(ts)
+        activities.append(ActivityOut(
+            id=f"{ev_type}-{lead_id}",
+            type=ev_type,
+            title=title,
+            description=desc,
+            timestamp=ts_str,
+        ))
+
+    _add("lead_created",   "Lead created",          f"Lead received via {lead.source}", lead.created_at)
+    _add("lead_contacted", "First contact made",     "Lead status advanced to CONTACTED", lead.contacted_at)
+    _add("lead_qualified", "Lead qualified",         "Lead marked as QUALIFIED",          getattr(lead, "qualified_at", None))
+    _add("lead_won",       "Lead won 🎉",             "Converted to booking",               lead.won_at)
+    _add("lead_lost",      "Lead lost",              "Lead marked as LOST",                lead.lost_at)
+
+    for note in _parse_notes(lead.notes):
+        if note.created_at:
+            activities.append(ActivityOut(
+                id=f"note-{note.id}",
+                type="note_added",
+                title=f"Note added by {note.author or 'Staff'}",
+                description=note.content[:120] + ("…" if len(note.content) > 120 else ""),
+                timestamp=note.created_at,
+            ))
+
+    activities.sort(key=lambda a: a.timestamp or "", reverse=True)
+    return activities

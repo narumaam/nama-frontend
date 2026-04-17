@@ -17,12 +17,14 @@ Endpoints:
   POST   /quotations/{id}/send  — mark as SENT (sets sent_at timestamp)
 """
 
+import io
 import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Numeric, Enum as SAEnum
 from sqlalchemy.orm import Session
@@ -308,3 +310,154 @@ def send_quotation(
     db.refresh(q)
     logger.info(f"Quotation sent: tenant={tenant_id} id={quotation_id}")
     return q
+
+
+# ── Schemas for new endpoints ─────────────────────────────────────────────────
+class RejectIn(BaseModel):
+    reason: Optional[str] = Field(None, max_length=500)
+
+
+# ── Accept endpoint ───────────────────────────────────────────────────────────
+@router.post(
+    "/{quotation_id}/accept",
+    response_model=QuotationOut,
+    summary="Client accepts a quotation — moves to ACCEPTED",
+)
+def accept_quotation(
+    quotation_id: int,
+    db:           Session = Depends(get_db),
+    tenant_id:    int     = Depends(require_tenant),
+    _:            dict    = Depends(_any_staff),
+):
+    q = _get_or_404(db, quotation_id, tenant_id)
+    if q.status != QuotationStatus.SENT:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Only SENT quotations can be accepted. Current status: {q.status}",
+        )
+    q.status     = QuotationStatus.ACCEPTED
+    q.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(q)
+    logger.info(f"Quotation accepted: tenant={tenant_id} id={quotation_id}")
+    return q
+
+
+# ── Reject endpoint ───────────────────────────────────────────────────────────
+@router.post(
+    "/{quotation_id}/reject",
+    response_model=QuotationOut,
+    summary="Client rejects a quotation — moves to REJECTED",
+)
+def reject_quotation(
+    quotation_id: int,
+    body:         RejectIn = RejectIn(),
+    db:           Session  = Depends(get_db),
+    tenant_id:    int      = Depends(require_tenant),
+    _:            dict     = Depends(_any_staff),
+):
+    q = _get_or_404(db, quotation_id, tenant_id)
+    if q.status != QuotationStatus.SENT:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Only SENT quotations can be rejected. Current status: {q.status}",
+        )
+    q.status = QuotationStatus.REJECTED
+    if body.reason:
+        existing = q.notes or ""
+        q.notes  = f"[Rejection reason] {body.reason}\n\n{existing}".strip()
+    q.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(q)
+    logger.info(f"Quotation rejected: tenant={tenant_id} id={quotation_id} reason={body.reason!r}")
+    return q
+
+
+# ── PDF download endpoint ─────────────────────────────────────────────────────
+@router.get(
+    "/{quotation_id}/pdf",
+    summary="Download quotation as a PDF",
+    response_class=StreamingResponse,
+)
+def quotation_pdf(
+    quotation_id: int,
+    db:           Session = Depends(get_db),
+    tenant_id:    int     = Depends(require_tenant),
+    _:            dict    = Depends(_any_staff),
+):
+    """
+    Generates a simple HTML-based PDF for the quotation.
+    Uses WeasyPrint if available; falls back to plain-HTML download when not installed.
+    """
+    q = _get_or_404(db, quotation_id, tenant_id)
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quotation #{q.id}</title>
+<style>
+  body {{ font-family: Arial, sans-serif; margin: 40px; color: #1e293b; }}
+  h1 {{ color: #0f766e; border-bottom: 2px solid #0f766e; padding-bottom: 8px; }}
+  .meta {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+           padding: 16px; margin: 20px 0; }}
+  .meta table {{ width: 100%; border-collapse: collapse; }}
+  .meta td {{ padding: 6px 12px; }}
+  .meta td:first-child {{ font-weight: bold; color: #475569; width: 160px; }}
+  .price {{ font-size: 28px; font-weight: bold; color: #0f766e; margin: 20px 0; }}
+  .status {{ display: inline-block; padding: 4px 12px; border-radius: 20px;
+             background: #ccfbf1; color: #0f766e; font-weight: bold; }}
+  .notes {{ background: #fefce8; border: 1px solid #fde68a; border-radius: 8px;
+            padding: 16px; margin: 20px 0; }}
+  .footer {{ margin-top: 40px; font-size: 12px; color: #94a3b8; text-align: center; }}
+</style>
+</head>
+<body>
+<h1>NAMA Travel — Quotation #{q.id}</h1>
+
+<div class="meta">
+  <table>
+    <tr><td>Client</td><td>{q.lead_name}</td></tr>
+    <tr><td>Destination</td><td>{q.destination}</td></tr>
+    <tr><td>Status</td><td><span class="status">{q.status}</span></td></tr>
+    <tr><td>Currency</td><td>{q.currency}</td></tr>
+    <tr><td>Base Price</td><td>{q.currency} {float(q.base_price):,.2f}</td></tr>
+    <tr><td>Margin</td><td>{float(q.margin_pct):.1f}%</td></tr>
+    <tr><td>Created</td><td>{q.created_at.strftime('%d %b %Y')}</td></tr>
+    {"<tr><td>Sent</td><td>" + q.sent_at.strftime('%d %b %Y') + "</td></tr>" if q.sent_at else ""}
+    {"<tr><td>Valid Until</td><td>" + q.valid_until.strftime('%d %b %Y') + "</td></tr>" if q.valid_until else ""}
+  </table>
+</div>
+
+<div class="price">Total: {q.currency} {float(q.total_price):,.2f}</div>
+
+{"<div class='notes'><strong>Notes:</strong><br>" + (q.notes or "").replace(chr(10), "<br>") + "</div>" if q.notes else ""}
+
+<div class="footer">
+  Generated by NAMA OS · {datetime.now(timezone.utc).strftime('%d %b %Y %H:%M UTC')}
+</div>
+</body>
+</html>"""
+
+    try:
+        import weasyprint  # type: ignore
+        pdf_bytes = weasyprint.HTML(string=html_content).write_pdf()
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="quotation-{q.id}.pdf"',
+                "Content-Length": str(len(pdf_bytes)),
+            },
+        )
+    except ImportError:
+        # WeasyPrint not installed — return HTML for browser-side save/print
+        logger.warning("WeasyPrint not installed; returning HTML for quotation PDF")
+        html_bytes = html_content.encode("utf-8")
+        return StreamingResponse(
+            io.BytesIO(html_bytes),
+            media_type="text/html",
+            headers={
+                "Content-Disposition": f'inline; filename="quotation-{q.id}.html"',
+            },
+        )
