@@ -261,6 +261,40 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
 
+
+              {/* Google Sign-In — primary option at top, like Notion/Linear */}
+              <div className="mb-2">
+                <GoogleLogin
+                  onSuccess={(cred) => {
+                    if (cred.credential) {
+                      setGoogleToken(cred.credential)
+                      try {
+                        const p = JSON.parse(atob(cred.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))
+                        if (p.name && !form.fullName) setForm(f => ({ ...f, fullName: p.name as string }))
+                        setGoogleEmail((p.email as string) ?? '')
+                      } catch {}
+                      setError('')
+                      void enterWithGoogle(cred.credential)
+                    }
+                  }}
+                  onError={() => setError('Google sign-in failed. Use email & password below instead.')}
+                  theme="outline" text="continue_with" shape="rectangular" width="360"
+                  useOneTap
+                />
+                {googleEmail && loading && (
+                  <p className="mt-2 text-xs text-emerald-600 font-medium animate-pulse">
+                    ✓ Signed in as <strong>{googleEmail}</strong> — creating your workspace…
+                  </p>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-slate-200" />
+                <span className="text-xs text-slate-400 font-medium">or continue with email</span>
+                <div className="flex-1 border-t border-slate-200" />
+              </div>
+
               {/* Error */}
               {error && (
                 <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
