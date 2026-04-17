@@ -199,26 +199,72 @@ export default function NamaCopilot() {
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
-    // Simulated streaming response
-    const responseText = getSimulatedResponse(text);
     const assistantId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '', ts: Date.now(), streaming: true }]);
 
-    // Stream character by character
-    let i = 0;
-    const interval = setInterval(() => {
-      i += 4; // 4 chars per tick for speed
-      setMessages(prev => prev.map(m =>
-        m.id === assistantId
-          ? { ...m, content: responseText.slice(0, i), streaming: i < responseText.length }
-          : m
-      ));
-      if (i >= responseText.length) {
-        clearInterval(interval);
-        setLoading(false);
+    try {
+      // Build history from current messages (exclude the new assistant placeholder)
+      const history = messages.map(m => ({ role: m.role, content: m.content }));
+
+      const res = await fetch('/api/v1/copilot/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          history,
+          context: buildContext(ctx),
+        }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) throw new Error('No stream');
+
+      let accumulated = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'delta') {
+              accumulated += data.content;
+              setMessages(prev => prev.map(m =>
+                m.id === assistantId ? { ...m, content: accumulated, streaming: true } : m
+              ));
+            } else if (data.type === 'done') {
+              setMessages(prev => prev.map(m =>
+                m.id === assistantId ? { ...m, streaming: false } : m
+              ));
+            } else if (data.type === 'error') {
+              accumulated = `⚠️ ${data.content || 'AI error'}`;
+              setMessages(prev => prev.map(m =>
+                m.id === assistantId ? { ...m, content: accumulated, streaming: false } : m
+              ));
+            }
+          } catch { /* skip malformed SSE */ }
+        }
       }
-    }, 16);
-  }, [loading]);
+    } catch {
+      // Fallback to demo responses if backend unavailable
+      const responseText = getSimulatedResponse(text);
+      let i = 0;
+      const interval = setInterval(() => {
+        i += 5;
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId ? { ...m, content: responseText.slice(0, i), streaming: i < responseText.length } : m
+        ));
+        if (i >= responseText.length) { clearInterval(interval); }
+      }, 16);
+    } finally {
+      setLoading(false);
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, streaming: false } : m));
+    }
+  }, [loading, messages, ctx]);
 
   function handleCopy(content: string, id: string) {
     navigator.clipboard.writeText(content).then(() => {

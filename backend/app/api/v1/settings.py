@@ -17,8 +17,9 @@ Endpoints:
 """
 
 import os
+import secrets
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -253,6 +254,177 @@ def get_subscription(
         byok_enabled=True,
         period_end=None,
     )
+
+
+# ── Team Management Model ─────────────────────────────────────────────────────
+class TenantInvite(Base):
+    __tablename__ = "tenant_invites"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    tenant_id   = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    email       = Column(String(255), nullable=False)
+    role        = Column(String(50), nullable=False, default="R6_AGENT")
+    token       = Column(String(64), unique=True, nullable=False, index=True)
+    invited_by  = Column(Integer, nullable=True)
+    invited_at  = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at  = Column(DateTime, nullable=True)
+    accepted_at = Column(DateTime, nullable=True)
+    revoked_at  = Column(DateTime, nullable=True)
+
+
+# ── Team Pydantic Schemas ─────────────────────────────────────────────────────
+VALID_ROLES = {"R2_ORG_ADMIN", "R3_SALES_MANAGER", "R4_SENIOR_AGENT",
+               "R5_FINANCE_ADMIN", "R6_AGENT", "R7_READ_ONLY"}
+
+
+class InviteCreate(BaseModel):
+    email: str
+    role: str = "R6_AGENT"
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        if v not in VALID_ROLES:
+            raise ValueError(f"role must be one of: {', '.join(sorted(VALID_ROLES))}")
+        return v
+
+
+class InviteOut(BaseModel):
+    id: int
+    email: str
+    role: str
+    invited_at: datetime
+    accepted_at: Optional[datetime]
+    revoked_at: Optional[datetime]
+
+    @property
+    def is_pending(self):
+        return self.accepted_at is None and self.revoked_at is None
+
+    class Config:
+        from_attributes = True
+
+
+# ── Team Endpoints ────────────────────────────────────────────────────────────
+@router.get("/team", response_model=List[InviteOut], summary="List team invites")
+def list_team_invites(
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_admin_roles),
+):
+    invites = (
+        db.query(TenantInvite)
+        .filter(TenantInvite.tenant_id == tenant_id)
+        .order_by(TenantInvite.invited_at.desc())
+        .all()
+    )
+    return invites
+
+
+@router.post(
+    "/team/invite",
+    response_model=InviteOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Invite a team member by email",
+)
+def invite_team_member(
+    payload: InviteCreate,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    claims: dict = Depends(_admin_roles),
+):
+    email = payload.email.lower().strip()
+
+    # Check for existing pending invite for same email
+    existing = (
+        db.query(TenantInvite)
+        .filter(
+            TenantInvite.tenant_id == tenant_id,
+            TenantInvite.email == email,
+            TenantInvite.accepted_at.is_(None),
+            TenantInvite.revoked_at.is_(None),
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A pending invite already exists for this email.",
+        )
+
+    invite = TenantInvite(
+        tenant_id=tenant_id,
+        email=email,
+        role=payload.role,
+        token=secrets.token_urlsafe(32),
+        invited_by=int(claims.get("user_id", 0)) if claims.get("user_id") else None,
+        expires_at=datetime.utcnow() + timedelta(days=14),
+    )
+    db.add(invite)
+    db.commit()
+    db.refresh(invite)
+
+    logger.info(f"Team invite created: tenant={tenant_id} email={email} role={payload.role}")
+
+    # Send invite email if SendGrid is configured
+    try:
+        from app.core.email import send_invite_email
+        from app.models.auth import Tenant
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        tenant_name = tenant.name if tenant else "NAMA"
+        send_invite_email(email, invite.token, tenant_name, payload.role)
+    except Exception as e:
+        logger.warning(f"Could not send invite email: {e}")
+
+    return invite
+
+
+@router.delete(
+    "/team/invite/{invite_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Revoke a pending invite",
+)
+def revoke_invite(
+    invite_id: int,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_admin_roles),
+):
+    invite = db.query(TenantInvite).filter(
+        TenantInvite.id == invite_id,
+        TenantInvite.tenant_id == tenant_id,
+    ).first()
+    if not invite:
+        raise HTTPException(404, "Invite not found")
+    invite.revoked_at = datetime.utcnow()
+    db.commit()
+
+
+@router.get(
+    "/team/invite/accept/{token}",
+    summary="Validate an invite token (public endpoint for registration)",
+)
+def accept_invite_info(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Returns invite details so the registration page can pre-fill the form."""
+    invite = db.query(TenantInvite).filter(
+        TenantInvite.token == token,
+        TenantInvite.accepted_at.is_(None),
+        TenantInvite.revoked_at.is_(None),
+    ).first()
+    if not invite:
+        raise HTTPException(404, "Invite not found or already used")
+    if invite.expires_at and invite.expires_at < datetime.utcnow():
+        raise HTTPException(410, "This invite has expired")
+    return {
+        "email": invite.email,
+        "role": invite.role,
+        "tenant_id": invite.tenant_id,
+        "token": token,
+        "message": "Invite valid. Complete registration to join the team.",
+    }
 
 
 # ── Decryption helper for internal AI agent use ───────────────────────────────

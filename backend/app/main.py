@@ -38,6 +38,9 @@ from app.api.v1 import ai_admin
 from app.api.v1 import admin as platform_admin
 from app.api.v1 import settings as settings_router
 from app.api.v1 import webhooks as webhooks_router
+from app.api.v1 import copilot as copilot_router
+from app.api.v1 import automations as automations_router
+from app.api.v1 import investor as investor_router
 from app.db.session import engine, Base, init_performance_indexes
 from app.core.cache_warmer import start_background_warmer
 from app.core.rate_limiter import RateLimitMiddleware
@@ -85,6 +88,11 @@ import app.models.webhooks    # noqa: F401  (M19 — Inbound webhooks)
 import app.models.content     # noqa: F401  (M12 — Content library)
 import app.models.corporate   # noqa: F401  (M10 — Corporate / B2B2C)
 import app.models.portals     # noqa: F401  (M13 — Client portals)
+
+# Import router modules that define their own ORM models
+# (Automation, AutomationRun, TenantInvite, ByokApiKey)
+from app.api.v1 import automations as _automations_models  # noqa: F401
+from app.api.v1 import settings as _settings_models        # noqa: F401
 
 Base.metadata.create_all(bind=engine)
 
@@ -247,6 +255,15 @@ app.include_router(webhooks_router.router, prefix="/api/v1/webhooks",     tags=[
 
 #   Vendor / supplier management (M6)
 app.include_router(vendors.router,         prefix="/api/v1/vendors",      tags=["vendors"])
+
+#   AI Copilot — SSE streaming chat (P3-5)
+app.include_router(copilot_router.router,     prefix="/api/v1/copilot",      tags=["copilot"])
+
+#   Automations — workflow engine CRUD (P3-7)
+app.include_router(automations_router.router, prefix="/api/v1/automations",  tags=["automations"])
+
+#   Investor dashboard — R0 platform analytics (P3-9)
+app.include_router(investor_router.router,    prefix="/api/v1/investor",     tags=["investor"])
 
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
