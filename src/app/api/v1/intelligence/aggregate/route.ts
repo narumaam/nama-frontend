@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiKey } from '@/lib/api-auth';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const AGGREGATE_DATA = {
   generated_at: new Date().toISOString(),
@@ -53,6 +54,8 @@ const AGGREGATE_DATA = {
 };
 
 export async function GET(request: NextRequest) {
+  const rateLimitError = rateLimit(request, RATE_LIMITS.intelligence);
+  if (rateLimitError) return rateLimitError;
   const authError = requireApiKey(request);
   if (authError) return authError;
 

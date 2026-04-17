@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const COOKIE_NAME = 'nama_auth';
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -27,6 +28,9 @@ function isValidJwtShape(token: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitError = rateLimit(request, RATE_LIMITS.auth);
+  if (rateLimitError) return rateLimitError;
+
   try {
     const body = await request.json() as { token?: string };
 

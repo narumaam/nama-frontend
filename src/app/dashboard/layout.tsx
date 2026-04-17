@@ -6,17 +6,27 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
-  Search, LogOut, Store, Key, FileQuestion, Menu,
-  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen,
+  LogOut, Store, FileQuestion, Menu,
+  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
+import GlobalSearch from '@/components/GlobalSearch';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoBannerDismissed, setDemoBannerDismissed] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const SEED_NOTIFICATIONS = [
+    { id: 1, title: 'New lead: Priya Sharma', body: 'Maldives luxury — 2 pax · ₹4.5L budget', time: '2m ago', unread: true },
+    { id: 2, title: 'Booking confirmed', body: 'Karan Mehta — Dubai 5N confirmed', time: '1h ago', unread: true },
+    { id: 3, title: 'Quote accepted', body: 'Rahul Verma accepted Bali proposal ✓', time: '3h ago', unread: false },
+  ];
+  const unreadCount = SEED_NOTIFICATIONS.filter(n => n.unread).length;
   const pathname = usePathname();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user: _user, logout: _logout } = { user: null, logout: () => {} };
@@ -76,6 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Integrations', href: '/dashboard/integrations', icon: Plug },
     { name: 'Settings',     href: '/dashboard/settings',     icon: Settings },
     { name: 'System Status',href: '/dashboard/status',       icon: Activity },
+    { name: 'Audit Agent', href: '/dashboard/audit',         icon: ShieldCheck },
   ];
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
@@ -247,20 +258,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Menu size={20} />
             </button>
-            <div className="hidden sm:flex items-center bg-slate-100 rounded-xl px-3 py-2 w-64 md:w-80">
-              <Search size={16} className="text-slate-400 mr-2 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Search leads, itineraries..."
-                className="bg-transparent border-none outline-none text-sm w-full text-slate-600 placeholder-slate-400"
-              />
-            </div>
+            {/* Global Search — cmd+K */}
+            <GlobalSearch />
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+          <div className="flex items-center gap-2 md:gap-4 relative">
+            {/* Notification bell */}
+            <button
+              onClick={() => setNotifOpen(o => !o)}
+              className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+            >
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">
+                  {unreadCount}
+                </span>
+              )}
             </button>
+
+            {/* Notification dropdown */}
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                <div className="absolute top-10 right-0 z-50 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <p className="text-sm font-black text-slate-800">Notifications</p>
+                    <span className="text-[10px] font-bold text-[#14B8A6] bg-[#14B8A6]/10 px-2 py-0.5 rounded-full">{unreadCount} new</span>
+                  </div>
+                  <div className="divide-y divide-slate-50">
+                    {SEED_NOTIFICATIONS.map(n => (
+                      <div key={n.id} className={`px-4 py-3 ${n.unread ? 'bg-[#14B8A6]/5' : ''}`}>
+                        <div className="flex items-start gap-2.5">
+                          {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] mt-1.5 flex-shrink-0" />}
+                          {!n.unread && <span className="w-1.5 h-1.5 flex-shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-800">{n.title}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{n.body}</p>
+                          </div>
+                          <span className="text-[10px] text-slate-400 flex-shrink-0">{n.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-4 py-2.5 border-t border-slate-100 text-center">
+                    <button className="text-xs font-bold text-[#14B8A6] hover:underline">View all notifications</button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
@@ -294,9 +338,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {/* Page content */}
+        {/* Page content — wrapped in ErrorBoundary to prevent full-page crashes */}
         <div className="p-4 md:p-6 lg:p-8 flex-1">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </div>
       </main>
 

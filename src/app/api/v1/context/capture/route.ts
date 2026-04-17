@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSession } from '@/lib/api-auth';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 type ContextType = 'LEAD_VIEWED' | 'ITINERARY_OPENED' | 'QUOTATION_VIEWED' | 'VENDOR_VIEWED' | 'MODULE_CHANGED';
 
@@ -32,6 +33,8 @@ interface ContextCapture {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitError = rateLimit(request, RATE_LIMITS.context);
+  if (rateLimitError) return rateLimitError;
   const authError = requireSession(request);
   if (authError) return authError;
 
