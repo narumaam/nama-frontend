@@ -298,15 +298,15 @@ function LoginPageInner() {
                 <div className="flex-1 h-px bg-slate-100" />
               </div>
 
-              {/* Demo credentials hint */}
+              {/* Demo access — bypasses Railway auth entirely */}
               <div className="bg-[#14B8A6]/5 border border-[#14B8A6]/15 rounded-xl p-4 text-center">
-                <p className="text-[11px] text-slate-500 font-medium mb-2">Testing? Use demo credentials</p>
+                <p className="text-[11px] text-slate-500 font-medium mb-2">Testing? Explore the full dashboard</p>
                 <button
                   type="button"
-                  onClick={() => { setEmail('admin@demo.namatravel.com'); setPassword('Demo@1234') }}
+                  onClick={() => router.push('/demo')}
                   className="text-[11px] font-black text-[#14B8A6] hover:underline"
                 >
-                  Fill demo credentials →
+                  Enter demo mode →
                 </button>
               </div>
 
