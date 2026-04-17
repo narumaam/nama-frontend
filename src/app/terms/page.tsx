@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 
 export const metadata = {
@@ -10,7 +11,7 @@ const NAVY = '#0F172A'
 
 interface Section {
   title: string
-  content: React.ReactNode
+  content: ReactNode
 }
 
 function DocSection({ id, title, sections, effectiveDate }: {
@@ -41,7 +42,7 @@ function DocSection({ id, title, sections, effectiveDate }: {
   )
 }
 
-function Li({ children }: { children: React.ReactNode }) {
+function Li({ children }: { children: ReactNode }) {
   return (
     <li className="flex gap-2">
       <span style={{ color: TEAL }} className="mt-0.5 flex-shrink-0">▸</span>
