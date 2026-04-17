@@ -1,13 +1,15 @@
 import json
+from datetime import date, datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.analytics import DashboardSummary, Anomaly, BusinessForecast
 from app.agents.analytics import AnalyticsAgent
-from app.api.v1.deps import get_current_user, RoleChecker
+from app.api.v1.deps import get_current_user, require_tenant, RoleChecker
 from app.models.auth import UserRole
 from app.core.redis_cache import distributed_cache
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 router = APIRouter()
 analytics_agent = AnalyticsAgent()
