@@ -90,7 +90,7 @@ export default function RegisterPage() {
         email:     form.email,
         password:  form.password,
         full_name: form.fullName,
-        role:      'ADMIN',
+        role:      'R2_ORG_ADMIN',
         tenant_id: orgRes.tenant_id,
       })
 
