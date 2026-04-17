@@ -58,7 +58,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-white text-slate-900">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider><GoogleProvider>{children}</GoogleProvider></AuthProvider>
 
         {/* Service Worker Registration — M17 PWA */}
         <Script
