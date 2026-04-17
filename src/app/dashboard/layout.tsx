@@ -104,16 +104,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+      {/* Nav — overflow-x visible so collapsed tooltips can peek outside the sidebar */}
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto overflow-x-visible">
         {navigation.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
           return (
             <Link
               key={item.name}
               href={item.href}
-              title={!sidebarOpen && !mobile ? item.name : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
                 isActive
                   ? 'bg-[#14B8A6]/15 text-[#14B8A6]'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -134,6 +133,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {isActive && !(('badge' in item) && item.badge) && (sidebarOpen || mobile) && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#14B8A6]" />
               )}
+              {/* Custom tooltip — only shown when sidebar is collapsed (icon-only mode) */}
+              {!sidebarOpen && !mobile && (
+                <span className="
+                  pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3
+                  px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap
+                  bg-[#1E293B] text-white border border-white/10 shadow-xl
+                  opacity-0 group-hover:opacity-100
+                  translate-x-1 group-hover:translate-x-0
+                  transition-all duration-150 z-[60]
+                ">
+                  {item.name}
+                  {'badge' in item && item.badge && (
+                    <span className="ml-1.5 text-[9px] font-black text-[#14B8A6]">● {item.badge}</span>
+                  )}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -143,10 +158,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="px-3 pb-2">
         <Link
           href="/kinetic"
-          className="flex items-center gap-3 px-3 py-3 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 text-[#14B8A6] hover:bg-[#14B8A6]/20 transition-all"
+          className="relative flex items-center gap-3 px-3 py-3 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 text-[#14B8A6] hover:bg-[#14B8A6]/20 transition-all group"
         >
           <Zap size={18} fill="currentColor" className="flex-shrink-0" />
           {(sidebarOpen || mobile) && <span className="text-xs font-black tracking-widest uppercase">Kinetic Mode</span>}
+          {!sidebarOpen && !mobile && (
+            <span className="
+              pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3
+              px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap
+              bg-[#14B8A6] text-[#0F172A] shadow-xl
+              opacity-0 group-hover:opacity-100
+              translate-x-1 group-hover:translate-x-0
+              transition-all duration-150 z-[60]
+            ">
+              Kinetic Mode
+            </span>
+          )}
         </Link>
       </div>
 
@@ -208,8 +235,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </>
       )}
 
-      {/* Main content */}
-      <main className={`flex-1 flex flex-col transition-all duration-300 lg:${sidebarOpen ? 'ml-64' : 'ml-[72px]'}`}>
+      {/* Main content — margin must use complete class strings for Tailwind JIT to detect them */}
+      <main className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-[72px]'}`}>
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-100 px-4 md:px-6 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center gap-3">
