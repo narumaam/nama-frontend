@@ -24,6 +24,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
+from app.api.v1 import google_auth
 from app.api.v1 import (
     auth, tenants, itineraries, bidding, queries,
     documents, financials, analytics, portals,
@@ -199,6 +200,7 @@ async def add_process_time_header(request: Request, call_next):
 # ── Routes ─────────────────────────────────────────────────────────────────────
 #   Auth (HS-1)
 app.include_router(auth.router,            prefix="/api/v1",              tags=["auth"])
+app.include_router(google_auth.router,     prefix="/api/v1/auth",         tags=["google-auth"])
 
 #   CRM & Triage pipeline
 app.include_router(queries.router,         prefix="/api/v1/queries",      tags=["queries"])

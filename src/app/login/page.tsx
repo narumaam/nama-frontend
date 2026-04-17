@@ -76,11 +76,25 @@ function LoginPageInner() {
         const err = await resp.json().catch(() => ({})) as { detail?: string }
         throw new Error(err.detail ?? `Google login failed (${resp.status})`)
       }
-      const session = await resp.json() as { id: string; email: string; display_name: string; role: string; tenant_name: string }
+      const session = await resp.json() as {
+        id: string; email: string; display_name: string; role: string; tenant_name: string
+        access_token?: string; user_id?: number; tenant_id?: number
+      }
       localStorage.setItem('nama_session_id', session.id)
       localStorage.setItem('nama_session_email', session.email)
       localStorage.setItem('nama_session_role', session.role)
       localStorage.setItem('nama_session_tenant', session.tenant_name)
+      if (session.access_token) {
+        localStorage.setItem('nama_token', session.access_token)
+        localStorage.setItem('nama_user', JSON.stringify({
+          userId: session.user_id, tenantId: session.tenant_id,
+          role: session.role, email: session.email,
+        }))
+        await fetch('/api/auth/set-cookie', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: session.access_token }),
+        }).catch(() => {})
+      }
       setSuccess(true)
       setTimeout(() => router.push('/dashboard'), 600)
     } catch (err) {
