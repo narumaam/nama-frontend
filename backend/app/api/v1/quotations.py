@@ -308,3 +308,60 @@ def send_quotation(
     db.refresh(q)
     logger.info(f"Quotation sent: tenant={tenant_id} id={quotation_id}")
     return q
+
+
+# ── New endpoints: accept / reject / pdf ──────────────────────────────────────
+import io as _io
+from fastapi.responses import StreamingResponse as _SR
+
+class RejectIn(BaseModel):
+    reason: Optional[str] = Field(None, max_length=500)
+
+@router.post("/{quotation_id}/accept", response_model=QuotationOut)
+def accept_quotation(
+    quotation_id: int, db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant), _: dict = Depends(_any_staff),
+):
+    q = _get_or_404(db, quotation_id, tenant_id)
+    if q.status != QuotationStatus.SENT:
+        raise HTTPException(status_code=409, detail=f"Only SENT quotations can be accepted. Current: {q.status}")
+    q.status = QuotationStatus.ACCEPTED
+    q.updated_at = datetime.now(timezone.utc)
+    db.commit(); db.refresh(q)
+    return q
+
+@router.post("/{quotation_id}/reject", response_model=QuotationOut)
+def reject_quotation(
+    quotation_id: int, body: RejectIn = RejectIn(),
+    db: Session = Depends(get_db), tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_any_staff),
+):
+    q = _get_or_404(db, quotation_id, tenant_id)
+    if q.status != QuotationStatus.SENT:
+        raise HTTPException(status_code=409, detail=f"Only SENT quotations can be rejected. Current: {q.status}")
+    q.status = QuotationStatus.REJECTED
+    if body.reason:
+        q.notes = f"[Rejection reason] {body.reason}\n\n{q.notes or ''}".strip()
+    q.updated_at = datetime.now(timezone.utc)
+    db.commit(); db.refresh(q)
+    return q
+
+@router.get("/{quotation_id}/pdf", response_class=_SR)
+def quotation_pdf(
+    quotation_id: int, db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant), _: dict = Depends(_any_staff),
+):
+    q = _get_or_404(db, quotation_id, tenant_id)
+    html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Quotation #{q.id}</title>
+<style>body{{font-family:Arial,sans-serif;margin:40px;color:#1e293b}}h1{{color:#0f766e}}</style></head>
+<body><h1>NAMA Travel — Quotation #{q.id}</h1>
+<p><b>Client:</b> {q.lead_name}</p><p><b>Destination:</b> {q.destination}</p>
+<p><b>Status:</b> {q.status}</p><p><b>Total:</b> {q.currency} {float(q.total_price):,.2f}</p>
+<p><b>Notes:</b> {q.notes or 'N/A'}</p></body></html>"""
+    try:
+        import weasyprint
+        pdf = weasyprint.HTML(string=html).write_pdf()
+        return _SR(_io.BytesIO(pdf), media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="quotation-{q.id}.pdf"'})
+    except ImportError:
+        return _SR(_io.BytesIO(html.encode()), media_type="text/html")

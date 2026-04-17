@@ -92,3 +92,40 @@ async def get_performance_forecast(
         return forecast
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Overview endpoint ─────────────────────────────────────────────────────────
+from datetime import date as _date, timedelta as _td
+from sqlalchemy import func as _func
+
+@router.get("/overview", response_model=Dict[str, Any])
+async def analytics_overview(
+    from_date: Optional[date] = Query(None), to_date: Optional[date] = Query(None),
+    tenant_id: int = Depends(require_tenant), db: Session = Depends(get_db),
+):
+    try:
+        today = _date.today()
+        end = to_date or today; start = from_date or (today - _td(days=30))
+        ck = f"overview:{tenant_id}:{start}:{end}"
+        cached = _cache_get(ck)
+        if cached and isinstance(cached, dict): return cached
+        from app.models.leads import Lead, LeadStatus
+        from app.api.v1.quotations import Quotation, QuotationStatus
+        def _n(m, col, val):
+            return db.query(_func.count(m.id)).filter(m.tenant_id==tenant_id, col==val).scalar() or 0
+        lt = db.query(_func.count(Lead.id)).filter(Lead.tenant_id==tenant_id).scalar() or 0
+        qt = db.query(_func.count(Quotation.id)).filter(Quotation.tenant_id==tenant_id, Quotation.is_deleted.is_(False)).scalar() or 0
+        lw = _n(Lead, Lead.status, LeadStatus.WON); qa = _n(Quotation, Quotation.status, QuotationStatus.ACCEPTED)
+        rev = db.query(_func.sum(Quotation.total_price)).filter(Quotation.tenant_id==tenant_id, Quotation.status==QuotationStatus.ACCEPTED, Quotation.is_deleted.is_(False)).scalar()
+        result = {
+            "period": {"from": str(start), "to": str(end)},
+            "leads": {"total": lt, "new": _n(Lead, Lead.status, LeadStatus.NEW),
+                      "won": lw, "lost": _n(Lead, Lead.status, LeadStatus.LOST)},
+            "quotations": {"total": qt, "accepted": qa, "sent": _n(Quotation, Quotation.status, QuotationStatus.SENT)},
+            "revenue": {"total_accepted_inr": float(rev) if rev else 0.0},
+            "kpis": {"lead_conversion_pct": round(lw/lt*100,1) if lt else 0,
+                     "quote_win_pct": round(qa/qt*100,1) if qt else 0},
+        }
+        _cache_set(ck, result, 30); return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

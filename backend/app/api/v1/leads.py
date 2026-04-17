@@ -119,3 +119,62 @@ def delete_lead(
                 payload=LeadUpdate(status=LeadStatus.LOST))
     # Invalidate leads list cache for this tenant on write
     distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+
+
+# ── Notes + Activities endpoints ──────────────────────────────────────────────
+from datetime import datetime as _dt, timezone as _tz
+from pydantic import BaseModel as _BM, Field as _F
+from typing import List as _L
+
+class NoteIn(_BM):
+    content: str = _F(..., min_length=1, max_length=2000)
+    author: str = _F("Staff", max_length=100)
+
+_SEP = "\n[NOTE_SEP]\n"
+_PFX = "[NOTE]"
+
+def _parse(raw):
+    if not raw: return []
+    out = []
+    for i, c in enumerate(raw.split(_SEP)):
+        c = c.strip()
+        if not c: continue
+        if c.startswith(_PFX):
+            parts = c[len(_PFX):].strip().split(" | ", 2)
+            ts = parts[0] if parts else ""; auth = parts[1] if len(parts)>1 else "Staff"
+            txt = parts[2] if len(parts)>2 else c
+        else:
+            ts = ""; auth = "Staff"; txt = c
+        out.append({"id": f"note-{i}", "content": txt, "author": auth, "created_at": ts})
+    return list(reversed(out))
+
+@router.post("/{lead_id}/notes", status_code=201)
+def create_note(lead_id: int, body: NoteIn, db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant), _: dict = Depends(_any_agent_role)):
+    lead = get_lead(db, lead_id=lead_id, tenant_id=tenant_id)
+    now = _dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    entry = f"{_PFX} {now} | {body.author} | {body.content}"
+    lead.notes = f"{(lead.notes or '').strip()}{_SEP}{entry}".strip()
+    lead.updated_at = _dt.now(_tz.utc)
+    db.commit(); db.refresh(lead)
+    distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+    return _parse(lead.notes)
+
+@router.get("/{lead_id}/activities")
+def list_activities(lead_id: int, db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant), _: dict = Depends(_any_agent_role)):
+    lead = get_lead(db, lead_id=lead_id, tenant_id=tenant_id)
+    acts = []
+    def _a(t, title, desc, ts):
+        if ts: acts.append({"id": f"{t}-{lead_id}", "type": t, "title": title,
+            "description": desc, "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(ts,"strftime") else str(ts)})
+    _a("created", "Lead created", f"via {lead.source}", lead.created_at)
+    _a("contacted", "First contact", "Marked CONTACTED", lead.contacted_at)
+    _a("won", "Lead won", "Converted", lead.won_at)
+    _a("lost", "Lead lost", "Marked LOST", lead.lost_at)
+    for n in _parse(lead.notes):
+        if n["created_at"]:
+            acts.append({"id": f"note-{n['id']}", "type": "note_added",
+                "title": f"Note by {n['author']}", "description": n["content"][:120],
+                "timestamp": n["created_at"]})
+    return sorted(acts, key=lambda x: x["timestamp"], reverse=True)
