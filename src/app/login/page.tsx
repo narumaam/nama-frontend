@@ -369,8 +369,8 @@ function LoginPageInner() {
 
             <p className="mt-8 text-center text-[11px] text-slate-400 font-medium">
               By signing in you agree to NAMA's{' '}
-              <a href="#" className="underline hover:text-slate-600">Terms</a> &{' '}
-              <a href="#" className="underline hover:text-slate-600">Privacy Policy</a>
+              <Link href="/terms" className="underline hover:text-slate-600">Terms</Link> &{' '}
+              <Link href="/privacy" className="underline hover:text-slate-600">Privacy Policy</Link>
             </p>
 
           </div>

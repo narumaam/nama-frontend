@@ -20,6 +20,8 @@ import os
 import time
 import logging
 import re
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -47,6 +49,16 @@ configure_logging(
     level=os.getenv("LOG_LEVEL", "INFO"),
     json_output=os.getenv("LOG_FORMAT", "json") == "json"
 )
+
+# ── Initialize Sentry ──────────────────────────────────────────────────────────
+sentry_dsn = os.getenv("SENTRY_DSN")
+if sentry_dsn:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        integrations=[FastApiIntegration()],
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 # ── DB Init ────────────────────────────────────────────────────────────────────
 # Import all models so Base.metadata includes their tables.

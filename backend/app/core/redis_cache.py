@@ -1,94 +1,80 @@
 """
-Redis-backed distributed cache. Falls back gracefully to in-process cache
-if Redis is unavailable (dev without Redis, test environments).
+Redis-backed distributed cache using Upstash (HTTP-based).
+Falls back gracefully to in-process cache only on transient errors.
+Refuses to start if UPSTASH credentials are missing.
 """
 import json
 import os
 import logging
 from typing import Any, Optional
-import redis
+from upstash_redis import Redis
 from app.core.cache import TTLCache  # in-process fallback
 
 log = logging.getLogger(__name__)
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# Retrieve credentials with loud failure at import/startup
+URL = os.environ.get("UPSTASH_REDIS_REST_URL")
+TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+
+if not URL or not TOKEN:
+    log.error("CRITICAL: UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is not set.")
+    # Fail loud at startup
+    raise RuntimeError("Redis credentials (Upstash) are not configured. Refusing to start.")
 
 
 class RedisCache:
     def __init__(self):
-        self._redis: Optional[redis.Redis] = None
+        # Initialise Upstash Redis (connectionless HTTP client)
+        self._redis = Redis(url=URL, token=TOKEN)
         self._fallback = TTLCache()
-        self._available = False
-        self._try_connect()
-
-    def _try_connect(self):
-        # 1. Try real Redis first
-        try:
-            r = redis.from_url(
-                REDIS_URL,
-                socket_connect_timeout=1,
-                socket_timeout=1,
-                decode_responses=True,
-            )
-            r.ping()
-            self._redis = r
-            self._available = True
-            log.info("Redis cache: connected at %s", REDIS_URL)
-            return
-        except Exception as e:
-            log.warning("Redis unavailable (%s) — trying fakeredis", e)
-
-        # 2. Fall back to fakeredis (in-process, no external dependency)
-        try:
-            import fakeredis
-            self._redis = fakeredis.FakeRedis(decode_responses=True)
-            self._available = True
-            log.info("Redis cache: using fakeredis (in-process, shared within worker)")
-        except ImportError:
-            log.warning("fakeredis not installed — using TTLCache fallback")
-            self._available = False
+        self._available = True
+        log.info("Redis cache: initialised Upstash client at %s", URL)
 
     def get(self, key: str) -> Optional[Any]:
-        if self._available and self._redis:
-            try:
-                val = self._redis.get(key)
-                return json.loads(val) if val else None
-            except Exception:
-                self._available = False
-        return self._fallback.get(key)
+        if not self._available:
+            return self._fallback.get(key)
+            
+        try:
+            val = self._redis.get(key)
+            return json.loads(val) if val else None
+        except Exception as e:
+            log.warning("Upstash Redis get error (%s) — using fallback", e)
+            return self._fallback.get(key)
 
     def set(self, key: str, value: Any, ttl_seconds: float = 30):
-        if self._available and self._redis:
-            try:
-                self._redis.setex(key, int(ttl_seconds), json.dumps(value, default=str))
-                return
-            except Exception:
-                self._available = False
-        self._fallback.set(key, value, ttl_seconds)
+        if not self._available:
+            self._fallback.set(key, value, ttl_seconds)
+            return
+
+        try:
+            # upstash-redis set(key, value, ex=seconds)
+            self._redis.set(key, json.dumps(value, default=str), ex=int(ttl_seconds))
+        except Exception as e:
+            log.warning("Upstash Redis set error (%s) — using fallback", e)
+            self._fallback.set(key, value, ttl_seconds)
 
     def delete(self, key: str):
-        if self._available and self._redis:
-            try:
-                self._redis.delete(key)
-            except Exception:
-                pass
-        self._fallback.invalidate_tenant(0)  # best effort
+        try:
+            self._redis.delete(key)
+        except Exception as e:
+            log.debug("Upstash Redis delete error (%s)", e)
+        self._fallback.invalidate_tenant(0)
 
     def invalidate_pattern(self, pattern: str):
-        if self._available and self._redis:
-            try:
-                keys = self._redis.keys(pattern)
-                if keys:
-                    self._redis.delete(*keys)
-            except Exception:
-                pass
+        try:
+            keys = self._redis.keys(pattern)
+            if keys:
+                self._redis.delete(*keys)
+        except Exception as e:
+            log.debug("Upstash Redis keys/delete error (%s)", e)
 
     def stats(self) -> dict:
         return {
-            "backend": "redis" if self._available else "in_process",
-            "redis_url": REDIS_URL if self._available else None,
+            "backend": "upstash",
+            "redis_url": URL,
             **self._fallback.stats(),
         }
 
 
-# Singleton
+# Singleton instance
 distributed_cache = RedisCache()

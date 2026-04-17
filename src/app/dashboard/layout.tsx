@@ -46,7 +46,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Detect demo mode
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsDemoMode(localStorage.getItem('nama_demo_mode') === '1');
+      const isLocal = localStorage.getItem('nama_demo_mode') === '1';
+      const isCookie = document.cookie.split(';').some((item) => item.trim().startsWith('nama_demo=1'));
+      
+      if (isCookie && !isLocal) {
+        localStorage.setItem('nama_demo_mode', '1');
+      }
+      setIsDemoMode(isLocal || isCookie);
     }
   }, []);
 
@@ -79,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Comms',        href: '/dashboard/comms',        icon: MessageSquare },
     { name: 'Intentra',     href: '/dashboard/intentra',     icon: Radar, badge: 'Live' },
     { name: 'Documents',    href: '/dashboard/documents',    icon: FolderOpen },
-    { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard },
+    { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard, badge: 'Preview' },
     { name: 'Content',      href: '/dashboard/content',      icon: FileText },
     { name: 'Automations',  href: '/dashboard/automations',  icon: GitBranch },
     { name: 'Reports',      href: '/dashboard/reports',      icon: BarChart2 },

@@ -23,7 +23,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+# Use NAMA_JWT_SECRET as the primary secret (syncs with Vercel middleware)
+SECRET_KEY: str = os.getenv("NAMA_JWT_SECRET") or os.getenv("SECRET_KEY", "")
 REFRESH_SECRET_KEY: str = os.getenv("REFRESH_SECRET_KEY", "")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15

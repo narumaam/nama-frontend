@@ -75,17 +75,6 @@ const STATIC_ISSUES: Omit<AuditCheck, 'status' | 'latencyMs'>[] = [
     openSourceSolution: 'jose (JOSE JWT library) — edge-compatible',
   },
   {
-    id: 'sec-003',
-    agent: 'SECURITY',
-    title: 'NAMA_API_KEY: verify env var is set in Vercel',
-    description: 'Intelligence API falls back to dev key if NAMA_API_KEY is not set in production.',
-    severity: 'high',
-    detail: 'Set NAMA_API_KEY in Vercel dashboard: Settings → Environment Variables.',
-    fix: 'Vercel dashboard → Settings → Environment Variables → Add NAMA_API_KEY',
-    costImpact: 'zero',
-    openSourceSolution: 'N/A — infrastructure config',
-  },
-  {
     id: 'ai-001',
     agent: 'AI',
     title: 'Copilot: simulated streaming (setInterval)',
@@ -273,6 +262,28 @@ const LIVE_CHECKS: LiveCheck[] = [
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Unknown'
         return { status: 'fail', detail: `Railway unreachable — ${msg}. Check Railway dashboard.` }
+      }
+    },
+  },
+  {
+    id: 'sec-003',
+    agent: 'SECURITY',
+    title: 'NAMA_API_KEY: production hardening',
+    description: 'Verifies NAMA_API_KEY is present and dev fallback is disabled.',
+    severity: 'high',
+    costImpact: 'zero',
+    run: async () => {
+      const t0 = Date.now()
+      try {
+        const res = await fetch('/api/v1/intelligence/sync')
+        const ms = Date.now() - t0
+        // Our hardened api-auth.ts returns 401 if key is valid (but not provided)
+        // or 503 if the environment variable is missing entirely.
+        if (res.status === 401) return { status: 'pass', detail: 'NAMA_API_KEY active & dev fallback removed ✓', latencyMs: ms }
+        if (res.status === 503) return { status: 'fail', detail: 'NAMA_API_KEY missing or too short. All intelligence calls rejected.' }
+        return { status: 'warn', detail: `Unexpected status ${res.status}` }
+      } catch {
+        return { status: 'fail', detail: 'Endpoint not reachable' }
       }
     },
   },

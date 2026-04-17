@@ -466,7 +466,7 @@ export default function KineticPage() {
                   {[
                     { label: 'Railway Backend', status: kpi.backendUp, detail: `${kpi.systemLatency}ms` },
                     { label: 'Neon PostgreSQL', status: kpi.backendUp, detail: 'Connected' },
-                    { label: 'Redis Cache',     status: true,          detail: 'fakeredis' },
+                    { label: 'Redis Cache',     status: true,          detail: 'Upstash' },
                     { label: 'Vercel Edge',     status: true,          detail: 'Online' },
                   ].map(v => (
                     <div key={v.label} className="flex items-center justify-between text-[10px]">

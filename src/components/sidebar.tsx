@@ -21,7 +21,7 @@ const menuItems = [
   { icon: Calendar, label: "Bookings", href: "/bookings" },
   { icon: Package, label: "Group Tours", href: "/group-tours" },
   { icon: FileText, label: "Visa/Passport", href: "/visa-passport" },
-  { icon: CreditCard, label: "Finance", href: "/finance" },
+  { icon: CreditCard, label: "Finance", href: "/dashboard/finance", badge: "Preview" },
   { icon: Building2, label: "Vendors", href: "/vendors" },
 ];
 
@@ -54,7 +54,12 @@ export function Sidebar() {
                 )}
               >
                 <item.icon className="w-5 h-5" />
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {'badge' in item && item.badge && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -480,9 +480,9 @@ export default function RegisterPage() {
                 </div>
                 <span className="text-xs text-slate-500 font-medium leading-relaxed">
                   I agree to NAMA's{' '}
-                  <a href="/terms" className="text-[#14B8A6] font-bold hover:underline">Terms of Service</a>
+                  <Link href="/terms" className="text-[#14B8A6] font-bold hover:underline">Terms of Service</Link>
                   {' '}and{' '}
-                  <a href="/terms#privacy" className="text-[#14B8A6] font-bold hover:underline">Privacy Policy</a>.
+                  <Link href="/privacy" className="text-[#14B8A6] font-bold hover:underline">Privacy Policy</Link>.
                   Your data is encrypted at rest and in transit.
                 </span>
               </label>

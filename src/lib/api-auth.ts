@@ -6,7 +6,7 @@
  * 1. requireApiKey(request)
  *    For machine-to-machine endpoints (/api/v1/intelligence/*)
  *    Checks: Authorization: Bearer <key>  OR  x-api-key: <key>
- *    Key sourced from NAMA_API_KEY env var (fallback: "nama_dev_key" in dev only)
+ *    Key sourced from NAMA_API_KEY env var (NO FALLBACK in production)
  *
  * 2. requireSession(request)
  *    For browser-initiated endpoints (/api/v1/context/*)
@@ -18,22 +18,30 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // ─── API Key auth (machine-to-machine) ───────────────────────────────────────
 
-const DEV_FALLBACK_KEY = 'nama_dev_key_2025';
-
+/**
+ * Returns the expected API key from environment variables.
+ * CRITICAL: Dev fallback has been removed for security. 
+ * If NAMA_API_KEY is missing, all requests will be rejected.
+ */
 function getExpectedApiKey(): string {
   const envKey = process.env.NAMA_API_KEY;
-  if (envKey && envKey.length > 12) return envKey;
-  // Only allow fallback in non-production
-  if (process.env.NODE_ENV !== 'production') return DEV_FALLBACK_KEY;
-  return ''; // production with no key set → all requests rejected
+  
+  if (!envKey || envKey.length < 16) {
+    // We used to have a fallback here, but it's now removed.
+    // In production and dev, we require a real key for machine-to-machine calls.
+    return '';
+  }
+  
+  return envKey;
 }
 
 export function requireApiKey(request: NextRequest): NextResponse | null {
   const expectedKey = getExpectedApiKey();
 
   if (!expectedKey) {
+    console.error('CRITICAL: NAMA_API_KEY is not set or too short. Rejecting all intelligence API calls.');
     return NextResponse.json(
-      { success: false, error: 'Service temporarily unavailable' },
+      { success: false, error: 'Service temporarily unavailable (Authentication misconfigured)' },
       { status: 503 }
     );
   }

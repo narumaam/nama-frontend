@@ -244,11 +244,12 @@ async def call_agent_with_controls(
     # ── 4. Claude API call ────────────────────────────────────────────────
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        # Dev mode: return stub instead of crashing
+        # In production and dev, we require a real key. STUB fallback removed.
+        log.error("CRITICAL: ANTHROPIC_API_KEY is not set.")
         return {
-            "content": f"[DEV STUB — set ANTHROPIC_API_KEY] Prompt received for {agent_name}.",
+            "content": "AI service is misconfigured (missing API key). Please contact the administrator.",
             "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0,
-            "from_fallback": True, "reason": "no_api_key",
+            "from_fallback": True, "reason": "misconfigured_no_api_key",
         }
 
     import anthropic
