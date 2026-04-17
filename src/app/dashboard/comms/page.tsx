@@ -295,12 +295,66 @@ export default function CommsPage() {
     if (!selectedLead) { setError("Please select a lead first"); return; }
     setLoading(true);
     setError(null);
+
+    const ctx = context === "Custom" ? "custom" : context.toLowerCase().replace(/ /g, "_");
+    const dest = selectedLead.destination || "your destination";
+    const name = selectedLead.full_name || `Lead #${selectedLead.id}`;
+
+    // Try real SSE streaming endpoint first
+    try {
+      const params = new URLSearchParams({
+        lead_name: name,
+        destination: dest,
+        context: ctx,
+        tone: tone.toLowerCase(),
+        channel: "whatsapp",
+        custom_context: context === "Custom" ? customContext : "",
+      });
+
+      const res = await fetch(`/api/v1/comms/drafts/stream?${params}`, {
+        method: "POST",
+        headers: { "Accept": "text/event-stream" },
+      });
+
+      if (res.ok && res.body) {
+        let waText = "";
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        // Show streaming panel immediately
+        setDrafted({ whatsapp: "", email: "" });
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "delta") {
+                waText += data.content;
+                setDrafted({ whatsapp: waText, email: waText });
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+
+        setDraftHistory((h) => [
+          { context: ctx, lead: name, draft: { whatsapp: waText, email: waText }, ts: "Just now" },
+          ...h.slice(0, 9),
+        ]);
+        setLoading(false);
+        return;
+      }
+    } catch { /* fallback to legacy API below */ }
+
+    // Legacy fallback
     try {
       const effectiveContext = context === "Custom" ? customContext : `${context} (tone: ${tone})`;
       const result = await commsApi.draft({ context: effectiveContext, lead_id: selectedLead.id });
       setDrafted(result);
       setDraftHistory((h) => [
-        { context: context === "Custom" ? customContext : context, lead: selectedLead.full_name || `Lead #${selectedLead.id}`, draft: result, ts: "Just now" },
+        { context: context === "Custom" ? customContext : context, lead: name, draft: result, ts: "Just now" },
         ...h.slice(0, 9),
       ]);
     } catch (e: any) {

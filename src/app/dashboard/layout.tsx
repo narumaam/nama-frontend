@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
-  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck,
+  Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -93,6 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Settings',     href: '/dashboard/settings',     icon: Settings },
     { name: 'System Status',href: '/dashboard/status',       icon: Activity },
     { name: 'Audit Agent', href: '/dashboard/audit',         icon: ShieldCheck },
+    { name: 'Investor',    href: '/dashboard/investor',      icon: TrendingUp, badge: 'R0' },
   ];
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (

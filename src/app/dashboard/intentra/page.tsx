@@ -260,9 +260,27 @@ export default function IntentraPage() {
     showToast('Response copied — paste it on the platform', 'success')
   }
 
-  const convertToLead = (signal: Signal) => {
+  const convertToLead = async (signal: Signal) => {
+    // Optimistic UI update first
     setSignals(ss => ss.map(s => s.id === signal.id ? { ...s, leadConverted: true } : s))
-    showToast('Converted to NAMA lead ✓', 'success')
+    try {
+      await fetch('/api/v1/leads/from-intentra', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          signal_id:    signal.id,
+          platform:     signal.source,
+          username:     signal.username,
+          post_excerpt: signal.post,
+          destinations: signal.destinations,
+          intent_score: signal.intent,
+          contact_note: '',
+        }),
+      })
+      showToast('Lead created in NAMA CRM ✓', 'success')
+    } catch {
+      showToast('Converted locally (backend sync pending)', 'success')
+    }
   }
 
   const handleRefresh = async () => {

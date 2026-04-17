@@ -248,3 +248,75 @@ def list_activities(
 
     activities.sort(key=lambda a: a.timestamp or "", reverse=True)
     return activities
+
+
+# ── P3-5: Intentra signal → Lead conversion ────────────────────────────────────
+from pydantic import BaseModel as _BM
+from app.models.leads import Lead as _Lead  # type: ignore
+from app.models.leads import LeadSource, LeadStatus  # type: ignore
+
+
+class IntentSignalIn(_BM):
+    """Payload from Intentra UI when an agent clicks '+ Lead' on a signal."""
+    signal_id:         int
+    platform:          str          # REDDIT | TWITTER | QUORA | etc.
+    username:          str
+    post_excerpt:      str
+    destinations:      list[str]    = []
+    intent_score:      int          = 50   # 0-100
+    contact_note:      str          = ""
+
+
+@router.post(
+    "/from-intentra",
+    summary="P3-5: Convert an Intentra signal into a Lead",
+    status_code=201,
+)
+def create_lead_from_intentra(
+    body:      IntentSignalIn,
+    tenant_id: int           = Depends(require_tenant),
+    claims:    dict          = Depends(get_token_claims),
+    db:        Session       = Depends(get_db),
+):
+    """
+    P3-5 — Intentra '+ Lead' action.
+    Creates a lead from a social-signal with the source set to INTENTRA
+    and a pre-filled note explaining the signal origin.
+    """
+    dest = ", ".join(body.destinations) or "Unknown"
+    note = (
+        f"[Intentra Signal] Platform: {body.platform} · User: @{body.username}\n"
+        f"Post excerpt: {body.post_excerpt[:300]}\n"
+        f"Intent score: {body.intent_score}/100\n"
+        f"Agent note: {body.contact_note}"
+    )
+
+    lead = _Lead(
+        tenant_id=tenant_id,
+        sender_id=f"intentra:{body.platform.lower()}:{body.username}",
+        source="INTENTRA",
+        status=LeadStatus.NEW.value if hasattr(LeadStatus, "NEW") else "new",
+        full_name=f"@{body.username}",
+        destination=dest,
+        raw_message=body.post_excerpt,
+        notes=note,
+        triage_confidence=body.intent_score / 100.0,
+    )
+
+    try:
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create lead: {exc}")
+
+    distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+
+    return {
+        "id": lead.id,
+        "status": "created",
+        "source": "INTENTRA",
+        "destination": dest,
+        "message": f"Lead created from @{body.username}'s {body.platform} signal",
+    }
