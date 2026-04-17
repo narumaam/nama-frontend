@@ -41,12 +41,12 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  // Next.js requires these in dev
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com",  // Next.js + Google OAuth GSI
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://*.unsplash.com https://*.railway.app",
-      "connect-src 'self' https://*.railway.app https://wa.me wss://*.vercel.app",
-      "frame-src 'self'",
+      "img-src 'self' data: blob: https://*.unsplash.com https://*.railway.app https://*.googleusercontent.com",
+      "connect-src 'self' https://*.railway.app https://wa.me wss://*.vercel.app https://accounts.google.com https://oauth2.googleapis.com",
+      "frame-src 'self' https://accounts.google.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
