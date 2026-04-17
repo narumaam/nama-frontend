@@ -12,6 +12,7 @@
  */
 
 import React, { useState } from 'react'
+import { GoogleLogin } from '@react-oauth/google'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -53,6 +54,8 @@ export default function RegisterPage() {
   const [loading,     setLoading]     = useState(false)
   const [success,     setSuccess]     = useState(false)
   const [focusPw,     setFocusPw]     = useState(false)
+  const [googleToken, setGoogleToken] = useState<string | null>(null)
+  const [googleEmail, setGoogleEmail] = useState('')
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }))
@@ -69,6 +72,38 @@ export default function RegisterPage() {
     if (form.password !== form.confirmPassword) return 'Passwords do not match'
     if (!form.agreed)                return 'Please accept the Terms & Privacy Policy to continue'
     return null
+  }
+
+  async function enterWithGoogle(idToken: string) {
+    if (!form.companyName.trim()) {
+      setError('Please enter your company name before continuing with Google.')
+      return
+    }
+    setError('')
+    setLoading(true)
+    const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://intuitive-blessing-production-30de.up.railway.app'
+    try {
+      const resp = await fetch(`${API}/api/v1/auth/google/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: idToken, tenant_name: form.companyName.trim() }),
+      })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({})) as { detail?: string }
+        throw new Error(err.detail ?? `Registration failed (${resp.status})`)
+      }
+      const session = await resp.json() as {
+        id: string; email: string; display_name: string; role: string; tenant_name: string
+      }
+      localStorage.setItem('nama_session_id', session.id)
+      localStorage.setItem('nama_session_email', session.email)
+      localStorage.setItem('nama_session_role', session.role)
+      localStorage.setItem('nama_session_tenant', session.tenant_name || form.companyName.trim())
+      setSuccess(true)
+      setTimeout(() => router.push('/dashboard'), 900)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed.')
+    } finally { setLoading(false) }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -354,6 +389,45 @@ export default function RegisterPage() {
                   )}
                 </div>
               </Field>
+
+              {/* Google Sign-In */}
+              <div className="mb-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 border-t border-slate-200" />
+                  <span className="text-xs text-slate-400 font-medium">Sign in faster with Google</span>
+                  <div className="flex-1 border-t border-slate-200" />
+                </div>
+                <GoogleLogin
+                  onSuccess={(cred) => {
+                    if (cred.credential) {
+                      setGoogleToken(cred.credential)
+                      try {
+                        const p = JSON.parse(atob(cred.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))
+                        if (p.name && !form.fullName) setForm(f => ({ ...f, fullName: p.name as string }))
+                        setGoogleEmail((p.email as string) ?? '')
+                      } catch {}
+                      setError('')
+                    }
+                  }}
+                  onError={() => setError('Google sign-in failed. Enter details below instead.')}
+                  theme="outline" text="continue_with" shape="rectangular" width="360"
+                />
+                {googleEmail && (
+                  <p className="mt-2 text-xs text-emerald-600 font-medium">
+                    ✓ Signed in as <strong>{googleEmail}</strong> — enter your company name below, then click Enter with Google.
+                  </p>
+                )}
+                {googleToken && (
+                  <button
+                    type="button"
+                    onClick={() => void enterWithGoogle(googleToken)}
+                    disabled={loading}
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-[#14B8A6] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#0ea5a0] transition-colors disabled:opacity-60"
+                  >
+                    {loading ? 'Creating workspace…' : 'Enter with Google →'}
+                  </button>
+                )}
+              </div>
 
               {/* Terms */}
               <label className="flex items-start gap-3 cursor-pointer">
