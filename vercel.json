@@ -5,6 +5,16 @@
   "framework": "nextjs",
   "rewrites": [
     {
+      "comment": "Local Next.js route handlers — must be listed BEFORE the Railway catch-all",
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
+    },
+    {
+      "source": "/api/v1/:path*",
+      "destination": "/api/v1/:path*"
+    },
+    {
+      "comment": "All other /api/* requests proxied to Railway FastAPI backend",
       "source": "/api/:path*",
       "destination": "https://intuitive-blessing-production-30de.up.railway.app/api/:path*"
     }
