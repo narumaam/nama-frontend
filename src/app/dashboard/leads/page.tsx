@@ -15,12 +15,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { leadsApi, queriesApi, Lead } from '@/lib/api'
+import EmptyState from '@/components/EmptyState'
 import {
   Search, AlertCircle, Loader, Plus, Sparkles, X, UserPlus,
   Phone, Mail, MessageSquare, Calendar, Clock, FileText,
   CheckCircle, ChevronRight, TrendingUp, Flame, Thermometer,
   Snowflake, Filter, BarChart3, StickyNote, Activity,
-  ArrowRight, Bell, Star, Tag,
+  ArrowRight, Bell, Star, Tag, Users,
 } from 'lucide-react'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -522,8 +523,13 @@ export default function LeadsPage() {
         {loading ? (
           <div className="flex justify-center py-12"><Loader size={28} className="animate-spin text-slate-300" /></div>
         ) : filteredLeads.length === 0 ? (
-          <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-            <p className="text-slate-400 font-medium">No leads match your filters</p>
+          <div className="bg-white rounded-2xl border border-slate-100">
+            <EmptyState
+              icon={Users}
+              title="No leads found"
+              description="No leads match your current filters. Try adjusting your search or stage filter."
+              compact
+            />
           </div>
         ) : (
           <div className="space-y-2">

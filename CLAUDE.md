@@ -42,10 +42,13 @@
 **Security Audit Batch (2026-04-18):**
 - Demo mode nav fix: demo now acts as R3_SALES_MANAGER (hides Investor, Audit Agent, System Status)
 - Page-level role guards added to /dashboard/investor (R0 only), /dashboard/audit (R0+R1), /dashboard/status (R0+R1)
+- Role guards added to /owner (R0 only) and /super-admin (R0+R1)
 - Settings ROLES + SEED_TEAM updated to canonical role IDs (R2_ORG_ADMIN, R3_SALES_MANAGER, R4_OPS_EXECUTIVE, R5_FINANCE_ADMIN)
 - Demo cookie hardened: sameSite changed from 'lax' to 'strict'
 - Hardcoded Railway URL removed from login.tsx and register.tsx fallbacks
 - Middleware: full JWT signature verification with jose (jwtVerify) — already in place
+- EmptyState wired to leads, bookings, clients pages
+- **Frontend proxy fix (src/lib/api.ts):** browser on production now always uses relative URLs → vercel.json proxies to Railway, eliminating CORS failures on /api/v1/leads, /api/v1/bookings, /api/v1/quotations
 
 ### 🅱️ Parked — V6: NAMA Voice
 **Recommended stack:** Coqui TTS + OpenVoice + Bark + OpenRouter
@@ -57,15 +60,12 @@
 
 ## Pending Actions (User Must Do)
 
-🟡 **ANTHROPIC_API_KEY in Railway** — needed for Copilot Live AI mode
+🟡 **ANTHROPIC_API_KEY in Railway** — needed for Copilot Live AI mode (revisit Tuesday)
 - Go to: Railway → `intuitive-blessing` service → Variables → add `ANTHROPIC_API_KEY`
 - Without this, Copilot runs in demo/simulation mode
 
-🟡 **nama-web Vercel project** — needs same env vars as nama-frontend
-- Both Vercel projects deploy the same GitHub repo but need the same env vars
-- `nama-web` is missing: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` = `463772221773-4496rcm416r76u26heqva3gq1anvifj5.apps.googleusercontent.com`
-- Add at: Vercel → nama-web → Settings → Environment Variables → redeploy
-- Also confirm: `NAMA_API_KEY`, `NEXT_PUBLIC_API_URL`, `NAMA_JWT_SECRET` match between both projects
+✅ **nama-web Vercel project env vars** — synced 2026-04-18
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NAMA_API_KEY`, `NEXT_PUBLIC_API_URL`, `NAMA_JWT_SECRET` (= Railway SECRET_KEY) all added
 
 ## Railway Crash Loop — Resolved 2026-04-18
 Root causes fixed (see RAILWAY_INCIDENT_REPORT.md for full details):
@@ -82,7 +82,7 @@ Root causes fixed (see RAILWAY_INCIDENT_REPORT.md for full details):
 - AI scoring (computeAIScore): client-side heuristics — move to Railway ML endpoint in V6
 - Smart Pricing: static PRICING_BENCHMARKS — connect to Intelligence Aggregate API in V6
 - No E2E tests (Playwright) — add before enterprise rollout
-- No Sentry error monitoring — add post-launch (free tier or self-hosted GlitchTip)
+- ✅ Sentry error monitoring — wired 2026-04-18, DSN in both Vercel projects
 - WhatsApp: wa.me deep links, not Business API (fine for beta)
 - PDF: browser print dialog, not server-side (fine for beta)
 

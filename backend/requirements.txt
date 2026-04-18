@@ -1,4 +1,4 @@
-# cache-bust: 1776492025
+# cache-bust: 1776492243
 # NAMA Backend — Production Requirements
 fastapi==0.115.0
 uvicorn[standard]==0.32.0

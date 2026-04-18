@@ -6,6 +6,7 @@ import {
   Briefcase, TrendingUp, Star, ChevronRight, Filter,
   MessageSquare, Eye, Clock, Award, Globe, Tag,
 } from 'lucide-react'
+import EmptyState from '@/components/EmptyState'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -343,10 +344,13 @@ export default function ClientsPage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="col-span-2 text-center py-16 text-slate-400">
-            <Users size={40} className="mx-auto mb-3 text-slate-200" />
-            <p className="font-bold">No clients found</p>
-            <p className="text-sm mt-1">Try clearing your search or filters</p>
+          <div className="col-span-2 bg-white rounded-2xl border border-slate-100">
+            <EmptyState
+              icon={Users}
+              title="No clients found"
+              description="Try clearing your search or travel type filter to see all clients."
+              compact
+            />
           </div>
         )}
       </div>

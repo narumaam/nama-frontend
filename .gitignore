@@ -7,3 +7,8 @@ node_modules/
 .pytest_cache/
 *.pyc
 tsconfig.tsbuildinfo
+
+# Playwright
+e2e/.auth/
+playwright-report/
+test-results/

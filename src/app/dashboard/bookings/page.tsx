@@ -22,6 +22,7 @@ import {
   Phone, Plane, Hotel, Car, Activity, LayoutGrid,
 } from "lucide-react";
 import { bookingsApi, Booking } from "@/lib/api";
+import EmptyState from "@/components/EmptyState";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const fmtINR = (n: number) => {
@@ -705,16 +706,15 @@ export default function BookingsPage() {
           {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center">
-          <Briefcase size={32} className="text-slate-300 mx-auto mb-4" />
-          <h3 className="font-extrabold text-slate-600 text-lg mb-2">
-            {search || statusFilter !== "ALL" ? "No matching bookings" : "No bookings yet"}
-          </h3>
-          <p className="text-slate-400 text-sm max-w-xs mx-auto">
-            {search || statusFilter !== "ALL"
+        <div className="bg-white rounded-3xl border border-slate-100">
+          <EmptyState
+            icon={Briefcase}
+            title={search || statusFilter !== "ALL" ? "No matching bookings" : "No bookings yet"}
+            description={search || statusFilter !== "ALL"
               ? "Try adjusting your search or status filter."
               : "Convert an itinerary to a booking from the Itineraries page."}
-          </p>
+            compact
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
