@@ -37,3 +37,5 @@ sentry-sdk[fastapi]==2.1.1
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 python-dateutil==2.9.0
+stripe==7.0.0
+razorpay==1.4.2

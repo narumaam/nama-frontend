@@ -21,4 +21,4 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app --config gunicorn.conf.py"]
+CMD ["sh", "-c", "alembic upgrade heads && gunicorn app.main:app --config gunicorn.conf.py"]
