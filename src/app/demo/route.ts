@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   response.cookies.set('nama_demo', '1', {
     path: '/',
     maxAge: 3600,
-    sameSite: 'lax',
+    sameSite: 'strict',
     httpOnly: false, // Accessible by client-side code if needed
   })
   

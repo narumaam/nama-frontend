@@ -8,6 +8,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 import {
   Building2, Users, Activity, TrendingUp, TrendingDown,
@@ -124,6 +126,17 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 export default function OwnerDashboard() {
+  const auth = useAuth()
+  const router = useRouter()
+  const isDemo = typeof document !== 'undefined' &&
+    document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
+  const isAuthorized = !isDemo && auth.user?.role === 'R0_NAMA_OWNER'
+  useEffect(() => {
+    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
+  }, [auth.isLoading, isAuthorized, router])
+  if (auth.isLoading) return null
+  if (!isAuthorized) return null
+
   const [stats,       setStats]       = useState<PlatformStats | null>(null)
   const [tenants,     setTenants]     = useState<Tenant[]>([])
   const [loading,     setLoading]     = useState(true)

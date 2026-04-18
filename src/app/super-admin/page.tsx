@@ -8,6 +8,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 import {
   Building2, Users, Activity, Loader, AlertTriangle, Plus, RefreshCw,
@@ -66,6 +68,18 @@ const STATUS_STYLES: Record<string, string> = {
 const TYPE_OPTIONS = ['TRAVEL_COMPANY', 'CORPORATE', 'PLATFORM']
 
 export default function SuperAdminDashboard() {
+  const auth = useAuth()
+  const router = useRouter()
+  const ALLOWED = ['R0_NAMA_OWNER', 'R1_SUPER_ADMIN']
+  const isDemo = typeof document !== 'undefined' &&
+    document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
+  const isAuthorized = !isDemo && !!auth.user && ALLOWED.includes(auth.user.role)
+  useEffect(() => {
+    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
+  }, [auth.isLoading, isAuthorized, router])
+  if (auth.isLoading) return null
+  if (!isAuthorized) return null
+
   const [stats,       setStats]       = useState<PlatformStats | null>(null)
   const [tenants,     setTenants]     = useState<Tenant[]>([])
   const [loading,     setLoading]     = useState(true)

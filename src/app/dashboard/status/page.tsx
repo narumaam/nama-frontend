@@ -8,6 +8,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import {
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Zap,
   Server, Globe, Database, Shield, GitBranch, Clock,
@@ -104,6 +106,18 @@ function StatusBadge({ state }: { state: Pulse }) {
 
 // ── Main component ───────────────────────────────────────────────────────────
 export default function StatusPage() {
+  const auth = useAuth()
+  const router = useRouter()
+  const ALLOWED = ['R0_NAMA_OWNER', 'R1_SUPER_ADMIN']
+  const isDemo = typeof document !== 'undefined' &&
+    document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
+  const isAuthorized = !isDemo && !!auth.user && ALLOWED.includes(auth.user.role)
+  useEffect(() => {
+    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
+  }, [auth.isLoading, isAuthorized, router])
+  if (auth.isLoading) return null
+  if (!isAuthorized) return null
+
   const [backendPulse, setBackendPulse]       = useState<Pulse>('checking')
   const [healthData, setHealthData]           = useState<HealthData | null>(null)
   const [lastChecked, setLastChecked]         = useState<Date | null>(null)
