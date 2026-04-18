@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import ReactDOM from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Search, X, LayoutDashboard, Users, Map, Briefcase, Store, ArrowRight, Command } from 'lucide-react'
 
@@ -114,22 +115,27 @@ export default function GlobalSearch() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  const [mounted, setMounted] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   const results = buildResults(query)
 
-  // cmd+K / ctrl+K to open
+  // Track client mount for portal rendering
+  useEffect(() => { setMounted(true) }, [])
+
+  // cmd+K / ctrl+K to open — capture phase fires before child handlers
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
+        e.stopPropagation()
         setOpen(o => !o)
       }
       if (e.key === 'Escape') setOpen(false)
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('keydown', handler, true) // capture phase
+    return () => window.removeEventListener('keydown', handler, true)
   }, [])
 
   // Focus input when opened
@@ -175,9 +181,9 @@ export default function GlobalSearch() {
         </span>
       </button>
 
-      {/* Modal overlay */}
-      {open && (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] px-4">
+      {/* Modal — portalled to body to escape sticky header stacking context */}
+      {mounted && open && ReactDOM.createPortal((
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] px-4">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-[#0F172A]/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
@@ -251,7 +257,7 @@ export default function GlobalSearch() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </>
   )
 }

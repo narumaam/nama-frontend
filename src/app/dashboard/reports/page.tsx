@@ -246,6 +246,18 @@ function StatCard({ label, value, trend, sub, icon: Icon, color }: {
   );
 }
 
+// ── Per-range seed so each time window produces visually distinct charts ─────
+const RANGE_SEED: Record<Range, number> = { "7d": 42, "30d": 137, "90d": 251, "12mo": 389 };
+
+// ── Tab definitions (stable reference — outside component) ────────────────────
+const REPORT_TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: "revenue",      label: "Revenue",      icon: TrendingUp },
+  { id: "leads",        label: "Funnel",        icon: Filter },
+  { id: "agents",       label: "Agents",        icon: Users },
+  { id: "destinations", label: "Destinations",  icon: Map },
+  { id: "ai",           label: "AI Usage",      icon: Bot },
+];
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function ReportsPage() {
   const [range, setRange] = useState<Range>("30d");
@@ -269,7 +281,7 @@ export default function ReportsPage() {
   }, [range]);
 
   const days = RANGE_DAYS[range];
-  const series = useMemo(() => generateRevenueSeries(days), [days]);
+  const series = useMemo(() => generateRevenueSeries(days, RANGE_SEED[range]), [days, range]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Use live KPIs when available, fall back to generated series
   const totalRevenue  = liveKPIs?.gmv?.value  ?? series.reduce((s, d) => s + d.revenue, 0);
@@ -277,14 +289,6 @@ export default function ReportsPage() {
   const grossProfit   = totalRevenue - totalCost;
   const totalBookings = series.reduce((s, d) => s + d.bookings, 0);
   const margin        = totalRevenue > 0 ? Math.round((grossProfit / totalRevenue) * 100) : 0;
-
-  const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: "revenue",      label: "Revenue",      icon: TrendingUp },
-    { id: "leads",        label: "Funnel",        icon: Filter },
-    { id: "agents",       label: "Agents",        icon: Users },
-    { id: "destinations", label: "Destinations",  icon: Map },
-    { id: "ai",           label: "AI Usage",      icon: Bot },
-  ];
 
   return (
     <div className="space-y-8">
@@ -364,7 +368,7 @@ export default function ReportsPage() {
 
       {/* ── Tab Bar ─────────────────────────────────────────────────────────── */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto">
-        {TABS.map((t) => (
+        {REPORT_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
@@ -405,7 +409,7 @@ export default function ReportsPage() {
                 Export CSV
               </button>
             </div>
-            <AreaChart data={series} />
+            <AreaChart key={range} data={series} />
           </div>
 
           {/* Summary table */}

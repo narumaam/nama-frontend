@@ -357,8 +357,26 @@ export default function CommsPage() {
         { context: context === "Custom" ? customContext : context, lead: name, draft: result, ts: "Just now" },
         ...h.slice(0, 9),
       ]);
-    } catch (e: any) {
-      setError(e.message || "Failed to draft message");
+    } catch {
+      // Backend unreachable — build a seed draft consistent with other modules
+      const tplMatch = FOLLOW_UP_TEMPLATES.find(
+        t => t.label.toLowerCase().includes(context.toLowerCase()) ||
+             context.toLowerCase().includes(t.label.toLowerCase().split(' ')[0])
+      );
+      const firstName = name.split(' ')[0];
+      const agentName = 'NAMA Travel';
+      const waText = tplMatch
+        ? tplMatch.whatsapp(firstName, dest, agentName)
+        : 'Hi ' + firstName + '! Hope you are doing well. I wanted to follow up on your ' + dest + ' trip enquiry. I have been putting together some wonderful options. Could we connect for a quick call this week? — ' + agentName;
+      const emailText = tplMatch
+        ? tplMatch.email(firstName, dest, agentName)
+        : 'Subject: Your ' + dest + ' Trip — Options Ready!\n\nDear ' + firstName + ',\n\nThank you for your interest in ' + dest + '. I have curated a bespoke itinerary based on your preferences.\n\nWould you be available for a brief call?\n\nWarm regards,\n' + agentName;
+      const seedDraft = { whatsapp: waText, email: emailText };
+      setDrafted(seedDraft);
+      setDraftHistory((h) => [
+        { context: context === "Custom" ? customContext : context, lead: name, draft: seedDraft, ts: "Just now" },
+        ...h.slice(0, 9),
+      ]);
     } finally {
       setLoading(false);
     }
