@@ -246,6 +246,9 @@ export default function LeadsPage() {
     currency: 'INR', travel_style: 'Luxury', source: 'MANUAL',
   })
 
+  // LLM AI Scores (keyed by lead id)
+  const [llmScores, setLlmScores]         = useState<Record<number, AIScore & { loading: boolean; provider: string }>>({})
+
   // Toast
   const [toast, setToast]                 = useState<string | null>(null)
 
@@ -253,6 +256,60 @@ export default function LeadsPage() {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }
+
+  // ── LLM Scoring ─────────────────────────────────────────────────────────────
+  const fetchLLMScore = useCallback(async (lead: Lead) => {
+    if (llmScores[lead.id]?.provider && !llmScores[lead.id]?.loading) return // already scored
+    setLlmScores(prev => ({ ...prev, [lead.id]: { ...computeAIScore(lead), loading: true, provider: '' } }))
+    try {
+      const res = await fetch('/api/v1/copilot/score-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: lead.id,
+          full_name: lead.full_name,
+          destination: lead.destination,
+          duration_days: lead.duration_days,
+          travelers_count: lead.travelers_count,
+          budget_per_person: lead.budget_per_person,
+          currency: lead.currency,
+          travel_style: lead.travel_style,
+          status: lead.status,
+          source: lead.source,
+          priority: lead.priority,
+          triage_confidence: lead.triage_confidence,
+          email: lead.email,
+          phone: lead.phone,
+          created_at: lead.created_at,
+        }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      // Map backend response → AIScore shape
+      const scored: AIScore & { loading: boolean; provider: string } = {
+        conversionPct: data.probability,
+        temp: data.temp as LeadTemp,
+        signals: data.signals.map((s: { label: string; value: string; positive: boolean; weight: number }) => ({
+          label: s.label, value: s.value, positive: s.positive, weight: s.weight,
+        })),
+        qualification: data.reasoning,
+        recommendation: `${data.temp === 'HOT' ? '🔥' : data.temp === 'WARM' ? '☀️' : '❄️'} ${data.urgency}. ${data.next_action}`,
+        risks: data.risks,
+        strengths: data.strengths,
+        nextBestAction: data.next_action,
+        loading: false,
+        provider: data.provider,
+      }
+      setLlmScores(prev => ({ ...prev, [lead.id]: scored }))
+    } catch {
+      // Fallback to heuristic silently
+      setLlmScores(prev => ({
+        ...prev,
+        [lead.id]: { ...computeAIScore(lead), loading: false, provider: 'heuristic' },
+      }))
+    }
+  }, [llmScores])
 
   // ── Data ────────────────────────────────────────────────────────────────────
   const fetchLeads = useCallback(async () => {
@@ -641,7 +698,7 @@ export default function LeadsPage() {
               {/* Tabs */}
               <div className="flex gap-1 mt-4 bg-slate-100 p-1 rounded-xl">
                 {(['overview','notes','activity','ai'] as TabType[]).map(t => (
-                  <button key={t} onClick={() => setActiveTab(t)}
+                  <button key={t} onClick={() => { setActiveTab(t); if (t === 'ai' && selectedLead) fetchLLMScore(selectedLead) }}
                     className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all capitalize ${activeTab === t ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}>
                     {t === 'notes' ? `Notes (${noteLog.length})` : t === 'activity' ? `Activity (${activityLog.length})` : t === 'ai' ? '✦ AI Score' : 'Overview'}
                   </button>
@@ -820,12 +877,37 @@ export default function LeadsPage() {
 
               {/* ── AI SCORE TAB ── */}
               {activeTab === 'ai' && (() => {
-                const score = computeAIScore(selectedLead)
+                const llm = llmScores[selectedLead.id]
+                const score = llm && !llm.loading ? llm : computeAIScore(selectedLead)
+                const isLoading = llm?.loading ?? false
+                const provider = llm?.provider ?? ''
                 const ringColor = score.temp === 'HOT' ? '#ef4444' : score.temp === 'WARM' ? '#f59e0b' : '#94a3b8'
                 const circumference = 2 * Math.PI * 36
                 const dashOffset = circumference * (1 - score.conversionPct / 100)
                 return (
                   <div className="space-y-5">
+                    {/* Provider badge / loading indicator */}
+                    <div className="flex items-center justify-between">
+                      {isLoading ? (
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                          <Loader size={11} className="animate-spin" />
+                          <span>Running LLM analysis…</span>
+                        </div>
+                      ) : provider && provider !== 'heuristic' ? (
+                        <div className="flex items-center gap-1.5 text-[10px] text-[#14B8A6] font-semibold">
+                          <Sparkles size={10} />
+                          <span>AI-powered · {provider === 'openrouter' ? 'Llama 3.3 70B' : 'Claude Haiku'}</span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-400">Heuristic scoring</div>
+                      )}
+                      {!isLoading && !provider && (
+                        <button onClick={() => fetchLLMScore(selectedLead)}
+                          className="text-[10px] text-[#14B8A6] font-semibold flex items-center gap-1 hover:opacity-80">
+                          <Sparkles size={10} /> Analyze with AI
+                        </button>
+                      )}
+                    </div>
                     {/* Conversion Probability Ring */}
                     <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-5 text-center">
                       <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Conversion Probability</div>

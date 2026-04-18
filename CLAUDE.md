@@ -2,7 +2,7 @@
 
 ## Current Status: ✅ LIVE · Backend + Frontend both operational
 
-**Last major commit:** security hardening batch — role guards, demo nav fix, role name consistency
+**Last major commit:** Playwright E2E suite — 27/27 passing (auth, leads, bookings, quotations)
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
@@ -77,11 +77,11 @@ Root causes fixed (see RAILWAY_INCIDENT_REPORT.md for full details):
 ---
 
 ## Remaining Known Issues (Non-blocking)
-- Rate limiting: in-memory only — not shared across Vercel instances (V6: Upstash Redis)
-- Copilot: real SSE wired to Railway backend — needs ANTHROPIC_API_KEY to activate
-- AI scoring (computeAIScore): client-side heuristics — move to Railway ML endpoint in V6
+- ✅ Rate limiting: Upstash Redis — shared across all Vercel instances (2026-04-18)
+- ✅ Copilot: OpenRouter (Llama 3.3 70B free) wired — live as of 2026-04-18
+- ✅ AI Lead Scoring v2: POST /api/v1/copilot/score-lead (LLM via OpenRouter, heuristic fallback) — 2026-04-18
 - Smart Pricing: static PRICING_BENCHMARKS — connect to Intelligence Aggregate API in V6
-- No E2E tests (Playwright) — add before enterprise rollout
+- ✅ E2E tests (Playwright) — 27/27 passing, committed 2026-04-18
 - ✅ Sentry error monitoring — wired 2026-04-18, DSN in both Vercel projects
 - WhatsApp: wa.me deep links, not Business API (fine for beta)
 - PDF: browser print dialog, not server-side (fine for beta)
