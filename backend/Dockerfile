@@ -1,6 +1,6 @@
 # NAMA Backend — Railway production image
-# Build context = backend/ (rootDirectory=backend in Railway)
-# Trigger rebuild: 2026-04-16
+# Build context = repo root (Railway uses repo root, Dockerfile at /backend/Dockerfile)
+# Trigger rebuild: 2026-04-18
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -11,12 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
-COPY requirements.txt .
+# Note: build context is repo root, backend/ files are at backend/ prefix
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy all backend source code
-COPY . .
+# Copy backend source code
+COPY backend/ .
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -25,7 +26,4 @@ ENV PYTHONUNBUFFERED=1 \
 EXPOSE 8080
 
 # Run Alembic migrations then start Gunicorn
-# entrypoint.sh: waits for PG, runs alembic upgrade head, then starts gunicorn
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app --config gunicorn.conf.py"]
