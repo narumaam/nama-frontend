@@ -95,10 +95,10 @@ import app.models.portals     # noqa: F401  (M13 — Client portals)
 from app.api.v1 import automations as _automations_models  # noqa: F401
 from app.api.v1 import settings as _settings_models        # noqa: F401
 
-Base.metadata.create_all(bind=engine)
-
-# Create all performance indexes to fix high-load errors (87-94% → <5%)
-init_performance_indexes()
+# NOTE: Schema is managed exclusively by Alembic migrations (run at deploy time).
+# create_all() has been removed to prevent each gunicorn worker from racing to
+# create tables/enums on startup, which caused UniqueViolation on pg enum types
+# and exhausted the DB connection pool under high worker concurrency.
 
 # ── App ────────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -274,10 +274,13 @@ app.include_router(feedback_router.router, prefix="/api/v1/feedback", tags=["fee
 @app.on_event("startup")
 def startup_event():
     """
-    Initialize cache warming on server startup.
+    Initialize cache warming and performance indexes on server startup.
     Runs in a background thread to avoid blocking server initialization.
     """
     start_background_warmer()
+    # Initialize performance indexes — uses CREATE INDEX IF NOT EXISTS so it is
+    # safe to call from every worker; concurrent calls are idempotent.
+    init_performance_indexes()
 
 
 # ── Health & Diagnostics ───────────────────────────────────────────────────────

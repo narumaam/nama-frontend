@@ -5,7 +5,7 @@ nixPkgs = ["python310", "gcc", "postgresql"]
 cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
 
 [start]
-cmd = "alembic upgrade head && gunicorn app.main:app --config gunicorn.conf.py"
+cmd = "alembic upgrade heads && gunicorn app.main:app --config gunicorn.conf.py"
 
 [variables]
 PYTHONPATH = "."

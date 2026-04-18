@@ -29,7 +29,7 @@ backlog = 2048
 # ── Workers ────────────────────────────────────────────────────────────────────
 # Use uvicorn worker class for ASGI (async support)
 worker_class   = "uvicorn.workers.UvicornWorker"
-workers        = int(os.getenv("WEB_CONCURRENCY", (2 * multiprocessing.cpu_count()) + 1))
+workers        = int(os.getenv("WEB_CONCURRENCY", min((2 * multiprocessing.cpu_count()) + 1, 4)))
 worker_connections = 1000    # concurrent connections per worker
 max_requests   = 10_000      # restart worker after N requests (memory leak protection)
 max_requests_jitter = 500    # randomize restart to avoid thundering herd
