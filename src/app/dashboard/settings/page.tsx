@@ -419,8 +419,8 @@ export default function SettingsPage() {
                   <div className={`text-xs mb-4 ${plan.featured ? 'text-white/40' : 'text-slate-400'}`}>
                     {plan.price === 0 ? 'annual contract' : '/ month'}
                   </div>
-                  <div className={`text-xs font-bold px-2.5 py-1.5 rounded-lg mb-4 text-center ${plan.featured ? 'bg-white/10 text-[#14B8A6]' : badge.color}`}>
-                    {badge.label}
+                  <div className={`text-xs font-bold px-2.5 py-1.5 rounded-lg mb-4 text-center ${plan.featured ? 'bg-white/10 text-[#14B8A6]' : badge?.color ?? ''}`}>
+                    {badge?.label ?? ''}
                   </div>
                   <ul className="space-y-2 mb-6">
                     {plan.features.map((f) => (
@@ -742,7 +742,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-extrabold text-[#0F172A] text-lg">Team Members</h3>
-                <p className="text-xs text-slate-400 mt-0.5">{teamMembers.filter(m => m.status === 'active').length} active · {teamMembers.filter(m => m.status === 'invited').length} pending invite</p>
+                <p className="text-xs text-slate-400 mt-0.5">{(teamMembers ?? []).filter(m => m.status === 'active').length} active · {(teamMembers ?? []).filter(m => m.status === 'invited').length} pending invite</p>
               </div>
               <button onClick={() => setShowInvite(true)} className="flex items-center gap-2 bg-[#00236f] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all">
                 <UserPlus size={16} /> Invite Member
@@ -860,7 +860,7 @@ export default function SettingsPage() {
                     <Lock size={18} className={role.color} />
                     <h3 className={`font-extrabold ${role.color}`}>{role.label}</h3>
                   </div>
-                  <span className="text-xs text-slate-400">{teamMembers.filter(m => m.role === role.id).length} members</span>
+                  <span className="text-xs text-slate-400">{(teamMembers ?? []).filter(m => m.role === role.id).length} members</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {role.perms.map((p) => (
