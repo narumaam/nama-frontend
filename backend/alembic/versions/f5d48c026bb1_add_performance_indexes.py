@@ -34,13 +34,19 @@ def upgrade() -> None:
         if_not_exists=True
     )
 
-    # Query leads assigned to a specific agent
-    op.create_index(
-        'ix_leads_tenant_assigned_user',
-        'leads',
-        ['tenant_id', 'assigned_user_id'],
-        if_not_exists=True
-    )
+    # Query leads assigned to a specific agent (conditional — column may not exist yet)
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name='leads' AND column_name='assigned_user_id'
+            ) THEN
+                CREATE INDEX IF NOT EXISTS ix_leads_tenant_assigned_user ON leads (tenant_id, assigned_user_id);
+            END IF;
+        END
+        $$;
+    """)
 
     # List all leads sorted by recency (backup for unfiltered lists)
     op.create_index(
