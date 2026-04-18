@@ -13,11 +13,13 @@ export async function GET(request: Request) {
   const response = NextResponse.redirect(dashboardUrl)
   
   // Set the demo cookie (valid for 1 hour)
+  // sameSite: 'strict' prevents cross-site cookie submission
+  // httpOnly: false is intentional — client-side JS reads this to adjust UI
   response.cookies.set('nama_demo', '1', {
     path: '/',
     maxAge: 3600,
     sameSite: 'strict',
-    httpOnly: false, // Accessible by client-side code if needed
+    httpOnly: false,
   })
   
   return response

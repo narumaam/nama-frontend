@@ -1,6 +1,4 @@
-// @ts-nocheck
 'use client'
-export const dynamic = 'force-dynamic'
 
 import React, { useState, useEffect } from 'react'
 import {
@@ -13,7 +11,7 @@ import {
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface SubscriptionPlan {
   id: string
@@ -87,9 +85,11 @@ const PLANS: SubscriptionPlan[] = [
   },
 ]
 
-const BYOK_BADGE: Record<string, { label: string, color: string }> = {
-  'Y': { label: 'BYOK Enabled', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-  'N': { label: 'Managed AI Only', color: 'bg-slate-100 text-slate-500 border-slate-200' },
+const BYOK_BADGE: Record<string, { label: string; color: string }> = {
+  none:        { label: 'NAMA-hosted AI', color: 'bg-slate-100 text-slate-500' },
+  optional:    { label: 'BYOK optional', color: 'bg-teal-50 text-teal-700' },
+  recommended: { label: 'BYOK recommended', color: 'bg-green-50 text-green-700' },
+  required:    { label: 'BYOK required', color: 'bg-blue-50 text-blue-700' },
 }
 
 const PROVIDERS = [
@@ -99,16 +99,18 @@ const PROVIDERS = [
 ]
 
 const ROLES = [
-  { id: 'R3_AGENT', label: 'Agent', description: 'Can manage leads, quotations, bookings assigned to them', color: 'bg-blue-50 text-blue-700' },
-  { id: 'R2_MANAGER', label: 'Manager', description: 'Full access to all leads, bookings, reports; can invite agents', color: 'bg-purple-50 text-purple-700' },
+  { id: 'R3_SALES_MANAGER', label: 'Sales Manager', description: 'Can manage leads, quotations, bookings assigned to them', color: 'bg-blue-50 text-blue-700' },
+  { id: 'R4_OPS_EXECUTIVE', label: 'Ops Executive', description: 'Operations access — vendors, documents, bookings', color: 'bg-cyan-50 text-cyan-700' },
+  { id: 'R5_FINANCE_ADMIN', label: 'Finance Admin', description: 'Finance, documents and reports access only', color: 'bg-green-50 text-green-700' },
+  { id: 'R2_ORG_ADMIN', label: 'Org Admin', description: 'Full access to all leads, bookings, reports; can invite agents', color: 'bg-purple-50 text-purple-700' },
   { id: 'R1_SUPER_ADMIN', label: 'Super Admin', description: 'All permissions including billing, settings, team management', color: 'bg-amber-50 text-amber-700' },
 ]
 
 const SEED_TEAM: TeamMember[] = [
   { id: '1', email: 'owner@nama.travel', name: 'Agency Owner', role: 'R1_SUPER_ADMIN', status: 'active', joined_at: '2026-01-01' },
-  { id: '2', email: 'priya@nama.travel', name: 'Priya Sharma', role: 'R2_MANAGER', status: 'active', joined_at: '2026-02-15' },
-  { id: '3', email: 'rahul@nama.travel', name: 'Rahul Verma', role: 'R3_AGENT', status: 'active', joined_at: '2026-03-01' },
-  { id: '4', email: 'new@example.com', name: '', role: 'R3_AGENT', status: 'invited', invited_at: '2026-04-10' },
+  { id: '2', email: 'priya@nama.travel', name: 'Priya Sharma', role: 'R2_ORG_ADMIN', status: 'active', joined_at: '2026-02-15' },
+  { id: '3', email: 'rahul@nama.travel', name: 'Rahul Verma', role: 'R3_SALES_MANAGER', status: 'active', joined_at: '2026-03-01' },
+  { id: '4', email: 'new@example.com', name: '', role: 'R3_SALES_MANAGER', status: 'invited', invited_at: '2026-04-10' },
 ]
 
 const SEED_AUDIT: AuditEntry[] = [
@@ -136,37 +138,6 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'audit',         label: 'Audit Log',       icon: ClipboardList },
 ]
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface ApiKey {
-  id: string
-  provider: string
-  label: string
-  key_masked: string
-  is_active: boolean
-  last_used_at?: string
-}
-
-interface TeamMember {
-  id: string
-  email: string
-  name: string
-  role: string
-  status: string
-  joined_at?: string
-  invited_at?: string
-}
-
-interface Invite {
-  id: number
-  email: string
-  role: string
-  token: string
-  expires_at: string
-  accepted_at: string | null
-  created_at: string
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -183,16 +154,14 @@ export default function SettingsPage() {
   const [addLabel, setAddLabel] = useState('')
   const [addKeyValue, setAddKeyValue] = useState('')
   const [addLoading, setAddLoading] = useState(false)
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
-
-  // Invite Modal State
-  const [showInviteModal, setShowInviteModal] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState('R3_SALES_MANAGER')
-  const [inviteLoading, setInviteLoading] = useState(false)
+  const [showKey, setShowKey] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
 
   // Team state
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(SEED_TEAM)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState('R3_SALES_MANAGER')
+  const [inviteLoading, setInviteLoading] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
 
   // Profile state
@@ -230,7 +199,7 @@ export default function SettingsPage() {
   const [auditSearch, setAuditSearch] = useState('')
 
   useEffect(() => {
-    fetchData()
+    if (tab === 'api-keys') fetchApiKeys()
   }, [tab])
 
   const flash = (msg: string, isError = false) => {
@@ -248,6 +217,7 @@ export default function SettingsPage() {
   }
 
   const handleAddKey = async () => {
+    if (!addKeyValue.trim()) return
     setAddLoading(true)
     try {
       const created = await api.post<ApiKey>('/api/v1/settings/api-keys', {
@@ -260,7 +230,7 @@ export default function SettingsPage() {
     finally { setAddLoading(false) }
   }
 
-  const handleDeleteKey = async (id: string) => {
+  const handleDeleteKey = async (id: number) => {
     if (deleteConfirmId !== id) { setDeleteConfirmId(id); return }
     setDeleteConfirmId(null)
     try {
@@ -419,8 +389,8 @@ export default function SettingsPage() {
                   <div className={`text-xs mb-4 ${plan.featured ? 'text-white/40' : 'text-slate-400'}`}>
                     {plan.price === 0 ? 'annual contract' : '/ month'}
                   </div>
-                  <div className={`text-xs font-bold px-2.5 py-1.5 rounded-lg mb-4 text-center ${plan.featured ? 'bg-white/10 text-[#14B8A6]' : badge?.color ?? ''}`}>
-                    {badge?.label ?? ''}
+                  <div className={`text-xs font-bold px-2.5 py-1.5 rounded-lg mb-4 text-center ${plan.featured ? 'bg-white/10 text-[#14B8A6]' : badge.color}`}>
+                    {badge.label}
                   </div>
                   <ul className="space-y-2 mb-6">
                     {plan.features.map((f) => (
@@ -468,270 +438,95 @@ export default function SettingsPage() {
               <div className="font-bold text-blue-900 text-sm mb-1">Your keys are encrypted at rest</div>
               <p className="text-xs text-blue-700 leading-relaxed">
                 NAMA stores API keys using AES-256 encryption. Keys are decrypted only in-memory at call time and never logged.
+                Each key is scoped to your tenant — no cross-tenant access is possible.
               </p>
             </div>
           </div>
+
           <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-extrabold text-[#0F172A] text-lg">AI Provider Keys</h3>
-                <p className="text-xs text-slate-400 mt-0.5">NAMA uses these keys for all AI operations</p>
+                <p className="text-xs text-slate-400 mt-0.5">NAMA uses these keys for all AI operations on your account</p>
               </div>
               <button onClick={() => setShowAddKey(true)} className="flex items-center gap-2 bg-[#00236f] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all">
                 <Plus size={16} /> Add Key
               </button>
             </div>
+
             {keysLoading ? (
               <div className="flex justify-center py-10"><Loader size={28} className="animate-spin text-slate-300" /></div>
             ) : apiKeys.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Key size={24} className="text-slate-400" />
-                </div>
+                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4"><Key size={24} className="text-slate-400" /></div>
                 <h4 className="font-bold text-slate-700 mb-1">No API keys added yet</h4>
-                <p className="text-sm text-slate-400 mb-4 max-w-xs mx-auto">Add your OpenAI, Anthropic, or Google key to activate BYOK.</p>
-                <button onClick={() => setShowAddKey(true)} className="inline-flex items-center gap-2 bg-[#14B8A6] text-white px-5 py-2.5 rounded-xl text-sm font-bold">
+                <p className="text-sm text-slate-400 mb-4 max-w-xs mx-auto">Add your OpenAI, Anthropic, or Google API key to activate BYOK and start saving.</p>
+                <button onClick={() => setShowAddKey(true)} className="inline-flex items-center gap-2 bg-[#14B8A6] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-teal-600 transition-all">
                   <Plus size={16} /> Add Your First Key
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
-                {apiKeys.map((key) => (
-                  <div key={key.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <span>{PROVIDERS.find(p => p.id === key.provider)?.icon}</span>
-                      <div>
-                        <div className="font-bold text-sm">{key.label || key.provider}</div>
-                        <code className="text-xs text-slate-400">{key.key_masked}</code>
+                {apiKeys.map((key) => {
+                  const provider = PROVIDERS.find((p) => p.id === key.provider)
+                  return (
+                    <div key={key.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl">{provider?.icon || '🔑'}</div>
+                        <div>
+                          <div className="font-bold text-slate-900 text-sm">{key.label || provider?.name}</div>
+                          <div className="text-xs text-slate-400 font-mono">{key.key_masked}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${key.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {key.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        {key.last_used_at && <span className="text-xs text-slate-400 hidden md:block">Used {new Date(key.last_used_at).toLocaleDateString()}</span>}
+                        {deleteConfirmId === key.id ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-red-600 font-bold">Delete?</span>
+                            <button onClick={() => handleDeleteKey(key.id)} className="px-2 py-1 bg-red-600 text-white rounded text-xs font-bold">Yes</button>
+                            <button onClick={() => setDeleteConfirmId(null)} className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-bold">No</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => handleDeleteKey(key.id)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50">
+                            <Trash2 size={15} />
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteKey(key.id)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-lg ${deleteConfirmId === key.id ? 'bg-red-500 text-white' : 'text-slate-400 hover:text-red-500'}`}>
-                      {deleteConfirmId === key.id ? 'Confirm?' : 'Remove'}
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
-        </div>
-      )}
 
-
-      {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-md z-[110] flex items-center justify-center p-6">
-          <div className="bg-white rounded-[40px] p-10 w-full max-w-lg shadow-2xl">
-            <div className="flex justify-between items-center mb-10">
-              <div>
-                <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Invite Team Member</h2>
-                <p className="text-slate-500 font-medium mt-1">Send a registration link to your staff.</p>
-              </div>
-              <button onClick={() => setShowInviteModal(false)} className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all">✕</button>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Email Address</label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="name@agency.com"
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-[#14B8A6] outline-none transition-all text-sm font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Assign Role</label>
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-[#14B8A6] outline-none transition-all text-sm font-bold appearance-none cursor-pointer"
-                >
-                  <option value="R2_ORG_ADMIN">Admin (Full Access)</option>
-                  <option value="R3_SALES_MANAGER">Sales Manager</option>
-                  <option value="R4_OPS_EXECUTIVE">Operations Executive</option>
-                  <option value="R5_FINANCE_ADMIN">Finance Admin</option>
-                </select>
-              </div>
-
-              <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100">
-                <div className="flex gap-3">
-                  <Info size={18} className="text-indigo-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-indigo-700 font-medium leading-relaxed">
-                    The invited user will receive a link to create their own password. They will be automatically linked to your organization with the selected role.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={async () => {
-                  setInviteLoading(true)
-                  try {
-                    const res = await api.post<Invite>('/api/v1/settings/invites', { email: inviteEmail, role: inviteRole })
-                    setInvites([res, ...invites])
-                    setShowInviteModal(false)
-                    setInviteEmail('')
-                  } catch (err) {
-                    alert(err instanceof Error ? err.message : 'Failed to send invite')
-                  } finally {
-                    setInviteLoading(false)
-                  }
-                }}
-                disabled={inviteLoading || !inviteEmail.trim()}
-                className="w-full bg-[#0F172A] text-white py-5 rounded-[24px] font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-slate-800 transition-all disabled:opacity-50"
-              >
-                {inviteLoading ? <Loader size={20} className="animate-spin" /> : 'Send Invitation Link'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-
-  const renderApiKeys = () => (
-    <div className="space-y-6">
-      <div className="bg-slate-900 rounded-[40px] p-10 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-teal-400/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
-          <div className="max-w-xl">
-            <h2 className="text-3xl font-black mb-4 flex items-center gap-3">
-              <Zap className="text-teal-400" /> Bring Your Own Key (BYOK)
-            </h2>
-            <p className="text-slate-400 font-medium text-lg leading-relaxed">
-              Cut your AI operational costs by up to 80%. Connect your own provider keys and pay wholesale rates directly.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowAddKey(true)}
-            className="bg-[#14B8A6] text-white px-8 py-4 rounded-2xl text-base font-black hover:bg-teal-600 transition-all active:scale-95 shadow-xl shadow-teal-500/20 flex items-center gap-3"
-          >
-            <Plus size={24} /> Add New API Key
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-8">
-          <h3 className="font-extrabold text-[#0F172A] text-xl mb-6">Active Provider Integrations</h3>
-          
-          {keysLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader size={32} className="animate-spin text-teal-500" />
-              <span className="text-sm font-bold text-slate-400">Securely fetching keys...</span>
-            </div>
-          ) : apiKeys.length === 0 ? (
-            <div className="text-center py-16 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200">
-              <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <Key size={32} className="text-slate-200" />
-              </div>
-              <h4 className="font-extrabold text-slate-700 text-lg mb-2">No keys configured</h4>
-              <p className="text-sm text-slate-400 mb-8 max-w-xs mx-auto font-medium">Add your OpenAI or Anthropic key to activate cost-saving routing.</p>
-              <button onClick={() => setShowAddKey(true)} className="text-[#14B8A6] font-black hover:underline">Connect Your First Provider →</button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {apiKeys.map((key) => {
-                const provider = PROVIDERS.find((p) => p.id === key.provider)
-                return (
-                  <div key={key.id} className="group flex items-center justify-between p-6 rounded-[28px] bg-white border border-slate-100 hover:border-teal-200 transition-all">
-                    <div className="flex items-center gap-5">
-                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-teal-50 transition-colors">
-                        {provider?.icon || '🔑'}
-                      </div>
-                      <div>
-                        <div className="font-extrabold text-[#0F172A] text-lg">{key.label || provider?.name}</div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <code className="text-xs text-slate-400 font-mono bg-slate-50 px-2 py-0.5 rounded-lg">{key.key_masked}</code>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${key.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
-                            {key.is_active ? 'Active' : 'Paused'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {deleteConfirmId === key.id ? (
-                        <div className="flex items-center gap-2 bg-red-50 p-2 rounded-xl border border-red-100">
-                          <span className="text-xs font-black text-red-600 px-2">Delete?</span>
-                          <button onClick={() => handleDeleteKey(key.id)} className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-black hover:bg-red-700">Confirm</button>
-                          <button onClick={() => setDeleteConfirmId(null)} className="px-3 py-1.5 bg-white text-slate-400 rounded-lg text-xs font-black border border-slate-200 hover:bg-slate-50">Cancel</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => handleDeleteKey(key.id)} className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20} /></button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-[#00236f] rounded-[32px] p-8 text-white">
-            <h4 className="font-extrabold text-lg mb-4 flex items-center gap-2">
-              <ShieldCheck size={20} className="text-teal-400" /> Security Note
-            </h4>
-            <p className="text-sm text-blue-100 leading-relaxed font-medium">
-              Your keys are encrypted using AES-256-GCM before storage. They are only decrypted in volatile memory during API calls and never logged.
-            </p>
-          </div>
-          <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
-            <h4 className="font-extrabold text-[#0F172A] mb-6">Cost Benchmarks</h4>
-            <div className="space-y-6">
+          <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-6">
+            <h3 className="font-extrabold text-[#0F172A] mb-4">Provider Cost Reference</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { name: 'GPT-4o', inp: '$5', out: '$15', color: 'bg-emerald-500' },
-                { name: 'Claude Haiku', inp: '$0.25', out: '$1.25', color: 'bg-teal-400' },
-                { name: 'Gemini 1.5', inp: '$1.25', out: '$5', color: 'bg-blue-400' },
+                { icon: '⚡', name: 'OpenAI GPT-4o', inp: '$5/1M', out: '$15/1M', rec: 'Best quality for itineraries', badge: 'Popular' },
+                { icon: '🔷', name: 'Claude Haiku', inp: '$0.25/1M', out: '$1.25/1M', rec: 'Lowest cost — great for triage', badge: 'Cheapest' },
+                { icon: '🌐', name: 'Google Gemini 1.5', inp: '$1.25/1M', out: '$5/1M', rec: 'Good balance of cost + quality', badge: '' },
               ].map((p) => (
-                <div key={p.name}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-black text-slate-700">{p.name}</span>
-                    <span className="text-[10px] font-bold text-slate-400">per 1M tokens</span>
+                <div key={p.name} className="border border-slate-100 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">{p.icon}</span>
+                    <div>
+                      <div className="font-bold text-sm text-slate-900">{p.name}</div>
+                      {p.badge && <span className="text-[10px] font-bold bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded-full">{p.badge}</span>}
+                    </div>
                   </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                    <div className={`${p.color} h-full`} style={{ width: p.name === 'GPT-4o' ? '80%' : p.name === 'Claude Haiku' ? '15%' : '40%' }} />
-                  </div>
-                  <div className="flex justify-between mt-2 text-[10px] font-bold text-slate-400">
-                    <span>In: {p.inp}</span>
-                    <span>Out: {p.out}</span>
+                  <div className="text-xs text-slate-500 space-y-1">
+                    <div>Input: <span className="font-bold text-slate-700">{p.inp}</span></div>
+                    <div>Output: <span className="font-bold text-slate-700">{p.out}</span></div>
+                    <div className="text-slate-400 mt-2">{p.rec}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  // ─── Main Render ───────────────────────────────────────────────────────────
-
-  return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-5xl font-black tracking-tighter text-[#0F172A]">Settings</h1>
-          <p className="text-slate-500 mt-2 font-medium text-lg">Platform configuration and agency management.</p>
-        </div>
-        <div className="flex items-center gap-4 bg-white p-3 rounded-[24px] border border-slate-100 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#14B8A6]">
-            <Globe size={20} />
-          </div>
-          <div>
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Instance</div>
-            <div className="text-sm font-bold text-slate-700">Mumbai-1 (AWS)</div>
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-4 bg-red-50 border border-red-200 rounded-[20px] p-5 text-red-700 shadow-lg shadow-red-100 animate-in fade-in slide-in-from-top-4">
-          <AlertCircle size={24} className="shrink-0" />
-          <span className="font-bold flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="w-10 h-10 flex items-center justify-center hover:bg-red-100 rounded-full transition-all text-xl">✕</button>
         </div>
       )}
 
@@ -742,7 +537,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-extrabold text-[#0F172A] text-lg">Team Members</h3>
-                <p className="text-xs text-slate-400 mt-0.5">{(teamMembers ?? []).filter(m => m.status === 'active').length} active · {(teamMembers ?? []).filter(m => m.status === 'invited').length} pending invite</p>
+                <p className="text-xs text-slate-400 mt-0.5">{teamMembers.filter(m => m.status === 'active').length} active · {teamMembers.filter(m => m.status === 'invited').length} pending invite</p>
               </div>
               <button onClick={() => setShowInvite(true)} className="flex items-center gap-2 bg-[#00236f] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all">
                 <UserPlus size={16} /> Invite Member
@@ -860,7 +655,7 @@ export default function SettingsPage() {
                     <Lock size={18} className={role.color} />
                     <h3 className={`font-extrabold ${role.color}`}>{role.label}</h3>
                   </div>
-                  <span className="text-xs text-slate-400">{(teamMembers ?? []).filter(m => m.role === role.id).length} members</span>
+                  <span className="text-xs text-slate-400">{teamMembers.filter(m => m.role === role.id).length} members</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {role.perms.map((p) => (
@@ -1208,19 +1003,16 @@ export default function SettingsPage() {
 
       {/* Add Key Modal */}
       {showAddKey && (
-        <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[40px] p-10 w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-10">
-              <div>
-                <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Connect AI Provider</h2>
-                <p className="text-slate-500 font-medium mt-1">NAMA powers your agency using these keys.</p>
-              </div>
-              <button onClick={() => setShowAddKey(false)} className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all">✕</button>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] p-8 w-full max-w-md shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-extrabold text-[#0F172A]">Add API Key</h2>
+              <button onClick={() => setShowAddKey(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">✕</button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Select Provider</label>
-                <div className="grid grid-cols-3 gap-4">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Provider</label>
+                <div className="grid grid-cols-3 gap-2">
                   {PROVIDERS.map((p) => (
                     <button key={p.id} onClick={() => setAddProvider(p.id)}
                       className={`p-3 rounded-xl border-2 text-center transition-all ${addProvider === p.id ? 'border-[#14B8A6] bg-teal-50' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -1245,30 +1037,7 @@ export default function SettingsPage() {
                     {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Provider API Key</label>
-                  <div className="relative">
-                    <input
-                      type={showKey ? 'text' : 'password'}
-                      value={addKeyValue}
-                      onChange={(e) => setAddKeyValue(e.target.value)}
-                      placeholder={PROVIDERS.find(p => p.id === addProvider)?.hint || 'Paste your secret key here'}
-                      className="w-full px-5 py-4 pr-14 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/5 outline-none transition-all text-sm font-mono font-bold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors"
-                    >
-                      {showKey ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 mt-3 text-slate-400">
-                    <Shield size={12} className="text-teal-500" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">AES-256 GCM Encrypted</span>
-                  </div>
-                </div>
+                <p className="text-xs text-slate-400 mt-1">Stored with AES-256 encryption. Never logged or exposed.</p>
               </div>
               <button onClick={handleAddKey} disabled={addLoading || !addKeyValue.trim()}
                 className="w-full bg-[#0F172A] text-white py-3.5 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-700 transition-all disabled:opacity-50 mt-2">

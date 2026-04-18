@@ -167,11 +167,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ];
 
-  // Filter nav based on current user's role (demo mode shows full nav)
+  // Filter nav based on current user's role.
+  // Demo mode acts as R3_SALES_MANAGER — shows operational pages but NOT
+  // admin-only items (Investor R0, Audit Agent R0/R1, System Status R0/R1).
   const userRole = auth.user?.role ?? null;
+  const DEMO_ROLE = 'R3_SALES_MANAGER';
   const navigation = isDemoMode
-    ? ALL_NAV
-    : ALL_NAV.filter((item) => !item.roles || !userRole || item.roles.includes(userRole));
+    ? ALL_NAV.filter((item) => !item.roles || item.roles.includes(DEMO_ROLE))
+    : ALL_NAV.filter((item) => !item.roles || (userRole ? item.roles.includes(userRole) : false));
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <aside className={`

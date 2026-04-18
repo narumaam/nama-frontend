@@ -9,12 +9,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
 import {
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Zap,
   Server, Globe, Database, Shield, GitBranch, Clock,
-  TrendingUp, Activity, Package, ChevronRight, Loader,
+  TrendingUp, Activity, Package, ChevronRight, Loader, Lock,
 } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 
 // ── Module completion matrix ────────────────────────────────────────────────
 const MODULES = [
@@ -108,22 +108,21 @@ function StatusBadge({ state }: { state: Pulse }) {
 export default function StatusPage() {
   const auth = useAuth()
   const router = useRouter()
-  const ALLOWED = ['R0_NAMA_OWNER', 'R1_SUPER_ADMIN']
-  const isDemo = typeof document !== 'undefined' &&
-    document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
-  const isAuthorized = !isDemo && !!auth.user && ALLOWED.includes(auth.user.role)
-  useEffect(() => {
-    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
-  }, [auth.isLoading, isAuthorized, router])
-  if (auth.isLoading) return null
-  if (!isAuthorized) return null
-
   const [backendPulse, setBackendPulse]       = useState<Pulse>('checking')
   const [healthData, setHealthData]           = useState<HealthData | null>(null)
   const [lastChecked, setLastChecked]         = useState<Date | null>(null)
   const [latencyMs, setLatencyMs]             = useState<number | null>(null)
   const [checking, setChecking]               = useState(false)
   const [moduleRoutes, setModuleRoutes]       = useState<Record<string, Pulse>>({})
+
+  // Guard: R0 + R1 only — demo visitors and lower roles are redirected
+  const isDemo = typeof document !== 'undefined' &&
+    document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
+  const ALLOWED = ['R0_NAMA_OWNER', 'R1_SUPER_ADMIN']
+  const isAuthorized = !isDemo && !!auth.user && ALLOWED.includes(auth.user.role)
+  useEffect(() => {
+    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
+  }, [auth.isLoading, isAuthorized, router])
 
   const checkBackend = useCallback(async () => {
     setChecking(true)
@@ -181,6 +180,17 @@ export default function StatusPage() {
 
   const scoreColor = infraScore >= 90 ? 'text-emerald-600' : infraScore >= 70 ? 'text-amber-600' : 'text-red-600'
   const scoreBg    = infraScore >= 90 ? 'from-emerald-500 to-teal-500' : infraScore >= 70 ? 'from-amber-500 to-orange-500' : 'from-red-500 to-rose-500'
+
+  if (auth.isLoading) return null
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-slate-500">
+        <Lock size={40} className="text-slate-300" />
+        <p className="text-lg font-semibold">Access Restricted</p>
+        <p className="text-sm">System Status is only available to Super Admins and NAMA Owners.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">

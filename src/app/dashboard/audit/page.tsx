@@ -22,11 +22,13 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Clock,
   RefreshCw, Wifi, WifiOff, Zap, Activity, Lock, Search,
   Brain, Server, Globe, Package, TrendingUp, ChevronDown, ChevronUp,
 } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -426,11 +428,22 @@ function CheckCard({ check, expanded, onToggle }: { check: AuditCheck; expanded:
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AuditAgentPage() {
+  const auth = useAuth()
+  const router = useRouter()
   const [checks, setChecks] = useState<AuditCheck[]>([])
   const [running, setRunning] = useState(false)
   const [lastRun, setLastRun] = useState<Date | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [agentFilter, setAgentFilter] = useState<AgentName | 'ALL'>('ALL')
+
+  // Guard: R0 + R1 only — demo visitors and lower roles are redirected
+  const isDemo = typeof document !== 'undefined' &&
+    document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
+  const ALLOWED = ['R0_NAMA_OWNER', 'R1_SUPER_ADMIN']
+  const isAuthorized = !isDemo && !!auth.user && ALLOWED.includes(auth.user.role)
+  useEffect(() => {
+    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
+  }, [auth.isLoading, isAuthorized, router])
 
   const buildInitialChecks = useCallback((): AuditCheck[] => {
     const staticChecks: AuditCheck[] = STATIC_ISSUES.map(s => ({ ...s, status: 'pending' as const }))
@@ -496,6 +509,17 @@ export default function AuditAgentPage() {
   const scoreBg    = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500'
 
   const AGENTS: (AgentName | 'ALL')[] = ['ALL', 'SECURITY', 'DEVOPS', 'PERFORMANCE', 'AI', 'UX', 'PRODUCT']
+
+  if (auth.isLoading) return null
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-slate-500">
+        <Lock size={40} className="text-slate-300" />
+        <p className="text-lg font-semibold">Access Restricted</p>
+        <p className="text-sm">Audit Agent is only available to Super Admins and NAMA Owners.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

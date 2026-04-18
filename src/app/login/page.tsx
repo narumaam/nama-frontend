@@ -252,11 +252,13 @@ function LoginPageInner() {
             <div>
               <div className="mb-6">
                 <p className="text-xs text-slate-400 mb-3 font-medium">Continue with Google</p>
-                <GoogleLogin
-                  onSuccess={(cred) => { if (cred.credential) void handleGoogleLogin(cred.credential) }}
-                  onError={() => setError('Google sign-in failed.')}
-                  theme="filled_black" text="signin_with" shape="rectangular" width="360"
-                />
+                {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+                  <GoogleLogin
+                    onSuccess={(cred) => { if (cred.credential) void handleGoogleLogin(cred.credential) }}
+                    onError={() => setError('Google sign-in failed.')}
+                    theme="filled_black" text="signin_with" shape="rectangular" width="360"
+                  />
+                )}
                 <div className="flex items-center gap-3 mt-5">
                   <div className="flex-1 h-px bg-white/10" />
                   <span className="text-xs text-slate-500">or sign in with email</span>
