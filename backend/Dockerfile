@@ -1,6 +1,5 @@
 # NAMA Backend — Railway production image
-# Build context = repo root (Railway uses repo root, Dockerfile at /backend/Dockerfile)
-# Trigger rebuild: 2026-04-18
+# Dockerfile path: /backend/Dockerfile  |  Build context: backend/
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -10,14 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-# Note: build context is repo root, backend/ files are at backend/ prefix
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code
-COPY backend/ .
+COPY . .
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -25,5 +21,4 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE 8080
 
-# Run Alembic migrations then start Gunicorn
 CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app --config gunicorn.conf.py"]
