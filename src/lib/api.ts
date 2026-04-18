@@ -422,3 +422,30 @@ export const contentApi = {
   createAsset: (data: ContentAsset) => api.post<ContentAsset>('/api/v1/content/assets', data),
   createBlock: (data: ContentBlock) => api.post<ContentBlock>('/api/v1/content/blocks', data),
 }
+
+// Automations (M16)
+export interface AutomationAction { type: string; config: Record<string, unknown> }
+export interface Automation {
+  id: number; tenant_id: number; name: string; description?: string
+  trigger: string; conditions: Record<string, unknown>[]; actions: AutomationAction[]
+  is_active: boolean; run_count: number; success_count: number
+  last_run_at?: string; created_at: string; updated_at: string
+}
+export interface AutomationCreate {
+  name: string; description?: string; trigger: string
+  conditions?: Record<string, unknown>[]; actions?: AutomationAction[]; is_active?: boolean
+}
+export const automationsApi = {
+  list: (is_active?: boolean) => {
+    const q = new URLSearchParams()
+    if (is_active !== undefined) q.set('is_active', String(is_active))
+    return api.get<Automation[]>(`/api/v1/automations/?${q}`)
+  },
+  get: (id: number) => api.get<Automation>(`/api/v1/automations/${id}`),
+  create: (data: AutomationCreate) => api.post<Automation>('/api/v1/automations/', data),
+  update: (id: number, data: Partial<AutomationCreate>) => api.patch<Automation>(`/api/v1/automations/${id}`, data),
+  delete: (id: number) => api.delete<void>(`/api/v1/automations/${id}`),
+  toggle: (id: number) => api.post<Automation>(`/api/v1/automations/${id}/toggle`, {}),
+  runs: (id: number) => api.get<unknown[]>(`/api/v1/automations/${id}/runs`),
+  triggers: () => api.get<{ triggers: string[]; actions: string[] }>('/api/v1/automations/triggers'),
+}
