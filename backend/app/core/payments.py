@@ -166,8 +166,19 @@ def _process_payment_async(
         payment.status = PaymentStatus.PROCESSING
         db.commit()
 
-        # ── Call payment gateway (stub — replace with real Stripe/Razorpay SDK) ──
-        success, provider_ref, error = _call_payment_gateway(amount, currency, payment.idempotency_key)
+        # ── Call real payment gateway (Stripe / Razorpay / Mock) ────────────
+        from app.core.payment_gateways import get_gateway
+        # Pass db so factory can load tenant BYOK gateway credentials
+        gateway = get_gateway(db=db, tenant_id=tenant_id)
+        result = gateway.create_order(
+            amount=amount,
+            currency=currency,
+            ref=payment.idempotency_key,
+            metadata={"booking_id": str(booking_id), "tenant_id": str(tenant_id)},
+        )
+        success = result.success
+        provider_ref = result.provider_ref
+        error = result.error
 
         if success:
             # Step 3a: CONFIRM
@@ -212,30 +223,6 @@ def _process_payment_async(
     finally:
         db.close()
 
-
-def _call_payment_gateway(amount: float, currency: str, idempotency_key: str):
-    """
-    Stub for Stripe / Razorpay SDK call.
-    Replace with real implementation:
-
-    Stripe:
-        stripe.PaymentIntent.create(
-            amount=int(amount * 100),
-            currency=currency.lower(),
-            idempotency_key=idempotency_key,
-        )
-
-    Razorpay:
-        client.order.create({
-            "amount": int(amount * 100),
-            "currency": currency,
-            "receipt": idempotency_key,
-        })
-    """
-    # Stub: succeeds for all amounts under 10,00,000 INR
-    if amount <= 1_000_000:
-        return True, f"pi_stub_{idempotency_key[:16]}", None
-    return False, None, "Amount exceeds gateway limit"
 
 
 # ── Webhook signature verification ────────────────────────────────────────────
@@ -317,3 +304,4 @@ def persist_webhook_event(
     except IntegrityError:
         db.rollback()
         return None   # Race condition — another worker got there first
+

@@ -35,7 +35,7 @@ interface FinanceSummary {
   currency: string;
 }
 
-const TABS = ["Overview", "Invoices", "Payments", "Refunds", "Vendor Payouts"] as const;
+const TABS = ["Overview", "Invoices", "Payments", "Refunds", "Vendor Payouts", "AR Aging", "Reconciliation", "Month-End Close"] as const;
 type Tab = (typeof TABS)[number];
 
 const MOCK_ENTRIES: LedgerEntry[] = [
@@ -54,22 +54,74 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => { fetchSummary(); }, []);
+  const [entries, setEntries] = useState<LedgerEntry[]>(MOCK_ENTRIES);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [arAging, setArAging] = useState<any | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [bankRecon, setBankRecon] = useState<any | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [monthEndData, setMonthEndData] = useState<any | null>(null);
 
-  async function fetchSummary() {
+  useEffect(() => { fetchData(); }, []);
+
+  async function fetchData() {
     setLoading(true);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null;
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
     try {
-      const res = await fetch("/api/v1/finance/summary");
-      if (res.ok) {
-        setSummary(await res.json());
+      const now = new Date();
+    const [sumRes, ledRes, arRes, reconRes, monthRes] = await Promise.all([
+        fetch("/api/v1/finance/summary", { headers }),
+        fetch("/api/v1/finance/ledger?limit=100", { headers }),
+        fetch("/api/v1/finance/ar-aging", { headers }),
+        fetch("/api/v1/finance/bank-reconciliation?days=30", { headers }),
+        fetch(`/api/v1/finance/month-end-close/${now.getFullYear()}/${now.getMonth() + 1}`, { headers }),
+      ]);
+
+      if (sumRes.ok) {
+        const data = await sumRes.json();
+        // Support both schema formats (old: balance_available, new: total_revenue)
+        setSummary({
+          total_revenue: data.total_revenue ?? data.balance_available ?? 0,
+          total_cost: data.total_cost ?? 0,
+          gross_profit: data.gross_profit ?? data.balance_available ?? 0,
+          margin_pct: data.margin_pct ?? 0,
+          pending_reconciliation: data.pending_reconciliation ?? data.pending_settlements ?? 0,
+          currency: data.currency ?? "INR",
+        });
       } else {
         setSummary({ total_revenue: 848500, total_cost: 198000, gross_profit: 650500, margin_pct: 76.7, pending_reconciliation: 2, currency: "INR" });
       }
+
+      if (ledRes.ok) {
+        const ledData = await ledRes.json();
+        const items = ledData.items ?? [];
+        if (items.length > 0) {
+          setEntries(items.map((e: { id: number; type: string; amount: number; currency: string; description: string; reference?: string; booking_id?: number; created_at: string; reconciled?: boolean }) => ({
+            id: String(e.id),
+            type: e.type as "CREDIT" | "DEBIT",
+            amount: e.amount,
+            currency: e.currency ?? "INR",
+            description: e.description,
+            reference: e.reference ?? "",
+            booking_id: e.booking_id ? String(e.booking_id) : undefined,
+            created_at: e.created_at,
+            reconciled: e.reconciled ?? false,
+          })));
+        }
+        // else keep MOCK_ENTRIES as seed display
+      }
+      if (arRes.ok)    setArAging(await arRes.json());
+      if (reconRes.ok) setBankRecon(await reconRes.json());
+      if (monthRes.ok) setMonthEndData(await monthRes.json());
     } catch {
       setSummary({ total_revenue: 848500, total_cost: 198000, gross_profit: 650500, margin_pct: 76.7, pending_reconciliation: 2, currency: "INR" });
     }
     setLoading(false);
   }
+
+  function fetchSummary() { fetchData(); }
 
   function exportCSV() {
     const rows = [
@@ -85,7 +137,7 @@ export default function FinancePage() {
 
   const fmt = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 
-  const filteredEntries = MOCK_ENTRIES.filter(e => {
+  const filteredEntries = entries.filter(e => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || e.description.toLowerCase().includes(q) || e.reference.toLowerCase().includes(q);
     if (!matchesSearch) return false;
@@ -174,46 +226,162 @@ export default function FinancePage() {
         </div>
       </div>
 
-      {/* Ledger Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-800">
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Reference</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Description</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Date</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Amount</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:table-cell">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {filteredEntries.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500 text-sm">No transactions found</td></tr>
-            ) : filteredEntries.map(entry => (
-              <tr key={entry.id} className="hover:bg-slate-800/50 transition-colors cursor-pointer">
-                <td className="px-4 py-3">
-                  <span className="text-xs font-mono text-teal-400 bg-teal-400/10 px-2 py-0.5 rounded">{entry.reference}</span>
-                </td>
-                <td className="px-4 py-3 text-slate-300 text-sm">{entry.description}</td>
-                <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
-                  {new Date(entry.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                </td>
-                <td className={`px-4 py-3 text-right font-semibold text-sm ${entry.type === "CREDIT" ? "text-emerald-400" : "text-red-400"}`}>
-                  {entry.type === "CREDIT" ? "+" : "−"}{fmt(entry.amount)}
-                </td>
-                <td className="px-4 py-3 text-center hidden sm:table-cell">
-                  {entry.reconciled ? (
-                    <span className="inline-flex items-center gap-1 text-xs text-emerald-400"><CheckCircle className="w-3 h-3" /> Reconciled</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="w-3 h-3" /> Pending</span>
-                  )}
-                </td>
+      {/* ── AR Aging View ─────────────────────────────────────────────────── */}
+      {activeTab === "AR Aging" && (
+        <div className="space-y-4">
+          {!arAging ? (
+            <div className="bg-slate-900 rounded-xl p-8 text-center text-slate-500 text-sm">Loading AR Aging data…</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "Current (0–30d)", key: "current",       color: "text-emerald-400" },
+                  { label: "31–60 Days",      key: "days_31_60",    color: "text-amber-400" },
+                  { label: "61–90 Days",      key: "days_61_90",    color: "text-orange-400" },
+                  { label: "90+ Days",        key: "days_90_plus",  color: "text-red-400" },
+                ].map(({ label, key, color }) => (
+                  <div key={key} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <p className="text-xs text-slate-400 mb-1">{label}</p>
+                    <p className={`text-lg font-bold ${color}`}>{fmt(arAging.totals?.[key] ?? 0)}</p>
+                    <p className="text-xs text-slate-600 mt-1">{arAging.buckets?.[key]?.length ?? 0} bookings</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <p className="text-sm font-semibold text-white mb-3">Total Outstanding: <span className="text-red-400">{fmt(arAging.grand_total ?? 0)}</span></p>
+                <p className="text-xs text-slate-500">As of {new Date(arAging.as_of).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Bank Reconciliation View ───────────────────────────────────────── */}
+      {activeTab === "Reconciliation" && (
+        <div className="space-y-4">
+          {!bankRecon ? (
+            <div className="bg-slate-900 rounded-xl p-8 text-center text-slate-500 text-sm">Loading reconciliation data…</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                  <p className="text-xs text-slate-400 mb-1">Reconciled</p>
+                  <p className="text-lg font-bold text-emerald-400">{fmt(bankRecon.total_reconciled ?? 0)}</p>
+                  <p className="text-xs text-slate-600 mt-1">{bankRecon.reconciled?.length ?? 0} entries</p>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                  <p className="text-xs text-slate-400 mb-1">Unreconciled</p>
+                  <p className="text-lg font-bold text-amber-400">{fmt(bankRecon.total_unreconciled ?? 0)}</p>
+                  <p className="text-xs text-slate-600 mt-1">{bankRecon.unreconciled?.length ?? 0} entries</p>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                  <p className="text-xs text-slate-400 mb-1">Reconciliation Rate</p>
+                  <p className={`text-lg font-bold ${(bankRecon.reconciliation_rate ?? 0) >= 90 ? "text-emerald-400" : "text-amber-400"}`}>
+                    {bankRecon.reconciliation_rate ?? 0}%
+                  </p>
+                  <p className="text-xs text-slate-600 mt-1">Last {bankRecon.period_days} days</p>
+                </div>
+              </div>
+              {(bankRecon.unreconciled?.length ?? 0) > 0 && (
+                <div className="bg-amber-950/30 border border-amber-800/40 rounded-xl p-4">
+                  <p className="text-xs font-bold text-amber-400 mb-2">⚠️ Unreconciled Entries Require Action</p>
+                  {bankRecon.unreconciled.slice(0, 5).map((e: { id: number; description: string; amount: number; created_at: string }) => (
+                    <div key={e.id} className="flex items-center justify-between py-1.5 border-b border-amber-800/20 last:border-0">
+                      <p className="text-xs text-slate-300">{e.description}</p>
+                      <p className="text-xs font-semibold text-amber-400">{fmt(e.amount)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Month-End Close View ────────────────────────────────────────────── */}
+      {activeTab === "Month-End Close" && (
+        <div className="space-y-4">
+          {!monthEndData ? (
+            <div className="bg-slate-900 rounded-xl p-8 text-center text-slate-500 text-sm">Loading month-end data…</div>
+          ) : (
+            <>
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">{monthEndData.period_label}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${monthEndData.status === "closed" ? "bg-emerald-900/50 text-emerald-400" : "bg-amber-900/50 text-amber-400"}`}>
+                      {monthEndData.status === "closed" ? "Closed" : "Open — In Progress"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">{monthEndData.bookings} confirmed bookings</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-400">Revenue</p>
+                    <p className="text-base font-bold text-emerald-400">{fmt(monthEndData.revenue ?? 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Cost</p>
+                    <p className="text-base font-bold text-red-400">{fmt(monthEndData.cost ?? 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Gross Profit</p>
+                    <p className={`text-base font-bold ${(monthEndData.gross_profit ?? 0) >= 0 ? "text-teal-400" : "text-red-400"}`}>{fmt(monthEndData.gross_profit ?? 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Margin</p>
+                    <p className={`text-base font-bold ${(monthEndData.margin_pct ?? 0) >= 30 ? "text-emerald-400" : "text-amber-400"}`}>{monthEndData.margin_pct ?? 0}%</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Standard Ledger Table (all other tabs) ───────────────────────── */}
+      {activeTab !== "AR Aging" && activeTab !== "Reconciliation" && activeTab !== "Month-End Close" && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-800">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Reference</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Date</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Amount</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:table-cell">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-slate-700 text-right">Demo ledger · Production entries appear once bookings are processed.</p>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {filteredEntries.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500 text-sm">No transactions found</td></tr>
+              ) : filteredEntries.map(entry => (
+                <tr key={entry.id} className="hover:bg-slate-800/50 transition-colors cursor-pointer">
+                  <td className="px-4 py-3">
+                    <span className="text-xs font-mono text-teal-400 bg-teal-400/10 px-2 py-0.5 rounded">{entry.reference}</span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-300 text-sm">{entry.description}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
+                    {new Date(entry.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-semibold text-sm ${entry.type === "CREDIT" ? "text-emerald-400" : "text-red-400"}`}>
+                    {entry.type === "CREDIT" ? "+" : "−"}{fmt(entry.amount)}
+                  </td>
+                  <td className="px-4 py-3 text-center hidden sm:table-cell">
+                    {entry.reconciled ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-400"><CheckCircle className="w-3 h-3" /> Reconciled</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="w-3 h-3" /> Pending</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="text-xs text-slate-700 text-right">Production data appears once bookings are processed.</p>
     </div>
   );
 }
+

@@ -5,10 +5,16 @@ import { usePathname } from 'next/navigation';
 import {
   Zap, X, Send, ChevronDown, Paperclip, RotateCcw, Copy, Check,
   Sparkles, MessageSquare, FileText, DollarSign, Users, Plane,
-  ArrowUpRight, Bot
+  ArrowUpRight, Bot, ShieldAlert, CheckCircle2, XCircle
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ActionRequired {
+  type: string;
+  display: string;
+  params: Record<string, unknown>;
+}
 
 interface Message {
   id: string;
@@ -16,6 +22,8 @@ interface Message {
   content: string;
   ts: number;
   streaming?: boolean;
+  pendingAction?: ActionRequired | null;  // if set, show Approve/Reject UI
+  actionResult?: 'approved' | 'rejected';  // outcome after user chooses
 }
 
 interface PaperclipContext {
@@ -236,6 +244,18 @@ export default function NamaCopilot() {
               setMessages(prev => prev.map(m =>
                 m.id === assistantId ? { ...m, content: accumulated, streaming: true } : m
               ));
+            } else if (data.type === 'retract_suffix') {
+              // Strip the ACTION_REQUIRED footer from display
+              if (data.suffix) {
+                accumulated = accumulated.replace(data.suffix, '').trimEnd();
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantId ? { ...m, content: accumulated } : m
+                ));
+              }
+            } else if (data.type === 'action_required') {
+              setMessages(prev => prev.map(m =>
+                m.id === assistantId ? { ...m, pendingAction: data.action, streaming: false } : m
+              ));
             } else if (data.type === 'done') {
               setMessages(prev => prev.map(m =>
                 m.id === assistantId ? { ...m, streaming: false } : m
@@ -265,6 +285,78 @@ export default function NamaCopilot() {
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, streaming: false } : m));
     }
   }, [loading, messages, ctx]);
+
+  // ── Write-Action Confirmation handlers ───────────────────────────────────────
+
+  async function handleActionApprove(msgId: string, action: ActionRequired) {
+    // Optimistically mark as approved in the message
+    setMessages(prev => prev.map(m =>
+      m.id === msgId ? { ...m, pendingAction: null, actionResult: 'approved' } : m
+    ));
+
+    // Execute the action by calling the relevant API
+    try {
+      const { type, params } = action;
+      let successMsg = '✅ Done!';
+
+      if (type === 'UPDATE_LEAD_STATUS' || type === 'MARK_CONTACTED') {
+        const leadId = params.lead_id;
+        const status = params.status ?? 'CONTACTED';
+        await fetch(`/api/v1/leads/${leadId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('nama_token')}` },
+          body: JSON.stringify({ status }),
+        });
+        successMsg = `✅ Lead status updated to **${status}**.`;
+      } else if (type === 'SEND_QUOTE') {
+        const quoteId = params.quote_id ?? params.quotation_id;
+        await fetch(`/api/v1/quotations/${quoteId}/send`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${localStorage.getItem('nama_token')}` },
+        });
+        successMsg = `✅ Quotation sent to client.`;
+      } else if (type === 'ARCHIVE_LEAD') {
+        const leadId = params.lead_id;
+        await fetch(`/api/v1/leads/${leadId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('nama_token')}` },
+          body: JSON.stringify({ status: 'LOST' }),
+        });
+        successMsg = `✅ Lead archived.`;
+      } else {
+        successMsg = `✅ Action **${type}** completed.`;
+      }
+
+      const ackMsg: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: successMsg,
+        ts: Date.now(),
+      };
+      setMessages(prev => [...prev, ackMsg]);
+    } catch {
+      const errMsg: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `⚠️ Action failed — please try again or do it manually in the relevant module.`,
+        ts: Date.now(),
+      };
+      setMessages(prev => [...prev, errMsg]);
+    }
+  }
+
+  function handleActionReject(msgId: string) {
+    setMessages(prev => prev.map(m =>
+      m.id === msgId ? { ...m, pendingAction: null, actionResult: 'rejected' } : m
+    ));
+    const ackMsg: Message = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `OK, no action taken. Let me know if you'd like to do something else.`,
+      ts: Date.now(),
+    };
+    setMessages(prev => [...prev, ackMsg]);
+  }
 
   function handleCopy(content: string, id: string) {
     navigator.clipboard.writeText(content).then(() => {
@@ -379,7 +471,47 @@ export default function NamaCopilot() {
                       {msg.content}
                       {msg.streaming && <span className="inline-block w-1.5 h-3.5 bg-[#14B8A6] ml-0.5 animate-pulse rounded-sm" />}
                     </div>
-                    {msg.role === 'assistant' && !msg.streaming && (
+
+                    {/* ── REQUIRES_CONFIRMATION action card ────────────── */}
+                    {msg.pendingAction && !msg.actionResult && (
+                      <div className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 p-2.5">
+                        <div className="flex items-start gap-2 mb-2">
+                          <ShieldAlert size={13} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-wide">Action Requires Confirmation</p>
+                            <p className="text-xs text-amber-800 mt-0.5">{msg.pendingAction.display}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleActionApprove(msg.id, msg.pendingAction!)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors"
+                          >
+                            <CheckCircle2 size={11} /> Approve
+                          </button>
+                          <button
+                            onClick={() => handleActionReject(msg.id)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-slate-200 hover:bg-red-100 hover:text-red-600 text-slate-600 text-[11px] font-bold transition-colors"
+                          >
+                            <XCircle size={11} /> Reject
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Outcome badge after decision */}
+                    {msg.actionResult === 'approved' && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-emerald-600 font-semibold">
+                        <CheckCircle2 size={10} /> Action approved
+                      </div>
+                    )}
+                    {msg.actionResult === 'rejected' && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold">
+                        <XCircle size={10} /> Action rejected
+                      </div>
+                    )}
+
+                    {msg.role === 'assistant' && !msg.streaming && !msg.pendingAction && (
                       <button
                         onClick={() => handleCopy(msg.content, msg.id)}
                         className="absolute -bottom-5 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600"
@@ -426,3 +558,4 @@ export default function NamaCopilot() {
     </>
   );
 }
+

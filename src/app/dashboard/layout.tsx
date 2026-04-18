@@ -75,27 +75,94 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayEmail = auth.user?.email ?? 'Loading...';
   const displayRole = auth.user?.role ?? '';
 
-  const navigation = [
-    { name: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard },
-    { name: 'Query Inbox',  href: '/dashboard/queries',      icon: Inbox },
-    { name: 'Leads',        href: '/dashboard/leads',        icon: Users },
-    { name: 'Quotations',   href: '/dashboard/quotations',   icon: FileQuestion },
-    { name: 'Itineraries',  href: '/dashboard/itineraries',  icon: Map },
-    { name: 'Bookings',     href: '/dashboard/bookings',     icon: Briefcase },
-    { name: 'Vendors',      href: '/dashboard/vendors',      icon: Store },
-    { name: 'Comms',        href: '/dashboard/comms',        icon: MessageSquare },
-    { name: 'Intentra',     href: '/dashboard/intentra',     icon: Radar, badge: 'Live' },
-    { name: 'Documents',    href: '/dashboard/documents',    icon: FolderOpen },
-    { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard, badge: 'Preview' },
-    { name: 'Content',      href: '/dashboard/content',      icon: FileText },
-    { name: 'Automations',  href: '/dashboard/automations',  icon: GitBranch },
-    { name: 'Reports',      href: '/dashboard/reports',      icon: BarChart2 },
-    { name: 'Integrations', href: '/dashboard/integrations', icon: Plug },
-    { name: 'Settings',     href: '/dashboard/settings',     icon: Settings },
-    { name: 'System Status',href: '/dashboard/status',       icon: Activity },
-    { name: 'Audit Agent', href: '/dashboard/audit',         icon: ShieldCheck },
-    { name: 'Investor',    href: '/dashboard/investor',      icon: TrendingUp, badge: 'R0' },
+  // Role-based navigation — each item declares which roles can see it.
+  // null/undefined means visible to all authenticated users (and demo mode).
+  // Roles: R0_NAMA_OWNER  R1_SUPER_ADMIN  R2_ORG_ADMIN  R3_SALES_MANAGER
+  //        R4_OPS_EXECUTIVE  R5_FINANCE_ADMIN  R6_SUB_AGENT  R7_CLIENT_PORTAL
+  const ALL_NAV = [
+    {
+      name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard,
+      roles: null, // all roles
+    },
+    {
+      name: 'Query Inbox', href: '/dashboard/queries', icon: Inbox,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT'],
+    },
+    {
+      name: 'Leads', href: '/dashboard/leads', icon: Users,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT'],
+    },
+    {
+      name: 'Quotations', href: '/dashboard/quotations', icon: FileQuestion,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT'],
+    },
+    {
+      name: 'Itineraries', href: '/dashboard/itineraries', icon: Map,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT'],
+    },
+    {
+      name: 'Bookings', href: '/dashboard/bookings', icon: Briefcase,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT','R7_CLIENT_PORTAL'],
+    },
+    {
+      name: 'Vendors', href: '/dashboard/vendors', icon: Store,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R4_OPS_EXECUTIVE'],
+    },
+    {
+      name: 'Comms', href: '/dashboard/comms', icon: MessageSquare,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
+    },
+    {
+      name: 'Intentra', href: '/dashboard/intentra', icon: Radar, badge: 'Live',
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER'],
+    },
+    {
+      name: 'Documents', href: '/dashboard/documents', icon: FolderOpen,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R5_FINANCE_ADMIN','R7_CLIENT_PORTAL'],
+    },
+    {
+      name: 'Finance', href: '/dashboard/finance', icon: CreditCard, badge: 'Preview',
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R5_FINANCE_ADMIN'],
+    },
+    {
+      name: 'Content', href: '/dashboard/content', icon: FileText,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R4_OPS_EXECUTIVE'],
+    },
+    {
+      name: 'Automations', href: '/dashboard/automations', icon: GitBranch,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'Reports', href: '/dashboard/reports', icon: BarChart2,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R5_FINANCE_ADMIN'],
+    },
+    {
+      name: 'Integrations', href: '/dashboard/integrations', icon: Plug,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'Settings', href: '/dashboard/settings', icon: Settings,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'System Status', href: '/dashboard/status', icon: Activity,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN'],
+    },
+    {
+      name: 'Audit Agent', href: '/dashboard/audit', icon: ShieldCheck,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN'],
+    },
+    {
+      name: 'Investor', href: '/dashboard/investor', icon: TrendingUp, badge: 'R0',
+      roles: ['R0_NAMA_OWNER'],
+    },
   ];
+
+  // Filter nav based on current user's role (demo mode shows full nav)
+  const userRole = auth.user?.role ?? null;
+  const navigation = isDemoMode
+    ? ALL_NAV
+    : ALL_NAV.filter((item) => !item.roles || !userRole || item.roles.includes(userRole));
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <aside className={`
@@ -362,3 +429,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+

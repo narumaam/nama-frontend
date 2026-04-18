@@ -40,3 +40,25 @@ class LedgerSummary(BaseModel):
     pending_settlements: float
     currency: str
     last_reconciled: datetime
+    # Frontend-friendly aliases
+    total_revenue: float = 0.0
+    total_cost: float = 0.0
+    gross_profit: float = 0.0
+    margin_pct: float = 0.0
+    pending_reconciliation: int = 0
+
+
+class LedgerEntryOut(BaseModel):
+    id: int
+    type: str            # CREDIT | DEBIT
+    amount: float
+    currency: str
+    description: str
+    reference: Optional[str] = None
+    booking_id: Optional[int] = None
+    created_at: datetime
+    reconciled: bool = True
+
+    class Config:
+        from_attributes = True
+

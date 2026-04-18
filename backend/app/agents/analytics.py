@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import func, literal
+from sqlalchemy import func, literal, text
 
 from app.schemas.analytics import KPIEntry, DashboardSummary, Anomaly, BusinessForecast
 from app.schemas.bookings import BookingStatus
@@ -215,10 +215,17 @@ class AnalyticsAgent:
         now = datetime.now(timezone.utc)
         three_months_ago = now - timedelta(days=90)
 
+        # Dialect-aware month grouping: PostgreSQL uses to_char(), SQLite uses strftime()
+        dialect = db.bind.dialect.name if db.bind else "sqlite"
+        if dialect == "postgresql":
+            month_expr = func.to_char(Payment.created_at, "YYYY-MM").label("month")
+        else:
+            month_expr = func.strftime(literal("%Y-%m"), Payment.created_at).label("month")
+
         # Query GMV for last 3 months
         monthly_data = (
             db.query(
-                func.strftime(literal("%Y-%m"), Payment.created_at).label("month"),
+                month_expr,
                 func.sum(Payment.amount).label("total"),
             )
             .filter(
@@ -226,8 +233,8 @@ class AnalyticsAgent:
                 Payment.status == PaymentStatus.COMPLETED,
                 Payment.created_at > three_months_ago,
             )
-            .group_by("month")
-            .order_by("month")
+            .group_by(text("month"))
+            .order_by(text("month"))
             .all()
         )
 
@@ -268,3 +275,4 @@ class AnalyticsAgent:
             confidence_score=confidence,
             recommendation=f"Based on recent trends, expect a {(((projected_gmv / (values[-1] if values[-1] > 0 else 1)) - 1) * 100):.1f}% change in GMV next month.",
         )
+

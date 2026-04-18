@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.financials import Transaction, TransactionType, TransactionStatus, BookingProfit, LedgerSummary
+from app.schemas.financials import Transaction, TransactionType, TransactionStatus, BookingProfit, LedgerSummary, LedgerEntryOut
 from app.agents.finance import FinanceAgent
 from app.api.v1.deps import get_current_user, RoleChecker
 from app.models.auth import UserRole
@@ -58,6 +58,61 @@ def get_finance_overview(
     Get the overall ledger summary for the tenant organization.
     """
     return finance_agent.get_ledger_summary(db, current_user.tenant_id)
+
+
+@router.get("/ledger")
+def list_ledger_entries(
+    limit: int = 50,
+    offset: int = 0,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    List paginated double-entry ledger entries for the tenant.
+    Used by the Finance page to show the transaction ledger table.
+    """
+    return finance_agent.list_ledger_entries(db, current_user.tenant_id, limit=limit, offset=offset)
+
+
+@router.get("/ar-aging")
+def get_ar_aging(
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Accounts Receivable Aging Report.
+    Groups outstanding receivables into 0-30d, 31-60d, 61-90d, 90+d buckets.
+    """
+    return finance_agent.get_ar_aging(db, current_user.tenant_id)
+
+
+@router.get("/bank-reconciliation")
+def get_bank_reconciliation(
+    days: int = 30,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Bank Reconciliation Report for the past N days.
+    Shows reconciled vs. unreconciled ledger entries.
+    """
+    return finance_agent.get_bank_reconciliation(db, current_user.tenant_id, days=days)
+
+
+@router.get("/month-end-close/{year}/{month}")
+def get_month_end_close(
+    year: int,
+    month: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Month-End Close Report for a specific year/month.
+    Returns P&L summary: revenue, cost, gross profit, margin%, booking count.
+    """
+    if not (1 <= month <= 12):
+        raise HTTPException(status_code=400, detail="month must be 1–12")
+    return finance_agent.get_month_end_close(db, current_user.tenant_id, year=year, month=month)
 
 
 # ── PDF Document endpoints ─────────────────────────────────────────────────────
@@ -180,3 +235,4 @@ def download_vendor_payout(
         "amount":      ctx.get("total", 0),
     }]
     return pdf_response(DocType.VENDOR_PAYOUT, ctx, f"vendor-payout-{booking_id}.pdf")
+

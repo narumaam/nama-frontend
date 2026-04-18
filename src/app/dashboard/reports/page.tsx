@@ -250,16 +250,33 @@ function StatCard({ label, value, trend, sub, icon: Icon, color }: {
 export default function ReportsPage() {
   const [range, setRange] = useState<Range>("30d");
   const [activeTab, setActiveTab] = useState<Tab>("revenue");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [liveKPIs, setLiveKPIs] = useState<any | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [liveForecast, setLiveForecast] = useState<any | null>(null);
+
+  // Load real KPIs from analytics API
+  React.useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null;
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    Promise.all([
+      fetch('/api/v1/analytics/dashboard', { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch('/api/v1/analytics/forecast',  { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([dashboard, forecast]) => {
+      if (dashboard) setLiveKPIs(dashboard);
+      if (forecast)  setLiveForecast(forecast);
+    });
+  }, [range]);
 
   const days = RANGE_DAYS[range];
   const series = useMemo(() => generateRevenueSeries(days), [days]);
 
-  // Aggregate KPIs
-  const totalRevenue  = series.reduce((s, d) => s + d.revenue, 0);
+  // Use live KPIs when available, fall back to generated series
+  const totalRevenue  = liveKPIs?.gmv?.value  ?? series.reduce((s, d) => s + d.revenue, 0);
   const totalCost     = series.reduce((s, d) => s + d.cost, 0);
   const grossProfit   = totalRevenue - totalCost;
   const totalBookings = series.reduce((s, d) => s + d.bookings, 0);
-  const margin        = Math.round((grossProfit / totalRevenue) * 100);
+  const margin        = totalRevenue > 0 ? Math.round((grossProfit / totalRevenue) * 100) : 0;
 
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "revenue",      label: "Revenue",      icon: TrendingUp },
@@ -301,11 +318,49 @@ export default function ReportsPage() {
 
       {/* ── KPI Strip ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Revenue"  value={fmtINR(totalRevenue)}  trend={18} sub={`${days}d period`} icon={TrendingUp} color="bg-[#14B8A6]" />
-        <StatCard label="Gross Profit"   value={fmtINR(grossProfit)}   trend={margin} sub={`${margin}% margin`}  icon={DollarSign} color="bg-violet-500" />
-        <StatCard label="Bookings"       value={String(totalBookings)} trend={12} sub="confirmed" icon={FileText} color="bg-blue-500" />
-        <StatCard label="Total Leads"    value="892" trend={8} sub="triaged by AI" icon={Zap} color="bg-amber-500" />
+        <StatCard
+          label="Total GMV"
+          value={fmtINR(totalRevenue)}
+          trend={liveKPIs?.gmv?.trend ?? 18}
+          sub={liveKPIs ? "live from DB" : `${days}d estimate`}
+          icon={TrendingUp} color="bg-[#14B8A6]"
+        />
+        <StatCard
+          label="Conversion Rate"
+          value={liveKPIs ? `${(liveKPIs.conversion_rate?.value ?? 0).toFixed(1)}%` : `${margin}%`}
+          trend={liveKPIs?.conversion_rate?.trend ?? 5}
+          sub={liveKPIs ? "lead-to-booking" : "est. margin"}
+          icon={DollarSign} color="bg-violet-500"
+        />
+        <StatCard
+          label="Active Itineraries"
+          value={liveKPIs ? String(Math.round(liveKPIs.active_itineraries?.value ?? totalBookings)) : String(totalBookings)}
+          trend={12}
+          sub="in pipeline"
+          icon={FileText} color="bg-blue-500"
+        />
+        <StatCard
+          label="Total Leads"
+          value={liveKPIs ? String(Math.round(liveKPIs.total_leads?.value ?? 892)) : "892"}
+          trend={8}
+          sub="triaged by AI"
+          icon={Zap} color="bg-amber-500"
+        />
       </div>
+
+      {/* ── AI Forecast Banner ────────────────────────────────────────────────── */}
+      {liveForecast && (
+        <div className="bg-gradient-to-r from-[#0F172A] to-slate-800 border border-[#14B8A6]/20 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black text-[#14B8A6] uppercase tracking-widest mb-1">AI Forecast · {liveForecast.target_month}</p>
+            <p className="text-white text-sm">{liveForecast.recommendation}</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-xl font-black text-white">{fmtINR(liveForecast.projected_gmv ?? 0)}</p>
+            <p className="text-xs text-slate-400">Confidence: {Math.round((liveForecast.confidence_score ?? 0) * 100)}%</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Tab Bar ─────────────────────────────────────────────────────────── */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto">
@@ -708,3 +763,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+

@@ -99,7 +99,8 @@ class ByokApiKey(Base):
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
-SUPPORTED_PROVIDERS = {"openai", "anthropic", "google"}
+# AI providers + Payment gateways — all stored encrypted in byok_api_keys table
+SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "stripe", "razorpay"}
 
 class ApiKeyCreate(BaseModel):
     provider: str
@@ -453,3 +454,4 @@ def get_active_byok_key(db: Session, tenant_id: int, provider: str) -> Optional[
     except Exception as e:
         logger.error(f"Failed to decrypt BYOK key for tenant={tenant_id} provider={provider}: {e}")
         return None
+
