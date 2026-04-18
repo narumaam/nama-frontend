@@ -76,7 +76,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayEmail = auth.user?.email ?? 'Loading...';
   const displayRole = auth.user?.role ?? '';
 
-<<<<<<< HEAD
   // Role-based navigation — each item declares which roles can see it.
   // null/undefined means visible to all authenticated users (and demo mode).
   // Roles: R0_NAMA_OWNER  R1_SUPER_ADMIN  R2_ORG_ADMIN  R3_SALES_MANAGER
@@ -166,28 +165,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       name: 'Investor', href: '/dashboard/investor', icon: TrendingUp, badge: 'R0',
       roles: ['R0_NAMA_OWNER'],
     },
-=======
-  const navigation = [
-    { name: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard },
-    { name: 'Query Inbox',  href: '/dashboard/queries',      icon: Inbox },
-    { name: 'Leads',        href: '/dashboard/leads',        icon: Users },
-    { name: 'Quotations',   href: '/dashboard/quotations',   icon: FileQuestion },
-    { name: 'Itineraries',  href: '/dashboard/itineraries',  icon: Map },
-    { name: 'Bookings',     href: '/dashboard/bookings',     icon: Briefcase },
-    { name: 'Vendors',      href: '/dashboard/vendors',      icon: Store },
-    { name: 'Comms',        href: '/dashboard/comms',        icon: MessageSquare },
-    { name: 'Intentra',     href: '/dashboard/intentra',     icon: Radar, badge: 'Live' },
-    { name: 'Documents',    href: '/dashboard/documents',    icon: FolderOpen },
-    { name: 'Finance',      href: '/dashboard/finance',      icon: CreditCard },
-    { name: 'Content',      href: '/dashboard/content',      icon: FileText },
-    { name: 'Automations',  href: '/dashboard/automations',  icon: GitBranch },
-    { name: 'Reports',      href: '/dashboard/reports',      icon: BarChart2 },
-    { name: 'Investor',     href: '/dashboard/investor',     icon: TrendingUp, badge: 'R0' },
-    { name: 'Integrations', href: '/dashboard/integrations', icon: Plug },
-    { name: 'Settings',     href: '/dashboard/settings',     icon: Settings },
-    { name: 'System Status',href: '/dashboard/status',       icon: Activity },
-    { name: 'Audit Agent', href: '/dashboard/audit',         icon: ShieldCheck },
->>>>>>> c0789b7 (security: add role guards, fix demo nav exposure, harden role names)
   ];
 
   // Filter nav based on current user's role (demo mode shows full nav)
