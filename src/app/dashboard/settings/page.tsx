@@ -361,6 +361,7 @@ export default function SettingsPage() {
           <span className="font-medium text-sm">{error || success}</span>
           <button onClick={() => { setError(null); setSuccess(null) }} className="ml-auto opacity-60 hover:opacity-100">✕</button>
         </div>
+      )}
 
       {/* Tabs — scrollable on mobile */}
       <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
