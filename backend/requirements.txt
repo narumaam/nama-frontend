@@ -1,41 +1,33 @@
 # NAMA Backend — Production Requirements
-# Python 3.10 (pinned via nixpacks.toml / Dockerfile)
-
-# ── Web Framework ──────────────────────────────────────────────────────────────
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
 gunicorn==23.0.0
-
-# ── Database ───────────────────────────────────────────────────────────────────
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.9
 alembic==1.13.3
-
-# ── Auth & Security ────────────────────────────────────────────────────────────
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.12
-cryptography==43.0.3  # Fernet AES-256 for BYOK key encryption (M15)
-
-# ── Config & Env ───────────────────────────────────────────────────────────────
+cryptography==43.0.3
 python-dotenv==1.0.1
 pydantic==2.9.2
-pydantic[email]==2.9.2
+pydantic-settings==2.4.0
 email-validator==2.2.0
-
-# ── HTTP Client ────────────────────────────────────────────────────────────────
 httpx==0.27.0
-
-# ── Caching ────────────────────────────────────────────────────────────────────
+requests==2.31.0
+slowapi==0.1.9
 redis==5.1.1
 upstash-redis==1.4.0
-
-# ── Observability ─────────────────────────────────────────────────────────────
 prometheus-client==0.21.0
 sentry-sdk[fastapi]==2.1.1
-
-# ── Utilities ─────────────────────────────────────────────────────────────────
+anthropic==0.21.3
+langchain==0.1.13
+langchain-community==0.0.38
+langchain-core==0.1.53
+langgraph==0.0.30
+reportlab==4.1.0
+pillow==10.2.0
 python-dateutil==2.9.0
 stripe==7.0.0
 razorpay==1.4.2
