@@ -1,9 +1,10 @@
 # NAMA OS — Project Memory
 
-## Current Status: ⚠️ DEMO READY · ONE BLOCKER (Railway backend)
+## Current Status: ✅ LIVE · Backend + Frontend both operational
 
-**Last major commit:** 164cdd5 — all pending items completed
-**Latest deploy:** Vercel auto-deploy triggered on push
+**Last major commit:** 0554539 — Railway crash loop resolved, backend healthy
+**Latest deploy:** Vercel + Railway both auto-deploy on push to main
+**Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
 ---
 
@@ -46,10 +47,17 @@
 
 ---
 
-## Single Launch Blocker
-🔴 **Railway backend unreachable** — real agent login broken (demo mode works perfectly)
-- Fix: Restart Railway service, verify DATABASE_URL points to active Neon connection
-- Once fixed: set NAMA_API_KEY in Vercel environment variables (Settings → Env Vars)
+## Single Remaining Action for Real Login
+🟡 **Set NAMA_API_KEY in Vercel** — demo mode works, real agent login needs this env var
+- Railway is live: `https://intuitive-blessing-production-30de.up.railway.app`
+- Action: Vercel Dashboard → nama-frontend → Settings → Environment Variables → add `NAMA_API_KEY` (copy value from Railway Dashboard → Variables)
+
+## Railway Crash Loop — Resolved 2026-04-18
+Root causes fixed (see RAILWAY_INCIDENT_REPORT.md for full details):
+1. `Base.metadata.create_all()` removed from `backend/app/main.py` module level
+2. Gunicorn workers capped at 4 (`min((2*CPU)+1, 4)`) in `backend/gunicorn.conf.py`
+3. `alembic upgrade heads` (plural) in Dockerfile and nixpacks.toml
+4. `ix_leads_tenant_assigned_user` index gracefully skipped when column absent
 
 ---
 
@@ -89,4 +97,4 @@
 - GitHub: https://github.com/narumaam/nama-frontend
 - Local: ~/Desktop/NAMA/07_Developer_Project
 - Deployed: Vercel (auto-deploy on push to main)
-- Backend: https://intuitive-blessing-production-30de.up.railway.app (currently down)
+- Backend: https://intuitive-blessing-production-30de.up.railway.app ✅ LIVE

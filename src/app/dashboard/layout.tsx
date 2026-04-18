@@ -8,6 +8,7 @@ import {
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
+  UserCheck, Contact,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -105,6 +106,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT','R7_CLIENT_PORTAL'],
     },
     {
+      name: 'Clients', href: '/dashboard/clients', icon: Contact,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
+    },
+    {
       name: 'Vendors', href: '/dashboard/vendors', icon: Store,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R4_OPS_EXECUTIVE'],
     },
@@ -138,6 +143,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
     {
       name: 'Integrations', href: '/dashboard/integrations', icon: Plug,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'Team', href: '/dashboard/team', icon: UserCheck,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
     },
     {
