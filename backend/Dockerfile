@@ -16,8 +16,8 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app/backend
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "alembic upgrade heads && gunicorn app.main:app --config gunicorn.conf.py"]
+CMD ["sh", "-c", "cd /app/backend && alembic upgrade heads && gunicorn app.main:app --config gunicorn.conf.py"]
