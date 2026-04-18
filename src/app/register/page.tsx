@@ -552,6 +552,7 @@ export default function RegisterPage() {
               </button>
 
             </form>
+            )}
 
             <p className="mt-6 text-center text-[11px] text-slate-400 font-medium">
               Already have an account?{' '}
