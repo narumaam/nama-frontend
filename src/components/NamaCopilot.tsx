@@ -214,9 +214,13 @@ export default function NamaCopilot() {
       // Build history from current messages (exclude the new assistant placeholder)
       const history = messages.map(m => ({ role: m.role, content: m.content }));
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null;
       const res = await fetch('/api/v1/copilot/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           message: text,
           history,
@@ -549,7 +553,9 @@ export default function NamaCopilot() {
               </div>
               <div className="flex items-center justify-between mt-1.5 px-1">
                 <span className="text-[10px] text-slate-400">Shift+Enter for new line</span>
-                <span className="text-[10px] text-slate-400">NAMA Copilot · Demo mode</span>
+                <span className="text-[10px] text-slate-400">
+                  {typeof window !== 'undefined' && localStorage.getItem('nama_token') ? 'NAMA Copilot · Live AI' : 'NAMA Copilot · Demo mode'}
+                </span>
               </div>
             </div>
           </div>
