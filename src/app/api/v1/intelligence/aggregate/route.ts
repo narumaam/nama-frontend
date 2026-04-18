@@ -54,7 +54,7 @@ const AGGREGATE_DATA = {
 };
 
 export async function GET(request: NextRequest) {
-  const rateLimitError = rateLimit(request, RATE_LIMITS.intelligence);
+  const rateLimitError = await rateLimit(request, RATE_LIMITS.intelligence);
   if (rateLimitError) return rateLimitError;
   const authError = requireApiKey(request);
   if (authError) return authError;

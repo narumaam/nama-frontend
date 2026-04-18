@@ -28,7 +28,7 @@ function isValidJwtShape(token: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const rateLimitError = rateLimit(request, RATE_LIMITS.auth);
+  const rateLimitError = await rateLimit(request, RATE_LIMITS.auth);
   if (rateLimitError) return rateLimitError;
 
   try {
