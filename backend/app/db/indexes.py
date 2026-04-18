@@ -129,8 +129,21 @@ def create_all_indexes(engine):
 
     for idx in PERFORMANCE_INDEXES:
         try:
+            table_name = idx.table.name
+
+            # Check if all columns referenced by this index exist in the table.
+            # Columns may be absent when the schema is ahead of the model
+            # (e.g. assigned_user_id not yet added via migration).
+            existing_columns = {col["name"] for col in inspector.get_columns(table_name)}
+            index_columns = [col.key for col in idx.columns]
+            missing = [c for c in index_columns if c not in existing_columns]
+            if missing:
+                print(f"  ⊘  {idx.name:40s} (skipped — columns not yet in schema: {missing})")
+                skipped += 1
+                continue
+
             # Check if index already exists
-            existing_indexes = inspector.get_indexes(idx.table.name)
+            existing_indexes = inspector.get_indexes(table_name)
             index_exists = any(ix["name"] == idx.name for ix in existing_indexes)
 
             if index_exists:
