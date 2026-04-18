@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
 import GlobalSearch from '@/components/GlobalSearch';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { FeedbackWidget } from '@/components/FeedbackWidget';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -355,6 +356,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* NAMA Copilot — floating AI assistant, available on all dashboard pages */}
       <NamaCopilot />
+
+      {/* Feedback / NPS widget (P4-10) */}
+      <FeedbackWidget />
     </div>
   );
 }

@@ -41,6 +41,7 @@ from app.api.v1 import webhooks as webhooks_router
 from app.api.v1 import copilot as copilot_router
 from app.api.v1 import automations as automations_router
 from app.api.v1 import investor as investor_router
+from app.api.v1 import feedback as feedback_router
 from app.db.session import engine, Base, init_performance_indexes
 from app.core.cache_warmer import start_background_warmer
 from app.core.rate_limiter import RateLimitMiddleware
@@ -264,6 +265,9 @@ app.include_router(automations_router.router, prefix="/api/v1/automations",  tag
 
 #   Investor dashboard — R0 platform analytics (P3-9)
 app.include_router(investor_router.router,    prefix="/api/v1/investor",     tags=["investor"])
+
+#   Feedback / NPS (P4-10)
+app.include_router(feedback_router.router, prefix="/api/v1/feedback", tags=["feedback"])
 
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
