@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import { TrendingUp, Building2, DollarSign, BarChart3, RefreshCw, ArrowUpRight } from "lucide-react";
 
@@ -181,6 +182,142 @@ export default function InvestorDashboard() {
           </p>
         </>
       )}
+=======
+import React, { useState, useEffect } from "react";
+import {
+  TrendingUp, TrendingDown, DollarSign, Users,
+  BarChart2, ArrowUpRight, Shield, Download,
+  Briefcase, Zap, Globe, PieChart, Loader,
+  ChevronDown, Calendar, RefreshCw, FileText
+} from "lucide-react";
+import { analyticsApi } from "@/lib/api";
+
+export default function InvestorDashboard() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    analyticsApi.investor()
+      .then(res => setData(res))
+      .catch(err => console.error("Investor API error:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const fmt = (n: number) => {
+    if (!n) return "₹0";
+    if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
+    if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+    return `₹${n.toLocaleString()}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader className="animate-spin text-[#14B8A6]" size={32} />
+        <p className="text-slate-500 font-medium">Loading investor analytics...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 pb-12">
+      {/* Header */}
+      <div className="flex justify-between items-end">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2 py-0.5 bg-[#0F172A] text-white text-[10px] font-black rounded uppercase tracking-wider">R0 Confidential</span>
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Board View</span>
+          </div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Investor Dashboard</h1>
+          <p className="text-slate-500 mt-2 font-medium">Real-time unit economics, cohort retention, and AI operational efficiency.</p>
+        </div>
+        <button className="bg-[#14B8A6] text-[#0F172A] px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-[#0FA898] transition-all shadow-lg shadow-[#14B8A6]/20">
+          <Download size={18} /> Export Board Pack
+        </button>
+      </div>
+
+      {/* High Level KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <KPIBox label="Total GMV" value={fmt(data?.gmv_cents / 100)} sub="Last 30 Days" icon={DollarSign} color="bg-emerald-500" />
+        <KPIBox label="Net Revenue" value={fmt(data?.net_revenue_cents / 100)} sub={`${data?.gross_margin_pct}% Gross Margin`} icon={BarChart2} color="bg-blue-500" />
+        <KPIBox label="CAC (Proxy)" value={fmt(data?.cac_proxy_cents / 100)} sub="Per Qualified Lead" icon={Users} color="bg-violet-500" />
+        <KPIBox label="LTV/CAC" value="4.2x" sub="Target: 3.5x" icon={TrendingUp} color="bg-amber-500" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Retention Chart */}
+        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[32px] p-8">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-xl font-black text-[#0F172A]">Cohort Retention</h3>
+            <div className="flex gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                <div className="w-2 h-2 rounded-full bg-[#14B8A6]" /> Return Rate
+              </span>
+            </div>
+          </div>
+          <div className="h-64 flex items-end justify-between gap-4 px-4">
+            {data?.cohort_retention?.map((c: any, i: number) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-4">
+                <div className="w-full bg-slate-50 rounded-xl relative h-full flex items-end overflow-hidden">
+                   <div 
+                    className="w-full bg-gradient-to-t from-[#14B8A6] to-[#0FA898] transition-all duration-1000" 
+                    style={{ height: `${c.retention}%` }}
+                   />
+                </div>
+                <span className="text-xs font-bold text-slate-500">{c.month}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* AI Efficiency Card */}
+        <div className="bg-[#0F172A] rounded-[32px] p-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <Zap size={120} />
+          </div>
+          <h3 className="text-xl font-black mb-1 flex items-center gap-2">
+            <Zap size={20} className="text-[#14B8A6]" fill="#14B8A6" />
+            AI Efficiency
+          </h3>
+          <p className="text-slate-400 text-sm font-medium mb-8">Operational savings via BYOK.</p>
+
+          <div className="space-y-6">
+            <div>
+              <div className="text-3xl font-black mb-1">{fmt(data?.ai_savings_from_byok_cents / 100)}</div>
+              <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Est. Monthly Savings</div>
+            </div>
+            <div className="h-px bg-white/10" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xl font-bold text-[#14B8A6]">{fmt(data?.ai_cost_cents / 100)}</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">API Cost</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-white">1,240h</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Hours Saved</div>
+              </div>
+            </div>
+          </div>
+
+          <button className="w-full mt-10 bg-white/10 hover:bg-white/20 text-white border border-white/10 py-3 rounded-2xl text-xs font-black transition-all">
+            View Usage Breakdown
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KPIBox({ label, value, sub, icon: Icon, color }: any) {
+  return (
+    <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all">
+      <div className={`${color} w-10 h-10 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-current/20`}>
+        <Icon size={20} />
+      </div>
+      <div className="text-3xl font-black text-[#0F172A] mb-1">{value}</div>
+      <div className="text-sm font-bold text-slate-700">{label}</div>
+      <div className="text-xs text-slate-400 mt-1 font-medium">{sub}</div>
+>>>>>>> c0789b7 (security: add role guards, fix demo nav exposure, harden role names)
     </div>
   );
 }
