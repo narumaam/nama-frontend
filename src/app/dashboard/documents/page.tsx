@@ -3,14 +3,16 @@
 import React, { useState } from 'react';
 import {
   FileText, Receipt, Ticket, CheckSquare, Download, MessageCircle,
-  Copy, Eye, Plus, ChevronDown, ChevronUp, Search, Filter,
-  User, Phone, Mail, MapPin, Calendar, DollarSign, Hash,
-  Plane, Hotel, Car, Utensils, Star, Building, Globe, X, Check
+  Copy, Eye, Plus, Search, Filter,
+  Calendar, DollarSign,
+  Plane, Hotel, Shield, X, Check, Upload, Zap,
+  FileCheck, FileBadge, FileSpreadsheet, LayoutGrid
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type DocType = 'invoice' | 'voucher' | 'confirmation';
+type TabType = 'all' | 'invoice' | 'quotation' | 'voucher' | 'confirmation' | 'insurance';
 
 interface InvoiceData {
   invoiceNumber: string;
@@ -141,6 +143,29 @@ const SEED_CONFIRMATION: ConfirmationData = {
   agentName: 'Prateek Mehta',
 };
 
+// ─── Seed Document List ───────────────────────────────────────────────────────
+
+interface SeedDoc {
+  id: string;
+  type: TabType;
+  name: string;
+  client: string;
+  bookingRef: string;
+  date: string;
+  size: string;
+}
+
+const SEED_DOCS: SeedDoc[] = [
+  { id: '1', type: 'invoice', name: 'NAMA-INV-2024-0042', client: 'Arjun & Priya Mehta', bookingRef: 'BLI-MEH-2024-07', date: '2024-12-01', size: '142 KB' },
+  { id: '2', type: 'quotation', name: 'NAMA-QUO-2024-0031', client: 'Sanjay Gupta', bookingRef: 'EUR-GUP-2024-03', date: '2024-11-28', size: '98 KB' },
+  { id: '3', type: 'voucher', name: 'NAMA-VCH-2024-0088', client: 'Arjun Mehta', bookingRef: 'BLI-MEH-2024-07', date: '2024-12-15', size: '76 KB' },
+  { id: '4', type: 'confirmation', name: 'NAMA-BKG-2024-0042', client: 'Arjun & Priya Mehta', bookingRef: 'BLI-MEH-2024-07', date: '2024-12-10', size: '124 KB' },
+  { id: '5', type: 'invoice', name: 'NAMA-INV-2024-0039', client: 'Rohan & Anika Shah', bookingRef: 'MLD-SHA-2024-02', date: '2024-11-20', size: '138 KB' },
+  { id: '6', type: 'quotation', name: 'NAMA-QUO-2024-0028', client: 'Vikram Nair', bookingRef: 'SIN-NAI-2024-05', date: '2024-11-15', size: '91 KB' },
+  { id: '7', type: 'insurance', name: 'NAMA-INS-2024-0012', client: 'Arjun & Priya Mehta', bookingRef: 'BLI-MEH-2024-07', date: '2024-12-05', size: '54 KB' },
+  { id: '8', type: 'voucher', name: 'NAMA-VCH-2024-0081', client: 'Rohan Shah', bookingRef: 'MLD-SHA-2024-02', date: '2024-11-22', size: '68 KB' },
+];
+
 // ─── PDF Generators ───────────────────────────────────────────────────────────
 
 function generateInvoiceHTML(data: InvoiceData): string {
@@ -160,7 +185,6 @@ function generateInvoiceHTML(data: InvoiceData): string {
   <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;background:#fff;}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head>
   <body style="max-width:800px;margin:0 auto;padding:40px;">
-    <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:3px solid #14B8A6;">
       <div>
         <div style="font-size:28px;font-weight:900;color:#0f172a;letter-spacing:-0.5px;">${data.agencyName}</div>
@@ -171,7 +195,6 @@ function generateInvoiceHTML(data: InvoiceData): string {
         <div style="color:#64748b;font-size:13px;margin-top:4px;">${data.invoiceNumber}</div>
       </div>
     </div>
-    <!-- Meta -->
     <div style="display:flex;gap:40px;margin-bottom:36px;">
       <div style="flex:1;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:6px;">Bill To</div>
@@ -188,7 +211,6 @@ function generateInvoiceHTML(data: InvoiceData): string {
         </table>
       </div>
     </div>
-    <!-- Items Table -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
       <thead>
         <tr style="background:#0f172a;color:#fff;">
@@ -200,7 +222,6 @@ function generateInvoiceHTML(data: InvoiceData): string {
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    <!-- Totals -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:32px;">
       <table style="font-size:14px;border-collapse:collapse;">
         <tr><td style="padding:6px 24px 6px 0;color:#64748b;">Subtotal</td><td style="text-align:right;font-weight:600;">₹${subtotal.toLocaleString('en-IN')}</td></tr>
@@ -211,9 +232,7 @@ function generateInvoiceHTML(data: InvoiceData): string {
         </tr>
       </table>
     </div>
-    <!-- Notes -->
     ${data.notes ? `<div style="background:#f8fafc;border-left:3px solid #14B8A6;padding:12px 16px;border-radius:0 6px 6px 0;font-size:13px;color:#475569;margin-bottom:32px;"><strong>Notes:</strong> ${data.notes}</div>` : ''}
-    <!-- Footer -->
     <div style="border-top:1px solid #e2e8f0;padding-top:16px;text-align:center;color:#94a3b8;font-size:12px;">
       Thank you for your business • ${data.agencyName} • Generated via NAMA OS
     </div>
@@ -225,16 +244,13 @@ function generateVoucherHTML(data: VoucherData): string {
   <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;background:#fff;}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head>
   <body style="max-width:800px;margin:0 auto;padding:0;">
-    <!-- Hero Band -->
     <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);color:#fff;padding:40px;position:relative;overflow:hidden;">
       <div style="position:absolute;top:-20px;right:-20px;width:200px;height:200px;background:rgba(20,184,166,0.1);border-radius:50%;"></div>
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#14B8A6;margin-bottom:8px;">Travel Voucher</div>
       <div style="font-size:32px;font-weight:900;letter-spacing:-1px;">Hotel Booking Confirmation</div>
       <div style="margin-top:8px;color:#94a3b8;font-size:14px;">${data.agencyName} · Ref: ${data.bookingRef}</div>
     </div>
-    <!-- Body -->
     <div style="padding:36px 40px;">
-      <!-- Guest Info -->
       <div style="display:flex;gap:32px;margin-bottom:28px;padding:20px;background:#f8fafc;border-radius:10px;">
         <div style="flex:1;">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">Guest Name</div>
@@ -249,7 +265,6 @@ function generateVoucherHTML(data: VoucherData): string {
           <div style="font-size:20px;font-weight:800;">${data.guestCount} Pax</div>
         </div>
       </div>
-      <!-- Stay Details -->
       <div style="margin-bottom:28px;">
         <div style="font-size:13px;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:14px;letter-spacing:0.5px;">Accommodation Details</div>
         <div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
@@ -275,13 +290,11 @@ function generateVoucherHTML(data: VoucherData): string {
           </div>
         </div>
       </div>
-      <!-- Special Requests -->
       ${data.specialRequests ? `
       <div style="margin-bottom:28px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px 20px;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#92400e;margin-bottom:6px;">Special Requests</div>
         <div style="font-size:14px;color:#78350f;">${data.specialRequests}</div>
       </div>` : ''}
-      <!-- Vendor Contact -->
       <div style="background:#0f172a;color:#fff;border-radius:10px;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">Hotel Contact</div>
@@ -305,7 +318,6 @@ function generateConfirmationHTML(data: ConfirmationData): string {
   <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;background:#fff;}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head>
   <body style="max-width:800px;margin:0 auto;padding:0;">
-    <!-- Header -->
     <div style="background:#0f172a;color:#fff;padding:32px 40px;display:flex;justify-content:space-between;align-items:center;">
       <div>
         <div style="font-size:26px;font-weight:900;letter-spacing:-0.5px;">${data.agencyName}</div>
@@ -317,13 +329,11 @@ function generateConfirmationHTML(data: ConfirmationData): string {
       </div>
     </div>
     <div style="padding:36px 40px;">
-      <!-- Confirmation Banner -->
       <div style="background:linear-gradient(135deg,#14B8A6,#0891b2);color:#fff;border-radius:10px;padding:20px 24px;margin-bottom:28px;text-align:center;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;opacity:0.8;margin-bottom:4px;">✓ Booking Confirmed</div>
         <div style="font-size:22px;font-weight:900;">${data.packageName}</div>
         <div style="opacity:0.85;margin-top:4px;">${data.destination} · ${data.travelDate} → ${data.returnDate} · ${data.pax} Pax</div>
       </div>
-      <!-- Client Info -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">
         <div style="background:#f8fafc;border-radius:8px;padding:16px 20px;">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px;">Client Details</div>
@@ -338,7 +348,6 @@ function generateConfirmationHTML(data: ConfirmationData): string {
           <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #e2e8f0;"><span style="font-weight:700;font-size:13px;">Balance Due</span><span style="font-weight:800;color:#dc2626;font-size:15px;">₹${balance.toLocaleString('en-IN')}</span></div>
         </div>
       </div>
-      <!-- Inclusions / Exclusions -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">
         <div>
           <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#16a34a;margin-bottom:10px;">✓ Inclusions</div>
@@ -349,12 +358,10 @@ function generateConfirmationHTML(data: ConfirmationData): string {
           ${data.exclusions.map(e => `<div style="font-size:13px;padding:4px 0;color:#374151;">• ${e}</div>`).join('')}
         </div>
       </div>
-      <!-- Terms -->
       <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:28px;font-size:12px;color:#713f12;line-height:1.6;">
         <div style="font-weight:700;margin-bottom:4px;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Terms & Conditions</div>
         ${data.terms}
       </div>
-      <!-- Agent Sign-off -->
       <div style="border-top:1px solid #e2e8f0;padding-top:20px;display:flex;justify-content:space-between;align-items:center;">
         <div style="color:#94a3b8;font-size:12px;">Issued by ${data.agentName} · ${data.agencyName}</div>
         <div style="text-align:right;">
@@ -374,45 +381,139 @@ function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
     return () => clearTimeout(t);
   }, [onClose]);
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#14B8A6] text-white px-4 py-3 rounded-xl shadow-2xl text-sm font-semibold animate-in slide-in-from-bottom-2">
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#14B8A6] text-white px-4 py-3 rounded-xl shadow-2xl text-sm font-semibold">
       <Check size={15} />
       {msg}
     </div>
   );
 }
 
-// ─── Doc Card ─────────────────────────────────────────────────────────────────
+// ─── Doc Type Badge ───────────────────────────────────────────────────────────
 
-function DocCard({
-  icon: Icon,
-  color,
-  title,
-  desc,
-  count,
-  onClick,
-}: {
-  icon: React.ElementType;
-  color: string;
-  title: string;
-  desc: string;
-  count: number;
-  onClick: () => void;
-}) {
+function DocTypeBadge({ type }: { type: TabType }) {
+  const map: Record<TabType, { label: string; cls: string }> = {
+    all:          { label: 'All', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' },
+    invoice:      { label: 'Invoice', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
+    quotation:    { label: 'Quotation', cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
+    voucher:      { label: 'Voucher', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
+    confirmation: { label: 'Confirmation', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+    insurance:    { label: 'Insurance', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' },
+  };
+  const { label, cls } = map[type] ?? map.all;
   return (
-    <button
-      onClick={onClick}
-      className="group text-left bg-white rounded-2xl border border-slate-200 p-6 hover:border-[#14B8A6]/50 hover:shadow-lg transition-all duration-200 w-full"
-    >
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color}`}>
-        <Icon size={22} className="text-white" />
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+// ─── File Type Icon ───────────────────────────────────────────────────────────
+
+function DocIcon({ type }: { type: TabType }) {
+  const map: Record<TabType, { icon: React.ElementType; bg: string; fg: string }> = {
+    all:          { icon: FileText,        bg: 'bg-slate-100 dark:bg-slate-700',          fg: 'text-slate-500 dark:text-slate-300' },
+    invoice:      { icon: Receipt,         bg: 'bg-blue-100 dark:bg-blue-900/40',          fg: 'text-blue-600 dark:text-blue-400' },
+    quotation:    { icon: FileSpreadsheet, bg: 'bg-violet-100 dark:bg-violet-900/40',      fg: 'text-violet-600 dark:text-violet-400' },
+    voucher:      { icon: Hotel,           bg: 'bg-emerald-100 dark:bg-emerald-900/40',    fg: 'text-emerald-600 dark:text-emerald-400' },
+    confirmation: { icon: FileCheck,       bg: 'bg-amber-100 dark:bg-amber-900/40',        fg: 'text-amber-600 dark:text-amber-400' },
+    insurance:    { icon: Shield,          bg: 'bg-rose-100 dark:bg-rose-900/40',          fg: 'text-rose-600 dark:text-rose-400' },
+  };
+  const { icon: Icon, bg, fg } = map[type] ?? map.all;
+  return (
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${bg}`}>
+      <Icon size={18} className={fg} />
+    </div>
+  );
+}
+
+// ─── Document Card ────────────────────────────────────────────────────────────
+
+function DocumentCard({ doc, onGenerate }: { doc: SeedDoc; onGenerate: (type: DocType) => void }) {
+  const isGeneratable = doc.type === 'invoice' || doc.type === 'voucher' || doc.type === 'confirmation';
+
+  function handleDownload() {
+    if (!isGeneratable) return;
+    onGenerate(doc.type as DocType);
+  }
+
+  return (
+    <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-2xl p-4 hover:shadow-md hover:border-[#14B8A6]/30 dark:hover:border-[#14B8A6]/20 transition-all duration-200 group">
+      <div className="flex items-start gap-3 mb-3">
+        <DocIcon type={doc.type} />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{doc.name}</div>
+          <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{doc.client}</div>
+        </div>
+        <DocTypeBadge type={doc.type} />
       </div>
-      <div className="font-bold text-slate-800 text-lg mb-1">{title}</div>
-      <div className="text-slate-500 text-sm mb-4 leading-relaxed">{desc}</div>
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-400">{count} generated this month</span>
-        <span className="text-xs font-semibold text-[#14B8A6] opacity-0 group-hover:opacity-100 transition-opacity">Create →</span>
+
+      <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500 mb-3">
+        <span className="flex items-center gap-1">
+          <Calendar size={11} />
+          {doc.date}
+        </span>
+        <span className="flex items-center gap-1">
+          <FileText size={11} />
+          {doc.size}
+        </span>
+        <span className="flex items-center gap-1 ml-auto">
+          <FileBadge size={11} />
+          {doc.bookingRef}
+        </span>
       </div>
-    </button>
+
+      <div className="flex items-center gap-1 pt-2 border-t border-slate-100 dark:border-white/5">
+        <button
+          onClick={handleDownload}
+          title="Download / Preview"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] transition-colors"
+        >
+          <Download size={13} /> Download
+        </button>
+        <button
+          title="Send"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+        >
+          <MessageCircle size={13} /> Send
+        </button>
+        <button
+          onClick={handleDownload}
+          title="Preview"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+        >
+          <Eye size={13} /> Preview
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+function EmptyState({ tab, onGenerate }: { tab: TabType; onGenerate: () => void }) {
+  const map: Record<TabType, { icon: React.ElementType; label: string; cta: string }> = {
+    all:          { icon: LayoutGrid,      label: 'No documents yet',             cta: 'Generate your first document' },
+    invoice:      { icon: Receipt,         label: 'No invoices yet',              cta: 'Create Invoice' },
+    quotation:    { icon: FileSpreadsheet, label: 'No quotations yet',            cta: 'Create Quotation' },
+    voucher:      { icon: Hotel,           label: 'No vouchers yet',              cta: 'Create Hotel Voucher' },
+    confirmation: { icon: FileCheck,       label: 'No confirmations yet',         cta: 'Create Confirmation' },
+    insurance:    { icon: Shield,          label: 'No insurance documents yet',   cta: 'Add Insurance Document' },
+  };
+  const { icon: Icon, label, cta } = map[tab];
+  return (
+    <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-4">
+        <Icon size={24} className="text-slate-400 dark:text-slate-500" />
+      </div>
+      <div className="font-semibold text-slate-600 dark:text-slate-300 mb-1">{label}</div>
+      <div className="text-sm text-slate-400 dark:text-slate-500 mb-4">Generate professional documents in seconds</div>
+      <button
+        onClick={onGenerate}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/20 text-sm font-semibold hover:bg-[#14B8A6]/20 transition-colors"
+      >
+        <Plus size={14} /> {cta}
+      </button>
+    </div>
   );
 }
 
@@ -447,17 +548,21 @@ function InvoiceEditor({ onClose }: { onClose: () => void }) {
     navigator.clipboard.writeText(text).then(() => setToast('Copied to clipboard'));
   }
 
+  const inputCls = "w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 text-sm focus:outline-none focus:border-[#14B8A6] bg-white dark:bg-[#0A0F1E] text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600";
+  const sectionCls = "bg-[#F8FAFC] dark:bg-[#0A0F1E] border border-slate-100 dark:border-white/5 rounded-xl p-5";
+  const labelCls = "block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1";
+  const sectionHeadingCls = "text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4";
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0F1B35]">
       {toast && <Toast msg={toast} onClose={() => setToast('')} />}
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5">
         <div>
-          <div className="font-bold text-slate-800 text-lg">Invoice Generator</div>
-          <div className="text-xs text-slate-400">Fill in the details → Export PDF or share via WhatsApp</div>
+          <div className="font-bold text-slate-800 dark:text-slate-100 text-lg">Invoice Generator</div>
+          <div className="text-xs text-slate-400 dark:text-slate-500">Fill in the details, then export as PDF or share via WhatsApp</div>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition-colors">
+          <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 text-sm font-semibold transition-colors">
             <Copy size={13} /> Copy
           </button>
           <button onClick={handleShareWhatsApp} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors">
@@ -466,141 +571,82 @@ function InvoiceEditor({ onClose }: { onClose: () => void }) {
           <button onClick={handleExportPDF} disabled={pdfLoading} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#14B8A6] hover:bg-[#0d9488] text-white text-sm font-semibold transition-colors disabled:opacity-70">
             <Download size={13} /> {pdfLoading ? 'Opening…' : 'Export PDF'}
           </button>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 transition-colors">
             <X size={16} />
           </button>
         </div>
       </div>
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* Client */}
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Client Information</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Client Information</div>
           <div className="grid grid-cols-2 gap-4">
-            {[
+            {([
               { label: 'Client Name', key: 'clientName' as const },
               { label: 'Email', key: 'clientEmail' as const },
               { label: 'Phone', key: 'clientPhone' as const },
               { label: 'Address', key: 'clientAddress' as const },
-            ].map(({ label, key }) => (
+            ] as const).map(({ label, key }) => (
               <div key={key} className={key === 'clientAddress' ? 'col-span-2' : ''}>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
-                <input
-                  value={data[key]}
-                  onChange={e => setData(p => ({ ...p, [key]: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white"
-                />
+                <label className={labelCls}>{label}</label>
+                <input value={data[key]} onChange={e => setData(p => ({ ...p, [key]: e.target.value }))} className={inputCls} />
               </div>
             ))}
           </div>
         </div>
-        {/* Invoice Meta */}
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Invoice Details</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Invoice Details</div>
           <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Invoice Number', key: 'invoiceNumber' as const },
-              { label: 'Invoice Date', key: 'date' as const, type: 'date' },
-              { label: 'Due Date', key: 'dueDate' as const, type: 'date' },
-            ].map(({ label, key, type }) => (
+            {([
+              { label: 'Invoice Number', key: 'invoiceNumber' as const, type: 'text' as const },
+              { label: 'Invoice Date', key: 'date' as const, type: 'date' as const },
+              { label: 'Due Date', key: 'dueDate' as const, type: 'date' as const },
+            ] as const).map(({ label, key, type }) => (
               <div key={key}>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
-                <input
-                  type={type || 'text'}
-                  value={data[key]}
-                  onChange={e => setData(p => ({ ...p, [key]: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white"
-                />
+                <label className={labelCls}>{label}</label>
+                <input type={type || 'text'} value={data[key]} onChange={e => setData(p => ({ ...p, [key]: e.target.value }))} className={inputCls} />
               </div>
             ))}
           </div>
         </div>
-        {/* Line Items */}
-        <div className="bg-slate-50 rounded-xl p-5">
+        <div className={sectionCls}>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Line Items</div>
-            <button
-              onClick={() => setData(p => ({ ...p, items: [...p.items, { description: '', qty: 1, rate: 0, amount: 0 }] }))}
-              className="flex items-center gap-1 text-xs font-semibold text-[#14B8A6] hover:underline"
-            >
+            <div className={sectionHeadingCls.replace('mb-4', '')}>Line Items</div>
+            <button onClick={() => setData(p => ({ ...p, items: [...p.items, { description: '', qty: 1, rate: 0, amount: 0 }] }))} className="flex items-center gap-1 text-xs font-semibold text-[#14B8A6] hover:underline">
               <Plus size={12} /> Add Item
             </button>
           </div>
           <div className="space-y-2">
             {data.items.map((item, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                <input
-                  value={item.description}
-                  onChange={e => {
-                    const items = [...data.items];
-                    items[idx] = { ...item, description: e.target.value };
-                    setData(p => ({ ...p, items }));
-                  }}
-                  placeholder="Description"
-                  className="col-span-6 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white"
-                />
-                <input
-                  type="number"
-                  value={item.qty}
-                  onChange={e => {
-                    const items = [...data.items];
-                    const qty = Number(e.target.value);
-                    items[idx] = { ...item, qty, amount: qty * item.rate };
-                    setData(p => ({ ...p, items }));
-                  }}
-                  className="col-span-1 px-2 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white text-center"
-                />
-                <input
-                  type="number"
-                  value={item.rate}
-                  onChange={e => {
-                    const items = [...data.items];
-                    const rate = Number(e.target.value);
-                    items[idx] = { ...item, rate, amount: item.qty * rate };
-                    setData(p => ({ ...p, items }));
-                  }}
-                  className="col-span-2 px-2 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white"
-                />
-                <div className="col-span-2 text-right text-sm font-semibold text-slate-700 pr-1">
-                  ₹{item.amount.toLocaleString('en-IN')}
-                </div>
+                <input value={item.description} onChange={e => { const items = [...data.items]; items[idx] = { ...item, description: e.target.value }; setData(p => ({ ...p, items })); }} placeholder="Description" className={`col-span-6 ${inputCls}`} />
+                <input type="number" value={item.qty} onChange={e => { const items = [...data.items]; const qty = Number(e.target.value); items[idx] = { ...item, qty, amount: qty * item.rate }; setData(p => ({ ...p, items })); }} className={`col-span-1 text-center ${inputCls}`} />
+                <input type="number" value={item.rate} onChange={e => { const items = [...data.items]; const rate = Number(e.target.value); items[idx] = { ...item, rate, amount: item.qty * rate }; setData(p => ({ ...p, items })); }} className={`col-span-2 ${inputCls}`} />
+                <div className="col-span-2 text-right text-sm font-semibold text-slate-700 dark:text-slate-300 pr-1">₹{item.amount.toLocaleString('en-IN')}</div>
                 <button onClick={() => setData(p => ({ ...p, items: p.items.filter((_, i) => i !== idx) }))} className="col-span-1 flex justify-center">
                   <X size={14} className="text-slate-400 hover:text-red-500 transition-colors" />
                 </button>
               </div>
             ))}
           </div>
-          {/* Totals */}
-          <div className="mt-4 pt-4 border-t border-slate-200 space-y-1">
-            <div className="flex justify-between text-sm text-slate-500">
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/10 space-y-1">
+            <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
               <span>Subtotal</span><span className="font-semibold">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
-            <div className="flex justify-between text-sm text-slate-500 items-center">
+            <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 items-center">
               <span>GST %</span>
               <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={data.taxPercent}
-                  onChange={e => setData(p => ({ ...p, taxPercent: Number(e.target.value) }))}
-                  className="w-14 px-2 py-1 rounded border border-slate-200 text-sm text-right focus:outline-none focus:border-[#14B8A6]"
-                />
+                <input type="number" value={data.taxPercent} onChange={e => setData(p => ({ ...p, taxPercent: Number(e.target.value) }))} className="w-14 px-2 py-1 rounded border border-slate-200 dark:border-white/10 text-sm text-right focus:outline-none focus:border-[#14B8A6] bg-white dark:bg-[#0A0F1E] text-slate-800 dark:text-slate-200" />
                 <span className="font-semibold">₹{tax.toLocaleString('en-IN')}</span>
               </div>
             </div>
-            <div className="flex justify-between text-base font-bold text-[#14B8A6] pt-1 border-t border-slate-200">
+            <div className="flex justify-between text-base font-bold text-[#14B8A6] pt-1 border-t border-slate-200 dark:border-white/10">
               <span>Total</span><span>₹{total.toLocaleString('en-IN')}</span>
             </div>
           </div>
         </div>
-        {/* Notes */}
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Notes / Payment Instructions</div>
-          <textarea
-            value={data.notes}
-            onChange={e => setData(p => ({ ...p, notes: e.target.value }))}
-            rows={3}
-            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white resize-none"
-          />
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Notes / Payment Instructions</div>
+          <textarea value={data.notes} onChange={e => setData(p => ({ ...p, notes: e.target.value }))} rows={3} className={`${inputCls} resize-none`} />
         </div>
       </div>
     </div>
@@ -613,6 +659,11 @@ function VoucherEditor({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<VoucherData>(SEED_VOUCHER);
   const [toast, setToast] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  const inputCls = "w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 text-sm focus:outline-none focus:border-[#14B8A6] bg-white dark:bg-[#0A0F1E] text-slate-800 dark:text-slate-200";
+  const sectionCls = "bg-[#F8FAFC] dark:bg-[#0A0F1E] border border-slate-100 dark:border-white/5 rounded-xl p-5";
+  const labelCls = "block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1";
+  const sectionHeadingCls = "text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4";
 
   function handleExportPDF() {
     setPdfLoading(true);
@@ -630,23 +681,18 @@ function VoucherEditor({ onClose }: { onClose: () => void }) {
 
   const field = (label: string, key: keyof VoucherData, type = 'text', span = 1) => (
     <div key={key} className={span === 2 ? 'col-span-2' : ''}>
-      <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
-      <input
-        type={type}
-        value={data[key] as string}
-        onChange={e => setData(p => ({ ...p, [key]: type === 'number' ? Number(e.target.value) : e.target.value }))}
-        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white"
-      />
+      <label className={labelCls}>{label}</label>
+      <input type={type} value={data[key] as string} onChange={e => setData(p => ({ ...p, [key]: type === 'number' ? Number(e.target.value) : e.target.value }))} className={inputCls} />
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0F1B35]">
       {toast && <Toast msg={toast} onClose={() => setToast('')} />}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5">
         <div>
-          <div className="font-bold text-slate-800 text-lg">Travel Voucher Generator</div>
-          <div className="text-xs text-slate-400">Hotel/service voucher to present at the property</div>
+          <div className="font-bold text-slate-800 dark:text-slate-100 text-lg">Travel Voucher Generator</div>
+          <div className="text-xs text-slate-400 dark:text-slate-500">Hotel/service voucher to present at the property</div>
         </div>
         <div className="flex gap-2">
           <button onClick={handleShareWhatsApp} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors">
@@ -655,14 +701,14 @@ function VoucherEditor({ onClose }: { onClose: () => void }) {
           <button onClick={handleExportPDF} disabled={pdfLoading} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#14B8A6] hover:bg-[#0d9488] text-white text-sm font-semibold transition-colors">
             <Download size={13} /> {pdfLoading ? 'Opening…' : 'Export PDF'}
           </button>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 transition-colors">
             <X size={16} />
           </button>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Guest & Booking</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Guest & Booking</div>
           <div className="grid grid-cols-2 gap-4">
             {field('Guest Name', 'clientName')}
             {field('Voucher Number', 'voucherNumber')}
@@ -671,8 +717,8 @@ function VoucherEditor({ onClose }: { onClose: () => void }) {
             {field('Destination', 'destination', 'text', 2)}
           </div>
         </div>
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Hotel Details</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Hotel Details</div>
           <div className="grid grid-cols-2 gap-4">
             {field('Hotel Name', 'hotelName', 'text', 2)}
             {field('Hotel Address', 'hotelAddress', 'text', 2)}
@@ -684,14 +730,9 @@ function VoucherEditor({ onClose }: { onClose: () => void }) {
             {field('Meal Plan', 'mealPlan', 'text', 2)}
           </div>
         </div>
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Special Requests</div>
-          <textarea
-            value={data.specialRequests}
-            onChange={e => setData(p => ({ ...p, specialRequests: e.target.value }))}
-            rows={3}
-            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white resize-none"
-          />
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Special Requests</div>
+          <textarea value={data.specialRequests} onChange={e => setData(p => ({ ...p, specialRequests: e.target.value }))} rows={3} className={`${inputCls} resize-none`} />
         </div>
       </div>
     </div>
@@ -706,6 +747,11 @@ function ConfirmationEditor({ onClose }: { onClose: () => void }) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [inclInput, setInclInput] = useState('');
   const [exclInput, setExclInput] = useState('');
+
+  const inputCls = "w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 text-sm focus:outline-none focus:border-[#14B8A6] bg-white dark:bg-[#0A0F1E] text-slate-800 dark:text-slate-200";
+  const sectionCls = "bg-[#F8FAFC] dark:bg-[#0A0F1E] border border-slate-100 dark:border-white/5 rounded-xl p-5";
+  const labelCls = "block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1";
+  const sectionHeadingCls = "text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4";
 
   function handleExportPDF() {
     setPdfLoading(true);
@@ -723,23 +769,18 @@ function ConfirmationEditor({ onClose }: { onClose: () => void }) {
 
   const sf = (label: string, key: keyof ConfirmationData, type = 'text') => (
     <div key={key}>
-      <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
-      <input
-        type={type}
-        value={data[key] as string | number}
-        onChange={e => setData(p => ({ ...p, [key]: type === 'number' ? Number(e.target.value) : e.target.value }))}
-        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white"
-      />
+      <label className={labelCls}>{label}</label>
+      <input type={type} value={data[key] as string | number} onChange={e => setData(p => ({ ...p, [key]: type === 'number' ? Number(e.target.value) : e.target.value }))} className={inputCls} />
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0F1B35]">
       {toast && <Toast msg={toast} onClose={() => setToast('')} />}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5">
         <div>
-          <div className="font-bold text-slate-800 text-lg">Booking Confirmation Letter</div>
-          <div className="text-xs text-slate-400">Professional confirmation with inclusions, payment summary & terms</div>
+          <div className="font-bold text-slate-800 dark:text-slate-100 text-lg">Booking Confirmation Letter</div>
+          <div className="text-xs text-slate-400 dark:text-slate-500">Professional confirmation with inclusions, payment summary & terms</div>
         </div>
         <div className="flex gap-2">
           <button onClick={handleShareWhatsApp} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors">
@@ -748,14 +789,14 @@ function ConfirmationEditor({ onClose }: { onClose: () => void }) {
           <button onClick={handleExportPDF} disabled={pdfLoading} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#14B8A6] hover:bg-[#0d9488] text-white text-sm font-semibold transition-colors">
             <Download size={13} /> {pdfLoading ? 'Opening…' : 'Export PDF'}
           </button>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 transition-colors">
             <X size={16} />
           </button>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Client & Trip Details</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Client & Trip Details</div>
           <div className="grid grid-cols-2 gap-4">
             {sf('Client Name', 'clientName')}
             {sf('Email', 'clientEmail')}
@@ -768,60 +809,52 @@ function ConfirmationEditor({ onClose }: { onClose: () => void }) {
             <div className="col-span-2">{sf('Package Name', 'packageName')}</div>
           </div>
         </div>
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Payment Breakdown</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Payment Breakdown</div>
           <div className="grid grid-cols-3 gap-4">
             {sf('Total Amount (₹)', 'totalAmount', 'number')}
             {sf('Amount Paid (₹)', 'amountPaid', 'number')}
             {sf('Balance Due (₹)', 'balanceDue', 'number')}
           </div>
         </div>
-        {/* Inclusions */}
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Inclusions</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Inclusions</div>
           <div className="space-y-1 mb-3">
             {data.inclusions.map((inc, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
+              <div key={i} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <Check size={12} className="text-green-500 flex-shrink-0" />
                 <span className="flex-1">{inc}</span>
-                <button onClick={() => setData(p => ({ ...p, inclusions: p.inclusions.filter((_, j) => j !== i) }))} className="text-slate-300 hover:text-red-400 transition-colors"><X size={12} /></button>
+                <button onClick={() => setData(p => ({ ...p, inclusions: p.inclusions.filter((_, j) => j !== i) }))} className="text-slate-300 dark:text-slate-600 hover:text-red-400 transition-colors"><X size={12} /></button>
               </div>
             ))}
           </div>
           <div className="flex gap-2">
-            <input value={inclInput} onChange={e => setInclInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && inclInput.trim()) { setData(p => ({ ...p, inclusions: [...p.inclusions, inclInput.trim()] })); setInclInput(''); }}} placeholder="Add inclusion (Enter to add)" className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white" />
-            <button onClick={() => { if (inclInput.trim()) { setData(p => ({ ...p, inclusions: [...p.inclusions, inclInput.trim()] })); setInclInput(''); }}} className="px-3 py-2 rounded-lg bg-green-100 text-green-700 text-sm font-semibold hover:bg-green-200 transition-colors"><Plus size={14} /></button>
+            <input value={inclInput} onChange={e => setInclInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && inclInput.trim()) { setData(p => ({ ...p, inclusions: [...p.inclusions, inclInput.trim()] })); setInclInput(''); }}} placeholder="Add inclusion (Enter to add)" className={inputCls} />
+            <button onClick={() => { if (inclInput.trim()) { setData(p => ({ ...p, inclusions: [...p.inclusions, inclInput.trim()] })); setInclInput(''); }}} className="px-3 py-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-semibold hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"><Plus size={14} /></button>
           </div>
         </div>
-        {/* Exclusions */}
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Exclusions</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Exclusions</div>
           <div className="space-y-1 mb-3">
             {data.exclusions.map((exc, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
+              <div key={i} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <X size={12} className="text-red-400 flex-shrink-0" />
                 <span className="flex-1">{exc}</span>
-                <button onClick={() => setData(p => ({ ...p, exclusions: p.exclusions.filter((_, j) => j !== i) }))} className="text-slate-300 hover:text-red-400 transition-colors"><X size={12} /></button>
+                <button onClick={() => setData(p => ({ ...p, exclusions: p.exclusions.filter((_, j) => j !== i) }))} className="text-slate-300 dark:text-slate-600 hover:text-red-400 transition-colors"><X size={12} /></button>
               </div>
             ))}
           </div>
           <div className="flex gap-2">
-            <input value={exclInput} onChange={e => setExclInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && exclInput.trim()) { setData(p => ({ ...p, exclusions: [...p.exclusions, exclInput.trim()] })); setExclInput(''); }}} placeholder="Add exclusion (Enter to add)" className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white" />
-            <button onClick={() => { if (exclInput.trim()) { setData(p => ({ ...p, exclusions: [...p.exclusions, exclInput.trim()] })); setExclInput(''); }}} className="px-3 py-2 rounded-lg bg-red-100 text-red-700 text-sm font-semibold hover:bg-red-200 transition-colors"><Plus size={14} /></button>
+            <input value={exclInput} onChange={e => setExclInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && exclInput.trim()) { setData(p => ({ ...p, exclusions: [...p.exclusions, exclInput.trim()] })); setExclInput(''); }}} placeholder="Add exclusion (Enter to add)" className={inputCls} />
+            <button onClick={() => { if (exclInput.trim()) { setData(p => ({ ...p, exclusions: [...p.exclusions, exclInput.trim()] })); setExclInput(''); }}} className="px-3 py-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"><Plus size={14} /></button>
           </div>
         </div>
-        {/* Terms */}
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Terms & Conditions</div>
-          <textarea
-            value={data.terms}
-            onChange={e => setData(p => ({ ...p, terms: e.target.value }))}
-            rows={4}
-            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white resize-none"
-          />
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Terms & Conditions</div>
+          <textarea value={data.terms} onChange={e => setData(p => ({ ...p, terms: e.target.value }))} rows={4} className={`${inputCls} resize-none`} />
         </div>
-        <div className="bg-slate-50 rounded-xl p-5">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Agency Details</div>
+        <div className={sectionCls}>
+          <div className={sectionHeadingCls}>Agency Details</div>
           <div className="grid grid-cols-2 gap-4">
             {sf('Agency Name', 'agencyName')}
             {sf('Agent Name', 'agentName')}
@@ -834,39 +867,47 @@ function ConfirmationEditor({ onClose }: { onClose: () => void }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const TABS: { key: TabType; label: string }[] = [
+  { key: 'all', label: 'All Documents' },
+  { key: 'invoice', label: 'Invoices' },
+  { key: 'quotation', label: 'Quotations' },
+  { key: 'voucher', label: 'Vouchers' },
+  { key: 'confirmation', label: 'Confirmations' },
+  { key: 'insurance', label: 'Insurance' },
+];
+
 export default function DocumentsPage() {
   const [activeDoc, setActiveDoc] = useState<DocType | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
 
-  const docs = [
-    {
-      type: 'invoice' as DocType,
-      icon: Receipt,
-      color: 'bg-[#14B8A6]',
-      title: 'Invoice',
-      desc: 'Generate GST-compliant invoices with line items, tax calculation, and payment terms.',
-      count: 12,
-    },
-    {
-      type: 'voucher' as DocType,
-      icon: Ticket,
-      color: 'bg-[#8B5CF6]',
-      title: 'Travel Voucher',
-      desc: 'Create hotel & service vouchers to present at properties — with special requests and vendor contacts.',
-      count: 8,
-    },
-    {
-      type: 'confirmation' as DocType,
-      icon: CheckSquare,
-      color: 'bg-[#F59E0B]',
-      title: 'Booking Confirmation',
-      desc: 'Professional confirmation letters with inclusions, payment summary, and T&C for clients.',
-      count: 15,
-    },
+  const kpis = [
+    { label: 'Total Documents', value: SEED_DOCS.length, icon: FileText, color: 'text-[#14B8A6]', bg: 'bg-[#14B8A6]/10 dark:bg-[#14B8A6]/10' },
+    { label: 'Invoices', value: SEED_DOCS.filter(d => d.type === 'invoice').length, icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { label: 'Quotations', value: SEED_DOCS.filter(d => d.type === 'quotation').length, icon: FileSpreadsheet, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-900/20' },
+    { label: 'Vouchers', value: SEED_DOCS.filter(d => d.type === 'voucher').length, icon: Hotel, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+  ];
+
+  const filteredDocs = SEED_DOCS.filter(doc => {
+    if (activeTab !== 'all' && doc.type !== activeTab) return false;
+    if (search && !doc.name.toLowerCase().includes(search.toLowerCase()) && !doc.client.toLowerCase().includes(search.toLowerCase())) return false;
+    if (clientFilter && !doc.client.toLowerCase().includes(clientFilter.toLowerCase())) return false;
+    if (dateFilter && doc.date < dateFilter) return false;
+    return true;
+  });
+
+  const QUICK_GEN = [
+    { type: 'invoice' as DocType, label: 'Invoice', icon: Receipt, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20', hover: 'hover:bg-blue-100 dark:hover:bg-blue-900/40' },
+    { type: 'confirmation' as DocType, label: 'Quotation PDF', icon: FileSpreadsheet, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/20', hover: 'hover:bg-violet-100 dark:hover:bg-violet-900/40' },
+    { type: 'voucher' as DocType, label: 'Hotel Voucher', icon: Hotel, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20', hover: 'hover:bg-emerald-100 dark:hover:bg-emerald-900/40' },
+    { type: 'confirmation' as DocType, label: 'Flight Confirmation', icon: Plane, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20', hover: 'hover:bg-amber-100 dark:hover:bg-amber-900/40' },
   ];
 
   if (activeDoc) {
     return (
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col bg-[#F8FAFC] dark:bg-[#0A0F1E]">
         {activeDoc === 'invoice' && <InvoiceEditor onClose={() => setActiveDoc(null)} />}
         {activeDoc === 'voucher' && <VoucherEditor onClose={() => setActiveDoc(null)} />}
         {activeDoc === 'confirmation' && <ConfirmationEditor onClose={() => setActiveDoc(null)} />}
@@ -875,53 +916,133 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-black text-slate-800 mb-1">Documents Hub</h1>
-        <p className="text-slate-500 text-sm">Generate professional travel documents — invoices, vouchers, and booking confirmations — in seconds. Export as PDF or share instantly via WhatsApp.</p>
-      </div>
+    <div className="min-h-full bg-[#F8FAFC] dark:bg-[#0A0F1E] p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
 
-      {/* Stats Strip */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Generated This Month', value: '35', icon: FileText, color: 'text-[#14B8A6]' },
-          { label: 'Sent via WhatsApp', value: '28', icon: MessageCircle, color: 'text-green-500' },
-          { label: 'Exported as PDF', value: '19', icon: Download, color: 'text-[#8B5CF6]' },
-          { label: 'Active Templates', value: '3', icon: Star, color: 'text-[#F59E0B]' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon size={16} className={color} />
-              <span className="text-xs text-slate-400 font-medium">{label}</span>
-            </div>
-            <div className="text-2xl font-black text-slate-800">{value}</div>
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-[#1B2E5E] dark:text-slate-100 tracking-tight">Documents Hub</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Generate professional travel documents — invoices, vouchers, and confirmations — in seconds.</p>
           </div>
-        ))}
-      </div>
+          <button
+            onClick={() => setActiveDoc('invoice')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1B2E5E] dark:bg-[#14B8A6] hover:bg-[#14265a] dark:hover:bg-[#0d9488] text-white text-sm font-semibold transition-colors shadow-sm"
+          >
+            <Upload size={15} /> Upload
+          </button>
+        </div>
 
-      {/* Doc Type Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        {docs.map(doc => (
-          <DocCard key={doc.type} {...doc} onClick={() => setActiveDoc(doc.type)} />
-        ))}
-      </div>
-
-      {/* Quick Tips */}
-      <div className="bg-gradient-to-r from-[#14B8A6]/5 to-[#8B5CF6]/5 border border-[#14B8A6]/20 rounded-2xl p-6">
-        <div className="text-xs font-bold uppercase tracking-widest text-[#14B8A6] mb-3">Pro Tips</div>
-        <div className="grid grid-cols-3 gap-6">
-          {[
-            { icon: '📋', tip: 'All documents are pre-filled with sample data — just update the client details and hit Export.' },
-            { icon: '📱', tip: 'WhatsApp share crafts a personalised message summarising the document — client gets context instantly.' },
-            { icon: '🖨️', tip: 'Export PDF uses your browser\'s native print dialog — save as PDF from any device, no plugins needed.' },
-          ].map(({ icon, tip }) => (
-            <div key={tip} className="flex gap-3">
-              <span className="text-xl flex-shrink-0">{icon}</span>
-              <p className="text-sm text-slate-600 leading-relaxed">{tip}</p>
+        {/* KPI Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {kpis.map(({ label, value, icon: Icon, color, bg }) => (
+            <div key={label} className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-2xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${bg}`}>
+                  <Icon size={16} className={color} />
+                </div>
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium leading-tight">{label}</span>
+              </div>
+              <div className="text-2xl font-black text-slate-800 dark:text-slate-100">{value}</div>
             </div>
           ))}
         </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-150 ${
+                activeTab === tab.key
+                  ? 'bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/20'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search + Filter Bar */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search documents or clients..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0F1B35] text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-[#14B8A6] dark:focus:border-[#14B8A6] transition-colors"
+            />
+          </div>
+          <div className="relative">
+            <Calendar size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+              className="pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0F1B35] text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:border-[#14B8A6] transition-colors"
+            />
+          </div>
+          <div className="relative">
+            <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input
+              value={clientFilter}
+              onChange={e => setClientFilter(e.target.value)}
+              placeholder="Filter by client..."
+              className="pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0F1B35] text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-[#14B8A6] transition-colors w-44"
+            />
+          </div>
+          {(search || dateFilter || clientFilter) && (
+            <button
+              onClick={() => { setSearch(''); setDateFilter(''); setClientFilter(''); }}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0F1B35] transition-colors"
+            >
+              <X size={13} /> Clear
+            </button>
+          )}
+        </div>
+
+        {/* Document Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredDocs.length === 0
+            ? <EmptyState tab={activeTab} onGenerate={() => setActiveDoc('invoice')} />
+            : filteredDocs.map(doc => (
+                <DocumentCard
+                  key={doc.id}
+                  doc={doc}
+                  onGenerate={type => setActiveDoc(type)}
+                />
+              ))
+          }
+        </div>
+
+        {/* Quick Generate Section */}
+        <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-[#14B8A6]/10 flex items-center justify-center">
+              <Zap size={15} className="text-[#14B8A6]" />
+            </div>
+            <div>
+              <div className="font-bold text-slate-800 dark:text-slate-100 text-sm">Generate Document</div>
+              <div className="text-xs text-slate-400 dark:text-slate-500">Pick a type to open the editor with pre-filled data</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {QUICK_GEN.map(({ type, label, icon: Icon, color, bg, hover }) => (
+              <button
+                key={label}
+                onClick={() => setActiveDoc(type)}
+                className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border border-slate-100 dark:border-white/5 ${bg} ${hover} transition-colors text-left`}
+              >
+                <Icon size={16} className={color} />
+                <span className={`text-sm font-semibold ${color}`}>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );

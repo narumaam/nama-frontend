@@ -8,7 +8,7 @@ import {
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
-  UserCheck, Contact, Building2, Shield, Calendar, Globe, Stamp, Sun, Moon,
+  UserCheck, Contact, Building2, Shield, Calendar, Globe, Stamp, Sun, Moon, FileSignature,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -142,6 +142,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     {
       name: 'Documents', href: '/dashboard/documents', icon: FolderOpen,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R5_FINANCE_ADMIN','R7_CLIENT_PORTAL'],
+    },
+    {
+      name: 'Contracts', href: '/dashboard/contracts', icon: FileSignature,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
     },
     {
       name: 'Finance', href: '/dashboard/finance', icon: CreditCard, badge: 'Preview',
