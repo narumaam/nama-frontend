@@ -7,7 +7,6 @@ import DayOneEmail from '@/emails/DayOneEmail'
 import DayThreeEmail from '@/emails/DayThreeEmail'
 import DaySevenEmail from '@/emails/DaySevenEmail'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'NAMA OS <onboarding@getnama.app>'
 
 const SUBJECTS: Record<number, string> = {
@@ -35,6 +34,8 @@ export async function POST(req: NextRequest) {
       console.log(`[email/drip] RESEND_API_KEY not set — simulating Day ${day} drip to ${email}`)
       return NextResponse.json({ sent: false, demo: true, day })
     }
+
+    const resend = new Resend(process.env.RESEND_API_KEY)
 
     const agencyName = agency_name || 'Your Agency'
     let emailComponent: React.ReactElement
