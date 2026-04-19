@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
  * (5-step guided setup wizard for new tenants)
  */
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { GoogleLogin } from '@react-oauth/google'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -38,7 +38,7 @@ const PASSWORD_RULES = [
   { label: 'One special character', rule: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ]
 
-export default function RegisterPage() {
+function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const inviteToken = searchParams.get('invite')
@@ -60,7 +60,8 @@ export default function RegisterPage() {
   const [focusPw,     setFocusPw]     = useState(false)
   const [googleToken, setGoogleToken] = useState<string | null>(null)
   const [googleEmail, setGoogleEmail] = useState('')
-  
+  const [backendDown, setBackendDown] = useState(false)
+
   // Invite state
   const [inviteData, setInviteData] = useState<{email: string; company_name: string} | null>(null)
   const [validatingInvite, setValidatingInvite] = useState(!!inviteToken)
@@ -78,6 +79,12 @@ export default function RegisterPage() {
         .finally(() => setValidatingInvite(false))
     }
   }, [inviteToken])
+
+  React.useEffect(() => {
+    fetch('/api/v1/health', { method: 'GET' })
+      .then(r => { if (!r.ok) setBackendDown(true) })
+      .catch(() => setBackendDown(true))
+  }, [])
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
 // ...
@@ -176,7 +183,11 @@ export default function RegisterPage() {
       // Go to dashboard (or onboarding if new org)
       setTimeout(() => router.push(inviteToken ? '/dashboard' : '/onboarding'), 800)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.')
+      const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.'
+      const friendlyMsg = msg.includes('500') || msg.includes('fetch') || msg.includes('network')
+        ? 'Our servers are temporarily unavailable. Please try again in a moment or contact support@getnama.app.'
+        : msg
+      setError(friendlyMsg)
     } finally {
       setLoading(false)
     }
@@ -295,6 +306,13 @@ export default function RegisterPage() {
                   : 'Start your free pilot — no credit card needed.'}
               </p>
             </div>
+
+            {backendDown && (
+              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl text-sm font-medium mb-4">
+                <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                Service is starting up — registration may take a few extra seconds.
+              </div>
+            )}
 
             {validatingInvite ? (
                <div className="flex flex-col items-center justify-center py-16 gap-4 bg-slate-50 rounded-[32px] border border-slate-100">
@@ -589,5 +607,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </label>
       {children}
     </div>
+  )
+}
+
+// ── Suspense wrapper (required for useSearchParams in Next.js 14) ───────────
+export default function RegisterPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <RegisterPage />
+    </Suspense>
   )
 }

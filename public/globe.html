@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAMA — Global Travel Exchange</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #020A18;
+      --panel: rgba(4, 12, 30, 0.88);
+      --border: rgba(180, 145, 70, 0.18);
+      --gold: #C9963A;
+      --gold-light: #F0C060;
+      --cream: #EAE0CC;
+      --muted: rgba(234, 224, 204, 0.45);
+      --flight: #F5A623;
+      --hotel: #00C8FF;
+      --tour: #34D399;
+      --cruise: #A78BFA;
+      --transfer: #FB7185;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Space Grotesk', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: var(--sans);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #globe-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* Vignette */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 35%, rgba(2,10,24,0.75) 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* UI layer */
+    .ui {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* ─── HEADER ─── */
+    .header {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 30px;
+      pointer-events: auto;
+      border-bottom: 1px solid rgba(180,145,70,0.1);
+      background: linear-gradient(to bottom, rgba(2,10,24,0.85) 0%, transparent 100%);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-n {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #B07A20 0%, #F0C060 100%);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700;
+      color: #020A18;
+      letter-spacing: 0;
+      flex-shrink: 0;
+    }
+
+    .logo-text { font-size: 20px; font-weight: 600; letter-spacing: 4px; color: var(--cream); }
+    .logo-sub  { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; opacity: 0.8; }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 2.5px; color: #4ADE80; text-transform: uppercase;
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ADE80;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+      50%      { opacity:.5; box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+    }
+
+    .header-center {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 2px; text-transform: uppercase; text-align: center;
+    }
+
+    /* ─── PANELS ─── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      margin-bottom: 10px;
+    }
+
+    .panel-label {
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 2.5px; color: var(--gold);
+      text-transform: uppercase; margin-bottom: 16px;
+    }
+
+    /* ─── LEFT PANEL ─── */
+    .left-panel {
+      position: absolute;
+      top: 90px; left: 24px;
+      width: 248px;
+      pointer-events: auto;
+    }
+
+    .cat-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(180,145,70,0.07);
+      cursor: pointer;
+      transition: opacity 0.25s;
+    }
+    .cat-row:last-child { border-bottom: none; }
+    .cat-row.off { opacity: 0.3; }
+
+    .cat-left { display: flex; align-items: center; gap: 10px; }
+
+    .cat-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    .cat-name { font-size: 13px; font-weight: 500; }
+    .cat-sub  { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    .toggle {
+      width: 34px; height: 19px; border-radius: 10px;
+      background: rgba(180,145,70,0.18);
+      position: relative; flex-shrink: 0;
+      transition: background 0.25s;
+    }
+    .toggle.on { background: rgba(201,150,58,0.45); }
+    .toggle::after {
+      content: ''; position: absolute;
+      top: 3.5px; left: 3.5px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--cream); transition: transform 0.25s;
+    }
+    .toggle.on::after { transform: translateX(15px); background: var(--gold-light); }
+
+    .network-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px 6px;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .net-item .nv { font-size: 18px; color: var(--gold-light); font-weight: 400; line-height: 1; margin-bottom: 2px; }
+    .net-item .nl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ─── RIGHT PANEL ─── */
+    .right-panel {
+      position: absolute;
+      top: 90px; right: 24px;
+      width: 198px;
+      pointer-events: auto;
+    }
+
+    .stat-row {
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(180,145,70,0.07);
+    }
+    .stat-row:last-child { border-bottom: none; }
+
+    .stat-val {
+      font-family: var(--mono); font-size: 22px; color: var(--gold-light);
+      line-height: 1; margin-bottom: 3px;
+    }
+    .stat-lbl { font-size: 11px; color: var(--muted); }
+
+    /* ─── CITY LABELS ─── */
+    #city-labels {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 8;
+    }
+    .city-label {
+      position: absolute;
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 1.5px; color: rgba(234,224,204,0.7);
+      text-transform: uppercase;
+      transform: translate(-50%, -160%);
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    /* ─── TOOLTIP ─── */
+    #tip {
+      position: fixed;
+      background: rgba(4,12,30,0.96);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      pointer-events: none;
+      display: none;
+      z-index: 30;
+      backdrop-filter: blur(12px);
+    }
+    #tip .tn { font-weight: 600; color: var(--gold-light); margin-bottom: 3px; }
+    #tip .tt { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ─── HINT ─── */
+    .hint {
+      position: absolute;
+      bottom: 62px; left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 2px;
+      text-transform: uppercase; opacity: 0.55;
+      pointer-events: none;
+    }
+
+    /* ─── TICKER ─── */
+    .ticker {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 44px;
+      background: rgba(2,10,24,0.92);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center;
+      overflow: hidden;
+    }
+    .ticker-inner {
+      display: flex; gap: 0;
+      animation: scroll 60s linear infinite;
+      white-space: nowrap;
+    }
+    .ti {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0 36px;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .ti .amt { color: var(--gold-light); }
+    .ti .sep { opacity: 0.25; }
+    @keyframes scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="globe-canvas"></canvas>
+<div class="vignette"></div>
+<div id="city-labels"></div>
+
+<div class="ui">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-n">N</div>
+      <div>
+        <div class="logo-text">NAMA</div>
+        <div class="logo-sub">Global Travel Exchange</div>
+      </div>
+    </div>
+    <div class="header-center">
+      Travel Intelligence Platform &nbsp;·&nbsp; Real-time
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Live Feed
+    </div>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="panel">
+      <div class="panel-label">— Travel Vectors</div>
+
+      <div class="cat-row on" data-cat="flights">
+        <div class="cat-left">
+          <div class="cat-dot" style="background:#F5A623;box-shadow:0 0 9px #F5A62388"></div>
+          <div>
+            <div class="cat-name">Flights</div>
+            <div class="cat-sub">248 active routes</div>
+          </div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+
+      <div class="cat-row on" data-cat="hotels">
+        <div class="cat-left">
+          <div class="cat-dot" style="background:#00C8FF;box-shadow:0 0 9px #00C8FF88"></div>
+          <div>
+            <div class="cat-name">Hotels</div>
+            <div class="cat-sub">183 bookings live</div>
+          </div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+
+      <div class="cat-row on" data-cat="tours">
+        <div class="cat-left">
+          <div class="cat-dot" style="background:#34D399;box-shadow:0 0 9px #34D39988"></div>
+          <div>
+            <div class="cat-name">Tours</div>
+            <div class="cat-sub">127 packages sold</div>
+          </div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+
+      <div class="cat-row on" data-cat="cruises">
+        <div class="cat-left">
+          <div class="cat-dot" style="background:#A78BFA;box-shadow:0 0 9px #A78BFA88"></div>
+          <div>
+            <div class="cat-name">Cruises</div>
+            <div class="cat-sub">54 sailings active</div>
+          </div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+
+      <div class="cat-row on" data-cat="transfers">
+        <div class="cat-left">
+          <div class="cat-dot" style="background:#FB7185;box-shadow:0 0 9px #FB718588"></div>
+          <div>
+            <div class="cat-name">Payments</div>
+            <div class="cat-sub">$2.4M settled today</div>
+          </div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">— Network</div>
+      <div class="network-grid">
+        <div class="net-item"><div class="nv">312</div><div class="nl">DMCs</div></div>
+        <div class="net-item"><div class="nv">1,840</div><div class="nl">Agencies</div></div>
+        <div class="net-item"><div class="nv">647</div><div class="nl">Operators</div></div>
+        <div class="net-item"><div class="nv">89</div><div class="nl">Countries</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel">
+      <div class="panel-label">— Global Signal</div>
+      <div class="stat-row"><div class="stat-val" id="s-book">3,847</div><div class="stat-lbl">Active bookings</div></div>
+      <div class="stat-row"><div class="stat-val" id="s-dest">142</div><div class="stat-lbl">Destinations live</div></div>
+      <div class="stat-row"><div class="stat-val" id="s-vol">$12.7M</div><div class="stat-lbl">24h volume</div></div>
+      <div class="stat-row"><div class="stat-val" id="s-flux">+8.3%</div><div class="stat-lbl">Flux index 24h</div></div>
+      <div class="stat-row"><div class="stat-val" id="s-arcs">0</div><div class="stat-lbl">Active flows</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">— Top Exporter</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted);line-height:2.1">
+        <div>Dominant route <span style="color:var(--gold-light);float:right">Maldives</span></div>
+        <div>Top seller &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--gold-light);float:right">London</span></div>
+        <div>Emerging hub <span style="color:var(--gold-light);float:right">Dubai</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">Drag to rotate &nbsp;·&nbsp; Scroll to zoom</div>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-inner" id="ticker"></div>
+  </div>
+</div>
+
+<div id="tip">
+  <div class="tn" id="tip-name"></div>
+  <div class="tt" id="tip-type"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  NAMA GLOBE  ·  Three.js r128
+// ═══════════════════════════════════════════════════════
+
+const R = 118; // globe radius
+
+const CAT = {
+  flights:   { hex: 0xF5A623, str: '#F5A623' },
+  hotels:    { hex: 0x00C8FF, str: '#00C8FF' },
+  tours:     { hex: 0x34D399, str: '#34D399' },
+  cruises:   { hex: 0xA78BFA, str: '#A78BFA' },
+  transfers: { hex: 0xFB7185, str: '#FB7185' },
+};
+
+const active = new Set(Object.keys(CAT));
+
+// ── Cities ──────────────────────────────────────────────
+const CITIES = [
+  { n:'Dubai',      la:25.2,  lo:55.3,   role:'hub'    },
+  { n:'London',     la:51.5,  lo:-0.1,   role:'agency' },
+  { n:'Paris',      la:48.9,  lo:2.3,    role:'agency' },
+  { n:'New York',   la:40.7,  lo:-74.0,  role:'agency' },
+  { n:'Bangkok',    la:13.7,  lo:100.5,  role:'dmc'    },
+  { n:'Singapore',  la:1.3,   lo:103.8,  role:'hub'    },
+  { n:'Sydney',     la:-33.9, lo:151.2,  role:'dmc'    },
+  { n:'Tokyo',      la:35.7,  lo:139.7,  role:'dmc'    },
+  { n:'Cape Town',  la:-33.9, lo:18.4,   role:'dmc'    },
+  { n:'Miami',      la:25.8,  lo:-80.2,  role:'agency' },
+  { n:'Rome',       la:41.9,  lo:12.5,   role:'dmc'    },
+  { n:'Cancun',     la:21.2,  lo:-86.8,  role:'dmc'    },
+  { n:'Bali',       la:-8.3,  lo:115.1,  role:'dmc'    },
+  { n:'Istanbul',   la:41.0,  lo:28.9,   role:'hub'    },
+  { n:'Barcelona',  la:41.4,  lo:2.2,    role:'dmc'    },
+  { n:'Maldives',   la:3.2,   lo:73.2,   role:'dmc'    },
+  { n:'Nairobi',    la:-1.3,  lo:36.8,   role:'dmc'    },
+  { n:'Toronto',    la:43.7,  lo:-79.4,  role:'agency' },
+  { n:'Amsterdam',  la:52.4,  lo:4.9,    role:'agency' },
+  { n:'Zurich',     la:47.4,  lo:8.5,    role:'agency' },
+  { n:'Santorini',  la:36.4,  lo:25.4,   role:'dmc'    },
+  { n:'Phuket',     la:7.9,   lo:98.3,   role:'dmc'    },
+  { n:'Mauritius',  la:-20.2, lo:57.5,   role:'dmc'    },
+  { n:'Doha',       la:25.3,  lo:51.5,   role:'hub'    },
+  { n:'Los Angeles',la:34.1,  lo:-118.2, role:'agency' },
+];
+
+// ── Flows ───────────────────────────────────────────────
+const FLOWS = [
+  {f:'London',    t:'Maldives',   c:'cruises'},
+  {f:'New York',  t:'Paris',      c:'hotels'},
+  {f:'Dubai',     t:'Bali',       c:'tours'},
+  {f:'Singapore', t:'Bangkok',    c:'transfers'},
+  {f:'London',    t:'Cape Town',  c:'tours'},
+  {f:'Miami',     t:'Cancun',     c:'cruises'},
+  {f:'Dubai',     t:'Istanbul',   c:'flights'},
+  {f:'Amsterdam', t:'Bali',       c:'flights'},
+  {f:'Paris',     t:'Santorini',  c:'hotels'},
+  {f:'Tokyo',     t:'Bali',       c:'tours'},
+  {f:'Toronto',   t:'Cancun',     c:'cruises'},
+  {f:'London',    t:'Dubai',      c:'transfers'},
+  {f:'New York',  t:'Rome',       c:'hotels'},
+  {f:'Singapore', t:'Maldives',   c:'cruises'},
+  {f:'Dubai',     t:'Nairobi',    c:'tours'},
+  {f:'Miami',     t:'Barcelona',  c:'flights'},
+  {f:'Zurich',    t:'Mauritius',  c:'cruises'},
+  {f:'Amsterdam', t:'Cape Town',  c:'flights'},
+  {f:'London',    t:'Phuket',     c:'tours'},
+  {f:'New York',  t:'Dubai',      c:'transfers'},
+  {f:'Singapore', t:'Tokyo',      c:'flights'},
+  {f:'Dubai',     t:'Santorini',  c:'cruises'},
+  {f:'Paris',     t:'Cape Town',  c:'flights'},
+  {f:'Tokyo',     t:'Sydney',     c:'hotels'},
+  {f:'Istanbul',  t:'Maldives',   c:'tours'},
+  {f:'Toronto',   t:'London',     c:'transfers'},
+  {f:'Zurich',    t:'Bangkok',    c:'hotels'},
+  {f:'Miami',     t:'Rome',       c:'cruises'},
+  {f:'Amsterdam', t:'Nairobi',    c:'tours'},
+  {f:'Singapore', t:'Phuket',     c:'transfers'},
+  {f:'Doha',      t:'Maldives',   c:'flights'},
+  {f:'London',    t:'Mauritius',  c:'cruises'},
+  {f:'Los Angeles',t:'Tokyo',     c:'hotels'},
+  {f:'New York',  t:'Cancun',     c:'cruises'},
+  {f:'Dubai',     t:'Phuket',     c:'tours'},
+  {f:'Paris',     t:'Nairobi',    c:'flights'},
+  {f:'Doha',      t:'Sydney',     c:'flights'},
+  {f:'London',    t:'Santorini',  c:'hotels'},
+  {f:'Toronto',   t:'Maldives',   c:'cruises'},
+  {f:'Singapore', t:'Mauritius',  c:'transfers'},
+];
+
+// ── Helpers ──────────────────────────────────────────────
+function ll2v(lat, lng, r) {
+  const phi   = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+function arcCurve(a, b, h = 1.42) {
+  const mid = a.clone().add(b).multiplyScalar(0.5);
+  mid.normalize().multiplyScalar(R * h);
+  return new THREE.QuadraticBezierCurve3(a, mid, b);
+}
+
+// ── Renderer ─────────────────────────────────────────────
+const canvas = document.getElementById('globe-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x020A18, 1);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(44, innerWidth / innerHeight, 1, 2000);
+camera.position.z = 370;
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+const gl = new THREE.PointLight(0xC9963A, 0.7, 900);
+gl.position.set(220, 180, 180);
+scene.add(gl);
+const bl = new THREE.PointLight(0x0A2060, 0.5, 900);
+bl.position.set(-200, -120, -200);
+scene.add(bl);
+
+// ── Globe group (rotates) ─────────────────────────────────
+const globe = new THREE.Group();
+scene.add(globe);
+
+// Inner sphere (dark fill)
+const fillSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(R - 1, 64, 64),
+  new THREE.MeshBasicMaterial({ color: 0x040E22 })
+);
+globe.add(fillSphere);
+
+// Atmosphere glow
+globe.add(new THREE.Mesh(
+  new THREE.SphereGeometry(R + 10, 64, 64),
+  new THREE.MeshBasicMaterial({ color: 0x0A1F50, transparent: true, opacity: 0.07, side: THREE.BackSide })
+));
+
+// Dot cloud on sphere surface
+const DOT_N = 4500;
+const dpos = new Float32Array(DOT_N * 3);
+for (let i = 0; i < DOT_N; i++) {
+  const phi   = Math.acos(1 - 2 * (i + 0.5) / DOT_N); // Fibonacci sphere
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+  const r = R - 0.5;
+  dpos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+  dpos[i*3+1] = r * Math.cos(phi);
+  dpos[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
+}
+const dotGeo = new THREE.BufferGeometry();
+dotGeo.setAttribute('position', new THREE.BufferAttribute(dpos, 3));
+globe.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({
+  color: 0x1A3A70, size: 0.9, transparent: true, opacity: 0.55
+})));
+
+// Lat / Lng wireframe
+const wireMat = new THREE.LineBasicMaterial({ color: 0x0C2040, transparent: true, opacity: 0.38 });
+for (let lat = -80; lat <= 80; lat += 20) {
+  const pts = [];
+  for (let ln = 0; ln <= 360; ln += 3) pts.push(ll2v(lat, ln - 180, R));
+  globe.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), wireMat));
+}
+for (let ln = 0; ln < 360; ln += 20) {
+  const pts = [];
+  for (let lat = -90; lat <= 90; lat += 3) pts.push(ll2v(lat, ln - 180, R));
+  globe.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), wireMat));
+}
+
+// ── City nodes ───────────────────────────────────────────
+const cityMeshes = [];
+const cityLabelEls = [];
+const labelsContainer = document.getElementById('city-labels');
+
+CITIES.forEach(city => {
+  const pos = ll2v(city.la, city.lo, R + 1.5);
+
+  const size = city.role === 'hub' ? 2.8 : city.role === 'agency' ? 2.0 : 1.6;
+  const col  = city.role === 'hub' ? 0xF0C060 : city.role === 'agency' ? 0x00C8FF : 0xC9963A;
+
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(size, 10, 10),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.95 })
+  );
+  mesh.position.copy(pos);
+  mesh.userData = city;
+  globe.add(mesh);
+  cityMeshes.push(mesh);
+
+  // Pulse ring
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(size + 1.2, size + 2.4, 20),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.25, side: THREE.DoubleSide })
+  );
+  ring.position.copy(pos);
+  ring.lookAt(0, 0, 0);
+  ring.userData.phase = Math.random() * Math.PI * 2;
+  ring.userData.isRing = true;
+  globe.add(ring);
+
+  // City label (HTML overlay)
+  const lbl = document.createElement('div');
+  lbl.className = 'city-label';
+  lbl.textContent = city.n;
+  labelsContainer.appendChild(lbl);
+  cityLabelEls.push({ el: lbl, mesh });
+});
+
+// ── Arc system ───────────────────────────────────────────
+const arcGroup = new THREE.Group();
+globe.add(arcGroup);
+
+const liveArcs = [];
+
+function spawnArc(flow) {
+  if (!active.has(flow.c)) return;
+  const fc = CITIES.find(c => c.n === flow.f);
+  const tc = CITIES.find(c => c.n === flow.t);
+  if (!fc || !tc) return;
+
+  const sv = ll2v(fc.la, fc.lo, R + 1.5);
+  const ev = ll2v(tc.la, tc.lo, R + 1.5);
+  const curve = arcCurve(sv, ev);
+  const pts   = curve.getPoints(80);
+
+  const hexCol = CAT[flow.c].hex;
+
+  // Arc line
+  const lineMat = new THREE.LineBasicMaterial({ color: hexCol, transparent: true, opacity: 0 });
+  const arcLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat);
+  arcGroup.add(arcLine);
+
+  // Particles
+  const particles = [];
+  const pCount = Math.floor(Math.random() * 2) + 2;
+
+  for (let i = 0; i < pCount; i++) {
+    const pMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1.4, 6, 6),
+      new THREE.MeshBasicMaterial({ color: hexCol, transparent: true, opacity: 0 })
+    );
+    arcGroup.add(pMesh);
+
+    // Tail dots
+    const tails = [];
+    for (let k = 0; k < 4; k++) {
+      const t = new THREE.Mesh(
+        new THREE.SphereGeometry(1.0 - k * 0.18, 4, 4),
+        new THREE.MeshBasicMaterial({ color: hexCol, transparent: true, opacity: 0 })
+      );
+      arcGroup.add(t);
+      tails.push(t);
+    }
+
+    particles.push({
+      mesh: pMesh,
+      tails,
+      t: i / pCount,
+      speed: 0.0035 + Math.random() * 0.003,
+    });
+  }
+
+  liveArcs.push({
+    line: arcLine,
+    mat: lineMat,
+    particles,
+    curve,
+    cat: flow.c,
+    age: 0,
+    life: 5 + Math.random() * 5,
+    phase: 'in',
+  });
+}
+
+// Stagger initial arcs
+const shuffled = [...FLOWS].sort(() => Math.random() - 0.5);
+shuffled.slice(0, 18).forEach((f, i) => setTimeout(() => spawnArc(f), i * 250));
+setInterval(() => {
+  const f = FLOWS[Math.floor(Math.random() * FLOWS.length)];
+  spawnArc(f);
+}, 2000);
+
+// ── Mouse / drag ─────────────────────────────────────────
+let dragging = false, prevX = 0, prevY = 0;
+let velX = 0, velY = 0;
+
+canvas.addEventListener('mousedown', e => { dragging = true; prevX = e.clientX; prevY = e.clientY; canvas.style.cursor = 'grabbing'; });
+window.addEventListener('mouseup',   ()=> { dragging = false; canvas.style.cursor = 'grab'; });
+window.addEventListener('mousemove', e => {
+  if (dragging) {
+    velX += (e.clientY - prevY) * 0.003;
+    velY += (e.clientX - prevX) * 0.003;
+    prevX = e.clientX; prevY = e.clientY;
+  }
+});
+window.addEventListener('wheel', e => {
+  camera.position.z = Math.max(240, Math.min(620, camera.position.z + e.deltaY * 0.28));
+}, { passive: true });
+
+canvas.style.cursor = 'grab';
+
+// ── Tooltip / hover ───────────────────────────────────────
+const ray = new THREE.Raycaster();
+const mp  = new THREE.Vector2();
+const tip = document.getElementById('tip');
+
+window.addEventListener('mousemove', e => {
+  if (dragging) return;
+  mp.x = (e.clientX / innerWidth)  * 2 - 1;
+  mp.y = -(e.clientY / innerHeight) * 2 + 1;
+  ray.setFromCamera(mp, camera);
+  const hits = ray.intersectObjects(cityMeshes);
+  if (hits.length) {
+    const city = hits[0].object.userData;
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top  = (e.clientY - 12) + 'px';
+    document.getElementById('tip-name').textContent = city.n;
+    document.getElementById('tip-type').textContent = city.role.toUpperCase();
+  } else {
+    tip.style.display = 'none';
+  }
+});
+
+// ── Ticker ────────────────────────────────────────────────
+const TICKS = [
+  { e:'✈', t:'London → Maldives',   d:'Cruise package confirmed',  a:'$4,280' },
+  { e:'🏨', t:'New York → Paris',    d:'5-night luxury hotel',      a:'$2,100' },
+  { e:'🌍', t:'Dubai → Bali',        d:'Private tour sold · 4 pax', a:'$8,750' },
+  { e:'✈', t:'Amsterdam → Cape Town',d:'Business class flights',    a:'$3,400' },
+  { e:'💳', t:'Toronto → London',    d:'Agency commission settled',  a:'$12,000'},
+  { e:'🚢', t:'Miami → Cancun',      d:'Cruise booking · 6 nights', a:'$6,520' },
+  { e:'🏨', t:'Tokyo → Sydney',      d:'Resort · 7 nights',         a:'$5,800' },
+  { e:'🌍', t:'Singapore → Phuket',  d:'Group tour · 12 pax',       a:'$9,360' },
+  { e:'✈', t:'Dubai → Istanbul',     d:'First class · 2 pax',       a:'$2,800' },
+  { e:'💳', t:'New York → Dubai',    d:'DMC transfer settled',       a:'$18,500'},
+  { e:'🚢', t:'Zurich → Mauritius',  d:'Luxury cruise booked',      a:'$11,200'},
+  { e:'🌍', t:'Istanbul → Maldives', d:'Overwater villa package',    a:'$7,650' },
+  { e:'✈', t:'Doha → Sydney',        d:'Long-haul premium booking',  a:'$5,200' },
+  { e:'🏨', t:'London → Santorini',  d:'Villa · 4 nights',          a:'$3,900' },
+];
+const tickEl = document.getElementById('ticker');
+const allTicks = [...TICKS, ...TICKS]; // duplicate for seamless scroll
+tickEl.innerHTML = allTicks.map(t =>
+  `<span class="ti">${t.e} <span>${t.t}</span> <span style="opacity:.35">·</span> <span>${t.d}</span> <span class="amt">${t.a}</span> <span class="sep">|</span></span>`
+).join('');
+
+// ── Live stat counter ──────────────────────────────────────
+let bCount = 3847;
+setInterval(() => {
+  bCount += Math.floor(Math.random() * 4) - 1;
+  document.getElementById('s-book').textContent = bCount.toLocaleString();
+}, 2500);
+
+// ── Toggle categories ─────────────────────────────────────
+document.querySelectorAll('.cat-row').forEach(row => {
+  row.addEventListener('click', () => {
+    const cat = row.dataset.cat;
+    const tog = row.querySelector('.toggle');
+    if (active.has(cat)) { active.delete(cat); tog.classList.remove('on'); row.classList.add('off'); }
+    else                  { active.add(cat);    tog.classList.add('on');    row.classList.remove('off'); }
+  });
+});
+
+// ── Main loop ─────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt  = clock.getDelta();
+  const now = clock.getElapsedTime();
+
+  // Rotation
+  if (!dragging) { velY += 0.0007; velX *= 0.94; velY *= 0.94; }
+  else           { velX *= 0.82; velY *= 0.82; }
+  globe.rotation.x += velX;
+  globe.rotation.y += velY;
+
+  // Pulse city rings
+  globe.children.forEach(c => {
+    if (c.userData?.isRing) {
+      const s = Math.sin(now * 1.8 + c.userData.phase);
+      c.material.opacity = 0.12 + s * 0.18;
+      const sc = 1 + (s * 0.5 + 0.5) * 0.28;
+      c.scale.setScalar(sc);
+    }
+  });
+
+  // Animate arcs
+  let liveCount = 0;
+  for (let i = liveArcs.length - 1; i >= 0; i--) {
+    const arc = liveArcs[i];
+    arc.age += dt;
+    const prog = arc.age / arc.life;
+
+    if (!active.has(arc.cat)) {
+      arc.mat.opacity = 0;
+      arc.particles.forEach(p => { p.mesh.material.opacity = 0; p.tails.forEach(t => t.material.opacity = 0); });
+      continue;
+    }
+
+    liveCount++;
+    let ao = 0;
+    if      (prog < 0.12) ao = (prog / 0.12) * 0.32;
+    else if (prog < 0.75) ao = 0.32;
+    else if (prog < 1.0)  ao = ((1 - prog) / 0.25) * 0.32;
+
+    arc.mat.opacity = ao;
+
+    arc.particles.forEach(p => {
+      p.t += p.speed;
+      if (p.t > 1) p.t = 0;
+
+      const pos = arc.curve.getPoint(p.t);
+      p.mesh.position.copy(pos);
+      p.mesh.material.opacity = ao > 0 ? Math.min(1, arc.age * 2.5) * 0.95 : 0;
+
+      p.tails.forEach((tail, k) => {
+        const tt = Math.max(0, p.t - (k + 1) * 0.028);
+        tail.position.copy(arc.curve.getPoint(tt));
+        tail.material.opacity = p.mesh.material.opacity * (0.55 - k * 0.12);
+      });
+    });
+
+    if (prog >= 1) {
+      // Remove
+      arcGroup.remove(arc.line);
+      arc.line.geometry.dispose(); arc.line.material.dispose();
+      arc.particles.forEach(p => {
+        arcGroup.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose();
+        p.tails.forEach(t => { arcGroup.remove(t); t.geometry.dispose(); t.material.dispose(); });
+      });
+      liveArcs.splice(i, 1);
+    }
+  }
+
+  document.getElementById('s-arcs').textContent = liveCount;
+
+  // City labels — project to screen
+  cityLabelEls.forEach(({ el, mesh }) => {
+    const wp = mesh.position.clone();
+    globe.localToWorld(wp);
+    const sp = wp.clone().project(camera);
+    const x  = (sp.x *  0.5 + 0.5) * innerWidth;
+    const y  = (sp.y * -0.5 + 0.5) * innerHeight;
+
+    // Only show labels facing camera
+    const dot = wp.clone().normalize().dot(camera.position.clone().normalize());
+    el.style.opacity = dot > 0.25 ? '1' : '0';
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+  });
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// ── Resize ────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

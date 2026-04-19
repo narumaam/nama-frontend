@@ -8,7 +8,7 @@ import {
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
-  UserCheck, Contact, Building2, Shield, Calendar, Globe, Stamp, Sun, Moon, FileSignature,
+  UserCheck, Contact, Building2, Shield, Calendar, Globe, Stamp, Sun, Moon, FileSignature, BrainCircuit, Palmtree,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -111,6 +111,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT','R7_CLIENT_PORTAL'],
     },
     {
+      name: 'Holidays', href: '/dashboard/holidays', icon: Palmtree, badge: 'New',
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
+    },
+    {
       name: 'Visas', href: '/dashboard/visas', icon: Stamp, badge: 'New',
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
     },
@@ -157,6 +161,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     },
     {
       name: 'Automations', href: '/dashboard/automations', icon: GitBranch,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'Intel', href: '/dashboard/intel', icon: BrainCircuit, badge: 'Live',
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
     },
     {
