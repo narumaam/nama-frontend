@@ -76,6 +76,22 @@
 - POST /api/v1/copilot/score-lead → OpenRouter LLM scoring with heuristic fallback
 - Leads AI tab shows live LLM score with provider badge, loading spinner
 
+### ✅ Phase 2: Backend RBAC + ABAC (2026-04-19)
+
+**Models** (`backend/app/models/rbac.py`):
+- `roles`, `role_permissions`, `user_role_assignments`, `user_permission_overrides`, `permission_audit_log`
+- JSONB ABAC conditions: geography, product_types, customer_types, deal_size, own_data_only, shift hours, valid_until
+
+**Migration** (`d1e2f3a4b5c6_add_rbac_tables.py`):
+- Merges heads: b2c3d4e5f6a7 + c3d4e5f6a7b8
+- checkfirst=True, all 5 tables + composite indexes
+
+**API** (`/api/v1/roles`):
+- CRUD + bulk permission replace + GET /roles/check (ABAC evaluation)
+- User ↔ role assignment + per-user grant/deny overrides + paginated audit log
+
+**`can()` dep** (`deps.py`): `Depends(can("leads", "export"))` — override_deny → override_grant → roles → deny
+
 ### 🅱️ Parked — V6: NAMA Voice
 **Recommended stack:** Coqui TTS + OpenVoice + Bark + OpenRouter
 **High-ROI uses:** Voice itinerary narration, agent training sims, multi-language assistant

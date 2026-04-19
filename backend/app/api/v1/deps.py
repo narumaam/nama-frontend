@@ -1,5 +1,5 @@
 """
-HS-1 + HS-2: Dependency Injection — Auth & Tenant Scope
+HS-1 + HS-2: Dependency Injection — Auth, Tenant Scope & Permission Checking
 ---------------------------------------------------------
 Every protected endpoint must use one of:
   - get_current_user      → full User object (DB lookup)
@@ -16,11 +16,14 @@ HS-2 Acceptance Gate:
   ✓ All DB queries filter by this tenant_id
 """
 
+from datetime import datetime, timezone
+from typing import Any, Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from app.db.session import get_db
 from app.models.auth import User, UserRole
@@ -117,6 +120,119 @@ class RoleChecker:
                 detail=f"Role '{role}' is not authorised for this action. Required: {self.allowed_roles}",
             )
         return claims
+
+
+# ── Dynamic permission check (RBAC + ABAC) ────────────────────────────────────
+
+def can(
+    module: str,
+    action: str,
+    context: Optional[dict[str, Any]] = None,
+):
+    """
+    FastAPI dependency factory for fine-grained permission checks.
+
+    Usage:
+        @router.get("/leads/export")
+        def export_leads(_: dict = Depends(can("leads", "export"))):
+            ...
+
+        @router.get("/leads/{lead_id}")
+        def get_lead(lead_id: int, _: dict = Depends(can("leads", "view_all", {"own_data_only_check": True}))):
+            ...
+
+    Resolution order (matches frontend Role Builder + /roles/check endpoint):
+      1. User DENY override → HTTP 403 immediately
+      2. User GRANT override → pass through
+      3. Active role assignments → check role_permissions
+      4. Default → HTTP 403
+    """
+    def _check(
+        claims: dict    = Depends(get_token_claims),
+        db:     Session = Depends(get_db),
+    ) -> dict:
+        # Import here to avoid circular imports (roles.py ↔ deps.py)
+        from app.models.rbac import (
+            UserPermissionOverride, UserRoleAssignment, RolePermission, Role,
+        )
+        from sqlalchemy import func
+
+        user_id   = int(claims["user_id"])
+        tenant_id = int(claims["tenant_id"])
+        ctx       = context or {}
+        now       = datetime.now(timezone.utc)
+
+        # ── 1 + 2: Per-user overrides ────────────────────────────────────────
+        override = db.query(UserPermissionOverride).filter(
+            and_(
+                UserPermissionOverride.user_id   == user_id,
+                UserPermissionOverride.tenant_id == tenant_id,
+                UserPermissionOverride.module    == module,
+                UserPermissionOverride.action    == action,
+            )
+        ).first()
+
+        if override and not (override.expires_at and override.expires_at < now):
+            if override.state == "deny":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Permission '{module}:{action}' explicitly denied for this user",
+                )
+            if override.state == "grant":
+                return claims
+
+        # ── 3: Role-based check ──────────────────────────────────────────────
+        assignments = db.query(UserRoleAssignment).filter(
+            UserRoleAssignment.user_id   == user_id,
+            UserRoleAssignment.tenant_id == tenant_id,
+        ).all()
+
+        role_ids = [a.role_id for a in assignments if not (a.expires_at and a.expires_at < now)]
+
+        if role_ids:
+            perms = (
+                db.query(RolePermission)
+                .join(Role, Role.id == RolePermission.role_id)
+                .filter(
+                    RolePermission.role_id.in_(role_ids),
+                    RolePermission.module == module,
+                    RolePermission.action == action,
+                    RolePermission.state  != "off",
+                )
+                .order_by(Role.priority.asc())
+                .all()
+            )
+            for perm in perms:
+                if perm.state == "on":
+                    return claims
+                if perm.state == "conditional":
+                    conditions = perm.conditions or {}
+                    # Basic ABAC evaluation (mirrors _evaluate_abac in roles.py)
+                    geo = conditions.get("geography", [])
+                    if geo and ctx.get("geography") not in geo:
+                        continue
+                    pt = conditions.get("product_types", [])
+                    if pt and ctx.get("product_type") not in pt:
+                        continue
+                    if conditions.get("own_data_only") and ctx.get("user_id") != ctx.get("target_user_id"):
+                        continue
+                    valid_until = conditions.get("valid_until")
+                    if valid_until:
+                        try:
+                            cutoff = datetime.fromisoformat(valid_until).replace(tzinfo=timezone.utc)
+                            if now > cutoff:
+                                continue
+                        except ValueError:
+                            pass
+                    return claims
+
+        # ── 4: Default deny ──────────────────────────────────────────────────
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Permission denied: '{module}:{action}'",
+        )
+
+    return _check
 
 
 # ── Cross-tenant guard ────────────────────────────────────────────────────────
