@@ -16,6 +16,7 @@ from app.agents.documents import DocumentAgent
 from app.api.v1.deps import get_current_user, require_tenant, RoleChecker
 from app.api.v1.quotations import Quotation, QuotationStatus, _get_or_404
 from app.models.auth import UserRole
+from app.models.bookings import Booking
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -514,4 +515,400 @@ def send_quotation_email(
         return {
             "success": False,
             "error":   str(e),
+        }
+
+
+# ── Invoice PDF ────────────────────────────────────────────────────────────────
+
+class InvoicePdfRequest(BaseModel):
+    booking_id: int
+
+
+class SendInvoiceRequest(BaseModel):
+    booking_id: int
+    email: str
+
+
+def _build_invoice_html(booking: Booking, lead_name: str, destination: str, travel_dates: str, travelers: int) -> str:
+    invoice_number = f"INV-{booking.tenant_id:04d}-{booking.id:06d}"
+    issue_date = datetime.now().strftime("%d %b %Y")
+    total_price = float(booking.total_price)
+    base_price = round(total_price * 0.85, 2)
+    gst = round(total_price * 0.15, 2) if booking.currency == "INR" else 0.0
+    currency = booking.currency or "INR"
+    status_val = booking.status.value if hasattr(booking.status, "value") else str(booking.status)
+    is_paid = status_val in ("CONFIRMED", "COMPLETED")
+
+    def fmt(amount: float) -> str:
+        return f"{currency} {amount:,.2f}"
+
+    paid_stamp = ""
+    if is_paid:
+        paid_stamp = """
+        <div style="position:absolute;top:40px;right:40px;transform:rotate(-15deg);border:4px solid #16a34a;
+                    color:#16a34a;font-size:36px;font-weight:900;letter-spacing:4px;padding:6px 18px;
+                    border-radius:8px;opacity:0.35;text-transform:uppercase;pointer-events:none">
+          PAID
+        </div>"""
+
+    gst_row = ""
+    if gst > 0:
+        gst_row = f"""
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569">GST (18%)</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569">1</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;text-align:right">{fmt(gst)}</td>
+        </tr>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Tax Invoice {invoice_number}</title>
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      color: #1e293b;
+      padding: 48px;
+      font-size: 13px;
+      line-height: 1.5;
+      position: relative;
+    }}
+    .header {{
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #14B8A6;
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+    }}
+    .brand-name {{
+      font-size: 22px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }}
+    .brand-tag {{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #14B8A6;
+      margin-top: 2px;
+    }}
+    .doc-type {{
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 4px 12px;
+      border-radius: 6px;
+      margin-top: 4px;
+    }}
+    .header-meta {{
+      text-align: right;
+      font-size: 12px;
+      color: #64748b;
+    }}
+    .header-meta .inv-number {{
+      font-size: 18px;
+      font-weight: 900;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }}
+    .bill-block {{
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }}
+    .bill-block .label {{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }}
+    .bill-block .name {{
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+    }}
+    .bill-block .sub {{
+      font-size: 13px;
+      color: #14B8A6;
+      font-weight: 600;
+      margin-top: 2px;
+    }}
+    .section-title {{
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }}
+    table.items {{
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }}
+    table.items th {{
+      background: #f1f5f9;
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #64748b;
+    }}
+    table.items td {{
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
+    }}
+    table.items tr:last-child td {{
+      border-bottom: none;
+    }}
+    .totals-box {{
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }}
+    .totals-row {{
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 13px;
+      color: #475569;
+    }}
+    .totals-row.grand {{
+      border-top: 2px solid #0f172a;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-size: 18px;
+      font-weight: 900;
+      color: #0f172a;
+    }}
+    .footer {{
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }}
+  </style>
+</head>
+<body>
+  <div style="position:relative">
+    {paid_stamp}
+
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <div class="brand-name">NAMA OS</div>
+        <div class="brand-tag">Travel Intelligence Platform</div>
+        <div class="doc-type">Tax Invoice</div>
+      </div>
+      <div class="header-meta">
+        <div class="inv-number">{invoice_number}</div>
+        <div>Date: {issue_date}</div>
+      </div>
+    </div>
+
+    <!-- Bill To -->
+    <div class="bill-block">
+      <div class="label">Bill To</div>
+      <div class="name">{lead_name}</div>
+      <div class="sub">{destination}</div>
+    </div>
+
+    <!-- Trip Details -->
+    <div class="section-title">Trip Details</div>
+    <table class="items">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Travel Dates</th>
+          <th>Travelers</th>
+          <th style="text-align:right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{destination} — Full Package</td>
+          <td>{travel_dates or "As arranged"}</td>
+          <td>{travelers} pax</td>
+          <td style="text-align:right">{fmt(base_price)}</td>
+        </tr>
+        {gst_row}
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="section-title">Invoice Summary</div>
+    <div class="totals-box">
+      <div class="totals-row"><span>Base Package</span><span>{fmt(base_price)}</span></div>
+      {"<div class='totals-row'><span>GST (18%)</span><span>" + fmt(gst) + "</span></div>" if gst > 0 else ""}
+      <div class="totals-row grand"><span>Total Payable</span><span>{fmt(total_price)}</span></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      For questions, contact your travel consultant.<br>
+      NAMA OS · getnama.app · Powered by AI Travel Intelligence<br>
+      Generated {datetime.now(timezone.utc).strftime('%d %b %Y %H:%M UTC')}
+    </div>
+  </div>
+</body>
+</html>"""
+
+
+def _fetch_booking_with_context(db: Session, booking_id: int, tenant_id: int):
+    """Fetch booking + related lead data. Returns (booking, lead_name, destination, travel_dates, travelers)."""
+    booking = db.query(Booking).filter(
+        Booking.id == booking_id,
+        Booking.tenant_id == tenant_id,
+    ).first()
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+
+    # Try to get lead info for richer invoice
+    lead_name = f"Client #{booking.lead_id}"
+    destination = "Travel Package"
+    travel_dates = ""
+    travelers = 2
+
+    try:
+        from app.models.leads import Lead
+        lead = db.query(Lead).filter(Lead.id == booking.lead_id).first()
+        if lead:
+            lead_name = lead.full_name or lead.sender_id or lead_name
+            destination = lead.destination or destination
+            travel_dates = lead.travel_dates or ""
+            travelers = lead.travelers_count or travelers
+    except Exception:
+        pass
+
+    return booking, lead_name, destination, travel_dates, travelers
+
+
+@router.post(
+    "/invoice-pdf",
+    summary="Generate and download a tax invoice PDF for a confirmed booking",
+)
+def download_invoice_pdf(
+    body: InvoicePdfRequest,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_any_staff),
+):
+    """
+    Generates a professional Tax Invoice PDF for the given confirmed booking
+    and returns it as a binary download. Uses WeasyPrint server-side.
+    """
+    booking, lead_name, destination, travel_dates, travelers = _fetch_booking_with_context(
+        db, body.booking_id, tenant_id
+    )
+    invoice_number = f"INV-{tenant_id:04d}-{booking.id:06d}"
+    html = _build_invoice_html(booking, lead_name, destination, travel_dates, travelers)
+    pdf_bytes = _generate_pdf_bytes(html)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="invoice-{invoice_number}.pdf"',
+            "Content-Length": str(len(pdf_bytes)),
+        },
+    )
+
+
+@router.post(
+    "/send-invoice",
+    summary="Email a tax invoice PDF to the client via Resend",
+)
+def send_invoice_email(
+    body: SendInvoiceRequest,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_any_staff),
+):
+    """
+    Generates the invoice PDF and emails it to the specified address using Resend.
+    Returns success=false gracefully if RESEND_API_KEY is not configured.
+    """
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    if not resend_api_key:
+        return {
+            "success": False,
+            "error": "Email not configured — PDF download available",
+        }
+
+    booking, lead_name, destination, travel_dates, travelers = _fetch_booking_with_context(
+        db, body.booking_id, tenant_id
+    )
+    invoice_number = f"INV-{tenant_id:04d}-{booking.id:06d}"
+    html = _build_invoice_html(booking, lead_name, destination, travel_dates, travelers)
+    pdf_bytes = _generate_pdf_bytes(html)
+    pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
+    total_fmt = f"{booking.currency} {float(booking.total_price):,.2f}"
+
+    email_html = f"""
+    <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:600px;margin:0 auto">
+      <div style="background:#0f172a;padding:24px 32px;border-radius:12px 12px 0 0">
+        <div style="color:#14B8A6;font-weight:900;font-size:18px;letter-spacing:-0.5px">NAMA OS</div>
+        <div style="color:#94a3b8;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Travel Intelligence Platform</div>
+      </div>
+      <div style="background:#f8fafc;padding:32px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0">
+        <p style="margin:0 0 16px">Dear {lead_name},</p>
+        <p style="margin:0 0 16px">Please find your tax invoice attached for your upcoming trip to <strong>{destination}</strong>.</p>
+        <div style="background:#0f172a;border-radius:10px;padding:20px 24px;margin:24px 0">
+          <div style="color:#64748b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Invoice Total</div>
+          <div style="color:#14B8A6;font-size:28px;font-weight:900;margin-top:6px">{total_fmt}</div>
+          <div style="color:#94a3b8;font-size:12px;margin-top:4px">{destination} · Invoice: {invoice_number}</div>
+        </div>
+        <p style="margin:0 0 8px;font-size:13px;color:#475569">
+          Your full invoice (PDF) is attached to this email. Please retain it for your records.
+        </p>
+        <p style="margin:0;font-size:13px;color:#475569">
+          Reply to this email if you have any questions about your booking.
+        </p>
+        <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center">
+          NAMA OS · getnama.app · Powered by AI Travel Intelligence
+        </div>
+      </div>
+    </div>"""
+
+    try:
+        import resend  # type: ignore
+        resend.api_key = resend_api_key
+        response = resend.Emails.send({
+            "from": "NAMA OS <invoices@namaos.com>",
+            "to": [body.email],
+            "subject": f"Your Travel Invoice — {destination} ({invoice_number})",
+            "html": email_html,
+            "attachments": [{
+                "filename": f"invoice-{invoice_number}.pdf",
+                "content": pdf_b64,
+            }],
+        })
+        logger.info(f"Invoice email sent: booking={booking.id} to={body.email}")
+        return {
+            "success": True,
+            "message_id": response.get("id") if isinstance(response, dict) else getattr(response, "id", None),
+        }
+    except Exception as e:
+        logger.exception(f"Resend error for invoice booking {booking.id}")
+        return {
+            "success": False,
+            "error": str(e),
         }

@@ -264,3 +264,136 @@ async def generic_inbound(
         db.rollback()
 
     return {"status": "ok", "event_id": event.id}
+
+
+# ── Outbound Webhook Endpoint CRUD ─────────────────────────────────────────────
+
+import secrets as _secrets
+from typing import List, Optional
+from pydantic import BaseModel
+from app.api.v1.deps import require_tenant
+from app.models.webhooks import WebhookEndpoint
+
+OUTBOUND_SUPPORTED_EVENTS = [
+    "lead.created", "lead.status_changed", "lead.assigned",
+    "booking.created", "booking.confirmed", "booking.cancelled",
+    "quotation.sent", "quotation.accepted",
+]
+
+
+class WebhookCreate(BaseModel):
+    url: str
+    events: List[str]
+    description: Optional[str] = None
+
+
+class WebhookUpdate(BaseModel):
+    url: Optional[str] = None
+    events: Optional[List[str]] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class WebhookOut(BaseModel):
+    id: int
+    url: str
+    events: List[str]
+    description: Optional[str]
+    is_active: bool
+    secret: str
+    delivery_count: int
+    failure_count: int
+    last_triggered_at: Optional[datetime]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/outbound", response_model=List[WebhookOut], summary="List outbound webhook endpoints")
+def list_outbound_webhooks(
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    return db.query(WebhookEndpoint).filter(WebhookEndpoint.tenant_id == tenant_id).all()
+
+
+@router.post("/outbound", response_model=WebhookOut, status_code=201, summary="Create outbound webhook endpoint")
+def create_outbound_webhook(
+    body: WebhookCreate,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    invalid = [e for e in body.events if e not in OUTBOUND_SUPPORTED_EVENTS]
+    if invalid:
+        raise HTTPException(400, f"Unknown events: {invalid}. Supported: {OUTBOUND_SUPPORTED_EVENTS}")
+    wh = WebhookEndpoint(
+        tenant_id=tenant_id,
+        url=body.url,
+        events=body.events,
+        description=body.description,
+        secret=_secrets.token_hex(32),
+    )
+    db.add(wh)
+    db.commit()
+    db.refresh(wh)
+    return wh
+
+
+@router.put("/outbound/{webhook_id}", response_model=WebhookOut, summary="Update outbound webhook endpoint")
+def update_outbound_webhook(
+    webhook_id: int,
+    body: WebhookUpdate,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    wh = db.query(WebhookEndpoint).filter(
+        WebhookEndpoint.id == webhook_id,
+        WebhookEndpoint.tenant_id == tenant_id,
+    ).first()
+    if not wh:
+        raise HTTPException(404, "Webhook not found")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(wh, k, v)
+    db.commit()
+    db.refresh(wh)
+    return wh
+
+
+@router.delete("/outbound/{webhook_id}", summary="Delete outbound webhook endpoint")
+def delete_outbound_webhook(
+    webhook_id: int,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    wh = db.query(WebhookEndpoint).filter(
+        WebhookEndpoint.id == webhook_id,
+        WebhookEndpoint.tenant_id == tenant_id,
+    ).first()
+    if not wh:
+        raise HTTPException(404, "Webhook not found")
+    db.delete(wh)
+    db.commit()
+    return {"deleted": True}
+
+
+@router.post("/outbound/{webhook_id}/test", summary="Send test event to outbound webhook")
+def test_outbound_webhook(
+    webhook_id: int,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    wh = db.query(WebhookEndpoint).filter(
+        WebhookEndpoint.id == webhook_id,
+        WebhookEndpoint.tenant_id == tenant_id,
+    ).first()
+    if not wh:
+        raise HTTPException(404, "Webhook not found")
+    from app.core.webhook_dispatcher import dispatch_webhook_sync
+    dispatch_webhook_sync(
+        tenant_id,
+        "lead.created",
+        {"test": True, "message": "NAMA OS test event", "webhook_id": webhook_id},
+        db,
+    )
+    return {"sent": True}

@@ -16,6 +16,8 @@ import GlobalSearch from '@/components/GlobalSearch';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { FeedbackWidget } from '@/components/FeedbackWidget';
 import ChecklistWidget from '@/components/ChecklistWidget';
+import { CurrencyProvider } from '@/lib/currency-context';
+import CurrencySelector from '@/components/CurrencySelector';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -326,6 +328,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
+    <CurrencyProvider>
     <div className="min-h-screen bg-slate-50 flex font-sans text-left">
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
@@ -358,6 +361,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <GlobalSearch />
           </div>
           <div className="flex items-center gap-2 md:gap-4 relative">
+            {/* Currency selector */}
+            <CurrencySelector />
             {/* Notification bell */}
             <button
               onClick={() => setNotifOpen(o => !o)}
@@ -403,6 +408,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
         </header>
+
+        {/* UAT Environment Banner */}
+        {process.env.NEXT_PUBLIC_ENV === 'staging' && (
+          <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+            <span className="text-amber-300 text-xs font-medium">
+              UAT / Staging Environment — changes here do not affect <strong>getnama.app</strong> (LIVE)
+            </span>
+          </div>
+        )}
 
         {/* Demo Mode Banner */}
         {isDemoMode && !demoBannerDismissed && (
@@ -451,6 +466,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Get Started onboarding checklist — floating bottom-right */}
       <ChecklistWidget />
     </div>
+    </CurrencyProvider>
   );
 }
 

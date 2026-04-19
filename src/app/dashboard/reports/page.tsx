@@ -7,23 +7,47 @@
  *   - Date range picker (7d / 30d / 90d / 12mo / custom)
  *   - Revenue trend chart (SVG area chart)
  *   - Conversion funnel with drill-down
- *   - Agent performance leaderboard
+ *   - Agent performance leaderboard (live from DB)
  *   - Top destinations by revenue
  *   - AI usage & cost report
  *   - One-click CSV export for every table
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   BarChart2, TrendingUp, TrendingDown, Download,
-  Calendar, Users, Map, Bot, DollarSign,
+  Users, Map, Bot, DollarSign,
   ArrowUp, ArrowDown, Minus, Filter, RefreshCw,
-  ChevronDown, FileText, Zap,
+  FileText, Zap, Crown,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type Range = "7d" | "30d" | "90d" | "12mo";
 type Tab   = "revenue" | "leads" | "agents" | "destinations" | "ai";
+
+interface AgentPerformance {
+  user_id?: number;
+  name: string;
+  role?: string;
+  leads_assigned: number;
+  leads_qualified: number;
+  quotations_sent: number;
+  bookings_closed: number;
+  total_revenue: number;
+  conversion_rate: number;
+  // legacy fields used by existing static seed
+  leads?: number;
+  converted?: number;
+  revenue?: number;
+  rating?: number;
+}
+
+const SEED_TEAM_PERFORMANCE: AgentPerformance[] = [
+  { name: "Priya Mehta",  role: "R3_SALES_MANAGER", leads_assigned: 24, leads_qualified: 8,  quotations_sent: 12, bookings_closed: 5, total_revenue: 875000, conversion_rate: 33.3 },
+  { name: "Arjun Shah",   role: "R3_SALES_MANAGER", leads_assigned: 18, leads_qualified: 5,  quotations_sent: 8,  bookings_closed: 3, total_revenue: 520000, conversion_rate: 27.8 },
+  { name: "Nisha Patel",  role: "R4_OPS_EXECUTIVE", leads_assigned: 12, leads_qualified: 3,  quotations_sent: 5,  bookings_closed: 2, total_revenue: 340000, conversion_rate: 25.0 },
+  { name: "Rohit Verma",  role: "R3_SALES_MANAGER", leads_assigned: 15, leads_qualified: 2,  quotations_sent: 4,  bookings_closed: 1, total_revenue: 175000, conversion_rate: 13.3 },
+];
 
 // ── Seeded Data Generator ──────────────────────────────────────────────────────
 function seededRandom(seed: number) {
@@ -59,14 +83,6 @@ function generateRevenueSeries(days: number, baseSeed = 42) {
 }
 
 const RANGE_DAYS: Record<Range, number> = { "7d": 7, "30d": 30, "90d": 90, "12mo": 365 };
-
-const AGENTS = [
-  { name: "Priya Sharma",   leads: 87, converted: 62, revenue: 9_40_000, rating: 4.9 },
-  { name: "Rahul Mehta",    leads: 71, converted: 48, revenue: 7_20_000, rating: 4.7 },
-  { name: "Ananya Nair",    leads: 65, converted: 51, revenue: 8_10_000, rating: 4.8 },
-  { name: "Karan Singh",    leads: 58, converted: 38, revenue: 5_90_000, rating: 4.5 },
-  { name: "Deepa Iyer",     leads: 44, converted: 31, revenue: 4_80_000, rating: 4.6 },
-];
 
 const DESTINATIONS = [
   { name: "Bali, Indonesia",   bookings: 48, revenue: 28_40_000, aov: 59_167, growth: 34 },
@@ -266,9 +282,10 @@ export default function ReportsPage() {
   const [liveKPIs, setLiveKPIs] = useState<any | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [liveForecast, setLiveForecast] = useState<any | null>(null);
+  const [teamPerf, setTeamPerf] = useState<AgentPerformance[]>([]);
 
   // Load real KPIs from analytics API
-  React.useEffect(() => {
+  useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null;
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
     Promise.all([
@@ -279,6 +296,23 @@ export default function ReportsPage() {
       if (forecast)  setLiveForecast(forecast);
     });
   }, [range]);
+
+  // Load live team performance once
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null;
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch('/api/v1/analytics/team-performance', { headers })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then((data: AgentPerformance[] | null) => {
+        if (data && data.length > 0) setTeamPerf(data);
+        else setTeamPerf(SEED_TEAM_PERFORMANCE);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Use live or seeded team data
+  const displayTeam = teamPerf.length > 0 ? teamPerf : SEED_TEAM_PERFORMANCE;
+  const topAgent = [...displayTeam].sort((a, b) => b.total_revenue - a.total_revenue)[0];
 
   const days = RANGE_DAYS[range];
   const series = useMemo(() => generateRevenueSeries(days, RANGE_SEED[range]), [days, range]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -542,81 +576,114 @@ export default function ReportsPage() {
 
       {/* ── Agents Tab ────────────────────────────────────────────────────────── */}
       {activeTab === "agents" && (
-        <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between p-5 border-b border-slate-100">
-            <h3 className="font-extrabold text-[#0F172A]">Agent Performance Leaderboard</h3>
-            <button
-              onClick={() => exportCSV(AGENTS, "nama-agents.csv")}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700"
-            >
-              <Download size={12} /> Export CSV
-            </button>
+        <div className="space-y-6">
+          {/* Summary strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard
+              label="Total Revenue"
+              value={fmtINR(displayTeam.reduce((s, a) => s + a.total_revenue, 0))}
+              icon={DollarSign} color="bg-[#14B8A6]"
+            />
+            <StatCard
+              label="Total Leads Assigned"
+              value={String(displayTeam.reduce((s, a) => s + a.leads_assigned, 0))}
+              icon={Users} color="bg-blue-500"
+            />
+            <StatCard
+              label="Avg Conversion Rate"
+              value={`${(displayTeam.reduce((s, a) => s + a.conversion_rate, 0) / Math.max(displayTeam.length, 1)).toFixed(1)}%`}
+              icon={ArrowUp} color="bg-violet-500"
+            />
+            <StatCard
+              label="Top Agent"
+              value={topAgent?.name ?? "—"}
+              sub={topAgent ? fmtINR(topAgent.total_revenue) : ""}
+              icon={Crown} color="bg-amber-500"
+            />
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  {["Rank", "Agent", "Leads", "Converted", "Conv. Rate", "Revenue", "Rating"].map((h) => (
-                    <th key={h} className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-5 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {AGENTS.sort((a, b) => b.revenue - a.revenue).map((agent, i) => {
-                  const conv = Math.round((agent.converted / agent.leads) * 100);
-                  return (
-                    <tr key={i} className={`border-t border-slate-50 hover:bg-slate-50/50 ${i === 0 ? "bg-amber-50/30" : ""}`}>
-                      <td className="px-5 py-4">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                          i === 0 ? "bg-amber-400 text-white" : i === 1 ? "bg-slate-400 text-white" : i === 2 ? "bg-amber-700 text-white" : "bg-slate-100 text-slate-500"
-                        }`}>
-                          {i + 1}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-[#14B8A6] to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-black">
-                            {agent.name.split(" ").map((n) => n[0]).join("")}
+
+          <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <h3 className="font-extrabold text-[#0F172A]">Agent Performance Leaderboard</h3>
+              <button
+                onClick={() => exportCSV(displayTeam as unknown as Record<string, unknown>[], "nama-team-performance.csv")}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700"
+              >
+                <Download size={12} /> Export CSV
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    {["Agent", "Role", "Leads", "Qualified", "Quotes Sent", "Bookings", "Revenue", "Conv. %"].map((h) => (
+                      <th key={h} className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-5 py-3">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...displayTeam].sort((a, b) => b.total_revenue - a.total_revenue).map((agent, i) => {
+                    const conv = agent.conversion_rate;
+                    const convColor = conv > 20 ? "bg-emerald-50 text-emerald-700" : conv >= 10 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600";
+                    const isTop = i === 0;
+                    const roleName = (agent.role || "").replace("R3_SALES_MANAGER", "Sales").replace("R4_OPS_EXECUTIVE", "Ops").replace("R2_ORG_ADMIN", "Admin").replace("R0_NAMA_OWNER", "Owner").replace("R1_SUPER_ADMIN", "Super Admin").replace("R5_FINANCE_ADMIN", "Finance");
+                    return (
+                      <tr key={i} className={`border-t border-slate-50 hover:bg-slate-50/50 ${isTop ? "bg-amber-50/30" : ""}`}>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="w-8 h-8 bg-gradient-to-br from-[#14B8A6] to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-black">
+                                {agent.name.split(" ").map((n) => n[0]).join("")}
+                              </div>
+                              {isTop && (
+                                <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center">
+                                  <Crown size={8} className="text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <span className="font-semibold text-slate-800">{agent.name}</span>
                           </div>
-                          <span className="font-semibold text-slate-800">{agent.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-slate-600">{agent.leads}</td>
-                      <td className="px-5 py-4 text-slate-600">{agent.converted}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-slate-100 rounded-full">
-                            <div className="h-full bg-[#14B8A6] rounded-full" style={{ width: `${conv}%` }} />
-                          </div>
-                          <span className="font-bold text-slate-700 text-xs">{conv}%</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 font-black text-[#0F172A]">{fmtINR(agent.revenue)}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-1">
-                          <span className="text-amber-400 text-sm">★</span>
-                          <span className="font-bold text-slate-700 text-xs">{agent.rating}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot className="bg-slate-50 border-t-2 border-slate-200">
-                <tr>
-                  <td className="px-5 py-3" colSpan={2}>
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Team Total</span>
-                  </td>
-                  <td className="px-5 py-3 font-black text-slate-700">{AGENTS.reduce((s, a) => s + a.leads, 0)}</td>
-                  <td className="px-5 py-3 font-black text-slate-700">{AGENTS.reduce((s, a) => s + a.converted, 0)}</td>
-                  <td className="px-5 py-3 font-black text-[#14B8A6]">
-                    {Math.round((AGENTS.reduce((s, a) => s + a.converted, 0) / AGENTS.reduce((s, a) => s + a.leads, 0)) * 100)}%
-                  </td>
-                  <td className="px-5 py-3 font-black text-[#14B8A6]">{fmtINR(AGENTS.reduce((s, a) => s + a.revenue, 0))}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
+                        </td>
+                        <td className="px-5 py-4">
+                          {roleName && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 uppercase tracking-wide">
+                              {roleName}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-slate-600">{agent.leads_assigned}</td>
+                        <td className="px-5 py-4 text-slate-600">{agent.leads_qualified}</td>
+                        <td className="px-5 py-4 text-slate-600">{agent.quotations_sent}</td>
+                        <td className="px-5 py-4 text-slate-600">{agent.bookings_closed}</td>
+                        <td className="px-5 py-4 font-black text-[#0F172A]">
+                          ₹{agent.total_revenue.toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${convColor}`}>
+                            {conv.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                  <tr>
+                    <td className="px-5 py-3 font-black text-slate-500 text-xs uppercase" colSpan={2}>Team Total</td>
+                    <td className="px-5 py-3 font-black text-slate-700">{displayTeam.reduce((s, a) => s + a.leads_assigned, 0)}</td>
+                    <td className="px-5 py-3 font-black text-slate-700">{displayTeam.reduce((s, a) => s + a.leads_qualified, 0)}</td>
+                    <td className="px-5 py-3 font-black text-slate-700">{displayTeam.reduce((s, a) => s + a.quotations_sent, 0)}</td>
+                    <td className="px-5 py-3 font-black text-slate-700">{displayTeam.reduce((s, a) => s + a.bookings_closed, 0)}</td>
+                    <td className="px-5 py-3 font-black text-[#14B8A6]">
+                      ₹{displayTeam.reduce((s, a) => s + a.total_revenue, 0).toLocaleString("en-IN")}
+                    </td>
+                    <td className="px-5 py-3 font-black text-[#14B8A6]">
+                      {(displayTeam.reduce((s, a) => s + a.conversion_rate, 0) / Math.max(displayTeam.length, 1)).toFixed(1)}%
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       )}

@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Search, X, LayoutDashboard, Users, Map, Briefcase, Store, ArrowRight, Command } from 'lucide-react'
+import { Search, X, LayoutDashboard, Users, Map, Briefcase, Store, ArrowRight, Command, Loader2 } from 'lucide-react'
 
 interface SearchResult {
   id: string
@@ -111,15 +111,104 @@ const TYPE_COLOR: Record<string, string> = {
   module: 'text-slate-400', lead: 'text-[#14B8A6]', itinerary: 'text-purple-400', vendor: 'text-orange-400',
 }
 
+interface ApiSearchResult {
+  module: string
+  id: number
+  label: string
+  subtitle: string
+  url: string
+}
+
+interface ApiSearchResponse {
+  leads: ApiSearchResult[]
+  itineraries: ApiSearchResult[]
+  vendors: ApiSearchResult[]
+  bookings: ApiSearchResult[]
+  quotations: ApiSearchResult[]
+  total: number
+}
+
+const API_MODULE_ICONS: Record<string, React.ReactNode> = {
+  leads: <Users size={14} />,
+  itineraries: <Map size={14} />,
+  vendors: <Store size={14} />,
+  bookings: <Briefcase size={14} />,
+  quotations: <ArrowRight size={14} />,
+}
+
+const API_MODULE_URLS: Record<string, string> = {
+  leads: '/dashboard/leads',
+  itineraries: '/dashboard/itineraries',
+  vendors: '/dashboard/vendors',
+  bookings: '/dashboard/bookings',
+  quotations: '/dashboard/quotations',
+}
+
+function apiResultsToSearchResults(data: ApiSearchResponse): SearchResult[] {
+  const out: SearchResult[] = []
+  const sections: Array<[string, ApiSearchResult[]]> = [
+    ['leads', data.leads],
+    ['itineraries', data.itineraries],
+    ['vendors', data.vendors],
+    ['bookings', data.bookings],
+    ['quotations', data.quotations],
+  ]
+  for (const [module, items] of sections) {
+    for (const item of items) {
+      out.push({
+        id: `api-${module}-${item.id}`,
+        type: module as SearchResult['type'],
+        title: item.label,
+        subtitle: item.subtitle,
+        href: item.url || API_MODULE_URLS[module] || '/dashboard',
+        icon: API_MODULE_ICONS[module] || <ArrowRight size={14} />,
+      })
+    }
+  }
+  return out
+}
+
 export default function GlobalSearch() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const [apiResults, setApiResults] = useState<SearchResult[] | null>(null)
+  const [searching, setSearching] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
-  const results = buildResults(query)
+  // Debounced API search
+  useEffect(() => {
+    if (query.length < 2) {
+      setApiResults(null)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`)
+        if (res.ok) {
+          const data: ApiSearchResponse = await res.json()
+          if (data.total > 0) {
+            setApiResults(apiResultsToSearchResults(data))
+          } else {
+            setApiResults([])
+          }
+        } else {
+          setApiResults(null) // fall back to static
+        }
+      } catch {
+        setApiResults(null) // fall back to static
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  // Use API results when available, fall back to static seed results
+  const results = apiResults !== null ? apiResults : buildResults(query)
 
   // Track client mount for portal rendering
   useEffect(() => { setMounted(true) }, [])
@@ -138,13 +227,15 @@ export default function GlobalSearch() {
     return () => window.removeEventListener('keydown', handler, true)
   }, [])
 
-  // Focus input when opened
+  // Focus input when opened; reset state when closed
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50)
       setActiveIndex(0)
     } else {
       setQuery('')
+      setApiResults(null)
+      setSearching(false)
     }
   }, [open])
 
@@ -191,7 +282,10 @@ export default function GlobalSearch() {
           <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 z-10">
             {/* Input */}
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100">
-              <Search size={18} className="text-slate-400 flex-shrink-0" />
+              {searching
+                ? <Loader2 size={18} className="text-slate-400 flex-shrink-0 animate-spin" />
+                : <Search size={18} className="text-slate-400 flex-shrink-0" />
+              }
               <input
                 ref={inputRef}
                 value={query}
@@ -201,7 +295,7 @@ export default function GlobalSearch() {
                 className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-800 placeholder-slate-400"
               />
               {query && (
-                <button onClick={() => setQuery('')} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <button onClick={() => { setQuery(''); setApiResults(null) }} className="text-slate-400 hover:text-slate-600 transition-colors">
                   <X size={16} />
                 </button>
               )}
@@ -210,9 +304,14 @@ export default function GlobalSearch() {
 
             {/* Results */}
             <div className="max-h-[400px] overflow-y-auto py-2">
-              {results.length === 0 && (
+              {results.length === 0 && !searching && (
                 <div className="py-10 text-center">
                   <p className="text-sm text-slate-400 font-medium">No results for "{query}"</p>
+                </div>
+              )}
+              {searching && results.length === 0 && (
+                <div className="py-10 text-center">
+                  <p className="text-sm text-slate-400 font-medium">Searching…</p>
                 </div>
               )}
               {Object.entries(grouped).map(([type, items]) => (
@@ -253,7 +352,9 @@ export default function GlobalSearch() {
               <span>↑↓ Navigate</span>
               <span>↵ Select</span>
               <span>ESC Close</span>
-              <span className="ml-auto">NAMA OS Search</span>
+              <span className="ml-auto">
+                {apiResults !== null ? 'Live results' : 'NAMA OS Search'}
+              </span>
             </div>
           </div>
         </div>

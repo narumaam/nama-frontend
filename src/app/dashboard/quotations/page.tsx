@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { leadsApi, itinerariesApi, quotationsApi, Lead, ItineraryOut, Quotation } from '@/lib/api'
+import { leadsApi, itinerariesApi, quotationsApi, paymentsApi, Lead, ItineraryOut, Quotation } from '@/lib/api'
 import {
   FileText, Plus, Loader, AlertCircle, CheckCircle,
   Clock, Send, Download, Eye, X, ChevronRight,
   Sparkles, DollarSign, Share2, TrendingUp, TrendingDown,
-  Minus, BarChart3, Info, Zap,
+  Minus, BarChart3, Info, Zap, Copy, CreditCard,
 } from 'lucide-react'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -42,7 +42,23 @@ interface PricingBenchmark {
   segment: string;
 }
 
-const PRICING_BENCHMARKS: Record<string, PricingBenchmark> = {
+// ── API-backed pricing benchmarks (replaces static PRICING_BENCHMARKS) ────────
+// Loaded once per page mount; used by SmartPricingInsight below.
+// The module-level cache is keyed by destination string so each quotation
+// expansion triggers one fetch at most.
+
+interface ApiBenchmark {
+  destination: string;
+  avg_price_per_person: number;
+  avg_margin_pct: number;
+  count: number;
+  min_price: number | null;
+  max_price: number | null;
+  data_source: 'live' | 'benchmark';
+}
+
+// Static fallback used only when the API call itself fails completely
+const STATIC_FALLBACK: Record<string, PricingBenchmark> = {
   'Maldives':   { destination: 'Maldives',   avgMarginPct: 22, marketLow: 150000, marketMid: 250000, marketHigh: 500000, demandTrend: 'UP',     demandPct: 34, tip: 'High demand — push margins to 25%+. Overwater villas command premium.', segment: 'LUXURY' },
   'Bali':       { destination: 'Bali',       avgMarginPct: 20, marketLow: 60000,  marketMid: 120000, marketHigh: 220000, demandTrend: 'UP',     demandPct: 18, tip: 'Competitive segment. Differentiate with unique experiences, not just hotels.', segment: 'PREMIUM' },
   'Kenya':      { destination: 'Kenya',      avgMarginPct: 24, marketLow: 200000, marketMid: 350000, marketHigh: 600000, demandTrend: 'UP',     demandPct: 22, tip: 'Safari demand surging. Scarcity of good dates — use urgency in pitch.', segment: 'LUXURY' },
@@ -58,11 +74,40 @@ const DEFAULT_BENCHMARK: PricingBenchmark = {
   demandTrend: 'STABLE', demandPct: 0, tip: 'Set margins 18-22% for most destinations. Higher for luxury, lower for budget.', segment: 'MID',
 };
 
+/** Static-only lookup — used for portfolio-level calculations where we don't have API data yet */
 function getPricingBenchmark(destination: string): PricingBenchmark {
-  const key = Object.keys(PRICING_BENCHMARKS).find(k =>
+  const key = Object.keys(STATIC_FALLBACK).find(k =>
     destination?.toLowerCase().includes(k.toLowerCase())
   );
-  return key ? PRICING_BENCHMARKS[key] : { ...DEFAULT_BENCHMARK, destination: destination || 'General' };
+  return key ? STATIC_FALLBACK[key] : { ...DEFAULT_BENCHMARK, destination: destination || 'General' };
+}
+
+/** Convert an API benchmark row into the UI's PricingBenchmark shape */
+function apiBenchmarkToUI(api: ApiBenchmark): PricingBenchmark & { dataSource: 'live' | 'benchmark' } {
+  const avgPrice = api.avg_price_per_person;
+  // Derive rough market range from the avg price
+  const marketLow  = api.min_price ?? Math.round(avgPrice * 0.6);
+  const marketMid  = Math.round(avgPrice);
+  const marketHigh = api.max_price ?? Math.round(avgPrice * 1.6);
+  // Find the static fallback for demand signal (not in DB aggregates)
+  const staticKey = Object.keys(STATIC_FALLBACK).find(k =>
+    api.destination.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(api.destination.toLowerCase())
+  );
+  const staticFb = staticKey ? STATIC_FALLBACK[staticKey] : DEFAULT_BENCHMARK;
+  return {
+    destination:  api.destination,
+    avgMarginPct: api.avg_margin_pct,
+    marketLow,
+    marketMid,
+    marketHigh,
+    demandTrend:  staticFb.demandTrend,
+    demandPct:    staticFb.demandPct,
+    tip:          api.data_source === 'live'
+      ? `Based on ${api.count} real itinerary${api.count !== 1 ? 'ies' : 'y'} — avg ₹${Math.round(avgPrice/1000)}K/person, ${api.avg_margin_pct}% margin.`
+      : staticFb.tip,
+    segment:      staticFb.segment,
+    dataSource:   api.data_source,
+  };
 }
 
 function MarginHealthBar({ actual, benchmark }: { actual: number; benchmark: number }) {
@@ -84,17 +129,19 @@ function MarginHealthBar({ actual, benchmark }: { actual: number; benchmark: num
   );
 }
 
-function SmartPricingInsight({ q }: { q: Quotation }) {
-  const bench = getPricingBenchmark(q.destination || '');
+function SmartPricingInsight({ q, bench }: { q: Quotation; bench: (PricingBenchmark & { dataSource?: 'live' | 'benchmark' }) | null }) {
+  const resolvedBench = bench ?? { ...DEFAULT_BENCHMARK, destination: q.destination || 'General', dataSource: 'benchmark' as const };
   const perPax = q.base_price; // treat base_price as cost
-  const trend = bench.demandTrend;
+  const trend = resolvedBench.demandTrend;
   const TrendIcon = trend === 'UP' ? TrendingUp : trend === 'DOWN' ? TrendingDown : Minus;
   const trendColor = trend === 'UP' ? 'text-green-600' : trend === 'DOWN' ? 'text-red-500' : 'text-slate-500';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dataSource = (resolvedBench as any).dataSource ?? 'benchmark';
 
   const pricePosition =
-    perPax < bench.marketLow ? 'LOW' :
-    perPax <= bench.marketMid ? 'MID' :
-    perPax <= bench.marketHigh ? 'HIGH' : 'PREMIUM';
+    perPax < resolvedBench.marketLow ? 'LOW' :
+    perPax <= resolvedBench.marketMid ? 'MID' :
+    perPax <= resolvedBench.marketHigh ? 'HIGH' : 'PREMIUM';
 
   const positionColors: Record<string, string> = {
     LOW: 'text-amber-700 bg-amber-50', MID: 'text-blue-700 bg-blue-50',
@@ -106,17 +153,29 @@ function SmartPricingInsight({ q }: { q: Quotation }) {
       <div className="flex items-center gap-2">
         <Zap size={14} className="text-[#14B8A6]" />
         <span className="text-xs font-black uppercase tracking-widest text-slate-500">Smart Pricing Intelligence</span>
+        {/* Live / Estimated indicator */}
+        {dataSource === 'live' ? (
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-bold text-emerald-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+            Live
+          </span>
+        ) : (
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-bold text-slate-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
+            Est.
+          </span>
+        )}
       </div>
 
       {/* Margin Health */}
-      <MarginHealthBar actual={q.margin_pct} benchmark={bench.avgMarginPct} />
+      <MarginHealthBar actual={q.margin_pct} benchmark={resolvedBench.avgMarginPct} />
 
       {/* Market Range */}
       <div className="bg-slate-50 rounded-xl p-3">
-        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Market Rate Range — {bench.destination}</div>
+        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Market Rate Range — {resolvedBench.destination}</div>
         <div className="flex items-center gap-1 mb-2">
           {['Budget', 'Mid', 'Premium'].map((tier, i) => {
-            const val = [bench.marketLow, bench.marketMid, bench.marketHigh][i];
+            const val = [resolvedBench.marketLow, resolvedBench.marketMid, resolvedBench.marketHigh][i];
             const isActive = (i === 0 && pricePosition === 'LOW') || (i === 1 && pricePosition === 'MID') || (i === 2 && (pricePosition === 'HIGH' || pricePosition === 'PREMIUM'));
             return (
               <div key={tier} className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold ${isActive ? 'bg-[#14B8A6] text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>
@@ -135,12 +194,12 @@ function SmartPricingInsight({ q }: { q: Quotation }) {
       <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 px-3 py-2.5">
         <div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Network Demand Signal</div>
-          <div className="font-bold text-sm text-slate-800 mt-0.5">{bench.destination}</div>
+          <div className="font-bold text-sm text-slate-800 mt-0.5">{resolvedBench.destination}</div>
         </div>
         <div className="flex items-center gap-1.5">
           <TrendIcon size={16} className={trendColor} />
           <span className={`text-sm font-black ${trendColor}`}>
-            {bench.demandPct > 0 ? '+' : ''}{bench.demandPct}%
+            {resolvedBench.demandPct > 0 ? '+' : ''}{resolvedBench.demandPct}%
           </span>
         </div>
       </div>
@@ -148,22 +207,167 @@ function SmartPricingInsight({ q }: { q: Quotation }) {
       {/* Tip */}
       <div className="flex items-start gap-2 bg-[#14B8A6]/5 border border-[#14B8A6]/20 rounded-xl p-3">
         <Info size={13} className="text-[#14B8A6] flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-slate-600 leading-relaxed">{bench.tip}</p>
+        <p className="text-xs text-slate-600 leading-relaxed">{resolvedBench.tip}</p>
       </div>
 
       {/* Recommended price */}
-      {q.margin_pct < bench.avgMarginPct - 2 && (
+      {q.margin_pct < resolvedBench.avgMarginPct - 2 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-          <div className="text-xs font-bold text-amber-800 mb-1">💡 Pricing Opportunity</div>
+          <div className="text-xs font-bold text-amber-800 mb-1">Pricing Opportunity</div>
           <p className="text-xs text-amber-700">
-            At {bench.avgMarginPct}% (benchmark), your total price would be{' '}
-            <strong>₹{Math.round(q.base_price * (1 + bench.avgMarginPct / 100)).toLocaleString('en-IN')}</strong>{' '}
-            — an extra <strong>₹{Math.round(q.base_price * (bench.avgMarginPct - q.margin_pct) / 100).toLocaleString('en-IN')}</strong> in margin.
+            At {resolvedBench.avgMarginPct}% (benchmark), your total price would be{' '}
+            <strong>₹{Math.round(q.base_price * (1 + resolvedBench.avgMarginPct / 100)).toLocaleString('en-IN')}</strong>{' '}
+            — an extra <strong>₹{Math.round(q.base_price * (resolvedBench.avgMarginPct - q.margin_pct) / 100).toLocaleString('en-IN')}</strong> in margin.
           </p>
         </div>
       )}
     </div>
   );
+}
+
+// ── Payment Link Modal ─────────────────────────────────────────────────────────
+function PaymentLinkModal({ quotation, onClose }: { quotation: Quotation; onClose: () => void }) {
+  const defaultDeposit = Math.round(quotation.total_price * 0.25)
+  const [amount, setAmount] = useState(defaultDeposit)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<{ payment_link_url: string; payment_link_id: string; demo?: boolean } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const handleGenerate = async () => {
+    setLoading(true)
+    try {
+      const data = await paymentsApi.createLink({
+        quotation_id: quotation.id,
+        amount,
+        description: `Deposit for ${quotation.destination || 'travel package'} — ${quotation.lead_name || `Quote #${quotation.id}`}`,
+        currency: quotation.currency || 'INR',
+      })
+      setResult(data)
+    } catch (err: any) {
+      setResult(null)
+      alert(err.message || 'Failed to generate payment link')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCopy = () => {
+    if (result?.payment_link_url) {
+      navigator.clipboard.writeText(result.payment_link_url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleWhatsApp = () => {
+    if (!result?.payment_link_url) return
+    const amtFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: quotation.currency || 'INR', maximumFractionDigits: 0 }).format(amount)
+    const text = `Hi ${quotation.lead_name?.split(' ')[0] || 'there'}! To confirm your ${quotation.destination} booking, please pay the deposit of ${amtFormatted} via this secure link:\n\n${result.payment_link_url}\n\n_Sent via NAMA OS_`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-[28px] p-8 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-5">
+          <div>
+            <h2 className="text-lg font-extrabold text-[#0F172A]">Collect Deposit</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Generate a Razorpay payment link</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Quotation info */}
+        <div className="bg-slate-50 rounded-xl p-3 mb-5 text-xs text-slate-500">
+          <span className="font-bold text-slate-700">{quotation.lead_name}</span>
+          {' · '}
+          {quotation.destination}
+          {' · '}
+          Total: {quotation.currency} {quotation.total_price.toLocaleString('en-IN')}
+        </div>
+
+        {!result ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                Deposit Amount ({quotation.currency})
+                <span className="text-slate-400 font-normal ml-1">— default 25%</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={amount}
+                onChange={e => setAmount(Number(e.target.value))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm font-bold"
+              />
+              <div className="flex gap-2 mt-2">
+                {[10, 25, 50].map(pct => (
+                  <button
+                    key={pct}
+                    onClick={() => setAmount(Math.round(quotation.total_price * pct / 100))}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                      amount === Math.round(quotation.total_price * pct / 100)
+                        ? 'bg-[#14B8A6] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={handleGenerate}
+              disabled={loading || amount <= 0}
+              className="w-full py-3.5 bg-[#00236f] hover:bg-slate-800 text-white rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            >
+              {loading ? <><Loader size={14} className="animate-spin" /> Generating...</> : <><CreditCard size={14} /> Generate Link</>}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+              <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm mb-2">
+                <CheckCircle size={16} />
+                Payment link ready!
+              </div>
+              <div className="text-xs text-emerald-600 font-mono break-all bg-white rounded-lg px-3 py-2 border border-emerald-100">
+                {result.payment_link_url}
+              </div>
+              {result.demo && (
+                <div className="mt-2 text-[10px] text-amber-700 bg-amber-50 rounded-lg px-2 py-1">
+                  Demo mode — add RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in Railway to activate live links
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleCopy}
+                className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3 rounded-xl font-bold text-xs transition-colors"
+              >
+                <Copy size={13} />
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+              <button
+                onClick={handleWhatsApp}
+                className="flex items-center justify-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 py-3 rounded-xl font-bold text-xs transition-colors"
+              >
+                <Share2 size={13} /> WhatsApp
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function QuotationCard({ q, onView }: { q: Quotation; onView: (q: Quotation) => void }) {
@@ -208,6 +412,9 @@ export default function QuotationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [quoteToast, setQuoteToast] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  // Pricing benchmarks — keyed by destination string, populated from API
+  const [pricingBenchmarks, setPricingBenchmarks] = useState<Record<string, PricingBenchmark & { dataSource: 'live' | 'benchmark' }>>({})
+  const benchmarkFetchedRef = React.useRef<Set<string>>(new Set())
 
   // New quote form
   const [form, setForm] = useState({
@@ -216,6 +423,9 @@ export default function QuotationsPage() {
   })
   const [creating, setCreating] = useState(false)
 
+  // Payment link modal state
+  const [paymentModal, setPaymentModal] = useState<{ quotation: Quotation } | null>(null)
+
   // Send-to-client modal state
   const [sendModal, setSendModal] = useState<{ quote: Quotation; email: string } | null>(null)
   const [sendMessage, setSendMessage] = useState('')
@@ -223,6 +433,27 @@ export default function QuotationsPage() {
   const [sendResult, setSendResult] = useState<{ ok: boolean; text: string } | null>(null)
 
   useEffect(() => { loadData() }, [])
+
+  // Fetch pricing benchmark when a quote is opened (one call per destination)
+  useEffect(() => {
+    if (!selectedQuote?.destination) return
+    const dest = selectedQuote.destination
+    if (benchmarkFetchedRef.current.has(dest)) return
+    benchmarkFetchedRef.current.add(dest)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+    fetch(`/api/v1/analytics/pricing-benchmarks?destination=${encodeURIComponent(dest)}`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then((rows: ApiBenchmark[] | null) => {
+        if (!rows || rows.length === 0) return
+        const apiRow = rows[0]
+        setPricingBenchmarks(prev => ({
+          ...prev,
+          [dest]: apiBenchmarkToUI(apiRow),
+        }))
+      })
+  }, [selectedQuote?.destination]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true)
@@ -603,10 +834,10 @@ export default function QuotationsPage() {
             </div>
 
             {/* Smart Pricing Intelligence */}
-            <SmartPricingInsight q={selectedQuote} />
+            <SmartPricingInsight q={selectedQuote} bench={selectedQuote.destination ? (pricingBenchmarks[selectedQuote.destination] ?? null) : null} />
 
             {/* Export & Share Actions */}
-            <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-2">
+            <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleExportQuotePDF(selectedQuote)}
                 disabled={pdfLoading}
@@ -624,6 +855,12 @@ export default function QuotationsPage() {
                 className="flex items-center justify-center gap-1.5 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 text-[#0f766e] px-3 py-3 rounded-xl font-bold text-xs transition-all"
               >
                 <Send size={14} /> Send to Client
+              </button>
+              <button
+                onClick={() => setPaymentModal({ quotation: selectedQuote })}
+                className="flex items-center justify-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-3 rounded-xl font-bold text-xs transition-all"
+              >
+                <CreditCard size={14} /> Deposit Link
               </button>
               <button
                 onClick={() => handleShareQuoteWhatsApp(selectedQuote)}
@@ -698,6 +935,14 @@ export default function QuotationsPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Payment Link Modal */}
+      {paymentModal && (
+        <PaymentLinkModal
+          quotation={paymentModal.quotation}
+          onClose={() => setPaymentModal(null)}
+        />
       )}
 
       {/* Toast */}

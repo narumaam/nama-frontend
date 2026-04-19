@@ -1,6 +1,6 @@
 """
-HS-3: Payment Endpoints — Webhook Receivers + Payment Status
--------------------------------------------------------------
+HS-3: Payment Endpoints — Webhook Receivers + Payment Status + Razorpay Payment Links
+--------------------------------------------------------------------------------------
 HS-3 Acceptance Gates wired here:
   ✓ Stripe webhook: verify HMAC signature → 400 if invalid
   ✓ Razorpay webhook: verify HMAC signature → 400 if invalid
@@ -8,7 +8,9 @@ HS-3 Acceptance Gates wired here:
   ✓ No sync payment processing in HTTP handler
 """
 
+import os
 import json
+import requests as _requests
 from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -302,3 +304,65 @@ def _handle_razorpay_event(event_db_id: int, payload: dict) -> None:
         print(f"[RAZORPAY HANDLER] Error processing event {event_db_id}: {exc}")
     finally:
         db.close()
+
+
+# ── Razorpay Payment Links ─────────────────────────────────────────────────────
+
+_RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "")
+_RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
+_FRONTEND_URL        = os.getenv("FRONTEND_URL", "https://getnama.app")
+
+
+class CreatePaymentLinkRequest(BaseModel):
+    quotation_id: int
+    amount: float         # in INR (will convert to paise)
+    description: str
+    currency: str = "INR"
+
+
+class PaymentLinkResponse(BaseModel):
+    payment_link_url: str
+    payment_link_id: str
+    demo: bool = False
+
+
+@router.post("/create-link", response_model=PaymentLinkResponse)
+def create_payment_link(
+    body: CreatePaymentLinkRequest,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+) -> PaymentLinkResponse:
+    """
+    Create a Razorpay payment link for collecting a deposit on a quotation.
+    Falls back to a demo link when RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are not set.
+    """
+    # Demo mode — no Razorpay keys configured
+    if not _RAZORPAY_KEY_ID or not _RAZORPAY_KEY_SECRET:
+        return PaymentLinkResponse(
+            payment_link_url="https://rzp.io/l/demo-nama",
+            payment_link_id="demo_link_001",
+            demo=True,
+        )
+
+    payload = {
+        "amount": int(body.amount * 100),   # paise
+        "currency": body.currency,
+        "description": body.description,
+        "callback_url": f"{_FRONTEND_URL}/dashboard/bookings",
+        "callback_method": "get",
+    }
+    try:
+        response = _requests.post(
+            "https://api.razorpay.com/v1/payment_links",
+            json=payload,
+            auth=(_RAZORPAY_KEY_ID, _RAZORPAY_KEY_SECRET),
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return PaymentLinkResponse(
+            payment_link_url=data["short_url"],
+            payment_link_id=data["id"],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Razorpay error: {exc}")

@@ -164,6 +164,69 @@
 - NAMA Master Library tab (10 shared destinations)
 - "Use in itinerary" clipboard button on content blocks
 
+### ✅ Sprint 2: Activation + Growth Features (2026-04-19)
+
+**Email Drip (React Email + Resend JS SDK):**
+- 4 React Email templates: Day 0 Welcome, Day 1 Tips, Day 3 Social Proof, Day 7 Re-engage
+- `src/emails/` — NamaEmailBase, WelcomeEmail, DayOneEmail, DayThreeEmail, DaySevenEmail
+- `src/app/api/email/drip/route.ts` — Next.js API route, renders + sends via Resend JS SDK
+- `src/app/api/email/preview/route.ts` — Preview any template at `/api/email/preview?day=0`
+- Backend `_send_drip_email()` delegates to Next.js route (httpx.post)
+- Day 0 auto-fires on user registration; also fires at onboarding finish() step
+
+**apply-config → Real Neon DB Writes:**
+- Creates `Role` + `RolePermission` rows from AgencyConfig
+- Seeds `Destination` rows with country mapping
+- Persists raw config to `tenant.settings["onboarding_config"]` JSONB
+
+**Smart Pricing — Real DB Aggregates:**
+- `GET /api/v1/analytics/pricing-benchmarks?destination=` — live avg from itineraries table
+- Falls back to FALLBACK_BENCHMARKS when <3 data points per destination
+- Frontend: live data "●" indicator vs estimate "●" indicator
+
+**Bulk Lead CSV Import:**
+- `GET /api/v1/leads/import/template` — CSV download
+- `POST /api/v1/leads/import` — pandas parse, 12-field alias map, dedup by email, max 500 rows
+- Frontend: "Import CSV" button + 3-step modal (upload → preview → result)
+
+**Razorpay Payment Links:**
+- `POST /api/v1/payments/create-link` — Razorpay payment link (demo mode if no keys)
+- Frontend: "Deposit Link" button on quotations → 25% default, copy + WhatsApp send
+
+**Automated Follow-up Reminders:**
+- `POST /api/v1/automations/run-reminders` — scans cold (3d), new (1d), stale qualified (7d)
+- Groups by agent, sends Resend digest email per agent
+- `POST /api/v1/automations/schedule-reminders` — toggle stored in tenant.settings
+- Frontend: toggle + "Run Now" in /dashboard/automations
+
+**Invoice Auto-generation:**
+- `POST /api/v1/documents/invoice-pdf` — WeasyPrint invoice from booking record
+- `POST /api/v1/documents/send-invoice` — PDF attachment via Resend
+- Frontend: "Invoice" + "Send Invoice" buttons on confirmed bookings
+
+**Team Performance Reports:**
+- `GET /api/v1/analytics/team-performance` — per-agent: leads, quotes, bookings, revenue, conversion %
+- New `/dashboard/reports` page: 4 summary cards + sortable agent table + crown on top agent
+- Sidebar: "Reports" nav item (R0/R1/R2/R3)
+
+**Webhook System (Zapier/CRM):**
+- `WebhookEndpoint` model + migration `a1b2c3d4e5f6_add_webhook_endpoints.py`
+- CRUD at `GET/POST/PUT/DELETE /api/v1/webhooks/outbound`
+- HMAC-SHA256 signed payloads; 8 events: lead.created, lead.status_changed, booking.confirmed, etc.
+- `backend/app/core/webhook_dispatcher.py` — sync fire-and-forget dispatcher
+- Frontend: Webhooks tab in /dashboard/integrations
+
+**Global Full-Text Search (DB-backed):**
+- `GET /api/v1/search?q=` — ILIKE across leads, itineraries, vendors, bookings
+- Frontend: GlobalSearch debounced API fetch (300ms), grouped results, spinner, fallback to seed
+
+**Multi-Currency Infrastructure:**
+- `GET /api/v1/settings/fx-rates` — open.er-api.com, 1hr Redis cache, fallback rates
+- `src/lib/currency.ts` — CURRENCIES, formatCurrency()
+- `src/lib/currency-context.tsx` — CurrencyProvider + useCurrency() hook
+- `src/components/CurrencySelector.tsx` — dropdown in dashboard header
+- Dashboard layout wrapped in CurrencyProvider
+
 ### 🅱️ Parked — V6: NAMA Voice
 **Recommended stack:** Coqui TTS + OpenVoice + Bark + OpenRouter
 **High-ROI uses:** Voice itinerary narration, agent training sims, multi-language assistant
@@ -188,10 +251,24 @@
 - Add to Railway: `PEXELS_API_KEY=your_key`
 - Without this, image search returns 20 hardcoded Unsplash fallback images
 
-🟡 **RESEND_API_KEY in Railway** — needed for "Send Quote" email feature
+🟡 **RESEND_API_KEY in Railway** — needed for all email features (drip, reminders, invoices)
 - Get key at: https://resend.com (free tier: 100 emails/day)
 - Add to Railway: `RESEND_API_KEY=re_...`
-- Without this, PDF download still works but email sending returns graceful error
+- Add to Vercel (nama-web): `RESEND_API_KEY=re_...` (needed for Next.js /api/email/drip route)
+- Without this, all email paths return graceful no-ops
+
+🟡 **RESEND_FROM_EMAIL in Vercel** — optional, defaults to `NAMA OS <onboarding@getnama.app>`
+- Add to Vercel: `RESEND_FROM_EMAIL=NAMA OS <onboarding@getnama.app>`
+- Domain must be verified in Resend dashboard
+
+🟡 **FRONTEND_URL in Railway** — needed for backend→Next.js email delegation
+- Add to Railway: `FRONTEND_URL=https://getnama.app`
+- Without this, Python drip calls fail silently (non-breaking)
+
+🟡 **RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in Railway** — needed for payment links
+- Get keys at: https://razorpay.com (test mode available)
+- Add to Railway: `RAZORPAY_KEY_ID=rzp_...` and `RAZORPAY_KEY_SECRET=...`
+- Without these, payment links return a demo URL (non-breaking)
 
 🟡 **Railway Static Outbound IP** — needed to fix automated runner blocking
 - Go to: Railway → `intuitive-blessing` → Settings → Networking → Enable Static Outbound IP

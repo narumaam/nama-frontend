@@ -15,11 +15,11 @@
  *   - Webhooks:      Custom inbound/outbound webhooks
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plug, CheckCircle, AlertCircle, Clock, ArrowRight,
   Zap, Shield, RefreshCw, ExternalLink, X, Copy,
-  Eye, EyeOff, Plus, Trash2, Globe, Key,
+  Eye, EyeOff, Plus, Trash2, Globe, Key, Loader2, Send,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -43,16 +43,47 @@ interface Integration {
 }
 
 interface Webhook {
-  id: string;
-  name: string;
+  id: string | number;
   url: string;
   events: string[];
+  description?: string | null;
   secret: string;
-  active: boolean;
+  is_active: boolean;
+  last_triggered_at?: string | null;
+  delivery_count: number;
+  failure_count: number;
+  created_at?: string;
+  // legacy fields kept for seed fallback
+  name?: string;
+  active?: boolean;
   last_triggered?: string;
-  success_count: number;
-  fail_count: number;
+  success_count?: number;
+  fail_count?: number;
 }
+
+// All 8 supported outbound webhook events
+const SUPPORTED_WEBHOOK_EVENTS = [
+  "lead.created",
+  "lead.status_changed",
+  "lead.assigned",
+  "booking.created",
+  "booking.confirmed",
+  "booking.cancelled",
+  "quotation.sent",
+  "quotation.accepted",
+] as const;
+
+// Fallback seed webhook shown when API returns empty / unauthenticated
+const SEED_WEBHOOK: Webhook = {
+  id: "seed-wh-1",
+  url: "https://hooks.zapier.com/hooks/catch/000000/xxxxxxx/",
+  events: ["lead.created", "booking.confirmed"],
+  description: "Example: New Lead → Zapier",
+  secret: "whsec_example_seed",
+  is_active: false,
+  delivery_count: 0,
+  failure_count: 0,
+};
 
 // ── Integration Catalogue ─────────────────────────────────────────────────────
 const INTEGRATIONS: Integration[] = [
@@ -252,25 +283,25 @@ const INTEGRATIONS: Integration[] = [
 const SAMPLE_WEBHOOKS: Webhook[] = [
   {
     id: "wh-1",
-    name: "Booking Confirmed → Slack",
     url: "https://hooks.slack.com/services/T0000/B0000/xxxx",
-    events: ["booking.confirmed", "payment.received"],
+    description: "Booking Confirmed → Slack",
+    events: ["booking.confirmed"],
     secret: "whsec_nama_abc123",
-    active: true,
-    last_triggered: "2 hrs ago",
-    success_count: 87,
-    fail_count: 0,
+    is_active: true,
+    last_triggered_at: "2 hrs ago",
+    delivery_count: 87,
+    failure_count: 0,
   },
   {
     id: "wh-2",
-    name: "New Lead → Google Sheets",
     url: "https://script.google.com/macros/s/xxx/exec",
-    events: ["lead.created", "lead.updated"],
+    description: "New Lead → Google Sheets",
+    events: ["lead.created"],
     secret: "whsec_nama_def456",
-    active: true,
-    last_triggered: "14 min ago",
-    success_count: 312,
-    fail_count: 3,
+    is_active: true,
+    last_triggered_at: "14 min ago",
+    delivery_count: 312,
+    failure_count: 3,
   },
 ];
 
@@ -462,9 +493,160 @@ function IntegrationCard({
   );
 }
 
+// ── Add Webhook Modal ──────────────────────────────────────────────────────────
+function AddWebhookModal({ onClose, onAdd }: { onClose: () => void; onAdd: (wh: Webhook) => void }) {
+  const [url, setUrl] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(["lead.created"]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggleEvent = (evt: string) => {
+    setSelectedEvents((prev) =>
+      prev.includes(evt) ? prev.filter((e) => e !== evt) : [...prev, evt]
+    );
+  };
+
+  const handleSave = async () => {
+    if (!url.trim() || selectedEvents.length === 0) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/webhooks/outbound", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim(), events: selectedEvents, description: description.trim() || null }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onAdd(data);
+        onClose();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || "Failed to create webhook");
+      }
+    } catch {
+      // Fallback: add locally if API unavailable
+      const wh: Webhook = {
+        id: `local-${Date.now()}`,
+        url: url.trim(),
+        description: description.trim() || undefined,
+        events: selectedEvents,
+        secret: `whsec_${Math.random().toString(36).slice(2, 18)}`,
+        is_active: true,
+        delivery_count: 0,
+        failure_count: 0,
+      };
+      onAdd(wh);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-[28px] w-full max-w-lg shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 className="font-extrabold text-[#0F172A] text-lg">Add Webhook</h2>
+            <p className="text-slate-400 text-xs mt-0.5">NAMA will POST signed events to your URL</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* URL */}
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">Endpoint URL</label>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://hooks.zapier.com/hooks/catch/..."
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono outline-none focus:border-[#14B8A6]"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">Description (optional)</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. New Lead → Zapier → Slack"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#14B8A6]"
+            />
+          </div>
+
+          {/* Events */}
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-2">Subscribe to events</label>
+            <div className="grid grid-cols-2 gap-2">
+              {SUPPORTED_WEBHOOK_EVENTS.map((evt) => (
+                <label key={evt} className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={selectedEvents.includes(evt)}
+                    onChange={() => toggleEvent(evt)}
+                    className="w-3.5 h-3.5 accent-[#14B8A6]"
+                  />
+                  <span className={`text-xs font-mono ${selectedEvents.includes(evt) ? "text-slate-800 font-bold" : "text-slate-500"}`}>
+                    {evt}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {selectedEvents.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">Select at least one event</p>
+            )}
+          </div>
+
+          {/* Security note */}
+          <div className="bg-slate-50 rounded-xl p-3 flex items-start gap-2">
+            <Shield size={13} className="text-[#14B8A6] mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-slate-500">
+              Each delivery is HMAC-SHA256 signed. Verify with the <code className="bg-slate-200 px-1 rounded text-[10px]">X-NAMA-Signature</code> header.
+            </p>
+          </div>
+
+          {error && <p className="text-xs text-red-500 font-semibold">{error}</p>}
+        </div>
+
+        <div className="p-6 border-t border-slate-100 flex gap-3">
+          <button onClick={onClose} className="flex-1 border border-slate-200 text-slate-600 font-bold py-2.5 rounded-xl hover:bg-slate-50 text-sm">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !url.trim() || selectedEvents.length === 0}
+            className="flex-1 bg-[#0F172A] text-white font-black py-2.5 rounded-xl hover:bg-slate-700 text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {saving ? <><Loader2 size={14} className="animate-spin" /> Creating...</> : "Create Webhook"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Webhook Row ────────────────────────────────────────────────────────────────
-function WebhookRow({ wh, onDelete }: { wh: Webhook; onDelete: (id: string) => void }) {
+function WebhookRow({
+  wh,
+  onDelete,
+  onTest,
+  isSeed = false,
+}: {
+  wh: Webhook;
+  onDelete: (id: string | number) => void;
+  onTest: (id: string | number) => void;
+  isSeed?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const copySecret = () => {
     navigator.clipboard.writeText(wh.secret);
@@ -472,35 +654,63 @@ function WebhookRow({ wh, onDelete }: { wh: Webhook; onDelete: (id: string) => v
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleTest = async () => {
+    setTesting(true);
+    await onTest(wh.id);
+    setTesting(false);
+  };
+
+  const displayUrl = wh.url.length > 40 ? wh.url.slice(0, 40) + "…" : wh.url;
+  const displayLabel = wh.description || `Webhook #${wh.id}`;
+  const isActive = wh.is_active ?? wh.active ?? false;
+  const deliveries = wh.delivery_count ?? wh.success_count ?? 0;
+  const failures = wh.failure_count ?? wh.fail_count ?? 0;
+  const lastTriggered = wh.last_triggered_at || wh.last_triggered;
+
   return (
-    <div className="bg-white border border-slate-100 rounded-2xl p-5">
+    <div className={`border rounded-2xl p-5 transition-all ${isSeed ? "bg-slate-50 border-slate-200 opacity-70" : "bg-white border-slate-100 hover:shadow-sm"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold text-slate-900 text-sm">{wh.name}</span>
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${wh.active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
-              {wh.active ? "ACTIVE" : "PAUSED"}
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="font-bold text-slate-900 text-sm">{displayLabel}</span>
+            {isSeed && (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-200 text-slate-500">EXAMPLE</span>
+            )}
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+              {isActive ? "ACTIVE" : "PAUSED"}
             </span>
           </div>
-          <p className="text-xs text-slate-400 font-mono truncate mb-2">{wh.url}</p>
+          <p className="text-xs text-slate-400 font-mono truncate mb-2" title={wh.url}>{displayUrl}</p>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {wh.events.map((e) => (
               <span key={e} className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{e}</span>
             ))}
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-400">
-            <span className="text-emerald-600 font-semibold">✓ {wh.success_count} success</span>
-            {wh.fail_count > 0 && <span className="text-red-500 font-semibold">✗ {wh.fail_count} failed</span>}
-            {wh.last_triggered && <span>Last: {wh.last_triggered}</span>}
+            <span className="text-emerald-600 font-semibold">✓ {deliveries} deliveries</span>
+            {failures > 0 && <span className="text-red-500 font-semibold">✗ {failures} failed</span>}
+            {lastTriggered && <span>Last: {lastTriggered}</span>}
           </div>
         </div>
         <div className="flex gap-1 flex-shrink-0">
+          {!isSeed && (
+            <button
+              onClick={handleTest}
+              disabled={testing}
+              title="Send test event"
+              className="p-2 text-slate-400 hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 rounded-xl transition-colors"
+            >
+              {testing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
+          )}
           <button onClick={copySecret} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl" title="Copy secret">
             {copied ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
           </button>
-          <button onClick={() => onDelete(wh.id)} className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl">
-            <Trash2 size={14} />
-          </button>
+          {!isSeed && (
+            <button onClick={() => onDelete(wh.id)} className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl">
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -511,12 +721,12 @@ function WebhookRow({ wh, onDelete }: { wh: Webhook; onDelete: (id: string) => v
 export default function IntegrationsPage() {
   const [category, setCategory] = useState<Category>("all");
   const [integrations, setIntegrations] = useState<Integration[]>(INTEGRATIONS);
-  const [webhooks, setWebhooks] = useState<Webhook[]>(SAMPLE_WEBHOOKS);
+  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+  const [webhooksLoading, setWebhooksLoading] = useState(false);
+  const [useSeedWebhooks, setUseSeedWebhooks] = useState(false);
   const [connectingTo, setConnectingTo] = useState<Integration | null>(null);
   const [activeTab, setActiveTab] = useState<"integrations" | "webhooks">("integrations");
-  const [newWebhookUrl, setNewWebhookUrl] = useState("");
-  const [newWebhookName, setNewWebhookName] = useState("");
-  const [showNewWebhook, setShowNewWebhook] = useState(false);
+  const [showAddWebhook, setShowAddWebhook] = useState(false);
 
   const connectedCount = integrations.filter((i) => i.status === "connected").length;
 
@@ -524,30 +734,54 @@ export default function IntegrationsPage() {
     ? integrations
     : integrations.filter((i) => i.category === category);
 
+  // Load webhooks from API when tab is active
+  useEffect(() => {
+    if (activeTab !== "webhooks") return;
+    setWebhooksLoading(true);
+    fetch("/api/v1/webhooks/outbound")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: Webhook[] | null) => {
+        if (Array.isArray(data)) {
+          setWebhooks(data);
+          setUseSeedWebhooks(false);
+        } else {
+          // API unavailable or unauthenticated — show seed fallback
+          setWebhooks(SAMPLE_WEBHOOKS);
+          setUseSeedWebhooks(true);
+        }
+      })
+      .catch(() => {
+        setWebhooks(SAMPLE_WEBHOOKS);
+        setUseSeedWebhooks(true);
+      })
+      .finally(() => setWebhooksLoading(false));
+  }, [activeTab]);
+
   const handleDisconnect = (id: string) => {
     setIntegrations((prev) => prev.map((i) => i.id === id ? { ...i, status: "disconnected" as const } : i));
   };
 
-  const handleDeleteWebhook = (id: string) => {
+  const handleDeleteWebhook = async (id: string | number) => {
+    // Optimistic remove
     setWebhooks((prev) => prev.filter((w) => w.id !== id));
+    try {
+      await fetch(`/api/v1/webhooks/outbound/${id}`, { method: "DELETE" });
+    } catch {
+      // silently ignore — already removed from UI
+    }
   };
 
-  const handleAddWebhook = () => {
-    if (!newWebhookUrl || !newWebhookName) return;
-    const wh: Webhook = {
-      id: `wh-${Date.now()}`,
-      name: newWebhookName,
-      url: newWebhookUrl,
-      events: ["lead.created", "booking.confirmed"],
-      secret: `whsec_nama_${Math.random().toString(36).slice(2, 10)}`,
-      active: true,
-      success_count: 0,
-      fail_count: 0,
-    };
-    setWebhooks([wh, ...webhooks]);
-    setNewWebhookUrl("");
-    setNewWebhookName("");
-    setShowNewWebhook(false);
+  const handleTestWebhook = async (id: string | number) => {
+    try {
+      await fetch(`/api/v1/webhooks/outbound/${id}/test`, { method: "POST" });
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleAddWebhook = (wh: Webhook) => {
+    setWebhooks((prev) => [wh, ...prev]);
+    setUseSeedWebhooks(false);
   };
 
   return (
@@ -647,66 +881,68 @@ export default function IntegrationsPage() {
               <p className="font-bold text-blue-800 text-sm">Outbound Webhooks</p>
               <p className="text-blue-600 text-xs mt-0.5">
                 NAMA fires signed HTTPS POST events to your endpoint for every platform event.
-                Your endpoint URL — <code className="bg-blue-100 px-1 rounded text-[11px]">POST /api/v1/webhooks/inbound</code> — receives WhatsApp, Razorpay, and custom events.
-                All payloads are HMAC-SHA256 signed with your <Key size={10} className="inline" /> webhook secret.
+                Connect NAMA to Zapier, Make, your CRM, or any custom HTTP endpoint.
+                All payloads are HMAC-SHA256 signed via <code className="bg-blue-100 px-1 rounded text-[11px]">X-NAMA-Signature</code>.
               </p>
             </div>
           </div>
 
-          {/* Add webhook */}
+          {/* Webhook list */}
           <div className="bg-white border border-slate-100 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-extrabold text-[#0F172A]">Your Webhooks</h3>
               <button
-                onClick={() => setShowNewWebhook(!showNewWebhook)}
+                onClick={() => setShowAddWebhook(true)}
                 className="flex items-center gap-1.5 text-xs font-black bg-[#0F172A] text-white px-4 py-2 rounded-xl hover:bg-slate-700 transition-colors"
               >
-                <Plus size={13} /> New Webhook
+                <Plus size={13} /> Add Webhook
               </button>
             </div>
 
-            {showNewWebhook && (
-              <div className="mb-5 p-4 bg-slate-50 rounded-2xl space-y-3 border border-slate-200">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Name</label>
-                    <input
-                      value={newWebhookName}
-                      onChange={(e) => setNewWebhookName(e.target.value)}
-                      placeholder="e.g. New Lead → Slack"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#14B8A6]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Endpoint URL</label>
-                    <input
-                      value={newWebhookUrl}
-                      onChange={(e) => setNewWebhookUrl(e.target.value)}
-                      placeholder="https://hooks.slack.com/..."
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#14B8A6] font-mono"
-                    />
-                  </div>
+            <div className="space-y-3">
+              {webhooksLoading ? (
+                <div className="flex items-center justify-center py-10 gap-2 text-slate-400">
+                  <Loader2 size={16} className="animate-spin" />
+                  <span className="text-sm">Loading webhooks…</span>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setShowNewWebhook(false)} className="text-xs font-bold text-slate-500 px-3 py-2 rounded-xl hover:bg-slate-100">Cancel</button>
+              ) : webhooks.length === 0 ? (
+                <div className="text-center py-12">
+                  <Globe size={32} className="mx-auto text-slate-200 mb-3" />
+                  <p className="text-sm font-bold text-slate-500">No webhooks yet</p>
+                  <p className="text-xs text-slate-400 mt-1 mb-4">Connect NAMA to Zapier, Make, or your CRM.</p>
                   <button
-                    onClick={handleAddWebhook}
-                    disabled={!newWebhookUrl || !newWebhookName}
-                    className="text-xs font-black bg-[#14B8A6] text-[#0F172A] px-4 py-2 rounded-xl hover:bg-[#0FA898] transition-colors disabled:opacity-40"
+                    onClick={() => setShowAddWebhook(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-black bg-[#0F172A] text-white px-4 py-2 rounded-xl hover:bg-slate-700 transition-colors"
                   >
-                    Add Webhook
+                    <Plus size={13} /> Add Webhook
                   </button>
                 </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {webhooks.length === 0 ? (
-                <div className="text-center py-10 text-slate-400 text-sm">No webhooks yet. Add one above.</div>
               ) : (
-                webhooks.map((wh) => (
-                  <WebhookRow key={wh.id} wh={wh} onDelete={handleDeleteWebhook} />
-                ))
+                <>
+                  {useSeedWebhooks && (
+                    <p className="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mb-2">
+                      Showing example webhooks — connect your account to manage real endpoints.
+                    </p>
+                  )}
+                  {webhooks.map((wh) => (
+                    <WebhookRow
+                      key={wh.id}
+                      wh={wh}
+                      onDelete={handleDeleteWebhook}
+                      onTest={handleTestWebhook}
+                      isSeed={useSeedWebhooks}
+                    />
+                  ))}
+                  {/* Always show the Zapier seed as a muted example if list is live but empty-ish */}
+                  {!useSeedWebhooks && webhooks.length > 0 && (
+                    <WebhookRow
+                      wh={SEED_WEBHOOK}
+                      onDelete={() => {}}
+                      onTest={() => Promise.resolve()}
+                      isSeed={true}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -757,6 +993,11 @@ export default function IntegrationsPage() {
       {/* Connect Modal */}
       {connectingTo && (
         <ConnectModal integration={connectingTo} onClose={() => setConnectingTo(null)} />
+      )}
+
+      {/* Add Webhook Modal */}
+      {showAddWebhook && (
+        <AddWebhookModal onClose={() => setShowAddWebhook(false)} onAdd={handleAddWebhook} />
       )}
     </div>
   );

@@ -227,6 +227,22 @@ def register_user(
     db.commit()
     db.refresh(new_user)
 
+    # Fire Day 0 drip email — best-effort, never blocks registration
+    try:
+        from app.api.v1.onboarding import _send_drip_email
+        tenant = db.query(User).filter(User.id == new_user.id).first()
+        agency_name = "Your Agency"
+        try:
+            from app.models.auth import Tenant as TenantModel
+            tenant_row = db.query(TenantModel).filter(TenantModel.id == new_user.tenant_id).first()
+            if tenant_row:
+                agency_name = tenant_row.name
+        except Exception:
+            pass
+        _send_drip_email(new_user.email, new_user.full_name or new_user.email, agency_name, day=0)
+    except Exception:
+        pass  # drip failure never breaks registration
+
     access_token = create_access_token(
         user_id=new_user.id,
         tenant_id=new_user.tenant_id,

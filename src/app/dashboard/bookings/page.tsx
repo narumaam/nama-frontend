@@ -19,9 +19,9 @@ import {
   Search, Calendar, DollarSign, Users, TrendingDown,
   ArrowRight, Clock, X, ChevronRight, MapPin, RefreshCw,
   FileText, CreditCard, Zap, Check, Navigation, MessageCircle,
-  Phone, Plane, Hotel, Car, Activity, LayoutGrid,
+  Phone, Plane, Hotel, Car, Activity, LayoutGrid, Download, Mail,
 } from "lucide-react";
-import { bookingsApi, Booking } from "@/lib/api";
+import { bookingsApi, documentsApi, Booking } from "@/lib/api";
 import EmptyState from "@/components/EmptyState";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ function SkeletonCard() {
 
 // Booking card
 function BookingCard({
-  booking, onView, onConfirm, onCancel, confirmingId, cancellingId,
+  booking, onView, onConfirm, onCancel, confirmingId, cancellingId, invoiceDownloadingId, onDownloadInvoice, onSendInvoice,
 }: {
   booking: ReturnType<typeof enrichBooking>;
   onView: (b: ReturnType<typeof enrichBooking>) => void;
@@ -90,6 +90,9 @@ function BookingCard({
   onCancel: (id: number) => void;
   confirmingId: number | null;
   cancellingId: number | null;
+  invoiceDownloadingId: number | null;
+  onDownloadInvoice: (id: number) => void;
+  onSendInvoice: (booking: ReturnType<typeof enrichBooking>) => void;
 }) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const st = STATUS_STYLES[booking.status] || STATUS_STYLES.DRAFT;
@@ -154,6 +157,25 @@ function BookingCard({
           <div className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold">
             <Check size={12} /> Confirmed
           </div>
+        )}
+        {(booking.status === "CONFIRMED" || booking.status === "COMPLETED") && (
+          <>
+            <button
+              onClick={() => onDownloadInvoice(booking.id)}
+              disabled={invoiceDownloadingId === booking.id}
+              className="flex items-center justify-center gap-1 px-2.5 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors disabled:opacity-50"
+              title="Download Invoice PDF"
+            >
+              {invoiceDownloadingId === booking.id ? <Loader size={12} className="animate-spin" /> : <Download size={12} />} Invoice
+            </button>
+            <button
+              onClick={() => onSendInvoice(booking)}
+              className="flex items-center justify-center gap-1 px-2.5 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors"
+              title="Email Invoice to Client"
+            >
+              <Mail size={12} />
+            </button>
+          </>
         )}
         {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
           confirmCancel ? (
@@ -506,6 +528,11 @@ export default function BookingsPage() {
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'bookings' | 'tracker'>('bookings');
+  const [invoiceDownloading, setInvoiceDownloading] = useState<number | null>(null);
+  const [sendInvoiceBooking, setSendInvoiceBooking] = useState<ReturnType<typeof enrichBooking> | null>(null);
+  const [sendInvoiceEmail, setSendInvoiceEmail] = useState("");
+  const [sendInvoiceSending, setSendInvoiceSending] = useState(false);
+  const [sendInvoiceResult, setSendInvoiceResult] = useState<{ success: boolean; error?: string } | null>(null);
 
   useEffect(() => {
     bookingsApi.list()
@@ -537,6 +564,48 @@ export default function BookingsPage() {
       setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "CANCELLED", payment_status: "REFUNDED" } : b));
     } catch (e: any) { setError(e.message); }
     finally { setCancellingId(null); }
+  };
+
+  const handleDownloadInvoice = async (bookingId: number) => {
+    setInvoiceDownloading(bookingId);
+    try {
+      const res = await documentsApi.invoicePdf(bookingId);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `invoice-${bookingId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        setError("Invoice generation failed. Please try again.");
+      }
+    } catch (e: any) {
+      setError(e.message || "Invoice download failed.");
+    } finally {
+      setInvoiceDownloading(null);
+    }
+  };
+
+  const handleSendInvoiceOpen = (booking: ReturnType<typeof enrichBooking>) => {
+    setSendInvoiceBooking(booking);
+    setSendInvoiceEmail("");
+    setSendInvoiceResult(null);
+  };
+
+  const handleSendInvoiceSubmit = async () => {
+    if (!sendInvoiceBooking || !sendInvoiceEmail) return;
+    setSendInvoiceSending(true);
+    setSendInvoiceResult(null);
+    try {
+      const result = await documentsApi.sendInvoice(sendInvoiceBooking.id, sendInvoiceEmail);
+      setSendInvoiceResult(result);
+    } catch (e: any) {
+      setSendInvoiceResult({ success: false, error: e.message });
+    } finally {
+      setSendInvoiceSending(false);
+    }
   };
 
   const filtered = useMemo(() => bookings.filter((b) => {
@@ -726,6 +795,9 @@ export default function BookingsPage() {
               onCancel={handleCancel}
               confirmingId={confirmingId}
               cancellingId={cancellingId}
+              invoiceDownloadingId={invoiceDownloading}
+              onDownloadInvoice={handleDownloadInvoice}
+              onSendInvoice={handleSendInvoiceOpen}
             />
           ))}
         </div>
@@ -735,6 +807,65 @@ export default function BookingsPage() {
       </>)}
 
       {selected && viewMode === 'tracker' && <BookingDetail booking={selected} onClose={() => setSelected(null)} />}
+
+      {/* ── Send Invoice Modal ── */}
+      {sendInvoiceBooking && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSendInvoiceBooking(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="font-extrabold text-[#0F172A] text-lg flex items-center gap-2">
+                  <Mail size={18} className="text-blue-500" /> Send Invoice
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">Booking #{sendInvoiceBooking.id} · {sendInvoiceBooking.client_name}</p>
+              </div>
+              <button onClick={() => setSendInvoiceBooking(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Recipient Email *</label>
+                <input
+                  type="email"
+                  value={sendInvoiceEmail}
+                  onChange={(e) => setSendInvoiceEmail(e.target.value)}
+                  placeholder="client@example.com"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 text-slate-800 placeholder-slate-400"
+                />
+              </div>
+              {sendInvoiceResult && (
+                <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
+                  sendInvoiceResult.success
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                    : "bg-red-50 border border-red-200 text-red-700"
+                }`}>
+                  {sendInvoiceResult.success ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+                  {sendInvoiceResult.success
+                    ? "Invoice sent successfully!"
+                    : sendInvoiceResult.error || "Failed to send. Check RESEND_API_KEY."}
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-slate-100 flex gap-3">
+              <button
+                onClick={() => setSendInvoiceBooking(null)}
+                className="flex-1 border border-slate-200 text-slate-500 font-bold py-3 rounded-2xl hover:bg-slate-50 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendInvoiceSubmit}
+                disabled={!sendInvoiceEmail || sendInvoiceSending}
+                className="flex-1 bg-blue-600 text-white font-black py-3 rounded-2xl hover:bg-blue-700 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {sendInvoiceSending ? <Loader size={14} className="animate-spin" /> : <Mail size={14} />}
+                {sendInvoiceSending ? "Sending…" : "Send Invoice"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

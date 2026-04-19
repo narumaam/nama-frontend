@@ -23,7 +23,7 @@ import {
   Phone, Mail, MessageSquare, Calendar, Clock, FileText,
   CheckCircle, ChevronRight, TrendingUp, Flame, Thermometer,
   Snowflake, Filter, BarChart3, StickyNote, Activity,
-  ArrowRight, Bell, Star, Tag, Users,
+  ArrowRight, Bell, Star, Tag, Users, Upload,
 } from 'lucide-react'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -212,6 +212,218 @@ function computeAIScore(lead: Lead): AIScore {
   return { conversionPct, temp, signals, qualification, recommendation, risks, strengths, nextBestAction }
 }
 
+// ── Import Leads Modal ─────────────────────────────────────────────────────────
+function ImportLeadsModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [step, setStep] = useState<'upload' | 'preview' | 'result'>('upload')
+  const [file, setFile] = useState<File | null>(null)
+  const [previewRows, setPreviewRows] = useState<string[][]>([])
+  const [totalRows, setTotalRows] = useState(0)
+  const [result, setResult] = useState<{ imported: number; skipped_duplicates: number; errors: string[]; total_rows: number } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+
+  const handleDownloadTemplate = async () => {
+    const res = await fetch('/api/v1/leads/import/template')
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'leads_import_template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleFileSelect = (selected: File | null) => {
+    if (!selected) return
+    setFile(selected)
+    // Preview first 4 lines
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = (e.target?.result as string) || ''
+      const lines = text.split('\n').filter(l => l.trim())
+      const parsed = lines.slice(0, 4).map(line => {
+        // Simple CSV split (handles basic cases)
+        const cols: string[] = []
+        let cur = ''
+        let inQuote = false
+        for (const ch of line) {
+          if (ch === '"') { inQuote = !inQuote }
+          else if (ch === ',' && !inQuote) { cols.push(cur.trim()); cur = '' }
+          else { cur += ch }
+        }
+        cols.push(cur.trim())
+        return cols
+      })
+      setPreviewRows(parsed)
+      setTotalRows(Math.max(0, lines.length - 1)) // minus header
+      setStep('preview')
+    }
+    reader.readAsText(selected)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const dropped = e.dataTransfer.files[0]
+    if (dropped) handleFileSelect(dropped)
+  }
+
+  const handleImport = async () => {
+    if (!file) return
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/v1/leads/import', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Import failed')
+      setResult(data)
+      setStep('result')
+    } catch (err: any) {
+      setResult({ imported: 0, skipped_duplicates: 0, errors: [err.message || 'Unknown error'], total_rows: totalRows })
+      setStep('result')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-[28px] p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-xl font-extrabold text-[#0F172A]">Import Leads</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Upload a CSV or Excel file to bulk-import leads</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Step 1 — Upload */}
+        {step === 'upload' && (
+          <div className="space-y-4">
+            <div
+              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
+                dragOver ? 'border-[#14B8A6] bg-teal-50' : 'border-slate-200 hover:border-slate-300'
+              }`}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById('csv-file-input')?.click()}
+            >
+              <Upload size={32} className="mx-auto mb-3 text-slate-300" />
+              <p className="font-bold text-slate-600 text-sm">Drop your CSV or Excel file here</p>
+              <p className="text-xs text-slate-400 mt-1">or click to browse · Max 500 rows</p>
+              <input
+                id="csv-file-input"
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={e => handleFileSelect(e.target.files?.[0] || null)}
+              />
+            </div>
+            <button
+              onClick={handleDownloadTemplate}
+              className="w-full flex items-center justify-center gap-2 text-[#14B8A6] hover:text-teal-600 text-sm font-semibold py-2 border border-[#14B8A6]/30 rounded-xl hover:bg-teal-50 transition-colors"
+            >
+              <FileText size={14} />
+              Download Template CSV
+            </button>
+          </div>
+        )}
+
+        {/* Step 2 — Preview */}
+        {step === 'preview' && (
+          <div className="space-y-4">
+            <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-500">
+              <span className="font-bold text-slate-700">{file?.name}</span>
+              {' · '}
+              ~{totalRows} data row{totalRows !== 1 ? 's' : ''}
+            </div>
+            {previewRows.length > 1 && (
+              <div className="overflow-x-auto rounded-xl border border-slate-100">
+                <table className="text-xs w-full">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      {previewRows[0].slice(0, 5).map((h, i) => (
+                        <th key={i} className="text-left px-3 py-2 font-bold text-slate-500 whitespace-nowrap">{h}</th>
+                      ))}
+                      {previewRows[0].length > 5 && <th className="px-3 py-2 text-slate-400">…</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewRows.slice(1, 4).map((row, ri) => (
+                      <tr key={ri} className="border-t border-slate-100">
+                        {row.slice(0, 5).map((cell, ci) => (
+                          <td key={ci} className="px-3 py-2 text-slate-600 max-w-[120px] truncate">{cell}</td>
+                        ))}
+                        {row.length > 5 && <td className="px-3 py-2 text-slate-300">…</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setStep('upload'); setFile(null); setPreviewRows([]) }}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-colors"
+              >
+                Change File
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={loading}
+                className="flex-1 py-3 bg-[#00236f] hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? <><Loader size={14} className="animate-spin" /> Importing...</> : `Import ${totalRows} rows`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 — Result */}
+        {step === 'result' && result && (
+          <div className="space-y-4">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-emerald-700 font-bold">
+                <CheckCircle size={16} />
+                {result.imported} lead{result.imported !== 1 ? 's' : ''} imported
+              </div>
+              {result.skipped_duplicates > 0 && (
+                <div className="text-amber-700 text-sm flex items-center gap-1.5">
+                  <AlertCircle size={14} />
+                  {result.skipped_duplicates} duplicate{result.skipped_duplicates !== 1 ? 's' : ''} skipped
+                </div>
+              )}
+              <div className="text-slate-500 text-xs">{result.total_rows} total rows processed</div>
+            </div>
+            {result.errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-1">
+                <div className="text-xs font-bold text-red-700 mb-1">Row errors ({result.errors.length})</div>
+                {result.errors.slice(0, 5).map((err, i) => (
+                  <div key={i} className="text-xs text-red-600">{err}</div>
+                ))}
+                {result.errors.length > 5 && <div className="text-xs text-red-400">+{result.errors.length - 5} more</div>}
+              </div>
+            )}
+            <button
+              onClick={() => { onSuccess(); onClose() }}
+              className="w-full py-3.5 bg-[#14B8A6] hover:bg-teal-600 text-white rounded-xl font-black text-sm uppercase tracking-widest transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const [leads, setLeads]                 = useState<Lead[]>([])
@@ -235,6 +447,9 @@ export default function LeadsPage() {
 
   // Follow-up
   const [followUps, setFollowUps]         = useState<Record<number, string>>({})
+
+  // Import modal
+  const [showImportModal, setShowImportModal] = useState(false)
 
   // New inquiry modal
   const [showInquiry, setShowInquiry]     = useState(false)
@@ -518,12 +733,21 @@ export default function LeadsPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A]">Leads Pipeline</h1>
             <p className="text-slate-500 mt-1 text-sm font-medium">Track, qualify, and convert every opportunity.</p>
           </div>
-          <button
-            onClick={() => { setShowInquiry(true); setInquirySuccess(null) }}
-            className="bg-[#00236f] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00236f]/10 hover:bg-slate-800 transition-all active:scale-95 text-sm"
-          >
-            <Plus size={16} /> New Inquiry
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-bold transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </button>
+            <button
+              onClick={() => { setShowInquiry(true); setInquirySuccess(null) }}
+              className="bg-[#00236f] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00236f]/10 hover:bg-slate-800 transition-all active:scale-95 text-sm"
+            >
+              <Plus size={16} /> New Inquiry
+            </button>
+          </div>
         </div>
 
         {/* Stats Strip */}
@@ -1123,6 +1347,14 @@ export default function LeadsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Import CSV Modal */}
+      {showImportModal && (
+        <ImportLeadsModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => fetchLeads()}
+        />
       )}
 
       {/* Toast */}

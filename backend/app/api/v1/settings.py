@@ -428,6 +428,60 @@ def accept_invite_info(
     }
 
 
+# ── FX Rates endpoint ─────────────────────────────────────────────────────────
+
+_FX_FALLBACK = {
+    "USD": 0.012,
+    "EUR": 0.011,
+    "GBP": 0.0095,
+    "AED": 0.044,
+    "SGD": 0.016,
+}
+
+
+@router.get("/fx-rates", summary="Get live FX rates (base INR), cached 1hr")
+def get_fx_rates():
+    """
+    Returns conversion rates FROM INR for display currencies.
+    Fetches from open.er-api.com (free tier) and caches via Redis/in-memory for 1hr.
+    Falls back to static rates if the external API is unavailable.
+    """
+    cache_key = "fx_rates_inr"
+
+    # Try distributed cache first
+    try:
+        from app.core.redis_cache import distributed_cache
+        cached = distributed_cache.get(cache_key)
+        if cached:
+            return cached
+    except Exception:
+        pass
+
+    # Fetch live rates
+    try:
+        import requests as _requests
+        resp = _requests.get("https://open.er-api.com/v6/latest/INR", timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            raw_rates = data.get("rates", {})
+            rates = {k: raw_rates.get(k, _FX_FALLBACK[k]) for k in _FX_FALLBACK}
+            result = {
+                "base": "INR",
+                "rates": rates,
+                "updated_at": data.get("time_last_update_utc", ""),
+            }
+            try:
+                from app.core.redis_cache import distributed_cache
+                distributed_cache.set(cache_key, result, ttl_seconds=3600)
+            except Exception:
+                pass
+            return result
+    except Exception as exc:
+        logger.warning("FX rate fetch failed: %s — using fallback", exc)
+
+    return {"base": "INR", "rates": _FX_FALLBACK, "updated_at": "fallback"}
+
+
 # ── Decryption helper for internal AI agent use ───────────────────────────────
 def get_active_byok_key(db: Session, tenant_id: int, provider: str) -> Optional[str]:
     """

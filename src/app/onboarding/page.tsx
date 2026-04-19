@@ -1002,8 +1002,22 @@ export default function OnboardingPage() {
         })
     } catch (_) { /* ignore */ }
 
+    // Fire Day 0 drip email — best-effort, never blocks navigation
+    try {
+      fetch('/api/v1/onboarding/trigger-drip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: '',
+          name: welcome.name || '',
+          agency_name: agencyConfig?.agency?.name || welcome.name || 'Your Agency',
+          day: 0,
+        }),
+      }).catch(() => {}) // fire and forget
+    } catch (_) { /* ignore */ }
+
     router.push(destination)
-  }, [router])
+  }, [router, welcome, agencyConfig])
 
   const currentStepConfig = STEPS[step - 1]
 

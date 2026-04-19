@@ -494,4 +494,55 @@ export const automationsApi = {
   toggle: (id: number) => api.post<Automation>(`/api/v1/automations/${id}/toggle`, {}),
   runs: (id: number) => api.get<unknown[]>(`/api/v1/automations/${id}/runs`),
   triggers: () => api.get<{ triggers: string[]; actions: string[] }>('/api/v1/automations/triggers'),
+  runReminders: () => api.post<{ reminders_sent: number; leads_flagged: number; agents_notified: number; demo_mode: boolean }>('/api/v1/automations/run-reminders', {}),
+  scheduleReminders: (enabled: boolean) => api.post<{ enabled: boolean }>('/api/v1/automations/schedule-reminders', { enabled }),
+}
+
+// Documents
+export const documentsApi = {
+  invoicePdf: async (bookingId: number): Promise<Response> => {
+    return fetch('/api/v1/documents/invoice-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ booking_id: bookingId }),
+    })
+  },
+  sendInvoice: (bookingId: number, email: string) =>
+    api.post<{ success: boolean; message_id?: string; error?: string }>(
+      '/api/v1/documents/send-invoice',
+      { booking_id: bookingId, email }
+    ),
+}
+
+// Payments — Razorpay payment links
+export const paymentsApi = {
+  createLink: (data: { quotation_id: number; amount: number; description: string; currency?: string }) =>
+    api.post<{ payment_link_url: string; payment_link_id: string; demo?: boolean }>('/api/v1/payments/create-link', data),
+}
+
+// Clients (M14) — contact database + bulk import
+export const clientsApi = {
+  list: (params?: { search?: string; status?: string; page?: number; size?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.search) q.set('search', params.search)
+    if (params?.status) q.set('status', params.status)
+    if (params?.page)   q.set('page',   String(params.page))
+    if (params?.size)   q.set('size',   String(params.size))
+    return api.get<{ clients: any[]; total: number; page: number; size: number }>(`/api/v1/clients/?${q}`)
+  },
+  get: (id: number) => api.get<any>(`/api/v1/clients/${id}`),
+  create: (data: any) => api.post<any>('/api/v1/clients/', data),
+  update: (id: number, data: any) => api.patch<any>(`/api/v1/clients/${id}`, data),
+  importContacts: async (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
+    const res = await fetch('/api/v1/clients/import', {
+      method: 'POST',
+      body: form,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    return res.json()
+  },
+  importTemplate: () => fetch('/api/v1/clients/import/template'),
 }

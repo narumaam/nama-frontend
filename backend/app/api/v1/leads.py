@@ -11,9 +11,12 @@ Endpoints:
   DELETE /leads/{id}       — soft-delete (sets status=LOST)
 """
 
+import io
+import csv
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from typing import Optional, List
@@ -319,4 +322,205 @@ def create_lead_from_intentra(
         "source": "INTENTRA",
         "destination": dest,
         "message": f"Lead created from @{body.username}'s {body.platform} signal",
+    }
+
+
+# ── CSV Import ────────────────────────────────────────────────────────────────
+
+# Column alias mapping (case-insensitive)
+_IMPORT_ALIASES = {
+    "full_name":         ["full_name", "name", "full name", "customer name", "lead name", "contact name"],
+    "email":             ["email", "email address", "e-mail"],
+    "phone":             ["phone", "phone number", "mobile", "contact", "whatsapp"],
+    "destination":       ["destination", "dest", "trip", "travel to", "location"],
+    "duration_days":     ["duration_days", "duration", "days", "nights", "trip length"],
+    "travelers_count":   ["travelers_count", "travelers", "pax", "guests", "people", "adults"],
+    "budget_per_person": ["budget_per_person", "budget", "price", "cost", "amount"],
+    "currency":          ["currency", "cur"],
+    "travel_style":      ["travel_style", "style", "type", "package type"],
+    "status":            ["status"],
+    "source":            ["source", "channel", "lead source"],
+    "notes":             ["notes", "comments", "remarks", "note"],
+}
+
+
+def _build_alias_map(columns: List[str]) -> dict:
+    """Return a mapping: canonical_field → actual_column_name (or None if not present)."""
+    lower_col_map = {c.strip().lower(): c for c in columns}
+    result = {}
+    for canonical, aliases in _IMPORT_ALIASES.items():
+        found = None
+        for alias in aliases:
+            if alias.lower() in lower_col_map:
+                found = lower_col_map[alias.lower()]
+                break
+        result[canonical] = found
+    return result
+
+
+@router.get("/import/template", summary="Download CSV import template for leads")
+def leads_import_template():
+    """Return a CSV template with example rows."""
+    headers = [
+        "full_name", "email", "phone", "destination", "duration_days",
+        "travelers_count", "budget_per_person", "currency", "travel_style",
+        "status", "source", "notes",
+    ]
+    rows = [
+        ["Aarav Sharma", "aarav@example.com", "+91 98765 43210", "Maldives Honeymoon",
+         "7", "2", "175000", "INR", "Luxury", "NEW", "WHATSAPP", "Interested in overwater bungalow"],
+        ["Mehta Family", "rahul@example.com", "+91 87654 32109", "Bali Family Holiday",
+         "7", "4", "65000", "INR", "Standard", "CONTACTED", "EMAIL", "Family with kids"],
+    ]
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+    writer.writerows(rows)
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode()),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=leads_import_template.csv"},
+    )
+
+
+@router.post("/import", summary="Bulk import leads from CSV or XLSX")
+async def leads_import(
+    file: UploadFile = File(...),
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    """
+    Import leads from a CSV or XLSX file.
+    - Max 500 rows
+    - Duplicate detection by email (per tenant)
+    - Returns: { imported, skipped_duplicates, errors, total_rows }
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        raise HTTPException(status_code=500, detail="pandas not installed — cannot import CSV")
+
+    content = await file.read()
+    filename = (file.filename or "").lower()
+
+    try:
+        if filename.endswith(".xlsx") or filename.endswith(".xls"):
+            df = pd.read_excel(io.BytesIO(content))
+        else:
+            df = pd.read_csv(io.BytesIO(content))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not parse file: {exc}")
+
+    total_rows = len(df)
+    if total_rows > 500:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File contains {total_rows} rows — maximum is 500. Split into smaller files.",
+        )
+
+    alias_map = _build_alias_map(list(df.columns))
+
+    def _val(row, field: str, default=None):
+        col = alias_map.get(field)
+        if col is None or col not in row.index:
+            return default
+        v = row[col]
+        if pd.isna(v):
+            return default
+        return str(v).strip() or default
+
+    imported = 0
+    skipped_duplicates = 0
+    errors: List[str] = []
+
+    for idx, row in df.iterrows():
+        row_num = int(idx) + 2  # 1-indexed + header row
+        try:
+            full_name = _val(row, "full_name")
+            email     = _val(row, "email")
+            phone     = _val(row, "phone")
+
+            # Skip completely empty rows
+            if not full_name and not email and not phone:
+                continue
+
+            # Duplicate check by email (per tenant)
+            if email:
+                existing = (
+                    db.query(_Lead)
+                    .filter(_Lead.tenant_id == tenant_id, _Lead.email == email)
+                    .first()
+                )
+                if existing:
+                    skipped_duplicates += 1
+                    continue
+
+            # Resolve status
+            raw_status = _val(row, "status", "NEW").upper()
+            try:
+                lead_status = LeadStatus(raw_status)
+            except ValueError:
+                lead_status = LeadStatus.NEW
+
+            # Resolve source
+            raw_source = _val(row, "source", "OTHER").upper()
+            valid_sources = {s.value for s in LeadSource}
+            if raw_source not in valid_sources:
+                raw_source = "OTHER"
+            try:
+                lead_source = LeadSource(raw_source)
+            except ValueError:
+                lead_source = LeadSource.OTHER if hasattr(LeadSource, "OTHER") else LeadSource.DIRECT
+
+            # Numeric fields
+            duration_raw = _val(row, "duration_days")
+            travelers_raw = _val(row, "travelers_count")
+            budget_raw = _val(row, "budget_per_person")
+            try:
+                duration_days = int(float(duration_raw)) if duration_raw else None
+            except (ValueError, TypeError):
+                duration_days = None
+            try:
+                travelers_count = int(float(travelers_raw)) if travelers_raw else 1
+            except (ValueError, TypeError):
+                travelers_count = 1
+            try:
+                budget_per_person = float(budget_raw) if budget_raw else None
+            except (ValueError, TypeError):
+                budget_per_person = None
+
+            lead = _Lead(
+                tenant_id=tenant_id,
+                sender_id=email or phone or full_name or f"import-row-{row_num}",
+                full_name=full_name,
+                email=email,
+                phone=phone,
+                destination=_val(row, "destination"),
+                duration_days=duration_days,
+                travelers_count=travelers_count,
+                budget_per_person=budget_per_person,
+                currency=_val(row, "currency", "INR"),
+                travel_style=_val(row, "travel_style", "Standard"),
+                status=lead_status,
+                source=lead_source,
+                notes=_val(row, "notes"),
+            )
+            db.add(lead)
+            imported += 1
+        except Exception as exc:
+            errors.append(f"Row {row_num}: {exc}")
+
+    try:
+        db.commit()
+        distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"DB commit failed: {exc}")
+
+    return {
+        "imported": imported,
+        "skipped_duplicates": skipped_duplicates,
+        "errors": errors,
+        "total_rows": total_rows,
     }

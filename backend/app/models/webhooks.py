@@ -44,3 +44,27 @@ class InboundWebhookEvent(Base):
     __table_args__ = (
         Index("ix_inbound_webhook_source_processed", "source", "processed"),
     )
+
+
+# ── Outbound Webhook Endpoints ─────────────────────────────────────────────────
+
+from sqlalchemy import JSON, ForeignKey  # noqa: E402 (keep imports together)
+
+class WebhookEndpoint(Base):
+    """
+    Outbound webhook endpoint — NAMA fires signed HTTPS POST events to these URLs.
+    Each endpoint subscribes to a list of event types (e.g. lead.created).
+    """
+    __tablename__ = "webhook_endpoints"
+
+    id                 = Column(Integer, primary_key=True, index=True)
+    tenant_id          = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    url                = Column(String(512), nullable=False)
+    events             = Column(JSON, default=list)
+    secret             = Column(String(64), nullable=False)
+    description        = Column(String(256), nullable=True)
+    is_active          = Column(Boolean, default=True)
+    created_at         = Column(DateTime(timezone=True), server_default=func.now())
+    last_triggered_at  = Column(DateTime(timezone=True), nullable=True)
+    delivery_count     = Column(Integer, default=0)
+    failure_count      = Column(Integer, default=0)

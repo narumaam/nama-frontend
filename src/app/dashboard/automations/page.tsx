@@ -19,8 +19,9 @@ import {
   Zap, Plus, Play, Pause, Trash2, Edit3, CheckCircle, Clock,
   ArrowRight, MessageSquare, Mail, UserCheck, FileText,
   Bell, RefreshCw, AlertCircle, ChevronDown, X, Copy,
-  ToggleLeft, ToggleRight, Activity,
+  ToggleLeft, ToggleRight, Activity, BellRing, Loader,
 } from "lucide-react";
+import { automationsApi } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type TriggerKey =
@@ -369,6 +370,58 @@ export default function AutomationsPage() {
   const [selectedWf, setSelectedWf] = useState<Workflow | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "active" | "paused">("all");
 
+  // Automated reminders state
+  const [remindersEnabled, setRemindersEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("nama_reminders_enabled") === "true";
+  });
+  const [remindersRunning, setRemindersRunning] = useState(false);
+  const [remindersBanner, setRemindersBanner] = useState<{
+    reminders_sent: number; leads_flagged: number; agents_notified: number; demo_mode: boolean;
+  } | null>(null);
+  const [remindersLastRun, setRemindersLastRun] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("nama_reminders_last_run");
+  });
+  const [remindersTogglingSchedule, setRemindersTogglingSchedule] = useState(false);
+
+  const handleToggleReminders = async (enabled: boolean) => {
+    setRemindersTogglingSchedule(true);
+    try {
+      await automationsApi.scheduleReminders(enabled);
+      setRemindersEnabled(enabled);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("nama_reminders_enabled", String(enabled));
+      }
+    } catch {
+      // Silently fall back — toggle still reflects intent
+      setRemindersEnabled(enabled);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("nama_reminders_enabled", String(enabled));
+      }
+    } finally {
+      setRemindersTogglingSchedule(false);
+    }
+  };
+
+  const handleRunReminders = async () => {
+    setRemindersRunning(true);
+    setRemindersBanner(null);
+    try {
+      const result = await automationsApi.runReminders();
+      setRemindersBanner(result);
+      const now = new Date().toISOString();
+      setRemindersLastRun(now);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("nama_reminders_last_run", now);
+      }
+    } catch (e: any) {
+      setRemindersBanner({ reminders_sent: 0, leads_flagged: 0, agents_notified: 0, demo_mode: true });
+    } finally {
+      setRemindersRunning(false);
+    }
+  };
+
   const activeCount = workflows.filter(w => w.is_active).length;
   const totalRuns = workflows.reduce((s, w) => s + w.run_count, 0);
   const avgSuccess = workflows.length > 0
@@ -461,6 +514,93 @@ export default function AutomationsPage() {
             {tab} ({workflows.filter(w => tab === "all" ? true : tab === "active" ? w.is_active : !w.is_active).length})
           </button>
         ))}
+      </div>
+
+      {/* ── Automated Reminders Card ────────────────────────────────────────── */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+              <BellRing size={20} className="text-amber-500" />
+            </div>
+            <div>
+              <h2 className="font-extrabold text-[#0F172A] text-base">Automated Follow-up Reminders</h2>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Auto-scans: cold leads after 3 days · uncontacted leads after 1 day · stalled qualified leads after 7 days
+              </p>
+            </div>
+          </div>
+          {/* Enable toggle */}
+          <button
+            onClick={() => handleToggleReminders(!remindersEnabled)}
+            disabled={remindersTogglingSchedule}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all ${
+              remindersEnabled
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+            } disabled:opacity-50`}
+          >
+            {remindersEnabled ? <ToggleRight size={18} className="text-emerald-500" /> : <ToggleLeft size={18} className="text-slate-400" />}
+            {remindersEnabled ? "Reminders On" : "Enable reminders"}
+          </button>
+        </div>
+
+        {/* Description row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { color: "bg-amber-100 text-amber-700", label: "Cold leads", rule: "CONTACTED + no update for 3 days" },
+            { color: "bg-blue-100 text-blue-700", label: "Uncontacted leads", rule: "NEW + no update for 1 day" },
+            { color: "bg-violet-100 text-violet-700", label: "Stalled qualified", rule: "QUALIFIED + no update for 7 days" },
+          ].map((item) => (
+            <div key={item.label} className="flex items-start gap-2 bg-slate-50 rounded-xl p-3">
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${item.color}`}>
+                {item.label}
+              </span>
+              <span className="text-xs text-slate-500 leading-snug">{item.rule}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Result banner */}
+        {remindersBanner && (
+          <div className={`flex items-center gap-4 rounded-xl border px-4 py-3 text-sm flex-wrap ${
+            remindersBanner.demo_mode
+              ? "bg-amber-50 border-amber-200 text-amber-800"
+              : "bg-emerald-50 border-emerald-200 text-emerald-800"
+          }`}>
+            <CheckCircle size={16} className="flex-shrink-0" />
+            <span className="font-semibold">
+              {remindersBanner.demo_mode ? "[Demo] " : ""}
+              Scanned leads · <strong>{remindersBanner.leads_flagged}</strong> flagged ·{" "}
+              <strong>{remindersBanner.agents_notified}</strong> agents notified ·{" "}
+              <strong>{remindersBanner.reminders_sent}</strong> email{remindersBanner.reminders_sent !== 1 ? "s" : ""} sent
+            </span>
+            {remindersBanner.demo_mode && (
+              <span className="text-xs text-amber-600 font-medium">Add RESEND_API_KEY to Railway to send real emails</span>
+            )}
+            <button onClick={() => setRemindersBanner(null)} className="ml-auto flex-shrink-0">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Footer row */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-xs text-slate-400">
+            {remindersLastRun
+              ? <>Last run: <span className="font-semibold text-slate-600">{new Date(remindersLastRun).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span></>
+              : "Never run yet"
+            }
+          </div>
+          <button
+            onClick={handleRunReminders}
+            disabled={remindersRunning}
+            className="flex items-center gap-2 bg-[#0F172A] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-700 transition-all disabled:opacity-50"
+          >
+            {remindersRunning ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            {remindersRunning ? "Scanning…" : "Run Now"}
+          </button>
+        </div>
       </div>
 
       {/* Template presets callout */}

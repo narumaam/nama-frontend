@@ -91,6 +91,7 @@ import app.models.webhooks    # noqa: F401  (M19 — Inbound webhooks)
 import app.models.content     # noqa: F401  (M12 — Content library)
 import app.models.corporate   # noqa: F401  (M10 — Corporate / B2B2C)
 import app.models.portals     # noqa: F401  (M13 — Client portals)
+import app.models.clients     # noqa: F401  (M14 — Client / Contact database)
 
 # Import router modules that define their own ORM models
 # (Automation, AutomationRun, TenantInvite, ByokApiKey)
@@ -278,6 +279,14 @@ app.include_router(marketplace_router.router,  prefix="/api/v1/marketplace",  ta
 #   Onboarding — seeded workspace on first login
 from app.api.v1 import onboarding as onboarding_router  # noqa: E402
 app.include_router(onboarding_router.router,   prefix="/api/v1/onboarding",   tags=["onboarding"])
+
+#   Global full-text search — cross-module ILIKE
+from app.api.v1 import search as search_router  # noqa: E402
+app.include_router(search_router.router,       prefix="/api/v1",              tags=["search"])
+
+#   Clients / Contact database (M14)
+from app.api.v1 import clients as clients_router  # noqa: E402
+app.include_router(clients_router.router,      prefix="/api/v1/clients",      tags=["clients"])
 
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
