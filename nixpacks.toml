@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["python310", "gcc"]
+nixPkgs = ["python310", "gcc", "libpq"]
 
 [phases.install]
 cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
 
 [start]
-cmd = "python main.py"
+cmd = "cd backend && alembic upgrade heads && cd .. && gunicorn app.main:app --config backend/gunicorn.conf.py"
 
 [variables]
 PYTHONPATH = ".:backend"
