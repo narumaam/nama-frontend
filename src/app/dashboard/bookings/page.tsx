@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Briefcase, CheckCircle, XCircle, Loader, AlertCircle,
   Search, Calendar, DollarSign, Users, TrendingDown,
@@ -519,6 +520,7 @@ function TripTrackerCard({ trip, onWhatsApp, onPortal }: {
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function BookingsPage() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<ReturnType<typeof enrichBooking>[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
@@ -790,7 +792,7 @@ export default function BookingsPage() {
           {filtered.map((b) => (
             <BookingCard
               key={b.id} booking={b}
-              onView={setSelected}
+              onView={(b) => router.push(`/dashboard/bookings/${b.id}`)}
               onConfirm={handleConfirm}
               onCancel={handleCancel}
               confirmingId={confirmingId}
