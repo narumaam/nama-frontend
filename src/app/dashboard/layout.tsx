@@ -8,7 +8,7 @@ import {
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
-  UserCheck, Contact, Building2, Shield, Calendar, Globe, Stamp,
+  UserCheck, Contact, Building2, Shield, Calendar, Globe, Stamp, Sun, Moon,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -18,8 +18,10 @@ import { FeedbackWidget } from '@/components/FeedbackWidget';
 import ChecklistWidget from '@/components/ChecklistWidget';
 import { CurrencyProvider } from '@/lib/currency-context';
 import CurrencySelector from '@/components/CurrencySelector';
+import { ThemeProvider, useTheme } from '@/lib/theme-context';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
+  const { isDark, toggle: toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -352,7 +354,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <CurrencyProvider>
-    <div className="min-h-screen bg-slate-50 flex font-sans text-left">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0F1E] flex font-sans text-left transition-colors duration-200">
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
         <Sidebar />
@@ -370,7 +372,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content — no left margin on mobile (sidebar is overlay); margin only on lg+ */}
       <main className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-[72px]'}`}>
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-100 px-4 md:px-6 flex items-center justify-between sticky top-0 z-40">
+        <header className="h-16 bg-white dark:bg-[#0F1B35] border-b border-slate-100 dark:border-white/5 px-4 md:px-6 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <button
@@ -385,6 +387,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-2 md:gap-4 relative">
             {/* Currency selector */}
             <CurrencySelector />
+            {/* Day / Night toggle */}
+            <button
+              onClick={toggleTheme}
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors rounded-xl hover:bg-slate-100 dark:hover:bg-white/10"
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             {/* Notification bell */}
             <button
               onClick={() => setNotifOpen(o => !o)}
@@ -489,6 +499,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <ChecklistWidget />
     </div>
     </CurrencyProvider>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </ThemeProvider>
   );
 }
 

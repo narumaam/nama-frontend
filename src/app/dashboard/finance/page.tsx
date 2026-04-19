@@ -1,387 +1,843 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   TrendingUp,
-  RefreshCw,
-  Download,
-  Search,
-  CheckCircle,
   Clock,
-  ArrowUpRight,
-  ArrowDownLeft,
+  CheckCircle,
+  BarChart2,
+  Send,
+  Download,
+  PlusCircle,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  CreditCard,
+  FileText,
   DollarSign,
   AlertCircle,
+  Search,
+  Filter,
 } from "lucide-react";
+import { api } from "@/lib/api";
 
-interface LedgerEntry {
-  id: string;
-  type: "CREDIT" | "DEBIT";
-  amount: number;
-  currency: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type QuoteStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+type InvoiceStatus = "PAID" | "UNPAID" | "OVERDUE";
+type PaymentMethod = "Bank Transfer" | "Razorpay" | "Cash";
+type LineItemStatus = "CONFIRMED" | "PENDING" | "ESTIMATED";
+
+interface LineItem {
+  component: string;
   description: string;
-  reference: string;
-  booking_id?: string;
-  created_at: string;
-  reconciled: boolean;
+  netCost: number;
+  grossPrice: number;
+  margin: number;
+  status: LineItemStatus;
 }
 
-interface FinanceSummary {
-  total_revenue: number;
-  total_cost: number;
-  gross_profit: number;
-  margin_pct: number;
-  pending_reconciliation: number;
-  currency: string;
+interface Quotation {
+  id: string;
+  client: string;
+  from: string;
+  to: string;
+  amount: number;
+  margin: number;
+  createdDate: string;
+  status: QuoteStatus;
+  lineItems: LineItem[];
 }
 
-const TABS = ["Overview", "Invoices", "Payments", "Refunds", "Vendor Payouts", "AR Aging", "Reconciliation", "Month-End Close"] as const;
-type Tab = (typeof TABS)[number];
+interface Invoice {
+  id: string;
+  bookingId: string;
+  client: string;
+  amount: number;
+  issueDate: string;
+  dueDate: string;
+  status: InvoiceStatus;
+}
 
-const MOCK_ENTRIES: LedgerEntry[] = [
-  { id: "1", type: "CREDIT", amount: 185000, currency: "INR", description: "Booking payment — Maldives Island Escape", reference: "INV/FY25-26/0001", booking_id: "1", created_at: "2026-04-15T10:30:00Z", reconciled: true },
-  { id: "2", type: "DEBIT", amount: 120000, currency: "INR", description: "Vendor payout — Soneva Fushi Resort", reference: "VP-2026-001", created_at: "2026-04-14T14:20:00Z", reconciled: true },
-  { id: "3", type: "CREDIT", amount: 245000, currency: "INR", description: "Booking payment — Swiss Alps Luxury Tour", reference: "INV/FY25-26/0002", booking_id: "2", created_at: "2026-04-13T09:15:00Z", reconciled: false },
-  { id: "4", type: "DEBIT", amount: 15000, currency: "INR", description: "Refund — cancellation penalty waived", reference: "RF-2026-001", created_at: "2026-04-12T16:45:00Z", reconciled: true },
-  { id: "5", type: "CREDIT", amount: 98500, currency: "INR", description: "Booking payment — Bali Wellness Retreat", reference: "INV/FY25-26/0003", booking_id: "3", created_at: "2026-04-11T11:00:00Z", reconciled: false },
-  { id: "6", type: "DEBIT", amount: 78000, currency: "INR", description: "Vendor payout — The Layar Villa Bali", reference: "VP-2026-002", created_at: "2026-04-10T09:00:00Z", reconciled: true },
-  { id: "7", type: "CREDIT", amount: 320000, currency: "INR", description: "Booking payment — Japan Cherry Blossom Circuit", reference: "INV/FY25-26/0004", booking_id: "4", created_at: "2026-04-09T15:30:00Z", reconciled: true },
+interface Payment {
+  date: string;
+  client: string;
+  amount: number;
+  method: PaymentMethod;
+  bookingRef: string;
+  status: "Received" | "Pending" | "Failed";
+}
+
+// ─── Seed Data ────────────────────────────────────────────────────────────────
+
+const SEED_QUOTATIONS: Quotation[] = [
+  {
+    id: "Q-2026-001",
+    client: "Priya Mehta",
+    from: "Mumbai",
+    to: "Bali",
+    amount: 185000,
+    margin: 22,
+    createdDate: "2026-04-01",
+    status: "ACCEPTED",
+    lineItems: [
+      { component: "Flight", description: "BOM-DPS Return (Economy)", netCost: 42000, grossPrice: 52000, margin: 23.8, status: "CONFIRMED" },
+      { component: "Hotel", description: "Ubud Resort 5N", netCost: 60000, grossPrice: 75000, margin: 25, status: "CONFIRMED" },
+      { component: "Transport", description: "Airport transfers + day trips", netCost: 12000, grossPrice: 15000, margin: 25, status: "CONFIRMED" },
+      { component: "Activity", description: "Tanah Lot + Kecak show", netCost: 8000, grossPrice: 10000, margin: 25, status: "ESTIMATED" },
+      { component: "Activity", description: "Cooking class + spa day", netCost: 18000, grossPrice: 22000, margin: 22.2, status: "PENDING" },
+    ],
+  },
+  {
+    id: "Q-2026-002",
+    client: "Arjun Singh",
+    from: "Delhi",
+    to: "Maldives",
+    amount: 420000,
+    margin: 18,
+    createdDate: "2026-04-03",
+    status: "SENT",
+    lineItems: [
+      { component: "Flight", description: "DEL-MLE Return (Business)", netCost: 95000, grossPrice: 115000, margin: 21, status: "CONFIRMED" },
+      { component: "Hotel", description: "Overwater Villa 7N", netCost: 200000, grossPrice: 245000, margin: 22.5, status: "CONFIRMED" },
+      { component: "Activity", description: "Diving + snorkelling package", netCost: 28000, grossPrice: 35000, margin: 25, status: "ESTIMATED" },
+      { component: "Transport", description: "Speedboat transfers", netCost: 10000, grossPrice: 12000, margin: 20, status: "PENDING" },
+    ],
+  },
+  {
+    id: "Q-2026-003",
+    client: "Deepika Rao",
+    from: "Mumbai",
+    to: "Dubai",
+    amount: 95000,
+    margin: 25,
+    createdDate: "2026-04-05",
+    status: "DRAFT",
+    lineItems: [
+      { component: "Flight", description: "BOM-DXB Return", netCost: 22000, grossPrice: 28000, margin: 27.3, status: "ESTIMATED" },
+      { component: "Hotel", description: "Marina Hotel 4N", netCost: 32000, grossPrice: 40000, margin: 25, status: "ESTIMATED" },
+      { component: "Activity", description: "Desert safari + Burj Khalifa", netCost: 11000, grossPrice: 14000, margin: 27.3, status: "ESTIMATED" },
+    ],
+  },
+  {
+    id: "Q-2026-004",
+    client: "Rohan Kumar",
+    from: "Kolkata",
+    to: "Thailand",
+    amount: 125000,
+    margin: 20,
+    createdDate: "2026-04-06",
+    status: "ACCEPTED",
+    lineItems: [
+      { component: "Flight", description: "CCU-BKK Return", netCost: 28000, grossPrice: 35000, margin: 25, status: "CONFIRMED" },
+      { component: "Hotel", description: "Bangkok + Phuket 6N", netCost: 42000, grossPrice: 52000, margin: 23.8, status: "CONFIRMED" },
+      { component: "Transport", description: "Ferry + local transport", netCost: 8000, grossPrice: 10000, margin: 25, status: "CONFIRMED" },
+      { component: "Activity", description: "Grand Palace + Phi Phi islands", netCost: 10000, grossPrice: 12500, margin: 25, status: "PENDING" },
+    ],
+  },
+  {
+    id: "Q-2026-005",
+    client: "Anjali Sharma",
+    from: "Mumbai",
+    to: "Europe (Paris+Rome)",
+    amount: 650000,
+    margin: 15,
+    createdDate: "2026-04-08",
+    status: "SENT",
+    lineItems: [
+      { component: "Flight", description: "BOM-CDG-FCO-BOM (Business)", netCost: 180000, grossPrice: 215000, margin: 19.4, status: "CONFIRMED" },
+      { component: "Hotel", description: "Paris Boutique 4N + Rome Central 4N", netCost: 180000, grossPrice: 220000, margin: 22.2, status: "CONFIRMED" },
+      { component: "Transport", description: "Eurostar Paris-Rome + transfers", netCost: 35000, grossPrice: 42000, margin: 20, status: "CONFIRMED" },
+      { component: "Activity", description: "Louvre, Eiffel, Colosseum guided", netCost: 48000, grossPrice: 58000, margin: 20.8, status: "ESTIMATED" },
+      { component: "Activity", description: "Seine dinner cruise + Vatican tour", netCost: 55000, grossPrice: 65000, margin: 18.2, status: "PENDING" },
+    ],
+  },
+  {
+    id: "Q-2026-006",
+    client: "Karan Nair",
+    from: "Chennai",
+    to: "Sri Lanka",
+    amount: 210000,
+    margin: 28,
+    createdDate: "2026-04-09",
+    status: "ACCEPTED",
+    lineItems: [
+      { component: "Flight", description: "MAA-CMB Return", netCost: 18000, grossPrice: 24000, margin: 33.3, status: "CONFIRMED" },
+      { component: "Hotel", description: "Colombo + Kandy + Sigiriya 7N", netCost: 65000, grossPrice: 88000, margin: 35.4, status: "CONFIRMED" },
+      { component: "Transport", description: "Private car entire trip", netCost: 25000, grossPrice: 34000, margin: 36, status: "CONFIRMED" },
+      { component: "Activity", description: "Sigiriya Rock + cultural show", netCost: 15000, grossPrice: 20000, margin: 33.3, status: "CONFIRMED" },
+      { component: "Activity", description: "Whale watching in Mirissa", netCost: 12000, grossPrice: 16000, margin: 33.3, status: "PENDING" },
+    ],
+  },
+  {
+    id: "Q-2026-007",
+    client: "Sneha Joshi",
+    from: "Mumbai",
+    to: "Kenya Safari",
+    amount: 380000,
+    margin: 0,
+    createdDate: "2026-04-10",
+    status: "REJECTED",
+    lineItems: [
+      { component: "Flight", description: "BOM-NBO Return", netCost: 95000, grossPrice: 112000, margin: 17.9, status: "CONFIRMED" },
+      { component: "Hotel", description: "Masai Mara Camp 5N", netCost: 160000, grossPrice: 190000, margin: 18.8, status: "CONFIRMED" },
+      { component: "Activity", description: "Game drives 3x full day", netCost: 45000, grossPrice: 52000, margin: 15.6, status: "CONFIRMED" },
+    ],
+  },
+  {
+    id: "Q-2026-008",
+    client: "Vikram Patel",
+    from: "Delhi",
+    to: "Himachal Pradesh",
+    amount: 78000,
+    margin: 30,
+    createdDate: "2026-03-15",
+    status: "EXPIRED",
+    lineItems: [
+      { component: "Transport", description: "Delhi-Manali-Delhi private SUV", netCost: 18000, grossPrice: 24000, margin: 33.3, status: "ESTIMATED" },
+      { component: "Hotel", description: "Shimla + Manali cottage 5N", netCost: 22000, grossPrice: 30000, margin: 36.4, status: "ESTIMATED" },
+      { component: "Activity", description: "Snow activities + Rohtang pass", netCost: 8000, grossPrice: 11000, margin: 37.5, status: "ESTIMATED" },
+    ],
+  },
+  {
+    id: "Q-2026-009",
+    client: "Meera Gupta",
+    from: "Mumbai",
+    to: "Goa",
+    amount: 45000,
+    margin: 35,
+    createdDate: "2026-04-12",
+    status: "DRAFT",
+    lineItems: [
+      { component: "Flight", description: "BOM-GOI Return", netCost: 6000, grossPrice: 8500, margin: 41.7, status: "ESTIMATED" },
+      { component: "Hotel", description: "North Goa Beach Resort 3N", netCost: 15000, grossPrice: 21000, margin: 40, status: "ESTIMATED" },
+      { component: "Activity", description: "Watersports package", netCost: 5000, grossPrice: 7000, margin: 40, status: "ESTIMATED" },
+    ],
+  },
+  {
+    id: "Q-2026-010",
+    client: "Rahul Verma",
+    from: "Bangalore",
+    to: "Japan",
+    amount: 310000,
+    margin: 17,
+    createdDate: "2026-04-14",
+    status: "SENT",
+    lineItems: [
+      { component: "Flight", description: "BLR-NRT Return (Economy)", netCost: 72000, grossPrice: 88000, margin: 22.2, status: "CONFIRMED" },
+      { component: "Hotel", description: "Tokyo + Kyoto + Osaka 8N", netCost: 95000, grossPrice: 115000, margin: 21.1, status: "CONFIRMED" },
+      { component: "Transport", description: "JR Pass 14-day", netCost: 25000, grossPrice: 30000, margin: 20, status: "CONFIRMED" },
+      { component: "Activity", description: "Mt Fuji day trip + tea ceremony", netCost: 28000, grossPrice: 34000, margin: 21.4, status: "PENDING" },
+      { component: "Activity", description: "Osaka street food + Dotonbori tour", netCost: 18000, grossPrice: 22000, margin: 22.2, status: "ESTIMATED" },
+    ],
+  },
 ];
 
+const MONTHLY_REVENUE = [380000, 420000, 510000, 480000, 620000, 580000, 710000, 690000, 820000, 780000, 960000, 1840000];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const SEED_INVOICES: Invoice[] = [
+  { id: "INV-2026-001", bookingId: "BK-2026-001", client: "Priya Mehta", amount: 185000, issueDate: "2026-04-02", dueDate: "2026-04-16", status: "PAID" },
+  { id: "INV-2026-002", bookingId: "BK-2026-004", client: "Rohan Kumar", amount: 125000, issueDate: "2026-04-07", dueDate: "2026-04-21", status: "UNPAID" },
+  { id: "INV-2026-003", bookingId: "BK-2026-006", client: "Karan Nair", amount: 210000, issueDate: "2026-04-10", dueDate: "2026-04-24", status: "PAID" },
+  { id: "INV-2026-004", bookingId: "BK-2026-003", client: "Deepika Rao", amount: 95000, issueDate: "2026-03-20", dueDate: "2026-04-03", status: "OVERDUE" },
+  { id: "INV-2026-005", bookingId: "BK-2026-002", client: "Arjun Singh", amount: 420000, issueDate: "2026-04-04", dueDate: "2026-04-18", status: "UNPAID" },
+  { id: "INV-2026-006", bookingId: "BK-2026-009", client: "Meera Gupta", amount: 45000, issueDate: "2026-03-10", dueDate: "2026-03-24", status: "OVERDUE" },
+];
+
+const SEED_PAYMENTS: Payment[] = [
+  { date: "2026-04-15", client: "Priya Mehta", amount: 185000, method: "Razorpay", bookingRef: "BK-2026-001", status: "Received" },
+  { date: "2026-04-12", client: "Karan Nair", amount: 105000, method: "Bank Transfer", bookingRef: "BK-2026-006", status: "Received" },
+  { date: "2026-04-10", client: "Anjali Sharma", amount: 162500, method: "Bank Transfer", bookingRef: "BK-2026-005", status: "Received" },
+  { date: "2026-04-08", client: "Rahul Verma", amount: 77500, method: "Razorpay", bookingRef: "BK-2026-010", status: "Pending" },
+  { date: "2026-04-05", client: "Arjun Singh", amount: 210000, method: "Bank Transfer", bookingRef: "BK-2026-002", status: "Pending" },
+  { date: "2026-04-01", client: "Vikram Patel", amount: 39000, method: "Cash", bookingRef: "BK-2026-008", status: "Received" },
+  { date: "2026-03-28", client: "Deepika Rao", amount: 47500, method: "Razorpay", bookingRef: "BK-2026-003", status: "Pending" },
+  { date: "2026-03-22", client: "Meera Gupta", amount: 22500, method: "Cash", bookingRef: "BK-2026-009", status: "Received" },
+];
+
+const TOP_DESTINATIONS = [
+  { destination: "Maldives", bookings: 12, revenue: 5040000, margin: 21 },
+  { destination: "Bali", bookings: 18, revenue: 3330000, margin: 23 },
+  { destination: "Europe", bookings: 8, revenue: 5200000, margin: 16 },
+  { destination: "Japan", bookings: 10, revenue: 3100000, margin: 18 },
+  { destination: "Dubai", bookings: 22, revenue: 2090000, margin: 26 },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatINR(amount: number): string {
+  if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(1)}L`;
+  }
+  if (amount >= 1000) {
+    return `₹${(amount / 1000).toFixed(0)}K`;
+  }
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
+function formatINRFull(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
+function statusPillClass(status: QuoteStatus): string {
+  switch (status) {
+    case "DRAFT": return "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
+    case "SENT": return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+    case "ACCEPTED": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+    case "REJECTED": return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+    case "EXPIRED": return "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
+  }
+}
+
+function invoiceStatusClass(status: InvoiceStatus): string {
+  switch (status) {
+    case "PAID": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+    case "UNPAID": return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+    case "OVERDUE": return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+  }
+}
+
+function lineItemStatusClass(status: LineItemStatus): string {
+  switch (status) {
+    case "CONFIRMED": return "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300";
+    case "PENDING": return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+    case "ESTIMATED": return "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
+  }
+}
+
+function marginColor(margin: number): string {
+  if (margin > 20) return "text-emerald-600 dark:text-emerald-400";
+  if (margin >= 10) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function FinancePage() {
-  const [activeTab, setActiveTab] = useState<Tab>("Overview");
-  const [summary, setSummary] = useState<FinanceSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"overview" | "quotations" | "invoices" | "payments">("overview");
+  const [quotations, setQuotations] = useState<Quotation[]>(SEED_QUOTATIONS);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<QuoteStatus | "ALL">("ALL");
+  const [expandedQuote, setExpandedQuote] = useState<string | null>(null);
 
-  const [entries, setEntries] = useState<LedgerEntry[]>(MOCK_ENTRIES);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [arAging, setArAging] = useState<any | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [bankRecon, setBankRecon] = useState<any | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [monthEndData, setMonthEndData] = useState<any | null>(null);
-
-  useEffect(() => { fetchData(); }, []);
-
-  async function fetchData() {
-    setLoading(true);
-    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null;
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-
-    try {
-      const now = new Date();
-    const [sumRes, ledRes, arRes, reconRes, monthRes] = await Promise.all([
-        fetch("/api/v1/finance/summary", { headers }),
-        fetch("/api/v1/finance/ledger?limit=100", { headers }),
-        fetch("/api/v1/finance/ar-aging", { headers }),
-        fetch("/api/v1/finance/bank-reconciliation?days=30", { headers }),
-        fetch(`/api/v1/finance/month-end-close/${now.getFullYear()}/${now.getMonth() + 1}`, { headers }),
-      ]);
-
-      if (sumRes.ok) {
-        const data = await sumRes.json();
-        // Support both schema formats (old: balance_available, new: total_revenue)
-        setSummary({
-          total_revenue: data.total_revenue ?? data.balance_available ?? 0,
-          total_cost: data.total_cost ?? 0,
-          gross_profit: data.gross_profit ?? data.balance_available ?? 0,
-          margin_pct: data.margin_pct ?? 0,
-          pending_reconciliation: data.pending_reconciliation ?? data.pending_settlements ?? 0,
-          currency: data.currency ?? "INR",
-        });
-      } else {
-        setSummary({ total_revenue: 848500, total_cost: 198000, gross_profit: 650500, margin_pct: 76.7, pending_reconciliation: 2, currency: "INR" });
-      }
-
-      if (ledRes.ok) {
-        const ledData = await ledRes.json();
-        const items = ledData.items ?? [];
-        if (items.length > 0) {
-          setEntries(items.map((e: { id: number; type: string; amount: number; currency: string; description: string; reference?: string; booking_id?: number; created_at: string; reconciled?: boolean }) => ({
-            id: String(e.id),
-            type: e.type as "CREDIT" | "DEBIT",
-            amount: e.amount,
-            currency: e.currency ?? "INR",
-            description: e.description,
-            reference: e.reference ?? "",
-            booking_id: e.booking_id ? String(e.booking_id) : undefined,
-            created_at: e.created_at,
-            reconciled: e.reconciled ?? false,
-          })));
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [quotationsRes] = await Promise.allSettled([
+          api.get("/api/v1/quotations/"),
+        ]);
+        if (quotationsRes.status === "fulfilled" && Array.isArray(quotationsRes.value) && quotationsRes.value.length > 0) {
+          setQuotations(quotationsRes.value);
         }
-        // else keep MOCK_ENTRIES as seed display
+      } catch {
+        // fallback to seed data
       }
-      if (arRes.ok)    setArAging(await arRes.json());
-      if (reconRes.ok) setBankRecon(await reconRes.json());
-      if (monthRes.ok) setMonthEndData(await monthRes.json());
-    } catch {
-      setSummary({ total_revenue: 848500, total_cost: 198000, gross_profit: 650500, margin_pct: 76.7, pending_reconciliation: 2, currency: "INR" });
     }
-    setLoading(false);
-  }
+    fetchData();
+  }, []);
 
-  function fetchSummary() { fetchData(); }
+  const filteredQuotations = useMemo(() => {
+    return quotations.filter((q) => {
+      const matchesSearch =
+        !searchQuery ||
+        q.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.to.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "ALL" || q.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [quotations, searchQuery, statusFilter]);
 
-  function exportCSV() {
-    const rows = [
-      ["Reference", "Description", "Type", "Amount (INR)", "Date", "Reconciled"],
-      ...filteredEntries.map(e => [e.reference, e.description, e.type, e.amount.toString(), new Date(e.created_at).toLocaleDateString("en-IN"), e.reconciled ? "Yes" : "No"]),
-    ];
-    const blob = new Blob([rows.map(r => r.join(",")).join("\n")], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `finance_${activeTab.toLowerCase()}_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-  }
+  const maxRevenue = Math.max(...MONTHLY_REVENUE);
+  const currentMonthIndex = 11; // December highlighted as current for seed data
 
-  const fmt = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
-
-  const filteredEntries = entries.filter(e => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !q || e.description.toLowerCase().includes(q) || e.reference.toLowerCase().includes(q);
-    if (!matchesSearch) return false;
-    if (activeTab === "Invoices") return e.type === "CREDIT";
-    if (activeTab === "Payments") return e.type === "CREDIT" && !!e.booking_id;
-    if (activeTab === "Refunds") return e.description.toLowerCase().includes("refund");
-    if (activeTab === "Vendor Payouts") return e.type === "DEBIT";
-    return true;
-  });
+  const tabs = [
+    { id: "overview" as const, label: "Overview", icon: BarChart2 },
+    { id: "quotations" as const, label: "Quotations", icon: FileText },
+    { id: "invoices" as const, label: "Invoices", icon: CreditCard },
+    { id: "payments" as const, label: "Payments", icon: DollarSign },
+  ];
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen text-white">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Finance & P&L</h1>
-          <p className="text-slate-400 text-sm mt-1">Double-entry ledger · GST-compliant · Real-time</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={fetchSummary} className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-lg text-sm text-white transition-colors">
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0A0F1E]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-      {/* KPI Cards */}
-      {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="bg-slate-900 rounded-xl p-5 animate-pulse h-28" />)}
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Finance & Quotations</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Revenue tracking, quotes, invoices, and payments</p>
         </div>
-      ) : summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Total Revenue</span>
-              <ArrowUpRight className="w-4 h-4 text-teal-400" />
-            </div>
-            <div className="text-2xl font-bold text-white">{fmt(summary.total_revenue)}</div>
-            <div className="text-xs text-teal-400 mt-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +12.4% this month</div>
-          </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Total Cost</span>
-              <ArrowDownLeft className="w-4 h-4 text-red-400" />
-            </div>
-            <div className="text-2xl font-bold text-white">{fmt(summary.total_cost)}</div>
-            <div className="text-xs text-slate-400 mt-1">Vendor + operational</div>
-          </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Gross Profit</span>
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-2xl font-bold text-emerald-400">{fmt(summary.gross_profit)}</div>
-            <div className="text-xs text-slate-400 mt-1">{summary.margin_pct}% margin</div>
-          </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Pending Recon</span>
-              <AlertCircle className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-2xl font-bold text-amber-400">{summary.pending_reconciliation}</div>
-            <div className="text-xs text-slate-400 mt-1">transactions</div>
-          </div>
-        </div>
-      )}
 
-      {/* Tabs + Search */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex gap-1 bg-slate-900 p-1 rounded-lg">
-          {TABS.map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${activeTab === tab ? "bg-teal-600 text-white" : "text-slate-400 hover:text-white"}`}>
-              {tab}
-            </button>
-          ))}
+        {/* Tabs */}
+        <div className="border-b border-slate-200 dark:border-white/10 mb-8">
+          <nav className="flex space-x-8">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+                  activeTab === id
+                    ? "border-[#14B8A6] text-[#14B8A6]"
+                    : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </nav>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500" />
-          <input type="text" placeholder="Search transactions..." value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pl-9 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 w-56" />
-        </div>
-      </div>
 
-      {/* ── AR Aging View ─────────────────────────────────────────────────── */}
-      {activeTab === "AR Aging" && (
-        <div className="space-y-4">
-          {!arAging ? (
-            <div className="bg-slate-900 rounded-xl p-8 text-center text-slate-500 text-sm">Loading AR Aging data…</div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: "Current (0–30d)", key: "current",       color: "text-emerald-400" },
-                  { label: "31–60 Days",      key: "days_31_60",    color: "text-amber-400" },
-                  { label: "61–90 Days",      key: "days_61_90",    color: "text-orange-400" },
-                  { label: "90+ Days",        key: "days_90_plus",  color: "text-red-400" },
-                ].map(({ label, key, color }) => (
-                  <div key={key} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <p className="text-xs text-slate-400 mb-1">{label}</p>
-                    <p className={`text-lg font-bold ${color}`}>{fmt(arAging.totals?.[key] ?? 0)}</p>
-                    <p className="text-xs text-slate-600 mt-1">{arAging.buckets?.[key]?.length ?? 0} bookings</p>
+        {/* ── Overview Tab ─────────────────────────────────────────────────── */}
+        {activeTab === "overview" && (
+          <div className="space-y-8">
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Total Revenue", value: "₹18.4L", sub: "FY 2025-26", icon: TrendingUp, color: "text-[#14B8A6]", bg: "bg-teal-50 dark:bg-teal-900/20" },
+                { label: "Outstanding", value: "₹3.2L", sub: "4 invoices pending", icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+                { label: "Collected This Month", value: "₹6.8L", sub: "+14% vs last month", icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+                { label: "Avg Deal Size", value: "₹1.95L", sub: "Based on 42 bookings", icon: BarChart2, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+              ].map(({ label, value, sub, icon: Icon, color, bg }) => (
+                <div key={label} className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wide">{label}</span>
+                    <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center`}>
+                      <Icon className={`w-4 h-4 ${color}`} />
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <p className="text-sm font-semibold text-white mb-3">Total Outstanding: <span className="text-red-400">{fmt(arAging.grand_total ?? 0)}</span></p>
-                <p className="text-xs text-slate-500">As of {new Date(arAging.as_of).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sub}</p>
+                </div>
+              ))}
+            </div>
 
-      {/* ── Bank Reconciliation View ───────────────────────────────────────── */}
-      {activeTab === "Reconciliation" && (
-        <div className="space-y-4">
-          {!bankRecon ? (
-            <div className="bg-slate-900 rounded-xl p-8 text-center text-slate-500 text-sm">Loading reconciliation data…</div>
-          ) : (
-            <>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                  <p className="text-xs text-slate-400 mb-1">Reconciled</p>
-                  <p className="text-lg font-bold text-emerald-400">{fmt(bankRecon.total_reconciled ?? 0)}</p>
-                  <p className="text-xs text-slate-600 mt-1">{bankRecon.reconciled?.length ?? 0} entries</p>
+            {/* Revenue Chart */}
+            <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Monthly Revenue</h2>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Jan – Dec 2026</p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                  <p className="text-xs text-slate-400 mb-1">Unreconciled</p>
-                  <p className="text-lg font-bold text-amber-400">{fmt(bankRecon.total_unreconciled ?? 0)}</p>
-                  <p className="text-xs text-slate-600 mt-1">{bankRecon.unreconciled?.length ?? 0} entries</p>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                  <p className="text-xs text-slate-400 mb-1">Reconciliation Rate</p>
-                  <p className={`text-lg font-bold ${(bankRecon.reconciliation_rate ?? 0) >= 90 ? "text-emerald-400" : "text-amber-400"}`}>
-                    {bankRecon.reconciliation_rate ?? 0}%
-                  </p>
-                  <p className="text-xs text-slate-600 mt-1">Last {bankRecon.period_days} days</p>
+                <div className="flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-sm bg-[#1B2E5E] dark:bg-slate-600 inline-block" />
+                    <span className="text-slate-500 dark:text-slate-400">Past months</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-sm bg-[#14B8A6] inline-block" />
+                    <span className="text-slate-500 dark:text-slate-400">Current month</span>
+                  </span>
                 </div>
               </div>
-              {(bankRecon.unreconciled?.length ?? 0) > 0 && (
-                <div className="bg-amber-950/30 border border-amber-800/40 rounded-xl p-4">
-                  <p className="text-xs font-bold text-amber-400 mb-2">⚠️ Unreconciled Entries Require Action</p>
-                  {bankRecon.unreconciled.slice(0, 5).map((e: { id: number; description: string; amount: number; created_at: string }) => (
-                    <div key={e.id} className="flex items-center justify-between py-1.5 border-b border-amber-800/20 last:border-0">
-                      <p className="text-xs text-slate-300">{e.description}</p>
-                      <p className="text-xs font-semibold text-amber-400">{fmt(e.amount)}</p>
+              <div className="flex items-end gap-2 h-48">
+                {MONTHLY_REVENUE.map((rev, i) => {
+                  const heightPct = (rev / maxRevenue) * 100;
+                  const isCurrent = i === currentMonthIndex;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        {formatINR(rev)}
+                      </div>
+                      <div
+                        className={`w-full rounded-t transition-all ${
+                          isCurrent ? "bg-[#14B8A6]" : "bg-[#1B2E5E] dark:bg-slate-600"
+                        }`}
+                        style={{ height: `${heightPct}%` }}
+                      />
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">{MONTH_LABELS[i]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* P&L Summary + Top Destinations */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-6">
+                <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-5">P&L Summary</h2>
+                <div className="space-y-4">
+                  {[
+                    { label: "Total Revenue", value: 18400000, pct: 100, color: "bg-[#14B8A6]" },
+                    { label: "Total Cost", value: 14306000, pct: 77.7, color: "bg-red-400" },
+                    { label: "Gross Margin", value: 4094000, pct: 22.3, color: "bg-emerald-400" },
+                  ].map(({ label, value, pct, color }) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">{label}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{formatINR(value)}</span>
+                          <span className="text-xs text-slate-400 dark:text-slate-500 w-10 text-right">{pct.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
                   ))}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── Month-End Close View ────────────────────────────────────────────── */}
-      {activeTab === "Month-End Close" && (
-        <div className="space-y-4">
-          {!monthEndData ? (
-            <div className="bg-slate-900 rounded-xl p-8 text-center text-slate-500 text-sm">Loading month-end data…</div>
-          ) : (
-            <>
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-white">{monthEndData.period_label}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${monthEndData.status === "closed" ? "bg-emerald-900/50 text-emerald-400" : "bg-amber-900/50 text-amber-400"}`}>
-                      {monthEndData.status === "closed" ? "Closed" : "Open — In Progress"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">{monthEndData.bookings} confirmed bookings</p>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-400">Revenue</p>
-                    <p className="text-base font-bold text-emerald-400">{fmt(monthEndData.revenue ?? 0)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Cost</p>
-                    <p className="text-base font-bold text-red-400">{fmt(monthEndData.cost ?? 0)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Gross Profit</p>
-                    <p className={`text-base font-bold ${(monthEndData.gross_profit ?? 0) >= 0 ? "text-teal-400" : "text-red-400"}`}>{fmt(monthEndData.gross_profit ?? 0)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Margin</p>
-                    <p className={`text-base font-bold ${(monthEndData.margin_pct ?? 0) >= 30 ? "text-emerald-400" : "text-amber-400"}`}>{monthEndData.margin_pct ?? 0}%</p>
-                  </div>
-                </div>
               </div>
-            </>
-          )}
-        </div>
-      )}
 
-      {/* ── Standard Ledger Table (all other tabs) ───────────────────────── */}
-      {activeTab !== "AR Aging" && activeTab !== "Reconciliation" && activeTab !== "Month-End Close" && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-800">
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Reference</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Date</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Amount</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:table-cell">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {filteredEntries.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500 text-sm">No transactions found</td></tr>
-              ) : filteredEntries.map(entry => (
-                <tr key={entry.id} className="hover:bg-slate-800/50 transition-colors cursor-pointer">
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-mono text-teal-400 bg-teal-400/10 px-2 py-0.5 rounded">{entry.reference}</span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-300 text-sm">{entry.description}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
-                    {new Date(entry.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-semibold text-sm ${entry.type === "CREDIT" ? "text-emerald-400" : "text-red-400"}`}>
-                    {entry.type === "CREDIT" ? "+" : "−"}{fmt(entry.amount)}
-                  </td>
-                  <td className="px-4 py-3 text-center hidden sm:table-cell">
-                    {entry.reconciled ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-400"><CheckCircle className="w-3 h-3" /> Reconciled</span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="w-3 h-3" /> Pending</span>
+              <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-6">
+                <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-5">Top Destinations</h2>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                      <th className="text-left pb-3 font-medium">Destination</th>
+                      <th className="text-right pb-3 font-medium">Bookings</th>
+                      <th className="text-right pb-3 font-medium">Revenue</th>
+                      <th className="text-right pb-3 font-medium">Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TOP_DESTINATIONS.map((dest) => (
+                      <tr key={dest.destination} className="border-t border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <td className="py-2.5 font-medium text-slate-700 dark:text-slate-200">{dest.destination}</td>
+                        <td className="py-2.5 text-right text-slate-500 dark:text-slate-400">{dest.bookings}</td>
+                        <td className="py-2.5 text-right text-slate-700 dark:text-slate-200">{formatINR(dest.revenue)}</td>
+                        <td className={`py-2.5 text-right font-semibold ${marginColor(dest.margin)}`}>{dest.margin}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Quotations Tab ───────────────────────────────────────────────── */}
+        {activeTab === "quotations" && (
+          <div className="space-y-4">
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search quotes, clients, destinations…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-[#0F1B35] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/50"
+                />
+              </div>
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as QuoteStatus | "ALL")}
+                  className="pl-9 pr-8 py-2.5 text-sm bg-white dark:bg-[#0F1B35] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/50 appearance-none cursor-pointer"
+                >
+                  {(["ALL", "DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"] as const).map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Quotations Table */}
+            <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide border-b border-slate-100 dark:border-white/5">
+                      <th className="text-left px-5 py-3.5 font-medium">Quote #</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Client</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Route</th>
+                      <th className="text-right px-4 py-3.5 font-medium">Amount</th>
+                      <th className="text-right px-4 py-3.5 font-medium">Margin</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Date</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Status</th>
+                      <th className="text-right px-5 py-3.5 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredQuotations.map((q) => (
+                      <>
+                        <tr
+                          key={q.id}
+                          className="border-t border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                          onClick={() => setExpandedQuote(expandedQuote === q.id ? null : q.id)}
+                        >
+                          <td className="px-5 py-3.5">
+                            <span className="font-mono font-bold text-[#1B2E5E] dark:text-[#14B8A6] text-xs">{q.id}</span>
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">{q.client}</td>
+                          <td className="px-4 py-3.5">
+                            <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                              <span className="text-xs whitespace-nowrap">{q.from}</span>
+                              <ArrowRight className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                              <span className="text-xs">{q.to}</span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-right font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                            {formatINRFull(q.amount)}
+                          </td>
+                          <td className={`px-4 py-3.5 text-right font-semibold ${marginColor(q.margin)}`}>
+                            {q.margin}%
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">{q.createdDate}</td>
+                          <td className="px-4 py-3.5">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${statusPillClass(q.status)}`}>
+                              {q.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                              <button title="Send" className="p-1.5 text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                                <Send className="w-3.5 h-3.5" />
+                              </button>
+                              <button title="Download PDF" className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-md hover:bg-slate-100 dark:hover:bg-white/10">
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
+                              <button title="Create Booking" className="p-1.5 text-slate-400 hover:text-[#14B8A6] transition-colors rounded-md hover:bg-teal-50 dark:hover:bg-teal-900/20">
+                                <PlusCircle className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-md hover:bg-slate-100 dark:hover:bg-white/10"
+                                onClick={(e) => { e.stopPropagation(); setExpandedQuote(expandedQuote === q.id ? null : q.id); }}
+                              >
+                                {expandedQuote === q.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {expandedQuote === q.id && (
+                          <tr key={`${q.id}-expand`} className="bg-slate-50 dark:bg-[#0A0F1E]/60 border-t border-slate-100 dark:border-white/5">
+                            <td colSpan={8} className="px-5 py-4">
+                              <div className="rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                      <th className="text-left px-4 py-2.5 font-medium">Component</th>
+                                      <th className="text-left px-4 py-2.5 font-medium">Description</th>
+                                      <th className="text-right px-4 py-2.5 font-medium">Net Cost</th>
+                                      <th className="text-right px-4 py-2.5 font-medium">Gross Price</th>
+                                      <th className="text-right px-4 py-2.5 font-medium">Margin</th>
+                                      <th className="text-left px-4 py-2.5 font-medium">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {q.lineItems.map((item, idx) => (
+                                      <tr key={idx} className="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                        <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{item.component}</td>
+                                        <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{item.description}</td>
+                                        <td className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatINRFull(item.netCost)}</td>
+                                        <td className="px-4 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-200">{formatINRFull(item.grossPrice)}</td>
+                                        <td className={`px-4 py-2.5 text-right font-semibold ${marginColor(item.margin)}`}>{item.margin.toFixed(1)}%</td>
+                                        <td className="px-4 py-2.5">
+                                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${lineItemStatusClass(item.status)}`}>
+                                            {item.status}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    <tr className="border-t-2 border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 font-semibold">
+                                      <td className="px-4 py-2.5 text-slate-700 dark:text-slate-200" colSpan={2}>Total</td>
+                                      <td className="px-4 py-2.5 text-right text-slate-700 dark:text-slate-200">
+                                        {formatINRFull(q.lineItems.reduce((s, i) => s + i.netCost, 0))}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-right text-slate-800 dark:text-slate-100">
+                                        {formatINRFull(q.lineItems.reduce((s, i) => s + i.grossPrice, 0))}
+                                      </td>
+                                      <td className={`px-4 py-2.5 text-right ${marginColor(q.margin)}`}>{q.margin}%</td>
+                                      <td className="px-4 py-2.5" />
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ))}
+
+                    {filteredQuotations.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-5 py-12 text-center text-slate-400 dark:text-slate-500">
+                          No quotations found matching your search.
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Invoices Tab ─────────────────────────────────────────────────── */}
+        {activeTab === "invoices" && (
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide border-b border-slate-100 dark:border-white/5">
+                      <th className="text-left px-5 py-3.5 font-medium">Invoice #</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Booking #</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Client</th>
+                      <th className="text-right px-4 py-3.5 font-medium">Amount</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Issue Date</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Due Date</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Status</th>
+                      <th className="text-right px-5 py-3.5 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SEED_INVOICES.map((inv) => (
+                      <tr
+                        key={inv.id}
+                        className={`border-t border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
+                          inv.status === "OVERDUE" ? "border-l-2 border-l-red-400" : ""
+                        }`}
+                      >
+                        <td className="px-5 py-3.5">
+                          <span className="font-mono font-bold text-[#1B2E5E] dark:text-[#14B8A6] text-xs">{inv.id}</span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{inv.bookingId}</span>
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-700 dark:text-slate-200 font-medium">{inv.client}</td>
+                        <td className="px-4 py-3.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatINRFull(inv.amount)}</td>
+                        <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 text-xs">{inv.issueDate}</td>
+                        <td className="px-4 py-3.5 text-xs">
+                          <span className={inv.status === "OVERDUE" ? "text-red-500 dark:text-red-400 font-medium" : "text-slate-500 dark:text-slate-400"}>
+                            {inv.dueDate}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${invoiceStatusClass(inv.status)}`}>
+                            {inv.status === "OVERDUE" && <AlertCircle className="w-3 h-3" />}
+                            {inv.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-1">
+                            <button title="Download" className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-md hover:bg-slate-100 dark:hover:bg-white/10">
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                            <button title="Send" className="p-1.5 text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                              <Send className="w-3.5 h-3.5" />
+                            </button>
+                            {inv.status !== "PAID" && (
+                              <button title="Mark Paid" className="p-1.5 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Payments Tab ─────────────────────────────────────────────────── */}
+        {activeTab === "payments" && (
+          <div className="space-y-6">
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                {
+                  label: "Total Received",
+                  value: formatINR(SEED_PAYMENTS.filter(p => p.status === "Received").reduce((s, p) => s + p.amount, 0)),
+                  icon: CheckCircle,
+                  color: "text-emerald-500",
+                  bg: "bg-emerald-50 dark:bg-emerald-900/20",
+                },
+                {
+                  label: "Pending",
+                  value: formatINR(SEED_PAYMENTS.filter(p => p.status === "Pending").reduce((s, p) => s + p.amount, 0)),
+                  icon: Clock,
+                  color: "text-amber-500",
+                  bg: "bg-amber-50 dark:bg-amber-900/20",
+                },
+                {
+                  label: "Overdue Invoices",
+                  value: formatINR(SEED_INVOICES.filter(i => i.status === "OVERDUE").reduce((s, i) => s + i.amount, 0)),
+                  icon: AlertCircle,
+                  color: "text-red-500",
+                  bg: "bg-red-50 dark:bg-red-900/20",
+                },
+              ].map(({ label, value, icon: Icon, color, bg }) => (
+                <div key={label} className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-5 flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
+                    <Icon className={`w-5 h-5 ${color}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</p>
+                    <p className="text-xl font-bold text-slate-800 dark:text-slate-100 mt-0.5">{value}</p>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <p className="text-xs text-slate-700 text-right">Production data appears once bookings are processed.</p>
+            </div>
+
+            {/* Payment Log */}
+            <div className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
+                <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Payment Log</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide border-b border-slate-100 dark:border-white/5">
+                      <th className="text-left px-5 py-3.5 font-medium">Date</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Client</th>
+                      <th className="text-right px-4 py-3.5 font-medium">Amount</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Method</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Booking Ref</th>
+                      <th className="text-left px-4 py-3.5 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SEED_PAYMENTS.map((pay, idx) => (
+                      <tr key={idx} className="border-t border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-xs">{pay.date}</td>
+                        <td className="px-4 py-3.5 text-slate-700 dark:text-slate-200 font-medium">{pay.client}</td>
+                        <td className="px-4 py-3.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatINRFull(pay.amount)}</td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                            pay.method === "Razorpay"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                              : pay.method === "Bank Transfer"
+                              ? "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                          }`}>
+                            {pay.method}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{pay.bookingRef}</span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            pay.status === "Received"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                              : pay.status === "Pending"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                          }`}>
+                            {pay.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
-
