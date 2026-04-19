@@ -196,45 +196,6 @@ function QuotationCard({ q, onView }: { q: Quotation; onView: (q: Quotation) => 
   )
 }
 
-function generateQuotePDF(q: Quotation): string {
-  const totalFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: q.currency || 'INR', maximumFractionDigits: 0 }).format(q.total_price);
-  const baseFormatted  = new Intl.NumberFormat('en-IN', { style: 'currency', currency: q.currency || 'INR', maximumFractionDigits: 0 }).format(q.base_price);
-  const marginAmt = q.total_price - q.base_price;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Quotation — ${q.destination}</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1e293b;padding:48px;max-width:720px;margin:0 auto}
-    .brand{font-size:10px;font-weight:900;letter-spacing:4px;color:#14B8A6;text-transform:uppercase;margin-bottom:6px}
-    h1{font-size:26px;font-weight:900;color:#0f172a;margin-bottom:4px}
-    .sub{font-size:14px;color:#64748b;margin-bottom:32px}
-    .price-box{background:#0f172a;border-radius:16px;padding:28px 32px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:center}
-    .price-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b}
-    .price-value{font-size:32px;font-weight:900;color:#14B8A6}
-    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
-    .meta-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
-    .meta-card label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px}
-    .meta-card span{font-size:15px;font-weight:700;color:#1e293b}
-    .notes{background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:16px;margin-bottom:28px;font-size:13px;color:#78350f}
-    .footer{margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center}
-    @media print{body{padding:24px}button{display:none}}
-  </style></head><body>
-  <div class="brand">NAMA OS — Travel Quotation</div>
-  <h1>${q.destination}</h1>
-  <div class="sub">Prepared for ${q.lead_name || 'Valued Client'} · ${new Date(q.created_at).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</div>
-  <div class="price-box">
-    <div><div class="price-label">Total Package Value</div><div class="price-value">${totalFormatted}</div></div>
-    <div style="text-align:right"><div class="price-label">Your Margin Included</div><div style="font-size:20px;font-weight:900;color:#f472b6">${q.margin_pct}% · ${new Intl.NumberFormat('en-IN',{style:'currency',currency:q.currency||'INR',maximumFractionDigits:0}).format(marginAmt)}</div></div>
-  </div>
-  <div class="meta-grid">
-    <div class="meta-card"><label>Destination</label><span>${q.destination}</span></div>
-    <div class="meta-card"><label>Status</label><span>${q.status}</span></div>
-    <div class="meta-card"><label>Base Cost</label><span>${baseFormatted}</span></div>
-    <div class="meta-card"><label>Margin</label><span>${q.margin_pct}%</span></div>
-  </div>
-  ${q.notes ? `<div class="notes"><strong>Notes:</strong> ${q.notes}</div>` : ''}
-  <div class="footer">This quotation is valid for 7 days · NAMA OS · getnama.app · Powered by AI Travel Intelligence</div>
-  </body></html>`;
-}
 
 export default function QuotationsPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([])
@@ -254,6 +215,12 @@ export default function QuotationsPage() {
     base_price: '0', margin_pct: '20', notes: '',
   })
   const [creating, setCreating] = useState(false)
+
+  // Send-to-client modal state
+  const [sendModal, setSendModal] = useState<{ quote: Quotation; email: string } | null>(null)
+  const [sendMessage, setSendMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState<{ ok: boolean; text: string } | null>(null)
 
   useEffect(() => { loadData() }, [])
 
@@ -319,19 +286,57 @@ export default function QuotationsPage() {
     }
   }
 
-  const handleExportQuotePDF = (q: Quotation) => {
+  const handleExportQuotePDF = async (q: Quotation) => {
     setPdfLoading(true);
-    const html = generateQuotePDF(q);
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(html);
-      win.document.close();
-      win.focus();
-      setTimeout(() => { win.print(); setPdfLoading(false); }, 600);
-    } else {
-      setPdfLoading(false);
-      setQuoteToast('Pop-up blocked — please allow pop-ups.');
+    try {
+      const res = await fetch('/api/v1/documents/quotation-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quotation_id: q.id }),
+      });
+      if (!res.ok) throw new Error('PDF generation failed');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `quotation_${q.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setQuoteToast('PDF downloaded successfully');
       setTimeout(() => setQuoteToast(null), 3000);
+    } catch {
+      setQuoteToast('PDF download failed — try again');
+      setTimeout(() => setQuoteToast(null), 3000);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleSendQuote = async () => {
+    if (!sendModal) return;
+    setSending(true);
+    setSendResult(null);
+    try {
+      const res = await fetch('/api/v1/documents/send-quotation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quotation_id: sendModal.quote.id,
+          client_email: sendModal.email,
+          message: sendMessage || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSendResult({ ok: true, text: `Quote sent to ${sendModal.email} ✓` });
+        setTimeout(() => { setSendModal(null); setSendMessage(''); setSendResult(null); }, 2500);
+      } else {
+        setSendResult({ ok: false, text: data.error || 'Send failed' });
+      }
+    } catch {
+      setSendResult({ ok: false, text: 'Network error — please try again' });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -601,22 +606,96 @@ export default function QuotationsPage() {
             <SmartPricingInsight q={selectedQuote} />
 
             {/* Export & Share Actions */}
-            <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
+            <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-2">
               <button
                 onClick={() => handleExportQuotePDF(selectedQuote)}
                 disabled={pdfLoading}
-                className="flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40"
+                className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 px-3 py-3 rounded-xl font-bold text-xs transition-all disabled:opacity-40"
               >
-                {pdfLoading ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
-                Export PDF
+                {pdfLoading ? <Loader size={14} className="animate-spin" /> : <Download size={14} />}
+                Download PDF
+              </button>
+              <button
+                onClick={() => {
+                  setSendModal({ quote: selectedQuote, email: '' });
+                  setSendMessage('');
+                  setSendResult(null);
+                }}
+                className="flex items-center justify-center gap-1.5 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 text-[#0f766e] px-3 py-3 rounded-xl font-bold text-xs transition-all"
+              >
+                <Send size={14} /> Send to Client
               </button>
               <button
                 onClick={() => handleShareQuoteWhatsApp(selectedQuote)}
-                className="flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-xl font-bold text-sm transition-all"
+                className="flex items-center justify-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 px-3 py-3 rounded-xl font-bold text-xs transition-all"
               >
-                <Share2 size={16} /> WhatsApp
+                <Share2 size={14} /> WhatsApp
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Send to Client Modal ── */}
+      {sendModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSendModal(null)}>
+          <div className="bg-white rounded-[28px] p-8 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-extrabold text-[#0F172A]">Send Quote to Client</h2>
+              <button onClick={() => setSendModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3 mb-5 text-xs text-slate-500">
+              <span className="font-bold text-slate-700">{sendModal.quote.lead_name}</span>
+              {' · '}
+              {sendModal.quote.destination}
+              {' · '}
+              {sendModal.quote.currency} {sendModal.quote.total_price.toLocaleString('en-IN')}
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Client Email *</label>
+                <input
+                  type="email"
+                  placeholder="client@example.com"
+                  value={sendModal.email}
+                  onChange={e => setSendModal({ ...sendModal, email: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Personal Message (optional)</label>
+                <textarea
+                  rows={3}
+                  placeholder="Add a note to your client..."
+                  value={sendMessage}
+                  onChange={e => setSendMessage(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-[#14B8A6] text-sm resize-none"
+                />
+              </div>
+            </div>
+
+            {sendResult && (
+              <div className={`mt-4 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${
+                sendResult.ok
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {sendResult.ok ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+                {sendResult.text}
+              </div>
+            )}
+
+            <button
+              onClick={handleSendQuote}
+              disabled={sending || !sendModal.email}
+              className="mt-5 w-full bg-[#14B8A6] text-white py-3.5 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-teal-600 transition-all disabled:opacity-50"
+            >
+              {sending ? <><Loader size={14} className="animate-spin" /> Sending...</> : <><Send size={14} /> Send Quote</>}
+            </button>
           </div>
         </div>
       )}

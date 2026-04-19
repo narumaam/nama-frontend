@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   TrendingUp, Users, Clock, Target, AlertTriangle, ChevronRight,
   Shield, ToggleLeft, ToggleRight, Plus, Search, UserPlus, Mail,
   MoreVertical, Edit3, Trash2, RefreshCw, CheckCircle, X, Zap,
   CreditCard, BarChart3, Star, Award, ArrowUp, ArrowDown, ArrowRight,
   Building2, UserCheck, DollarSign, Activity, Lock,
-  AlertCircle, Download, Settings,
+  AlertCircle, Download, Settings, Loader2,
 } from 'lucide-react'
+import { rolesApi } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -572,9 +573,48 @@ function TabRoleBuilder() {
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleDesc, setNewRoleDesc] = useState('')
   const [copyFrom, setCopyFrom] = useState('sales_manager')
+  const [saving, setSaving] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const currentRole = roles.find(r => r.id === selectedRole)!
+
+  const showToast = (msg: string, type: 'success' | 'error') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }
+
+  // Fetch roles from backend on mount and merge with seed data
+  useEffect(() => {
+    rolesApi.list().then(backendRoles => {
+      if (!backendRoles || backendRoles.length === 0) return
+      setRoles(prev => {
+        const byId = new Map(prev.map(r => [r.id, r]))
+        backendRoles.forEach(br => {
+          const existing = byId.get(br.id)
+          if (existing) {
+            // Rebuild boolean perm map from backend flat permission array
+            const perms = Object.fromEntries(ALL_PERMS.map(p => [p, br.permissions.includes(p)]))
+            byId.set(br.id, { ...existing, perms })
+          } else {
+            const perms = Object.fromEntries(ALL_PERMS.map(p => [p, br.permissions.includes(p)]))
+            byId.set(br.id, {
+              id: br.id,
+              label: br.name,
+              memberCount: 0,
+              color: 'text-pink-700',
+              bg: 'bg-pink-50',
+              perms,
+            })
+          }
+        })
+        return Array.from(byId.values())
+      })
+    }).catch(() => {
+      // Backend unreachable — silently use seed data
+    })
+  }, [])
 
   const togglePerm = (perm: string) => {
     if (currentRole.locked) return
@@ -585,9 +625,23 @@ function TabRoleBuilder() {
     ))
   }
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    if (currentRole.locked) return
+    setSaving(true)
+    try {
+      const permissions = Object.entries(currentRole.perms)
+        .filter(([, enabled]) => enabled)
+        .map(([key]) => key)
+
+      await rolesApi.updatePermissions(currentRole.id, permissions)
+      setSaved(true)
+      showToast('Role permissions saved', 'success')
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to save role', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleReset = () => {
@@ -596,26 +650,68 @@ function TabRoleBuilder() {
     setRoles(prev => prev.map(r => r.id === selectedRole ? { ...original } : r))
   }
 
-  const handleCreateRole = () => {
+  const handleCreateRole = async () => {
     if (!newRoleName.trim()) return
+    setCreating(true)
     const source = roles.find(r => r.id === copyFrom)
-    const newRole: RoleDef = {
-      id: `custom_${Date.now()}`,
-      label: newRoleName,
-      memberCount: 0,
-      color: 'text-pink-700',
-      bg: 'bg-pink-50',
-      perms: source ? { ...source.perms } : Object.fromEntries(ALL_PERMS.map(p => [p, false])),
+    const sourcePerms = source
+      ? Object.entries(source.perms).filter(([, v]) => v).map(([k]) => k)
+      : []
+
+    try {
+      const created = await rolesApi.create({
+        name: newRoleName.trim(),
+        description: newRoleDesc.trim() || undefined,
+        permissions: sourcePerms,
+      })
+      const perms = Object.fromEntries(ALL_PERMS.map(p => [p, created.permissions.includes(p)]))
+      const newRole: RoleDef = {
+        id: created.id,
+        label: created.name,
+        memberCount: 0,
+        color: 'text-pink-700',
+        bg: 'bg-pink-50',
+        perms,
+      }
+      setRoles(prev => [...prev, newRole])
+      setSelectedRole(newRole.id)
+      showToast(`Role "${newRole.label}" created`, 'success')
+    } catch (err) {
+      // Fallback: create locally
+      const newRole: RoleDef = {
+        id: `custom_${Date.now()}`,
+        label: newRoleName,
+        memberCount: 0,
+        color: 'text-pink-700',
+        bg: 'bg-pink-50',
+        perms: source ? { ...source.perms } : Object.fromEntries(ALL_PERMS.map(p => [p, false])),
+      }
+      setRoles(prev => [...prev, newRole])
+      setSelectedRole(newRole.id)
+      showToast(err instanceof Error ? err.message : 'Created locally (backend offline)', 'error')
+    } finally {
+      setCreating(false)
+      setShowCreateForm(false)
+      setNewRoleName('')
+      setNewRoleDesc('')
     }
-    setRoles(prev => [...prev, newRole])
-    setSelectedRole(newRole.id)
-    setShowCreateForm(false)
-    setNewRoleName('')
-    setNewRoleDesc('')
   }
 
   return (
     <div className="space-y-5">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-bold transition-all ${
+          toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+          {toast.msg}
+          <button onClick={() => setToast(null)} className="ml-2 opacity-70 hover:opacity-100">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Upgrade banner → dedicated Role Builder */}
       <div className="flex items-center justify-between bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-4">
         <div className="flex items-center gap-3">
@@ -705,8 +801,8 @@ function TabRoleBuilder() {
                 </select>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleCreateRole} className="flex-1 bg-[#0F172A] text-white py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-all">
-                  Create Role
+                <button onClick={handleCreateRole} disabled={creating || !newRoleName.trim()} className="flex-1 flex items-center justify-center gap-1.5 bg-[#0F172A] text-white py-2 rounded-lg text-xs font-black hover:bg-slate-700 disabled:opacity-50 transition-all">
+                  {creating ? <><Loader2 size={12} className="animate-spin" /> Creating…</> : 'Create Role'}
                 </button>
                 <button onClick={() => setShowCreateForm(false)} className="px-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all">
                   Cancel
@@ -739,8 +835,12 @@ function TabRoleBuilder() {
                 <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all">
                   <RefreshCw size={12} /> Reset
                 </button>
-                <button onClick={handleSave} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all ${saved ? 'bg-emerald-500 text-white' : 'bg-[#14B8A6] text-white hover:bg-teal-600'}`}>
-                  {saved ? <><CheckCircle size={12} /> Saved!</> : <><Settings size={12} /> Save Role</>}
+                <button onClick={handleSave} disabled={saving} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-60 ${saved ? 'bg-emerald-500 text-white' : 'bg-[#14B8A6] text-white hover:bg-teal-600'}`}>
+                  {saving
+                    ? <><Loader2 size={12} className="animate-spin" /> Saving…</>
+                    : saved
+                    ? <><CheckCircle size={12} /> Saved!</>
+                    : <><Settings size={12} /> Save Role</>}
                 </button>
               </div>
             )}

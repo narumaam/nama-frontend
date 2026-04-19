@@ -38,10 +38,17 @@ class Destination(DestinationBase):
     id: int
     tenant_id: int
     cover_image_id: Optional[int] = None
+    is_shared: bool = False
+    is_master: bool = False
+    source_tenant_id: Optional[int] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
+
+class DestinationWithOwnership(Destination):
+    """Extended destination response that includes ownership context."""
+    is_own: bool = True
 
 class ContentBlockBase(BaseModel):
     title: str
@@ -55,7 +62,33 @@ class ContentBlockCreate(ContentBlockBase):
 class ContentBlock(ContentBlockBase):
     id: int
     tenant_id: int
+    is_shared: bool = False
+    is_master: bool = False
+    source_tenant_id: Optional[int] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
+
+class ContentBlockWithOwnership(ContentBlock):
+    """Extended content block response that includes ownership context."""
+    is_own: bool = True
+
+# ── Pexels image search ────────────────────────────────────────────────────────
+
+class PexelsPhoto(BaseModel):
+    id: int
+    url_medium: str
+    url_large: str
+    photographer: str
+    photographer_url: str
+    alt: str
+
+class ImageSearchResponse(BaseModel):
+    photos: List[PexelsPhoto]
+
+class ImageSaveRequest(BaseModel):
+    url: str
+    title: str
+    photographer: str
+    tags: List[str] = []

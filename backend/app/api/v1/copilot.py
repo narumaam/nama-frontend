@@ -155,8 +155,8 @@ async def _stream_anthropic(
     api_key = os.getenv("ANTHROPIC_API_KEY")
 
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
+        from app.core.ai_client import get_ai_client
+        client = get_ai_client(api_key=api_key)
 
         system_prompt = SYSTEM_PROMPT_BASE
         if context:
@@ -387,9 +387,9 @@ async def _call_openrouter_json(prompt: str) -> Dict[str, Any]:
 
 async def _call_anthropic_json(prompt: str) -> Dict[str, Any]:
     """Call Anthropic (non-streaming) and parse the JSON response."""
-    import anthropic as ant
+    from app.core.ai_client import get_async_ai_client
     api_key = os.getenv("ANTHROPIC_API_KEY")
-    client = ant.AsyncAnthropic(api_key=api_key)
+    client = get_async_ai_client(api_key=api_key)
     msg = await client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=800,
@@ -485,3 +485,272 @@ async def score_lead(
         risks=[str(r) for r in result.get("risks", [])],
         provider=provider,
     )
+
+
+# ─── Agency Config Generation ─────────────────────────────────────────────────
+
+AGENCY_CONFIG_SYSTEM_PROMPT = """You are an AI that configures travel agency software. Given a natural language description of a travel agency, generate a JSON configuration object. Return ONLY valid JSON matching this schema exactly — no markdown, no code fences, no explanation.
+
+Schema:
+{
+  "agency": {
+    "name": "<string — infer from description or use 'My Travel Agency'>",
+    "type": "<AGENCY | DMC | TOUR_OPERATOR | HYBRID>",
+    "primary_destinations": ["<destination 1>", "<destination 2>"],
+    "focus_segments": ["<LUXURY | BUDGET | HONEYMOON | FAMILY | CORPORATE | ADVENTURE>"],
+    "team_size_estimate": <integer>
+  },
+  "roles": [
+    {
+      "name": "<role display name>",
+      "type": "<SALES | OPS | FINANCE | ADMIN>",
+      "permissions": ["<permission from the allowed list>"],
+      "count": <integer — number of people in this role>
+    }
+  ],
+  "team": [
+    {
+      "name": "<person name or placeholder like 'Sales Agent 1'>",
+      "role": "<must match a role name from the roles array>",
+      "is_placeholder": <true | false — true for invite slots, false for self/founder>
+    }
+  ],
+  "dashboard_widgets": ["<leads | bookings | revenue | agent_performance | destination_trends | quote_pipeline>"],
+  "initial_destinations": ["<destination to pre-seed in content library>"]
+}
+
+Allowed permissions (use only these exact strings):
+leads:view, leads:create, leads:export, bookings:view, bookings:create, vendors:view, vendors:negotiate_rates, quotes:view, quotes:create, quotes:send, finance:view, finance:export, reports:view, team:invite, team:manage, settings:view, settings:manage, content:view, content:create, analytics:view, admin:impersonate, audit:view
+
+Rules:
+- Infer team size from description (e.g. "8-person team" → team_size_estimate: 8)
+- Suggest 3-4 roles that match the agency type
+- ADMIN role should have all permissions; SALES role focuses on leads/quotes; OPS on bookings/vendors; FINANCE on finance
+- Pick 4-6 relevant dashboard_widgets based on the agency's focus
+- initial_destinations should match primary_destinations
+- team array: first member is the founder (is_placeholder: false, name inferred from context or "Founder"), rest are placeholders
+- Respond with ONLY the JSON object."""
+
+
+class AgencyConfigRequest(BaseModel):
+    description: str
+
+
+def _keyword_fallback_config(description: str) -> Dict[str, Any]:
+    """Generate a heuristic fallback config from keywords in the description."""
+    desc_lower = description.lower()
+
+    # Detect agency type
+    if "dmc" in desc_lower:
+        agency_type = "DMC"
+    elif "tour operator" in desc_lower or "tour_operator" in desc_lower:
+        agency_type = "TOUR_OPERATOR"
+    elif "hybrid" in desc_lower:
+        agency_type = "HYBRID"
+    else:
+        agency_type = "AGENCY"
+
+    # Detect focus segments
+    segments = []
+    if any(w in desc_lower for w in ["luxury", "premium", "high-end"]):
+        segments.append("LUXURY")
+    if any(w in desc_lower for w in ["honeymoon", "couple", "wedding"]):
+        segments.append("HONEYMOON")
+    if any(w in desc_lower for w in ["family", "kid", "children"]):
+        segments.append("FAMILY")
+    if any(w in desc_lower for w in ["corporate", "business", "b2b"]):
+        segments.append("CORPORATE")
+    if any(w in desc_lower for w in ["adventure", "trek", "hiking", "outdoor"]):
+        segments.append("ADVENTURE")
+    if any(w in desc_lower for w in ["budget", "affordable", "cheap", "backpack"]):
+        segments.append("BUDGET")
+    if not segments:
+        segments = ["LUXURY"]
+
+    # Detect destinations
+    destination_keywords = {
+        "maldives": "Maldives", "bali": "Bali", "thailand": "Thailand",
+        "europe": "Europe", "dubai": "Dubai", "singapore": "Singapore",
+        "switzerland": "Switzerland", "paris": "Paris", "london": "London",
+        "japan": "Japan", "australia": "Australia", "new zealand": "New Zealand",
+        "kenya": "Kenya", "south africa": "South Africa", "morocco": "Morocco",
+        "india": "India", "rajasthan": "Rajasthan", "kerala": "Kerala",
+        "sri lanka": "Sri Lanka", "nepal": "Nepal", "bhutan": "Bhutan",
+        "usa": "USA", "america": "USA", "canada": "Canada", "mexico": "Mexico",
+        "caribbean": "Caribbean", "greece": "Greece", "italy": "Italy",
+    }
+    destinations = [v for k, v in destination_keywords.items() if k in desc_lower][:4]
+    if not destinations:
+        destinations = ["Maldives", "Bali"]
+
+    # Detect team size
+    import re as _re
+    size_match = _re.search(r'(\d+)[\s-](?:person|people|member|strong|man)', desc_lower)
+    team_size = int(size_match.group(1)) if size_match else 5
+
+    # Detect role counts from description
+    sales_count = 1
+    ops_count = 1
+    finance_count = 1
+    for m in _re.finditer(r'(\d+)\s+(?:sales|sale)', desc_lower):
+        sales_count = int(m.group(1))
+    for m in _re.finditer(r'(\d+)\s+ops', desc_lower):
+        ops_count = int(m.group(1))
+    for m in _re.finditer(r'(\d+)\s+finance', desc_lower):
+        finance_count = int(m.group(1))
+
+    # Widgets
+    widgets = ["leads", "bookings", "revenue", "quote_pipeline"]
+    if "CORPORATE" in segments:
+        widgets.append("agent_performance")
+    else:
+        widgets.append("destination_trends")
+
+    roles = [
+        {
+            "name": "Founder / Admin",
+            "type": "ADMIN",
+            "permissions": [
+                "leads:view", "leads:create", "leads:export",
+                "bookings:view", "bookings:create", "vendors:view", "vendors:negotiate_rates",
+                "quotes:view", "quotes:create", "quotes:send",
+                "finance:view", "finance:export", "reports:view",
+                "team:invite", "team:manage", "settings:view", "settings:manage",
+                "content:view", "content:create", "analytics:view", "audit:view",
+            ],
+            "count": 1,
+        },
+        {
+            "name": "Sales Agent",
+            "type": "SALES",
+            "permissions": [
+                "leads:view", "leads:create", "quotes:view", "quotes:create", "quotes:send",
+                "bookings:view", "content:view", "reports:view",
+            ],
+            "count": sales_count,
+        },
+        {
+            "name": "Operations",
+            "type": "OPS",
+            "permissions": [
+                "bookings:view", "bookings:create", "vendors:view", "vendors:negotiate_rates",
+                "leads:view", "content:view", "content:create",
+            ],
+            "count": ops_count,
+        },
+        {
+            "name": "Finance",
+            "type": "FINANCE",
+            "permissions": [
+                "finance:view", "finance:export", "reports:view", "bookings:view", "analytics:view",
+            ],
+            "count": finance_count,
+        },
+    ]
+
+    team = [{"name": "Founder", "role": "Founder / Admin", "is_placeholder": False}]
+    for i in range(1, sales_count + 1):
+        team.append({"name": f"Sales Agent {i}", "role": "Sales Agent", "is_placeholder": True})
+    for i in range(1, ops_count + 1):
+        team.append({"name": f"Ops Executive {i}", "role": "Operations", "is_placeholder": True})
+    if finance_count > 0:
+        team.append({"name": "Finance Manager", "role": "Finance", "is_placeholder": True})
+
+    return {
+        "agency": {
+            "name": "My Travel Agency",
+            "type": agency_type,
+            "primary_destinations": destinations,
+            "focus_segments": segments,
+            "team_size_estimate": team_size,
+        },
+        "roles": roles,
+        "team": team,
+        "dashboard_widgets": widgets,
+        "initial_destinations": destinations,
+    }
+
+
+@router.post("/generate-config")
+async def generate_agency_config(
+    request: AgencyConfigRequest,
+    current_user=Depends(get_current_user),
+):
+    """
+    Generate a complete AgencyConfig JSON from a natural language description.
+    Uses LLM (OpenRouter/Anthropic) with heuristic keyword fallback.
+    """
+    provider = "heuristic"
+    config: Dict[str, Any] = {}
+
+    try:
+        if os.getenv("OPENROUTER_API_KEY"):
+            config = await _call_openrouter_json_with_system(
+                system=AGENCY_CONFIG_SYSTEM_PROMPT,
+                user_message=f"Agency description: {request.description}",
+            )
+            provider = "openrouter"
+        elif os.getenv("ANTHROPIC_API_KEY"):
+            config = await _call_anthropic_json_with_system(
+                system=AGENCY_CONFIG_SYSTEM_PROMPT,
+                user_message=f"Agency description: {request.description}",
+            )
+            provider = "anthropic"
+        else:
+            raise ValueError("No AI provider configured")
+    except Exception as e:
+        logger.warning(f"Agency config generation failed, using keyword fallback: {e}")
+        config = _keyword_fallback_config(request.description)
+        provider = "heuristic"
+
+    return {"config": config, "provider": provider}
+
+
+async def _call_openrouter_json_with_system(system: str, user_message: str) -> Dict[str, Any]:
+    """Call OpenRouter with a custom system prompt and parse the JSON response."""
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    async with httpx.AsyncClient(timeout=40) as client:
+        resp = await client.post(
+            OPENROUTER_BASE,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://nama-os.vercel.app",
+                "X-Title": "NAMA OS Agency Config",
+            },
+            json={
+                "model": OPENROUTER_MODEL,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_message},
+                ],
+                "stream": False,
+                "max_tokens": 1200,
+                "temperature": 0.3,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"].strip()
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-z]*\n?", "", content)
+            content = re.sub(r"\n?```$", "", content)
+        return json.loads(content)
+
+
+async def _call_anthropic_json_with_system(system: str, user_message: str) -> Dict[str, Any]:
+    """Call Anthropic with a custom system prompt and parse the JSON response."""
+    from app.core.ai_client import get_async_ai_client
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    client = get_async_ai_client(api_key=api_key)
+    msg = await client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1200,
+        system=system,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    content = msg.content[0].text.strip()
+    if content.startswith("```"):
+        content = re.sub(r"^```[a-z]*\n?", "", content)
+        content = re.sub(r"\n?```$", "", content)
+    return json.loads(content)

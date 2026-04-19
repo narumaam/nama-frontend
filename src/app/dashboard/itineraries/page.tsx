@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
   Sparkles,
@@ -17,9 +17,14 @@ import {
   AlertCircle,
   List,
   X,
+  Tag,
+  CheckCircle2,
+  Edit3,
 } from 'lucide-react';
 import { BentoCard } from '@/components/BentoCard';
-import { itinerariesApi, leadsApi, bookingsApi, ItineraryOut, Lead, ItineraryRequest } from '@/lib/api';
+import { itinerariesApi, leadsApi, bookingsApi, vendorsApi, ItineraryOut, Lead, ItineraryRequest, ItineraryBlock, RateLookupResult, Vendor } from '@/lib/api';
+import ProductTour from '@/components/ProductTour';
+import { ITINERARY_TOUR, isTourDone, markTourDone } from '@/lib/tour';
 
 const STYLES = ['Luxury', 'Adventure', 'Cultural', 'Family', 'Budget', 'Wellness'];
 
@@ -178,6 +183,22 @@ export default function ItinerariesPage() {
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
+  const [showTour, setShowTour] = useState(false);
+
+  // Vendor data (for rate lookup)
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+
+  // Block editor state
+  const [editingBlock, setEditingBlock] = useState<{
+    dayIndex: number;
+    blockIndex: number;
+    block: ItineraryBlock;
+    dayDate: string; // YYYY-MM-DD used for rate lookup
+  } | null>(null);
+  const [rateLookupState, setRateLookupState] = useState<{
+    loading: boolean;
+    result: RateLookupResult | null;
+  }>({ loading: false, result: null });
 
   // Form state
   const [form, setForm] = useState<ItineraryRequest>({
@@ -195,7 +216,25 @@ export default function ItinerariesPage() {
     // Load existing itineraries and leads for the form
     loadSavedItineraries();
     loadLeads();
+    loadVendors();
   }, []);
+
+  // Tour trigger — first visit only
+  useEffect(() => {
+    if (!isTourDone('itinerary')) {
+      const t = setTimeout(() => setShowTour(true), 800);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const loadVendors = async () => {
+    try {
+      const data = await vendorsApi.list({ status: 'ACTIVE' });
+      setVendors(Array.isArray(data) ? data : []);
+    } catch {
+      // Non-critical — vendor dropdown degrades gracefully
+    }
+  };
 
   const loadSavedItineraries = async () => {
     try {
@@ -218,6 +257,57 @@ export default function ItinerariesPage() {
       // Non-critical
     }
   };
+
+  // Called when user selects a vendor in the block editor
+  const handleVendorChange = useCallback(async (vendorId: number, dayDate: string, blockType: string) => {
+    if (!vendorId) {
+      setRateLookupState({ loading: false, result: null });
+      return;
+    }
+    setRateLookupState({ loading: true, result: null });
+    try {
+      const result = await itinerariesApi.rateLookup({
+        vendor_id: vendorId,
+        date: dayDate,
+        category: blockType || undefined,
+      });
+      setRateLookupState({ loading: false, result });
+    } catch {
+      setRateLookupState({ loading: false, result: { found: false, message: 'Rate lookup failed — enter manually' } });
+    }
+  }, []);
+
+  // Apply the suggested rate to the current editing block
+  const handleApplyRate = useCallback(() => {
+    if (!editingBlock || !rateLookupState.result?.found) return;
+    const rate = rateLookupState.result;
+    setEditingBlock((prev) => prev ? {
+      ...prev,
+      block: {
+        ...prev.block,
+        price_gross: rate.price_gross ?? prev.block.price_gross,
+        currency: rate.currency ?? prev.block.currency,
+        vendor_rate_id: rate.rate_id,
+      },
+    } : null);
+  }, [editingBlock, rateLookupState.result]);
+
+  // Save edited block back into the active itinerary's days_json (local state)
+  const handleSaveBlock = useCallback(() => {
+    if (!editingBlock || !itinerary) return;
+    const days = (itinerary.days_json || itinerary.days || []).map((d, di) => {
+      if (di !== editingBlock.dayIndex) return d;
+      return {
+        ...d,
+        blocks: d.blocks.map((b, bi) =>
+          bi === editingBlock.blockIndex ? { ...editingBlock.block } : b
+        ),
+      };
+    });
+    setItinerary({ ...itinerary, days_json: days });
+    setEditingBlock(null);
+    setRateLookupState({ loading: false, result: null });
+  }, [editingBlock, itinerary]);
 
   const handleGenerate = async () => {
     if (!form.destination.trim()) {
@@ -340,6 +430,7 @@ export default function ItinerariesPage() {
             </button>
           )}
           <button
+            data-tour="itinerary-generate"
             onClick={() => setShowForm(true)}
             disabled={loading}
             className="bg-[#14B8A6] text-white px-6 py-3 rounded-xl font-black text-sm uppercase tracking-widest flex items-center shadow-lg shadow-[#14B8A6]/10 hover:scale-[1.02] transition-all disabled:opacity-50"
@@ -478,6 +569,170 @@ export default function ItinerariesPage() {
         </div>
       )}
 
+      {/* Block Editor Modal */}
+      {editingBlock && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] p-8 w-full max-w-lg shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-extrabold text-[#0F172A]">Edit Block</h2>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  Day {editingBlock.dayIndex + 1} · {editingBlock.block.type}
+                </p>
+              </div>
+              <button
+                onClick={() => { setEditingBlock(null); setRateLookupState({ loading: false, result: null }); }}
+                className="p-2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editingBlock.block.title}
+                  onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, block: { ...prev.block, title: e.target.value } } : null)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] outline-none text-sm"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={editingBlock.block.description}
+                  onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, block: { ...prev.block, description: e.target.value } } : null)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] outline-none text-sm resize-none"
+                />
+              </div>
+
+              {/* Vendor selector + Rate lookup */}
+              <div data-tour="itinerary-rate">
+              {vendors.length > 0 && (
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Vendor (optional)</label>
+                  <select
+                    value={editingBlock.block.vendor_id ?? ''}
+                    onChange={(e) => {
+                      const vid = Number(e.target.value) || 0;
+                      setEditingBlock((prev) => prev ? { ...prev, block: { ...prev.block, vendor_id: vid || undefined } } : null);
+                      if (vid) handleVendorChange(vid, editingBlock.dayDate, editingBlock.block.type);
+                      else setRateLookupState({ loading: false, result: null });
+                    }}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] outline-none text-sm"
+                  >
+                    <option value="">— No vendor selected —</option>
+                    {vendors.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} {v.city ? `· ${v.city}` : ''} [{v.category}]
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Rate lookup feedback */}
+              {rateLookupState.loading && (
+                <div className="flex items-center gap-2 text-slate-500 text-sm bg-slate-50 rounded-xl px-4 py-3">
+                  <Loader size={14} className="animate-spin text-[#14B8A6]" />
+                  <span>Looking up rate card…</span>
+                </div>
+              )}
+
+              {!rateLookupState.loading && rateLookupState.result?.found && (
+                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                  <CheckCircle2 size={16} className="text-teal-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-teal-700">
+                      Rate found: {fmt(rateLookupState.result.price_gross ?? 0, rateLookupState.result.currency ?? 'INR')}
+                      {rateLookupState.result.season ? ` (${rateLookupState.result.season} season)` : ''}
+                    </p>
+                    {rateLookupState.result.description && (
+                      <p className="text-xs text-teal-600 mt-0.5 truncate">{rateLookupState.result.description}</p>
+                    )}
+                    {rateLookupState.result.price_gross_child != null && (
+                      <p className="text-xs text-teal-500 mt-0.5">
+                        Child rate: {fmt(rateLookupState.result.price_gross_child, rateLookupState.result.currency ?? 'INR')}
+                        {rateLookupState.result.child_age_min != null && rateLookupState.result.child_age_max != null
+                          ? ` (ages ${rateLookupState.result.child_age_min}–${rateLookupState.result.child_age_max})`
+                          : ''}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleApplyRate}
+                    className="text-xs font-black text-[#14B8A6] uppercase tracking-wide whitespace-nowrap hover:underline"
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
+
+              {!rateLookupState.loading && rateLookupState.result?.found === false && (
+                <div className="text-xs text-slate-400 bg-slate-50 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                  <AlertCircle size={13} />
+                  {rateLookupState.result.message ?? 'No rate on file — enter manually'}
+                </div>
+              )}
+              </div>{/* /data-tour="itinerary-rate" */}
+
+              {/* Price (gross) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">
+                    Price (gross)
+                    {editingBlock.block.vendor_rate_id && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                        <Tag size={9} /> Rate locked
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editingBlock.block.price_gross}
+                    onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, block: { ...prev.block, price_gross: Number(e.target.value), vendor_rate_id: undefined } } : null)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Currency</label>
+                  <select
+                    value={editingBlock.block.currency}
+                    onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, block: { ...prev.block, currency: e.target.value } } : null)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] outline-none text-sm"
+                  >
+                    {['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'THB'].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => { setEditingBlock(null); setRateLookupState({ loading: false, result: null }); }}
+                className="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveBlock}
+                className="flex-1 py-3 rounded-2xl bg-[#0F172A] text-white font-black text-sm uppercase tracking-wide hover:bg-slate-700 transition-all"
+              >
+                Save Block
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Loading state */}
       {loading && (
         <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-24 text-center">
@@ -530,31 +785,69 @@ export default function ItinerariesPage() {
               </div>
             </div>
 
-            {days.map((day) => (
-              <div key={day.day_number} className="space-y-6 text-left">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-[#0F172A] text-white rounded-2xl flex items-center justify-center font-black text-xl">
-                    {day.day_number}
+            {days.map((day, dayIdx) => {
+              // Derive a date string for this day based on travel_dates or fallback to today
+              const baseDateStr = (() => {
+                const raw = form.travel_dates;
+                if (raw) {
+                  // Try to parse a start date from free-text like "2025-10-15" or "October 2025"
+                  const match = raw.match(/(\d{4}-\d{2}-\d{2})/);
+                  if (match) {
+                    const base = new Date(match[1]);
+                    base.setDate(base.getDate() + dayIdx);
+                    return base.toISOString().slice(0, 10);
+                  }
+                }
+                // Fallback: today + day offset
+                const d = new Date();
+                d.setDate(d.getDate() + dayIdx);
+                return d.toISOString().slice(0, 10);
+              })();
+
+              return (
+                <div key={day.day_number} className="space-y-6 text-left">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-[#0F172A] text-white rounded-2xl flex items-center justify-center font-black text-xl">
+                      {day.day_number}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-[#0F172A] tracking-tighter">{day.title}</h3>
+                      <p className="text-sm text-slate-500 font-medium">{day.narrative}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-black text-[#0F172A] tracking-tighter">{day.title}</h3>
-                    <p className="text-sm text-slate-500 font-medium">{day.narrative}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-16">
+                    {day.blocks.map((block, idx) => (
+                      <div key={idx} className="relative group" {...(dayIdx === 0 && idx === 0 ? { 'data-tour': 'itinerary-rate' } : {})}>
+                        <BentoCard
+                          type={block.type}
+                          title={block.title}
+                          description={block.description}
+                          price={block.price_gross}
+                          currency={block.currency}
+                        />
+                        {/* Rate locked badge */}
+                        {block.vendor_rate_id && (
+                          <div className="absolute top-3 left-3 flex items-center gap-1 text-[9px] font-black text-teal-600 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                            <Tag size={8} /> Rate locked
+                          </div>
+                        )}
+                        {/* Edit block button */}
+                        <button
+                          onClick={() => {
+                            setRateLookupState({ loading: false, result: null });
+                            setEditingBlock({ dayIndex: dayIdx, blockIndex: idx, block: { ...block }, dayDate: baseDateStr });
+                          }}
+                          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm hover:bg-slate-50"
+                          title="Edit block"
+                        >
+                          <Edit3 size={13} className="text-slate-500" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-16">
-                  {day.blocks.map((block, idx) => (
-                    <BentoCard
-                      key={idx}
-                      type={block.type}
-                      title={block.title}
-                      description={block.description}
-                      price={block.price_gross}
-                      currency={block.currency}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Marketing Sidebar */}
@@ -679,6 +972,18 @@ export default function ItinerariesPage() {
           <span className="text-[#14B8A6]">✓</span>
           {shareToast}
         </div>
+      )}
+
+      {/* Product Tour — first visit only */}
+      {showTour && (
+        <ProductTour
+          steps={ITINERARY_TOUR}
+          startDelay={0}
+          onDone={() => {
+            setShowTour(false);
+            markTourDone('itinerary');
+          }}
+        />
       )}
     </div>
   );

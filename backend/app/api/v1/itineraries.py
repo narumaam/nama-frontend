@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -7,6 +8,7 @@ from app.db.session import get_db
 from app.schemas.itinerary import ItineraryCreateRequest, ItineraryResponse
 from app.models.itineraries import Itinerary, ItineraryStatus
 from app.models.leads import Lead
+from app.models.vendors import VendorRate, VendorCategory
 from app.agents.itinerary import ItineraryAgent
 from app.api.v1.deps import get_current_user, require_tenant
 from app.core.rls import get_or_404, tenant_query
@@ -14,6 +16,86 @@ from app.core.redis_cache import distributed_cache
 
 router = APIRouter()
 itinerary_agent = ItineraryAgent()
+
+
+@router.get("/rate-lookup")
+async def rate_lookup(
+    vendor_id: int = Query(..., description="Vendor ID to look up rates for"),
+    date: str = Query(..., description="Travel date in YYYY-MM-DD format"),
+    category: Optional[str] = Query(None, description="Optional vendor category filter"),
+    tenant_id: int = Depends(require_tenant),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Look up the best matching VendorRate for a given vendor + date.
+
+    Returns price_gross (not cost_net) to preserve margin masking.
+    Prefers the narrowest (most specific) date range when multiple rates match.
+    Returns found=false when no rate is on file.
+    """
+    # Parse the requested date
+    try:
+        lookup_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    # Build the base query — tenant-scoped, vendor-scoped
+    q = db.query(VendorRate).filter(
+        VendorRate.vendor_id == vendor_id,
+        VendorRate.tenant_id == tenant_id,
+    )
+
+    # Filter by category when provided
+    if category:
+        try:
+            cat_enum = VendorCategory[category.upper()]
+            q = q.filter(VendorRate.category == cat_enum)
+        except KeyError:
+            raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
+
+    # Date range filter: include rates where valid_from <= date <= valid_until
+    # Null valid_from / valid_until means "open-ended" (always valid)
+    q = q.filter(
+        or_(VendorRate.valid_from == None, VendorRate.valid_from <= lookup_date),  # noqa: E711
+        or_(VendorRate.valid_until == None, VendorRate.valid_until >= lookup_date),  # noqa: E711
+    )
+
+    rates = q.all()
+
+    if not rates:
+        return {
+            "found": False,
+            "message": "No rate found for this vendor/date",
+        }
+
+    # Prefer the narrowest date range (most specific rate)
+    # Rates with both bounds set are more specific than open-ended ones.
+    # Score: 2 if both bounds present, 1 if one is present, 0 if neither.
+    def specificity(r: VendorRate) -> int:
+        score = 0
+        if r.valid_from is not None:
+            score += 1
+        if r.valid_until is not None:
+            score += 1
+        return score
+
+    best = max(rates, key=specificity)
+
+    return {
+        "found": True,
+        "rate_id": best.id,
+        "vendor_id": best.vendor_id,
+        "description": best.description,
+        "season": best.season,
+        "price_gross": best.price_gross,
+        "price_gross_child": best.price_gross_child,
+        "child_age_min": best.child_age_min,
+        "child_age_max": best.child_age_max,
+        "currency": best.currency,
+        "valid_from": best.valid_from.isoformat() if best.valid_from else None,
+        "valid_until": best.valid_until.isoformat() if best.valid_until else None,
+    }
 
 
 class ItineraryOut(ItineraryResponse):

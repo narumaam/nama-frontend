@@ -35,7 +35,12 @@ class Destination(Base):
     description = Column(String, nullable=True)
     cover_image_id = Column(Integer, ForeignKey("media_assets.id"), nullable=True)
     meta_tags = Column(JSON, default=[]) # e.g. ["visa-on-arrival", "safe", "best-for-couples"]
-    
+
+    # Shared / master library fields
+    is_shared = Column(Boolean, default=False, nullable=False)
+    is_master = Column(Boolean, default=False, nullable=False)
+    source_tenant_id = Column(Integer, nullable=True)  # null = NAMA platform
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -52,6 +57,11 @@ class ContentBlock(Base):
     content = Column(String, nullable=False)
     category = Column(String, index=True) # e.g. HOTEL_DESC, ACTIVITY_DESC
     tags = Column(JSON, default=[])
-    
+
+    # Shared / master library fields
+    is_shared = Column(Boolean, default=False, nullable=False)
+    is_master = Column(Boolean, default=False, nullable=False)
+    source_tenant_id = Column(Integer, nullable=True)  # null = NAMA platform
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

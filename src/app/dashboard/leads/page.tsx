@@ -16,6 +16,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { leadsApi, queriesApi, Lead } from '@/lib/api'
 import EmptyState from '@/components/EmptyState'
+import ProductTour from '@/components/ProductTour'
+import { LEADS_TOUR, isTourDone, markTourDone } from '@/lib/tour'
 import {
   Search, AlertCircle, Loader, Plus, Sparkles, X, UserPlus,
   Phone, Mail, MessageSquare, Calendar, Clock, FileText,
@@ -252,10 +254,22 @@ export default function LeadsPage() {
   // Toast
   const [toast, setToast]                 = useState<string | null>(null)
 
+  // Product tour
+  const [showTour, setShowTour]           = useState(false)
+
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }
+
+  // ── Tour trigger (first visit only) ─────────────────────────────────────────
+  useEffect(() => {
+    if (!isTourDone('leads')) {
+      // Small delay so the page content renders before highlighting
+      const t = setTimeout(() => setShowTour(true), 800)
+      return () => clearTimeout(t)
+    }
+  }, [])
 
   // ── LLM Scoring ─────────────────────────────────────────────────────────────
   const fetchLLMScore = useCallback(async (lead: Lead) => {
@@ -499,7 +513,7 @@ export default function LeadsPage() {
       <div className={`flex-1 min-w-0 space-y-6 transition-all ${selectedLead ? 'hidden xl:block xl:max-w-[55%]' : ''}`}>
 
         {/* Header */}
-        <div className="flex justify-between items-end">
+        <div data-tour="leads-header" className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A]">Leads Pipeline</h1>
             <p className="text-slate-500 mt-1 text-sm font-medium">Track, qualify, and convert every opportunity.</p>
@@ -533,7 +547,7 @@ export default function LeadsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+        <div data-tour="leads-filter" className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
           <div className="flex gap-3 flex-wrap">
             <div className="flex-1 min-w-[180px] relative">
               <Search size={15} className="absolute left-3 top-2.5 text-slate-400" />
@@ -696,7 +710,7 @@ export default function LeadsPage() {
                 </button>
               </div>
               {/* Tabs */}
-              <div className="flex gap-1 mt-4 bg-slate-100 p-1 rounded-xl">
+              <div data-tour="leads-ai-score" className="flex gap-1 mt-4 bg-slate-100 p-1 rounded-xl">
                 {(['overview','notes','activity','ai'] as TabType[]).map(t => (
                   <button key={t} onClick={() => { setActiveTab(t); if (t === 'ai' && selectedLead) fetchLLMScore(selectedLead) }}
                     className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all capitalize ${activeTab === t ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}>
@@ -1124,6 +1138,18 @@ export default function LeadsPage() {
           <span className="text-sm font-medium">{error}</span>
           <button onClick={() => setError(null)}><X size={14} /></button>
         </div>
+      )}
+
+      {/* Product Tour — first visit only */}
+      {showTour && (
+        <ProductTour
+          steps={LEADS_TOUR}
+          startDelay={0}
+          onDone={() => {
+            setShowTour(false)
+            markTourDone('leads')
+          }}
+        />
       )}
     </div>
   )

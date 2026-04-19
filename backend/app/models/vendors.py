@@ -26,6 +26,14 @@ from sqlalchemy.sql import func
 from app.db.session import Base
 
 
+# ── DMC Visibility Enum ────────────────────────────────────────────────────────
+
+class RateVisibility(str, enum.Enum):
+    PRIVATE      = "PRIVATE"
+    PUBLIC       = "PUBLIC"
+    INVITE_ONLY  = "INVITE_ONLY"
+
+
 class VendorCategory(str, enum.Enum):
     HOTEL      = "HOTEL"
     AIRLINE    = "AIRLINE"
@@ -77,6 +85,7 @@ class Vendor(Base):
     # Flags
     is_preferred    = Column(Boolean, default=False)
     is_verified     = Column(Boolean, default=False)
+    is_dmc          = Column(Boolean, default=False)             # publishes rates to DMC marketplace
 
     # Metadata
     tags            = Column(JSON,  default=list)
@@ -115,6 +124,18 @@ class VendorRate(Base):
     cost_net        = Column(Float, nullable=False)
     currency        = Column(String(10), default="INR")
     markup_pct      = Column(Float, default=0.0)                # overrides vendor.markup_pct
+    markup_amount   = Column(Float, nullable=True)              # flat markup in currency; overrides markup_pct when set
+
+    # Child pricing
+    cost_net_child  = Column(Float, nullable=True)              # net cost for child (may differ from adult)
+    child_age_min   = Column(Integer, nullable=True)            # e.g. 5 (inclusive)
+    child_age_max   = Column(Integer, nullable=True)            # e.g. 11 (inclusive); varies by hotel/region
+
+    # DMC marketplace visibility
+    is_public       = Column(Boolean, default=False)            # if True, visible to other tenants (gross only)
+    visibility_type = Column(
+        SQLEnum(RateVisibility), nullable=False, default=RateVisibility.PRIVATE
+    )
 
     valid_from      = Column(DateTime(timezone=True), nullable=True)
     valid_until     = Column(DateTime(timezone=True), nullable=True)
@@ -122,3 +143,25 @@ class VendorRate(Base):
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
 
     vendor          = relationship("Vendor", back_populates="rates")
+
+    # ── Computed helpers ───────────────────────────────────────────────────────
+
+    @property
+    def price_gross(self) -> float:
+        """
+        Gross rate billed to the client.
+        If markup_amount is set, it takes precedence over markup_pct.
+        Otherwise: cost_net * (1 + markup_pct / 100).
+        """
+        if self.markup_amount is not None:
+            return self.cost_net + self.markup_amount
+        return self.cost_net * (1 + (self.markup_pct or 0.0) / 100)
+
+    @property
+    def price_gross_child(self) -> float | None:
+        """Gross child rate, or None if no child pricing is defined."""
+        if self.cost_net_child is None:
+            return None
+        if self.markup_amount is not None:
+            return self.cost_net_child + self.markup_amount
+        return self.cost_net_child * (1 + (self.markup_pct or 0.0) / 100)

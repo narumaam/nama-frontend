@@ -165,6 +165,26 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dismissedAnomalies, setDismissedAnomalies] = useState<string[]>([])
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false)
+
+  useEffect(() => {
+    // Show welcome banner on first visit after onboarding completion
+    try {
+      const seeded = localStorage.getItem('nama_workspace_seeded')
+      const seen   = localStorage.getItem('nama_first_visit_seen')
+      if (seeded === '1' && seen !== '1') {
+        setShowWelcomeBanner(true)
+      }
+    } catch (_) { /* localStorage unavailable in SSR or restricted contexts */ }
+  }, [])
+
+  const dismissWelcomeBanner = () => {
+    setShowWelcomeBanner(false)
+    try {
+      localStorage.setItem('nama_first_visit_seen', '1')
+      localStorage.removeItem('nama_workspace_seeded')
+    } catch (_) { /* ignore */ }
+  }
 
   useEffect(() => { fetchAll() }, [])
 
@@ -208,6 +228,24 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+
+      {/* ── Welcome Banner (shown once after onboarding) ── */}
+      {showWelcomeBanner && (
+        <div className="flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-xl p-4 text-teal-800">
+          <span className="text-xl leading-none" role="img" aria-label="party">🎉</span>
+          <div className="flex-1 text-sm font-medium">
+            <span className="font-bold">Your workspace is ready!</span>{' '}
+            We added 2 sample leads and a Maldives itinerary to help you explore NAMA.
+          </div>
+          <button
+            onClick={dismissWelcomeBanner}
+            className="text-teal-500 hover:text-teal-700 font-bold text-lg leading-none px-1"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* ── Anomaly Alerts ── */}
       {criticalAnomalies.length > 0 && (

@@ -15,6 +15,7 @@ import NamaCopilot from '@/components/NamaCopilot';
 import GlobalSearch from '@/components/GlobalSearch';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { FeedbackWidget } from '@/components/FeedbackWidget';
+import ChecklistWidget from '@/components/ChecklistWidget';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -446,6 +447,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Feedback / NPS widget (P4-10) */}
       <FeedbackWidget />
+
+      {/* Get Started onboarding checklist — floating bottom-right */}
+      <ChecklistWidget />
     </div>
   );
 }

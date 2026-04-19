@@ -7,7 +7,7 @@
  *
  *   Step 1 → Welcome          Company name, timezone, currency. ~1 min.
  *   Step 2 → Live AI Triage   WOW moment — animated AI lead extraction demo.  CANNOT be skipped.
- *   Step 3 → Connect Channels WhatsApp webhook + Email SMTP options. Skippable.
+ *   Step 3 → AI Setup         Describe your agency → AI generates full config JSON. Skippable.
  *   Step 4 → Build Your Team  Invite up to 3 members with role selector. Skippable.
  *   Step 5 → AI Workspace     4 seed cards showing the workspace is already alive. Skippable.
  *   Step 6 → Launch           Full-screen celebration with CSS confetti. No going back.
@@ -19,10 +19,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Building2, Zap, Phone, Users, Sparkles, Rocket,
-  Check, ChevronRight, ChevronLeft, Copy, CheckCircle2,
-  Loader, AlertCircle, ArrowRight, Mail, Brain,
-  TrendingUp, FileText, BarChart3, Star,
+  Building2, Zap, Wand2, Users, Sparkles, Rocket,
+  Check, ChevronRight, ChevronLeft, CheckCircle2,
+  Loader, ArrowRight, Brain,
+  TrendingUp, FileText, BarChart3, Star, Pencil,
+  MapPin, LayoutDashboard,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 
@@ -43,7 +44,7 @@ const ROLES      = [
 const STEPS = [
   { id: 1, label: 'Welcome',    Icon: Building2, timing: '~1 min',  skippable: false },
   { id: 2, label: 'AI Triage',  Icon: Brain,     timing: '~2 min',  skippable: false },
-  { id: 3, label: 'Channels',   Icon: Phone,     timing: '~2 min',  skippable: true  },
+  { id: 3, label: 'AI Setup',   Icon: Wand2,     timing: '~1 min',  skippable: true  },
   { id: 4, label: 'Team',       Icon: Users,     timing: '~2 min',  skippable: true  },
   { id: 5, label: 'Workspace',  Icon: Sparkles,  timing: '~1 min',  skippable: true  },
   { id: 6, label: 'Launch',     Icon: Rocket,    timing: '',        skippable: false },
@@ -63,17 +64,6 @@ function OLabel({ children }: { children: React.ReactNode }) {
       {children}
     </label>
   )
-}
-
-function useCopyToClipboard(): [boolean, (text: string) => void] {
-  const [copied, setCopied] = useState(false)
-  const copy = useCallback((text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }, [])
-  return [copied, copy]
 }
 
 function formatElapsed(seconds: number): string {
@@ -357,118 +347,338 @@ function StepAITriage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 3 — Connect Channels
+// Step 3 — AI Agency Setup
 // ─────────────────────────────────────────────────────────────────────────────
 
-function StepChannels() {
-  const webhookUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/v1/webhooks/whatsapp`
-    : 'https://app.namatravel.com/api/v1/webhooks/whatsapp'
+// AgencyConfig TypeScript interface matching backend schema
+interface AgencyConfigData {
+  agency: {
+    name: string
+    type: string
+    primary_destinations: string[]
+    focus_segments: string[]
+    team_size_estimate: number
+  }
+  roles: { name: string; type: string; permissions: string[]; count: number }[]
+  team: { name: string; role: string; is_placeholder: boolean }[]
+  dashboard_widgets: string[]
+  initial_destinations: string[]
+}
 
-  const [waToken] = useState(() => `nama_${Math.random().toString(36).slice(2, 12)}`)
-  const [waTokenCopied, copyWaToken]   = useCopyToClipboard()
-  const [webhookCopied, copyWebhook]   = useCopyToClipboard()
-  const [smtpHost, setSmtpHost]         = useState('')
-  const [smtpUser, setSmtpUser]         = useState('')
-  const [activeTab, setActiveTab]       = useState<'whatsapp' | 'email'>('whatsapp')
+const QUICK_FILL_CHIPS = [
+  {
+    label: 'Luxury honeymoon specialist',
+    text: "We're a 6-person luxury travel agency specialising in Maldives and Bali honeymoons. I'm the founder, we have 2 sales agents, 1 ops executive, and 1 finance person. High-end clientele, average booking value ₹3–5L.",
+  },
+  {
+    label: 'Family & adventure tours',
+    text: "An 8-person tour operator focused on family holidays and adventure travel to Bhutan, Nepal, and Rajasthan. 3 sales, 2 ops, 1 finance, 1 content, and me as founder.",
+  },
+  {
+    label: 'Corporate travel management',
+    text: "We manage corporate travel for 50+ companies. Team of 10: 4 sales/account managers, 3 ops, 1 finance, 1 tech, and me as admin. Primary destinations are Dubai, Singapore, London, and New York.",
+  },
+]
 
-  return (
-    <div className="space-y-5">
-      {/* Tab toggle */}
-      <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
-        {(['whatsapp', 'email'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-              activeTab === tab
-                ? 'bg-white text-[#0F172A] shadow-sm'
-                : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            {tab === 'whatsapp' ? '📱 WhatsApp' : '✉️ Email SMTP'}
-          </button>
-        ))}
-      </div>
+const GENERATION_STAGES = [
+  { ms: 500,  label: 'Understanding your agency...',    icon: '🧠' },
+  { ms: 1000, label: 'Building your team structure...', icon: '⚙️' },
+  { ms: 1500, label: 'Configuring your workspace...',   icon: '✨' },
+]
 
-      {activeTab === 'whatsapp' && (
-        <div className="space-y-4">
-          <div className="bg-[#0F172A] rounded-xl p-4 text-white">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">What you'll need</p>
-            <p className="text-sm font-medium text-slate-300 leading-relaxed">
-              A{' '}
-              <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="text-[#14B8A6] underline font-bold">
-                WhatsApp Business Platform
-              </a>{' '}
-              account from Meta → Your App → WhatsApp → Configuration.
-            </p>
-          </div>
+const WIDGET_LABELS: Record<string, string> = {
+  leads: 'Leads pipeline',
+  bookings: 'Bookings overview',
+  revenue: 'Revenue tracker',
+  agent_performance: 'Agent performance',
+  destination_trends: 'Destination trends',
+  quote_pipeline: 'Quote pipeline',
+}
 
-          <div>
-            <OLabel>Verify Token</OLabel>
-            <div className="flex gap-2">
-              <input value={waToken} readOnly className={OInput + ' font-mono flex-1'} />
-              <button onClick={() => copyWaToken(waToken)}
-                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all flex-shrink-0">
-                {waTokenCopied ? <><CheckCircle2 size={13} className="text-emerald-500" /> Copied!</> : <><Copy size={13} /> Copy</>}
+type AISetupPhase = 'input' | 'generating' | 'preview'
+
+function StepAISetup({
+  onConfigApplied,
+}: {
+  onConfigApplied: (config: AgencyConfigData) => void
+}) {
+  const [description, setDescription] = useState('')
+  const [phase, setPhase]             = useState<AISetupPhase>('input')
+  const [stageIndex, setStageIndex]   = useState(0)
+  const [config, setConfig]           = useState<AgencyConfigData | null>(null)
+  const [applyLoading, setApplyLoading] = useState(false)
+  const [error, setError]             = useState('')
+
+  // Run generation animation + API call
+  const generate = useCallback(async () => {
+    if (!description.trim() || phase === 'generating') return
+    setPhase('generating')
+    setStageIndex(0)
+    setError('')
+
+    // Kick off the stage animation loop
+    const stageTimers: ReturnType<typeof setTimeout>[] = []
+    GENERATION_STAGES.forEach((s, i) => {
+      const t = setTimeout(() => setStageIndex(i), s.ms)
+      stageTimers.push(t)
+    })
+
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
+      const res = await fetch('/api/v1/onboarding/generate-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ description }),
+      })
+
+      // Wait for animation to at least reach the last stage
+      await new Promise(r => setTimeout(r, 1600))
+      stageTimers.forEach(t => clearTimeout(t))
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `HTTP ${res.status}`)
+      }
+
+      const data = await res.json()
+      setConfig(data.config)
+      setPhase('preview')
+    } catch (e) {
+      stageTimers.forEach(t => clearTimeout(t))
+      setError(String(e))
+      setPhase('input')
+    }
+  }, [description, phase])
+
+  // Apply config to backend and advance wizard
+  const applyConfig = useCallback(async () => {
+    if (!config) return
+    setApplyLoading(true)
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
+      const res = await fetch('/api/v1/onboarding/apply-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ config }),
+      })
+      // Fire-and-forget — we proceed even if the backend isn't reachable
+      // (the wizard will still advance and config is held in component state)
+      if (!res.ok) {
+        console.warn('[apply-config] Backend returned', res.status)
+      }
+    } catch (e) {
+      console.warn('[apply-config] Network error:', e)
+    } finally {
+      setApplyLoading(false)
+      onConfigApplied(config!)
+    }
+  }, [config, onConfigApplied])
+
+  // ── Input phase ────────────────────────────────────────────────────────────
+  if (phase === 'input') {
+    return (
+      <div className="space-y-5">
+        <div>
+          <OLabel>Describe your agency</OLabel>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={4}
+            placeholder="e.g. We're a 8-person luxury travel agency focused on Maldives and Bali honeymoons. We have 3 sales agents, 2 ops, 1 finance person, and me as founder."
+            className={OInput + ' resize-none leading-relaxed'}
+          />
+        </div>
+
+        {/* Quick-fill chips */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick fill</p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_FILL_CHIPS.map(chip => (
+              <button
+                key={chip.label}
+                onClick={() => setDescription(chip.text)}
+                className="px-3 py-1.5 text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:border-[#14B8A6] hover:text-[#0F172A] hover:bg-teal-50 transition-all"
+              >
+                {chip.label}
               </button>
-            </div>
-          </div>
-
-          <div>
-            <OLabel>Webhook URL</OLabel>
-            <div className="flex gap-2">
-              <input value={webhookUrl} readOnly className={OInput + ' font-mono flex-1 text-xs'} />
-              <button onClick={() => copyWebhook(webhookUrl)}
-                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all flex-shrink-0">
-                {webhookCopied ? <><CheckCircle2 size={13} className="text-emerald-500" /> Copied!</> : <><Copy size={13} /> Copy</>}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3.5 flex items-start gap-2.5">
-            <AlertCircle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 font-medium">
-              Subscribe to the <strong>messages</strong> field. Enquiries will appear in{' '}
-              <strong>Query Inbox → M1 Triage</strong> automatically.
-            </p>
+            ))}
           </div>
         </div>
-      )}
 
-      {activeTab === 'email' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <OLabel>SMTP Host</OLabel>
-              <input
-                value={smtpHost}
-                onChange={e => setSmtpHost(e.target.value)}
-                placeholder="smtp.gmail.com"
-                className={OInput}
-              />
+        {error && (
+          <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
+
+        <button
+          onClick={generate}
+          disabled={!description.trim()}
+          className="w-full flex items-center justify-center gap-2 bg-[#14B8A6] text-[#0F172A] py-3.5 rounded-xl font-black text-sm hover:bg-teal-400 active:scale-[0.98] transition-all shadow-lg shadow-[#14B8A6]/25 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Wand2 size={16} />
+          Generate Setup
+          <ArrowRight size={14} />
+        </button>
+      </div>
+    )
+  }
+
+  // ── Generating phase ───────────────────────────────────────────────────────
+  if (phase === 'generating') {
+    return (
+      <div className="space-y-4">
+        <div className="bg-[#0F172A] rounded-xl p-5 flex flex-col gap-3">
+          {GENERATION_STAGES.map((s, i) => (
+            <div
+              key={s.label}
+              className={`flex items-center gap-3 text-sm font-medium transition-all duration-300 ${
+                i < stageIndex  ? 'text-[#14B8A6]' :
+                i === stageIndex ? 'text-white' :
+                                   'text-slate-600'
+              }`}
+            >
+              {i < stageIndex
+                ? <CheckCircle2 size={16} className="text-[#14B8A6] flex-shrink-0" />
+                : i === stageIndex
+                ? <Loader size={16} className="animate-spin flex-shrink-0 text-[#14B8A6]" />
+                : <div className="w-4 h-4 rounded-full border border-slate-700 flex-shrink-0" />
+              }
+              <span className="text-lg">{s.icon}</span>
+              {s.label}
             </div>
-            <div>
-              <OLabel>SMTP Username</OLabel>
-              <input
-                value={smtpUser}
-                onChange={e => setSmtpUser(e.target.value)}
-                placeholder="you@yourco.com"
-                className={OInput}
-              />
-            </div>
-            <div>
-              <OLabel>SMTP Port</OLabel>
-              <input defaultValue="587" className={OInput} />
-            </div>
+          ))}
+        </div>
+        <p className="text-center text-xs text-slate-400 font-medium animate-pulse">
+          AI is reading your description and generating your workspace configuration...
+        </p>
+      </div>
+    )
+  }
+
+  // ── Preview phase ──────────────────────────────────────────────────────────
+  if (phase === 'preview' && config) {
+    const { agency, roles, dashboard_widgets, initial_destinations } = config
+    return (
+      <div className="space-y-4">
+        {/* Agency type badge */}
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1 bg-[#14B8A6]/10 border border-[#14B8A6]/20 rounded-full text-xs font-black text-[#14B8A6] uppercase tracking-widest">
+            {agency.type.replace('_', ' ')}
+          </span>
+          <span className="text-sm font-black text-[#0F172A]">{agency.name}</span>
+          <button
+            onClick={() => setPhase('input')}
+            className="ml-auto text-[10px] font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-all"
+          >
+            <Pencil size={11} /> Edit
+          </button>
+        </div>
+
+        {/* Focus segments */}
+        <div className="flex flex-wrap gap-1.5">
+          {agency.focus_segments.map(seg => (
+            <span
+              key={seg}
+              className="px-2.5 py-1 bg-violet-50 border border-violet-100 rounded-full text-[10px] font-black text-violet-700 uppercase tracking-widest"
+            >
+              {seg}
+            </span>
+          ))}
+        </div>
+
+        {/* Team / Roles */}
+        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Your team structure</p>
+            <button className="text-[10px] font-bold text-[#14B8A6] hover:underline flex items-center gap-0.5">
+              <Pencil size={9} /> Edit
+            </button>
           </div>
-          <p className="text-xs text-slate-400 font-medium">
-            Email channel lets clients reply to quotes and confirmations directly into NAMA.
+          <div className="flex flex-col gap-2">
+            {roles.map(role => (
+              <div key={role.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    role.type === 'ADMIN'   ? 'bg-violet-500' :
+                    role.type === 'SALES'   ? 'bg-[#14B8A6]' :
+                    role.type === 'OPS'     ? 'bg-blue-500' :
+                                              'bg-amber-500'
+                  }`} />
+                  <span className="text-sm font-bold text-[#0F172A]">{role.name}</span>
+                </div>
+                <span className="text-xs font-medium text-slate-400">
+                  {role.count} {role.count === 1 ? 'person' : 'people'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium mt-3">
+            ~{agency.team_size_estimate} people total
           </p>
         </div>
-      )}
-    </div>
-  )
+
+        {/* Destinations */}
+        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+              <MapPin size={10} /> Focus destinations
+            </p>
+            <button className="text-[10px] font-bold text-[#14B8A6] hover:underline flex items-center gap-0.5">
+              <Pencil size={9} /> Edit
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {initial_destinations.map(dest => (
+              <span key={dest} className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-bold text-[#0F172A]">
+                {dest}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Dashboard widgets */}
+        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+              <LayoutDashboard size={10} /> Dashboard configured for your workflow
+            </p>
+            <button className="text-[10px] font-bold text-[#14B8A6] hover:underline flex items-center gap-0.5">
+              <Pencil size={9} /> Edit
+            </button>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {dashboard_widgets.map(widget => (
+              <div key={widget} className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                <CheckCircle2 size={13} className="text-emerald-500 flex-shrink-0" />
+                {WIDGET_LABELS[widget] ?? widget}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Apply CTA */}
+        <button
+          onClick={applyConfig}
+          disabled={applyLoading}
+          className="w-full flex items-center justify-center gap-2 bg-[#0F172A] text-white py-3.5 rounded-xl font-black text-sm hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-60"
+        >
+          {applyLoading
+            ? <><Loader size={14} className="animate-spin" /> Applying…</>
+            : <>Looks good — Apply <ArrowRight size={15} /></>
+          }
+        </button>
+      </div>
+    )
+  }
+
+  return null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -713,6 +923,9 @@ export default function OnboardingPage() {
     name: '', timezone: 'Asia/Kolkata', currency: 'INR',
   })
 
+  // Step 3 — AI Setup
+  const [agencyConfig, setAgencyConfig] = useState<AgencyConfigData | null>(null)
+
   // Step 4
   const [invites, setInvites] = useState<InviteRow[]>([
     { email: '', role: 'R3_SALES_MANAGER' },
@@ -777,6 +990,18 @@ export default function OnboardingPage() {
 
   const finish = useCallback((destination: string) => {
     try { localStorage.removeItem(LS_KEY) } catch (_) { /* ignore */ }
+
+    // Fire-and-forget: seed the workspace in the background, don't block navigation
+    try {
+      fetch('/api/v1/onboarding/seed-workspace', { method: 'POST' })
+        .then(() => {
+          try { localStorage.setItem('nama_workspace_seeded', '1') } catch (_) { /* ignore */ }
+        })
+        .catch(() => {
+          // Silently ignore — seeding is best-effort
+        })
+    } catch (_) { /* ignore */ }
+
     router.push(destination)
   }, [router])
 
@@ -852,10 +1077,10 @@ export default function OnboardingPage() {
                   {step === 3 && (
                     <>
                       <h2 className="text-xl font-black text-[#0F172A] tracking-tight">
-                        Connect your channels
+                        Let AI set up your agency in 30 seconds
                       </h2>
                       <p className="text-sm text-slate-500 font-medium mt-1">
-                        Route WhatsApp messages and emails into NAMA automatically.
+                        Describe your agency and we'll configure your team, roles, and dashboard automatically.
                       </p>
                     </>
                   )}
@@ -893,7 +1118,12 @@ export default function OnboardingPage() {
             )}
 
             {step === 3 && (
-              <StepChannels />
+              <StepAISetup
+                onConfigApplied={(cfg) => {
+                  setAgencyConfig(cfg)
+                  next(false)
+                }}
+              />
             )}
 
             {step === 4 && (

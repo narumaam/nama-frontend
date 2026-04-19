@@ -92,6 +92,78 @@
 
 **`can()` dep** (`deps.py`): `Depends(can("leads", "export"))` — override_deny → override_grant → roles → deny
 
+### ✅ Phase 3: DMC Marketplace + Content + Rates + Onboarding (2026-04-19)
+
+**VendorRate schema extended:**
+- `markup_amount` (flat INR/USD override), `cost_net_child`, `child_age_min`, `child_age_max`
+- `is_public` (DMC publishes gross rate), `visibility_type` (PRIVATE/PUBLIC/INVITE_ONLY)
+- `Vendor.is_dmc` flag — marks vendor as a DMC that publishes to marketplace
+- Migration: `e2f3a4b5c6d7_vendor_rate_child_pricing_dmc.py`
+
+**DMC Rate Marketplace:**
+- `GET /api/v1/marketplace/rates` — cross-tenant public rates (gross only, cost_net masked)
+- `GET /api/v1/marketplace/rates/{id}` — single rate detail
+- `POST /api/v1/marketplace/rates/{id}/snap` — copy rate into calling tenant's library
+- Frontend: "Rate Marketplace" tab in /dashboard/vendors — filter, browse, snap rates
+- "Publish as DMC" toggle on vendor settings
+
+**Rate Card CSV/Excel Import:**
+- `POST /api/v1/vendors/import` — fully implemented (was a stub)
+- Flexible column alias matching, pandas parser, upsert logic, import summary response
+- `GET /api/v1/vendors/import/template` — downloads CSV template
+- Added pandas==2.2.3 + openpyxl==3.1.5 to requirements.txt
+
+**Itinerary → Rate Card Pipeline:**
+- `GET /api/v1/itineraries/rate-lookup?vendor_id=&date=` — auto-finds matching rate by date+season
+- Frontend: vendor dropdown in itinerary block editor triggers live rate lookup
+- "Rate locked" badge on blocks with applied rates
+
+**Content Shared Library:**
+- `Destination.is_shared`, `is_master`, `source_tenant_id` + `ContentBlock` same fields
+- Migration: `f3a4b5c6d7e8_content_shared_library.py`
+- `GET /api/v1/content/destinations?include_shared=true` — returns own + master library
+- `GET /api/v1/content/image-search?q=` — Pexels API (falls back to Unsplash hardcoded)
+- `POST /api/v1/content/image-search/save` — saves selected image as MediaAsset
+- `seed_master_destinations()` — 10 NAMA-curated destinations ready to run
+
+**Server-side PDF + Send Quote:**
+- WeasyPrint replaces browser print dialog
+- `POST /api/v1/documents/quotation-pdf` — returns PDF bytes
+- `POST /api/v1/documents/send-quotation` — generates PDF + sends via Resend API
+- Frontend: "Download PDF" + "Send to Client" modal on quotations page
+
+**Vercel AI Gateway:**
+- `backend/app/core/ai_client.py` — centralized `get_ai_client()` / `get_async_ai_client()`
+- Routes through `https://gateway.ai.vercel.com/v1/{team_id}/nama-ai-gateway/anthropic` when env vars set
+- All agent files + copilot.py + ai_budget.py updated to use centralized client
+- **Railway action needed:** add `VERCEL_AI_GATEWAY_TEAM_ID=team_0ntK3Ywi8mYGSkVagPrRDXhd` + `VERCEL_AI_GATEWAY_NAME=nama-ai-gateway`
+
+**Role Builder wired:**
+- `rolesApi.list()`, `rolesApi.create()`, `rolesApi.updatePermissions()` added to `src/lib/api.ts`
+- Save button in /dashboard/roles calls `PUT /api/v1/roles/{id}/permissions`
+- Create Role calls `POST /api/v1/roles`
+- Both /dashboard/roles and /dashboard/org Role Builder tab fully wired
+- Backend roles pre-loaded on mount
+
+**Onboarding AI Setup Step:**
+- Step 3 replaced with AI Setup: describe agency → Claude generates AgencyConfig JSON DSL
+- `POST /api/v1/copilot/generate-config` — keyword fallback config if LLM unavailable
+- `POST /api/v1/onboarding/apply-config` — stores config per tenant
+- `POST /api/v1/onboarding/seed-workspace` — creates 2 leads + 1 itinerary + 1 quotation on completion
+- Dashboard welcome banner on first login (auto-dismisses)
+
+**UX: Setup Checklist + Product Tour:**
+- `src/components/ChecklistWidget.tsx` — floating "Get Started" widget (5 steps, localStorage-persisted)
+- `src/components/ProductTour.tsx` + `src/lib/tour.ts` — custom tooltip tour, no external packages
+- Leads page tour: 3 steps with `data-tour` targets
+- Itineraries page tour: 2 steps with `data-tour` targets
+
+**Content Library UI:**
+- Pexels image search tab with quick-search chips
+- Destination editor: AI Enhance button, cover image picker, meta-tag pills
+- NAMA Master Library tab (10 shared destinations)
+- "Use in itinerary" clipboard button on content blocks
+
 ### 🅱️ Parked — V6: NAMA Voice
 **Recommended stack:** Coqui TTS + OpenVoice + Bark + OpenRouter
 **High-ROI uses:** Voice itinerary narration, agent training sims, multi-language assistant
@@ -102,9 +174,28 @@
 
 ## Pending Actions (User Must Do)
 
-🟡 **ANTHROPIC_API_KEY in Railway** — needed for Copilot Live AI mode (revisit Tuesday)
+🟡 **ANTHROPIC_API_KEY in Railway** — needed for Copilot Live AI mode
 - Go to: Railway → `intuitive-blessing` service → Variables → add `ANTHROPIC_API_KEY`
-- Without this, Copilot runs in demo/simulation mode
+- Without this, Copilot runs in demo/simulation mode (OpenRouter Llama fallback active)
+
+🟡 **Vercel AI Gateway env vars in Railway** — needed for AI observability + caching
+- Add: `VERCEL_AI_GATEWAY_TEAM_ID=team_0ntK3Ywi8mYGSkVagPrRDXhd`
+- Add: `VERCEL_AI_GATEWAY_NAME=nama-ai-gateway`
+- Without these, Claude calls go direct to api.anthropic.com (still works, just no gateway logging)
+
+🟡 **PEXELS_API_KEY in Railway** — needed for live image search in Content library
+- Get free key at: https://www.pexels.com/api/
+- Add to Railway: `PEXELS_API_KEY=your_key`
+- Without this, image search returns 20 hardcoded Unsplash fallback images
+
+🟡 **RESEND_API_KEY in Railway** — needed for "Send Quote" email feature
+- Get key at: https://resend.com (free tier: 100 emails/day)
+- Add to Railway: `RESEND_API_KEY=re_...`
+- Without this, PDF download still works but email sending returns graceful error
+
+🟡 **Railway Static Outbound IP** — needed to fix automated runner blocking
+- Go to: Railway → `intuitive-blessing` → Settings → Networking → Enable Static Outbound IP
+- Whitelist the generated IP on any external APIs that block Railway
 
 ✅ **nama-web Vercel project env vars** — synced 2026-04-18
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NAMA_API_KEY`, `NEXT_PUBLIC_API_URL`, `NAMA_JWT_SECRET` (= Railway SECRET_KEY) all added

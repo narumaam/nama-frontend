@@ -44,6 +44,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  put: <T>(path: string, body: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }
@@ -79,6 +80,24 @@ export interface ItineraryBlock {
   cost_net?: number      // optional — seed data and AI output may omit internal cost
   price_gross: number
   currency: string
+  vendor_id?: number     // which vendor supplies this block
+  vendor_rate_id?: number // which VendorRate was locked in (for pricing traceability)
+}
+
+export interface RateLookupResult {
+  found: boolean
+  message?: string
+  rate_id?: number
+  vendor_id?: number
+  description?: string
+  season?: string
+  price_gross?: number
+  price_gross_child?: number | null
+  child_age_min?: number | null
+  child_age_max?: number | null
+  currency?: string
+  valid_from?: string | null
+  valid_until?: string | null
 }
 
 export interface ItineraryDay {
@@ -280,6 +299,11 @@ export const itinerariesApi = {
   generate: (data: ItineraryRequest) => api.post<ItineraryOut>('/api/v1/itineraries/generate', data),
   list: () => api.get<ItineraryOut[]>('/api/v1/itineraries/'),
   get: (id: number) => api.get<ItineraryOut>(`/api/v1/itineraries/${id}`),
+  rateLookup: (params: { vendor_id: number; date: string; category?: string }) => {
+    const q = new URLSearchParams({ vendor_id: String(params.vendor_id), date: params.date })
+    if (params.category) q.set('category', params.category)
+    return api.get<RateLookupResult>(`/api/v1/itineraries/rate-lookup?${q}`)
+  },
 }
 
 // Bookings
@@ -420,6 +444,29 @@ export const contentApi = {
   createDestination: (data: Destination) => api.post<Destination>('/api/v1/content/destinations', data),
   createAsset: (data: ContentAsset) => api.post<ContentAsset>('/api/v1/content/assets', data),
   createBlock: (data: ContentBlock) => api.post<ContentBlock>('/api/v1/content/blocks', data),
+}
+
+// RBAC Roles (Phase 2)
+export interface RolePermission {
+  permission: string
+  conditions?: Record<string, unknown>
+}
+
+export interface BackendRole {
+  id: string
+  name: string
+  description?: string
+  permissions: string[]
+  created_at?: string
+  updated_at?: string
+}
+
+export const rolesApi = {
+  list: () => api.get<BackendRole[]>('/api/v1/roles'),
+  create: (data: { name: string; description?: string; permissions?: string[] }) =>
+    api.post<BackendRole>('/api/v1/roles', data),
+  updatePermissions: (roleId: string, permissions: string[]) =>
+    api.put<BackendRole>(`/api/v1/roles/${roleId}/permissions`, { permissions }),
 }
 
 // Automations (M16)

@@ -160,8 +160,8 @@ async def _stream_comms_draft(
         return
 
     try:
-        import anthropic as _ant
-        client = _ant.AsyncAnthropic(api_key=api_key)
+        from app.core.ai_client import get_async_ai_client
+        client = get_async_ai_client(api_key=api_key)
         async with client.messages.stream(
             model="claude-haiku-4-5-20251001",
             max_tokens=max_tokens,

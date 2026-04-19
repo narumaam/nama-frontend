@@ -252,10 +252,10 @@ async def call_agent_with_controls(
             "from_fallback": True, "reason": "misconfigured_no_api_key",
         }
 
-    import anthropic
+    from app.core.ai_client import get_ai_client
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
+        client = get_ai_client(api_key=api_key)
         response = client.messages.create(
             model=model,
             max_tokens=max_tokens,

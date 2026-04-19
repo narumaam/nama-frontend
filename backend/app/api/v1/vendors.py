@@ -16,20 +16,25 @@ Endpoints:
   GET    /{vendor_id}/rates     → list rate cards
   POST   /{vendor_id}/rates     → add rate card
   DELETE /{vendor_id}/rates/{rate_id} → remove rate card
-  POST   /import                → bulk CSV import (future)
+  POST   /import                → bulk CSV/Excel import
+  GET    /import/template       → download blank CSV template
 """
 
+import io
 import logging
+import re
 from typing import List, Optional, Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import pandas as pd
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.api.v1.deps import require_tenant, RoleChecker
 from app.models.auth import UserRole
-from app.models.vendors import Vendor, VendorRate, VendorCategory, VendorStatus
+from app.models.vendors import Vendor, VendorRate, VendorCategory, VendorStatus, RateVisibility
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -45,6 +50,17 @@ class VendorRateOut(BaseModel):
     cost_net: float
     currency: str
     markup_pct: float
+    markup_amount: Optional[float] = None
+    # Child pricing
+    cost_net_child: Optional[float] = None
+    child_age_min: Optional[int] = None
+    child_age_max: Optional[int] = None
+    # DMC marketplace
+    is_public: bool = False
+    visibility_type: str = "PRIVATE"
+    # Computed gross rates (read-only)
+    price_gross: Optional[float] = None
+    price_gross_child: Optional[float] = None
     valid_from: Optional[Any] = None
     valid_until: Optional[Any] = None
 
@@ -72,6 +88,7 @@ class VendorOut(BaseModel):
     gst_number: Optional[str] = None
     is_preferred: bool
     is_verified: bool
+    is_dmc: bool = False
     tags: List[str]
     notes: Optional[str] = None
     rating: Optional[float] = None
@@ -100,6 +117,7 @@ class VendorCreate(BaseModel):
     gst_number: Optional[str] = None
     is_preferred: bool = False
     is_verified: bool = False
+    is_dmc: bool = False
     tags: List[str] = []
     notes: Optional[str] = None
     rating: Optional[float] = None
@@ -122,6 +140,7 @@ class VendorUpdate(BaseModel):
     gst_number: Optional[str] = None
     is_preferred: Optional[bool] = None
     is_verified: Optional[bool] = None
+    is_dmc: Optional[bool] = None
     tags: Optional[List[str]] = None
     notes: Optional[str] = None
     rating: Optional[float] = None
@@ -134,6 +153,14 @@ class VendorRateCreate(BaseModel):
     cost_net: float
     currency: str = "INR"
     markup_pct: float = 0.0
+    markup_amount: Optional[float] = None           # flat override; takes precedence over markup_pct
+    # Child pricing
+    cost_net_child: Optional[float] = None
+    child_age_min: Optional[int] = None
+    child_age_max: Optional[int] = None
+    # DMC marketplace
+    is_public: bool = False
+    visibility_type: str = "PRIVATE"
     valid_from: Optional[Any] = None
     valid_until: Optional[Any] = None
 
@@ -238,6 +265,7 @@ def create_vendor(
         gst_number=body.gst_number,
         is_preferred=body.is_preferred,
         is_verified=body.is_verified,
+        is_dmc=body.is_dmc,
         tags=body.tags or [],
         notes=body.notes,
         rating=body.rating,
@@ -309,15 +337,30 @@ def delete_vendor(
 @router.get("/{vendor_id}/rates", response_model=List[VendorRateOut], summary="List vendor rates")
 def list_rates(
     vendor_id: int,
+    public_only: Optional[bool] = Query(
+        None,
+        description="If true, return only rates marked is_public=True (DMC marketplace view)",
+    ),
     tenant_payload = Depends(require_tenant),
     db: Session = Depends(get_db),
 ):
+    """
+    List rate cards for a vendor.
+
+    Pass `?public_only=true` to retrieve only rates visible in the DMC marketplace
+    (is_public=True). Those responses expose the gross rate only — the raw cost_net
+    is still present here for the owning tenant's internal use; the marketplace
+    consumer view should apply its own filtering if needed.
+    """
     tenant_id = tenant_payload["tenant_id"]
     _get_vendor_or_404(vendor_id, tenant_id, db)
-    rates = db.query(VendorRate).filter(
+    q = db.query(VendorRate).filter(
         VendorRate.vendor_id == vendor_id,
         VendorRate.tenant_id == tenant_id,
-    ).all()
+    )
+    if public_only:
+        q = q.filter(VendorRate.is_public == True)  # noqa: E712
+    rates = q.all()
     return rates
 
 
@@ -342,6 +385,11 @@ def add_rate(
     except ValueError:
         cat_enum = VendorCategory.OTHER
 
+    try:
+        vis_enum = RateVisibility(body.visibility_type)
+    except ValueError:
+        vis_enum = RateVisibility.PRIVATE
+
     rate = VendorRate(
         vendor_id=vendor_id,
         tenant_id=tenant_id,
@@ -351,6 +399,12 @@ def add_rate(
         cost_net=body.cost_net,
         currency=body.currency,
         markup_pct=body.markup_pct,
+        markup_amount=body.markup_amount,
+        cost_net_child=body.cost_net_child,
+        child_age_min=body.child_age_min,
+        child_age_max=body.child_age_max,
+        is_public=body.is_public,
+        visibility_type=vis_enum,
         valid_from=body.valid_from,
         valid_until=body.valid_until,
     )
@@ -382,6 +436,374 @@ def delete_rate(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rate not found")
     db.delete(rate)
     db.commit()
+
+
+# ── Bulk Import ───────────────────────────────────────────────────────────────
+
+# Column alias maps: each key is the canonical field name, values are accepted CSV headers.
+_COLUMN_ALIASES: Dict[str, List[str]] = {
+    "hotel_name":   ["hotel_name", "vendor_name", "property", "supplier_name", "name"],
+    "description":  ["room_type", "description", "category_desc", "room_category", "product_desc"],
+    "category":     ["category", "vendor_type", "supplier_type", "type"],
+    "season":       ["season", "season_type", "rate_season"],
+    "cost_net":     ["net_rate", "cost_net", "rate", "price", "net_price", "cost"],
+    "currency":     ["currency", "cur", "ccy"],
+    "valid_from":   ["valid_from", "start_date", "from", "effective_from", "date_from"],
+    "valid_until":  ["valid_until", "end_date", "to", "effective_until", "date_to"],
+    "markup_pct":   ["markup_pct", "markup", "markup_%", "margin_pct"],
+    "markup_amount":["markup_amount", "flat_markup", "markup_flat"],
+    "cost_net_child":["child_rate", "net_rate_child", "cost_net_child", "child_cost"],
+    "child_age_min":["child_min_age", "child_age_min", "min_child_age"],
+    "child_age_max":["child_max_age", "child_age_max", "max_child_age"],
+    "country":      ["country", "vendor_country"],
+    "city":         ["city", "vendor_city", "location"],
+}
+
+
+def _normalize_columns(df: pd.DataFrame) -> Dict[str, str]:
+    """
+    Build a mapping of {canonical_name: actual_df_column} by matching
+    DataFrame columns (lowercased/stripped) against alias lists.
+    Returns only found mappings.
+    """
+    # Normalise the actual column names in the df
+    norm_map: Dict[str, str] = {}  # normalised_label → original column
+    for col in df.columns:
+        norm_map[col.lower().strip().replace(" ", "_")] = col
+
+    canonical_to_df: Dict[str, str] = {}
+    for canonical, aliases in _COLUMN_ALIASES.items():
+        for alias in aliases:
+            alias_norm = alias.lower().strip().replace(" ", "_")
+            if alias_norm in norm_map:
+                canonical_to_df[canonical] = norm_map[alias_norm]
+                break  # first match wins
+
+    return canonical_to_df
+
+
+def _parse_date(value: Any) -> Optional[Any]:
+    """Parse a single date value flexibly; return None on failure."""
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip().lower() in ("nan", "none", ""):
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    try:
+        parsed = pd.to_datetime(value, dayfirst=True, errors="raise")
+        return parsed.to_pydatetime() if not pd.isna(parsed) else None
+    except Exception:
+        return None
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    """Convert to float, stripping currency symbols; return None on failure."""
+    if pd.isna(value):
+        return None
+    try:
+        cleaned = re.sub(r"[^\d.\-]", "", str(value))
+        return float(cleaned) if cleaned else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_int(value: Any) -> Optional[int]:
+    f = _safe_float(value)
+    return int(f) if f is not None else None
+
+
+def _get_or_create_vendor(
+    name: str,
+    tenant_id: int,
+    country: Optional[str],
+    city: Optional[str],
+    db: Session,
+    vendor_cache: Dict[str, Vendor],
+) -> tuple[Vendor, bool]:
+    """Return (vendor, was_created). Uses an in-memory cache to avoid repeated DB hits."""
+    key = name.strip().lower()
+    if key in vendor_cache:
+        return vendor_cache[key], False
+
+    vendor = db.query(Vendor).filter(
+        Vendor.tenant_id == tenant_id,
+        Vendor.name == name.strip(),
+    ).first()
+
+    if vendor:
+        vendor_cache[key] = vendor
+        return vendor, False
+
+    # Generate a unique vendor_code (slugified name + short hash)
+    slug = re.sub(r"[^a-z0-9]", "", name.lower())[:12]
+    import hashlib
+    suffix = hashlib.md5(f"{tenant_id}:{name}".encode()).hexdigest()[:6].upper()
+    vendor_code = f"{slug.upper()}-{suffix}" if slug else f"V-{suffix}"
+
+    vendor = Vendor(
+        tenant_id=tenant_id,
+        vendor_code=vendor_code,
+        name=name.strip(),
+        category=VendorCategory.HOTEL,
+        status=VendorStatus.ACTIVE,
+        country=country,
+        city=city,
+        tags=[],
+    )
+    db.add(vendor)
+    db.flush()  # get vendor.id without committing yet
+    vendor_cache[key] = vendor
+    return vendor, True
+
+
+@router.post("/import", summary="Bulk import vendor rates from CSV or Excel")
+async def import_vendor_rates(
+    file: UploadFile = File(...),
+    tenant_payload=Depends(require_tenant),
+    db: Session = Depends(get_db),
+    _role=Depends(RoleChecker([UserRole.R2_ORG_ADMIN, UserRole.R4_OPS_EXECUTIVE])),
+):
+    """
+    Upload a CSV or Excel (.xlsx) file to bulk-create vendor rate cards.
+
+    Flexible column matching: accepts common DMC export column names.
+    Returns a summary of vendors found/created, rates inserted, and any
+    rows that were skipped with reasons.
+    """
+    tenant_id = tenant_payload["tenant_id"]
+
+    # ── 1. Read file into DataFrame ────────────────────────────────────────────
+    content = await file.read()
+    filename = (file.filename or "").lower()
+    content_type = (file.content_type or "").lower()
+
+    try:
+        if filename.endswith(".xlsx") or "spreadsheet" in content_type or "excel" in content_type:
+            df = pd.read_excel(io.BytesIO(content), dtype=str)
+        else:
+            # Default: CSV (also handles .csv explicit ext)
+            df = pd.read_csv(io.BytesIO(content), dtype=str)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Could not parse file: {exc}",
+        )
+
+    if df.empty:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty or has no rows.",
+        )
+
+    # ── 2. Normalise columns ───────────────────────────────────────────────────
+    col_map = _normalize_columns(df)
+
+    if "cost_net" not in col_map:
+        detected = list(df.columns)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"No net rate column found. Accepted names: net_rate, cost_net, rate, price. "
+                f"Columns detected in your file: {detected}"
+            ),
+        )
+
+    if "hotel_name" not in col_map:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "No vendor name column found. Accepted names: hotel_name, vendor_name, property. "
+                f"Columns detected: {list(df.columns)}"
+            ),
+        )
+
+    # ── 3. Process rows ────────────────────────────────────────────────────────
+    vendors_created = 0
+    vendors_found = 0
+    rates_created = 0
+    rows_skipped = 0
+    errors: List[str] = []
+    vendors_affected: List[str] = []
+    vendor_cache: Dict[str, Any] = {}
+
+    def _get(row: pd.Series, canonical: str, default: Any = None) -> Any:
+        col = col_map.get(canonical)
+        if col is None:
+            return default
+        val = row.get(col)
+        if val is None:
+            return default
+        try:
+            if pd.isna(val):
+                return default
+        except (TypeError, ValueError):
+            pass
+        # pandas with dtype=str can produce the literal string "nan"
+        if isinstance(val, str) and val.strip().lower() in ("nan", "none", ""):
+            return default
+        return val
+
+    for idx, row in df.iterrows():
+        row_num = int(idx) + 2  # 1-indexed, +1 for header row
+
+        # Vendor name (required)
+        vendor_name = _get(row, "hotel_name")
+        if not vendor_name or str(vendor_name).strip() == "":
+            errors.append(f"Row {row_num}: vendor name missing — row skipped")
+            rows_skipped += 1
+            continue
+
+        # Net rate (required)
+        raw_cost_net = _get(row, "cost_net")
+        cost_net = _safe_float(raw_cost_net)
+        if cost_net is None:
+            errors.append(f"Row {row_num}: net_rate missing or invalid ('{raw_cost_net}') — row skipped")
+            rows_skipped += 1
+            continue
+
+        # Optional vendor location fields
+        country = _get(row, "country") or None
+        city = _get(row, "city") or None
+        if country:
+            country = str(country).strip()
+        if city:
+            city = str(city).strip()
+
+        # Find or create vendor
+        try:
+            vendor, created = _get_or_create_vendor(
+                name=str(vendor_name).strip(),
+                tenant_id=tenant_id,
+                country=country,
+                city=city,
+                db=db,
+                vendor_cache=vendor_cache,
+            )
+        except Exception as exc:
+            errors.append(f"Row {row_num}: could not create vendor '{vendor_name}' — {exc}")
+            rows_skipped += 1
+            continue
+
+        if created:
+            vendors_created += 1
+        else:
+            if vendor.name not in vendors_affected:
+                vendors_found += 1
+
+        if vendor.name not in vendors_affected:
+            vendors_affected.append(vendor.name)
+
+        # Category
+        raw_cat = _get(row, "category", "HOTEL")
+        try:
+            cat_enum = VendorCategory(str(raw_cat).strip().upper())
+        except ValueError:
+            cat_enum = VendorCategory.HOTEL
+
+        # Season
+        season = str(_get(row, "season", "STANDARD")).strip().upper() or "STANDARD"
+
+        # Description
+        raw_desc = _get(row, "description")
+        description = str(raw_desc).strip() if raw_desc else None
+
+        # Currency
+        currency = str(_get(row, "currency", "INR")).strip().upper() or "INR"
+
+        # Dates
+        valid_from = _parse_date(_get(row, "valid_from"))
+        valid_until = _parse_date(_get(row, "valid_until"))
+
+        raw_valid_from = _get(row, "valid_from")
+        raw_valid_until = _get(row, "valid_until")
+        if raw_valid_from and valid_from is None:
+            errors.append(f"Row {row_num}: could not parse valid_from '{raw_valid_from}' — rate still imported")
+        if raw_valid_until and valid_until is None:
+            errors.append(f"Row {row_num}: could not parse valid_until '{raw_valid_until}' — rate still imported")
+
+        # Markup
+        markup_pct = _safe_float(_get(row, "markup_pct")) or 0.0
+        markup_amount = _safe_float(_get(row, "markup_amount"))
+
+        # Child pricing
+        cost_net_child = _safe_float(_get(row, "cost_net_child"))
+        child_age_min = _safe_int(_get(row, "child_age_min"))
+        child_age_max = _safe_int(_get(row, "child_age_max"))
+
+        rate = VendorRate(
+            vendor_id=vendor.id,
+            tenant_id=tenant_id,
+            season=season,
+            description=description,
+            category=cat_enum,
+            cost_net=cost_net,
+            currency=currency,
+            markup_pct=markup_pct,
+            markup_amount=markup_amount,
+            cost_net_child=cost_net_child,
+            child_age_min=child_age_min,
+            child_age_max=child_age_max,
+            is_public=False,
+            visibility_type=RateVisibility.PRIVATE,
+            valid_from=valid_from,
+            valid_until=valid_until,
+        )
+        db.add(rate)
+        rates_created += 1
+
+    # ── 4. Commit everything in one shot ──────────────────────────────────────
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Import commit failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error during import: {exc}",
+        )
+
+    logger.info(
+        f"Import complete: tenant={tenant_id} vendors_created={vendors_created} "
+        f"vendors_found={vendors_found} rates={rates_created} skipped={rows_skipped}"
+    )
+
+    return {
+        "summary": {
+            "vendors_created": vendors_created,
+            "vendors_found": vendors_found,
+            "rates_created": rates_created,
+            "rows_skipped": rows_skipped,
+            "errors": errors,
+        },
+        "vendors_affected": vendors_affected,
+    }
+
+
+_TEMPLATE_CSV = """\
+hotel_name,room_type,category,season,net_rate,currency,valid_from,valid_until,markup_pct,markup_amount,child_rate,child_min_age,child_max_age,country,city
+Soneva Fushi,Water Villa with Pool,HOTEL,HIGH,45000,USD,01/01/2025,31/03/2025,15,,22500,5,11,Maldives,North Male Atoll
+The Layar Villa,Two-Bedroom Pool Villa,HOTEL,LOW,28000,USD,01/05/2025,30/09/2025,12,,,,,Indonesia,Seminyak
+Indigo Airlines,Economy Class,AIRLINE,STANDARD,8500,INR,01/01/2025,31/12/2025,10,,,,,,
+"""
+
+
+@router.get("/import/template", summary="Download blank CSV import template")
+def get_import_template():
+    """
+    Returns a ready-to-fill CSV file showing the accepted column names
+    and example rows so DMC operators know exactly what format to use.
+    """
+    return StreamingResponse(
+        io.BytesIO(_TEMPLATE_CSV.encode("utf-8")),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=nama_rate_card_template.csv",
+        },
+    )
 
 
 # ── Stats endpoint (dashboard KPIs) ───────────────────────────────────────────

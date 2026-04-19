@@ -43,6 +43,7 @@ from app.api.v1 import automations as automations_router
 from app.api.v1 import investor as investor_router
 from app.api.v1 import feedback as feedback_router
 from app.api.v1 import roles as roles_router
+from app.api.v1 import marketplace as marketplace_router
 from app.db.session import engine, Base, init_performance_indexes
 from app.core.cache_warmer import start_background_warmer
 from app.core.rate_limiter import RateLimitMiddleware
@@ -268,8 +269,15 @@ app.include_router(automations_router.router, prefix="/api/v1/automations",  tag
 app.include_router(investor_router.router,    prefix="/api/v1/investor",     tags=["investor"])
 
 #   Feedback / NPS (P4-10)
-app.include_router(feedback_router.router, prefix="/api/v1/feedback", tags=["feedback"])
-app.include_router(roles_router.router,   prefix="/api/v1",           tags=["roles"])
+app.include_router(feedback_router.router,     prefix="/api/v1/feedback",     tags=["feedback"])
+app.include_router(roles_router.router,        prefix="/api/v1",              tags=["roles"])
+
+#   DMC Marketplace — cross-tenant public rate catalog
+app.include_router(marketplace_router.router,  prefix="/api/v1/marketplace",  tags=["marketplace"])
+
+#   Onboarding — seeded workspace on first login
+from app.api.v1 import onboarding as onboarding_router  # noqa: E402
+app.include_router(onboarding_router.router,   prefix="/api/v1/onboarding",   tags=["onboarding"])
 
 
 # ── Startup Event ─────────────────────────────────────────────────────────────

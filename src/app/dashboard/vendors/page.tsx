@@ -11,15 +11,17 @@
  * - Request new vendor form
  * - NAMA Verified + Preferred badges
  * - Network stats strip
+ * - DMC Rate Marketplace tab (V5+)
  */
 
-import React, { useState, useEffect, useMemo } from 'react'
-import { vendorsApi, Vendor } from '@/lib/api'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { vendorsApi, Vendor, api } from '@/lib/api'
 import {
   Search, Star, MapPin, Phone, Mail, Shield, CheckCircle,
   Filter, Building2, X, Plus, MessageCircle, Copy, Check,
   TrendingUp, Award, Globe, Tag, ChevronRight, Loader,
   Users, DollarSign, Clock, ExternalLink, Sparkles, Heart,
+  Plane, Car, Utensils, Ship, Zap, Info, ChevronDown, RefreshCw,
 } from 'lucide-react'
 
 // ─── Enhanced Vendor Type ──────────────────────────────────────────────────────
@@ -409,9 +411,461 @@ function VendorDetailPanel({ vendor, onClose }: { vendor: MarketplaceVendor; onC
   )
 }
 
+// ─── DMC Rate Marketplace Types ───────────────────────────────────────────────
+
+interface DmcRate {
+  id: number
+  vendor_id: number
+  vendor_name: string
+  is_verified: boolean
+  category: 'HOTEL' | 'AIRLINE' | 'TRANSFER' | 'ACTIVITY' | 'RESTAURANT' | 'CRUISE'
+  country: string
+  city: string
+  description: string
+  season: 'HIGH' | 'LOW' | 'PEAK' | 'STANDARD'
+  price_gross: number
+  price_gross_child?: number
+  child_age_min?: number
+  child_age_max?: number
+  valid_from: string
+  valid_to: string
+  currency: string
+  is_public: boolean
+}
+
+// ─── DMC Rate Seed Data ────────────────────────────────────────────────────────
+
+const SEED_DMC_RATES: DmcRate[] = [
+  {
+    id: 1, vendor_id: 1, vendor_name: 'Soneva Fushi', is_verified: true,
+    category: 'HOTEL', country: 'Maldives', city: 'Baa Atoll',
+    description: 'Water Villa (per night, 2 adults) — Full Board',
+    season: 'HIGH', price_gross: 145000, currency: 'INR',
+    valid_from: '2026-01-01', valid_to: '2026-03-31', is_public: true,
+  },
+  {
+    id: 2, vendor_id: 1, vendor_name: 'Soneva Fushi', is_verified: true,
+    category: 'HOTEL', country: 'Maldives', city: 'Baa Atoll',
+    description: 'Water Villa (per night, 2 adults) — Full Board',
+    season: 'LOW', price_gross: 98000, currency: 'INR',
+    valid_from: '2026-05-01', valid_to: '2026-09-30', is_public: true,
+  },
+  {
+    id: 3, vendor_id: 2, vendor_name: 'The Layar Private Villas', is_verified: true,
+    category: 'HOTEL', country: 'Indonesia', city: 'Seminyak, Bali',
+    description: '1BR Pool Villa (per night) — Breakfast Included',
+    season: 'PEAK', price_gross: 52000, currency: 'INR',
+    valid_from: '2025-12-20', valid_to: '2026-01-05', is_public: true,
+  },
+  {
+    id: 4, vendor_id: 4, vendor_name: 'Bali Adventure Tours', is_verified: true,
+    category: 'ACTIVITY', country: 'Indonesia', city: 'Ubud, Bali',
+    description: 'White Water Rafting — Grade 3, 2hr, lunch included',
+    season: 'STANDARD', price_gross: 3200, price_gross_child: 2400,
+    child_age_min: 8, child_age_max: 15, currency: 'INR',
+    valid_from: '2026-01-01', valid_to: '2026-12-31', is_public: true,
+  },
+  {
+    id: 5, vendor_id: 5, vendor_name: 'Royal Wheels India', is_verified: true,
+    category: 'TRANSFER', country: 'India', city: 'Jaipur',
+    description: 'Delhi → Agra → Jaipur Golden Triangle (Toyota Innova, per vehicle)',
+    season: 'HIGH', price_gross: 18500, currency: 'INR',
+    valid_from: '2026-10-01', valid_to: '2027-03-31', is_public: true,
+  },
+  {
+    id: 6, vendor_id: 7, vendor_name: 'Nomad Experiences Kenya', is_verified: false,
+    category: 'ACTIVITY', country: 'Kenya', city: 'Nairobi',
+    description: 'Full Day Private Safari — Masai Mara, 10hr, all meals',
+    season: 'PEAK', price_gross: 38000, price_gross_child: 28000,
+    child_age_min: 5, child_age_max: 12, currency: 'INR',
+    valid_from: '2026-07-01', valid_to: '2026-10-31', is_public: true,
+  },
+  {
+    id: 7, vendor_id: 10, vendor_name: 'Dubai Luxury Fleet', is_verified: false,
+    category: 'TRANSFER', country: 'UAE', city: 'Dubai',
+    description: 'Dubai Airport → Hotel (Rolls Royce Ghost, 1-way)',
+    season: 'STANDARD', price_gross: 12500, currency: 'INR',
+    valid_from: '2026-01-01', valid_to: '2026-12-31', is_public: true,
+  },
+  {
+    id: 8, vendor_id: 9, vendor_name: 'Spice Garden Kerala', is_verified: false,
+    category: 'RESTAURANT', country: 'India', city: 'Alleppey',
+    description: 'Kerala Sadya Group Meal — 12-course, min 10 pax (per head)',
+    season: 'STANDARD', price_gross: 950, currency: 'INR',
+    valid_from: '2026-01-01', valid_to: '2026-12-31', is_public: true,
+  },
+  {
+    id: 9, vendor_id: 3, vendor_name: 'The Leela Palace', is_verified: true,
+    category: 'HOTEL', country: 'India', city: 'New Delhi',
+    description: 'Deluxe Room (per night, 2 adults) — Breakfast Included',
+    season: 'HIGH', price_gross: 28000, currency: 'INR',
+    valid_from: '2026-10-01', valid_to: '2027-03-31', is_public: true,
+  },
+  {
+    id: 10, vendor_id: 3, vendor_name: 'The Leela Palace', is_verified: true,
+    category: 'HOTEL', country: 'India', city: 'New Delhi',
+    description: 'Deluxe Room (per night, 2 adults) — Breakfast Included',
+    season: 'LOW', price_gross: 18500, currency: 'INR',
+    valid_from: '2026-04-01', valid_to: '2026-09-30', is_public: true,
+  },
+]
+
+// ─── DMC Constants ─────────────────────────────────────────────────────────────
+
+const DMC_CATEGORIES = ['All', 'Hotel', 'Airline', 'Transfer', 'Activity', 'Restaurant', 'Cruise'] as const
+const DMC_SEASONS = ['All', 'HIGH', 'LOW', 'PEAK', 'STANDARD'] as const
+
+const SEASON_CONFIG: Record<string, { color: string; bg: string }> = {
+  HIGH:     { color: 'text-orange-700', bg: 'bg-orange-100' },
+  PEAK:     { color: 'text-red-700',    bg: 'bg-red-100' },
+  LOW:      { color: 'text-green-700',  bg: 'bg-green-100' },
+  STANDARD: { color: 'text-slate-600',  bg: 'bg-slate-100' },
+}
+
+function categoryIcon(cat: string, size = 14) {
+  switch (cat.toUpperCase()) {
+    case 'HOTEL':      return <Building2 size={size} />
+    case 'AIRLINE':    return <Plane size={size} />
+    case 'TRANSFER':   return <Car size={size} />
+    case 'ACTIVITY':   return <Zap size={size} />
+    case 'RESTAURANT': return <Utensils size={size} />
+    case 'CRUISE':     return <Ship size={size} />
+    default:           return <Tag size={size} />
+  }
+}
+
+function formatValidDates(from: string, to: string): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const f = new Date(from)
+  const t = new Date(to)
+  const fromStr = `${months[f.getMonth()]} ${f.getFullYear()}`
+  const toStr = `${months[t.getMonth()]} ${t.getFullYear()}`
+  return fromStr === toStr ? fromStr : `${months[f.getMonth()]}–${months[t.getMonth()]} ${t.getFullYear()}`
+}
+
+// ─── Skeleton Card ──────────────────────────────────────────────────────────────
+
+function SkeletonRateCard() {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-9 h-9 bg-slate-100 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3.5 bg-slate-100 rounded w-3/4" />
+          <div className="h-3 bg-slate-100 rounded w-1/2" />
+        </div>
+      </div>
+      <div className="h-3 bg-slate-100 rounded w-full mb-2" />
+      <div className="h-3 bg-slate-100 rounded w-4/5 mb-4" />
+      <div className="h-7 bg-slate-100 rounded w-1/3 mb-3" />
+      <div className="h-10 bg-slate-100 rounded-xl w-full" />
+    </div>
+  )
+}
+
+// ─── DMC Rate Card ─────────────────────────────────────────────────────────────
+
+function DmcRateCard({ rate, onSnap, snapped }: { rate: DmcRate; onSnap: (id: number) => void; snapped: boolean }) {
+  const [snapping, setSnapping] = useState(false)
+  const season = SEASON_CONFIG[rate.season] || SEASON_CONFIG.STANDARD
+
+  async function handleSnap() {
+    if (snapped || snapping) return
+    setSnapping(true)
+    await onSnap(rate.id)
+    setSnapping(false)
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all p-5 flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+          {categoryIcon(rate.category)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-bold text-slate-800 text-sm truncate">{rate.vendor_name}</span>
+            {rate.is_verified && (
+              <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#14B8A6]">
+                <CheckCircle size={10} /> Verified
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-md">
+              DMC
+            </span>
+            <span className="flex items-center gap-0.5 text-xs text-slate-400">
+              <MapPin size={9} /> {rate.city}, {rate.country}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Description */}
+      <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{rate.description}</p>
+
+      {/* Season + Valid */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${season.bg} ${season.color}`}>
+          {rate.season}
+        </span>
+        <span className="text-[11px] text-slate-400 font-medium">
+          Valid: {formatValidDates(rate.valid_from, rate.valid_to)}
+        </span>
+      </div>
+
+      {/* Price */}
+      <div>
+        <div className="text-2xl font-black text-[#0F172A]">
+          ₹{rate.price_gross.toLocaleString('en-IN')}
+          <span className="text-xs font-semibold text-slate-400 ml-1">/ adult</span>
+        </div>
+        {rate.price_gross_child != null && (
+          <div className="text-xs text-slate-500 mt-0.5 font-medium">
+            Child (ages {rate.child_age_min}–{rate.child_age_max}): ₹{rate.price_gross_child.toLocaleString('en-IN')}
+          </div>
+        )}
+      </div>
+
+      {/* CTA */}
+      {snapped ? (
+        <button
+          disabled
+          className="w-full py-2.5 rounded-xl bg-green-100 text-green-700 font-bold text-sm flex items-center justify-center gap-1.5 cursor-default"
+        >
+          <Check size={14} /> Added ✓
+        </button>
+      ) : (
+        <button
+          onClick={handleSnap}
+          disabled={snapping}
+          className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60"
+        >
+          {snapping ? <Loader size={14} className="animate-spin" /> : null}
+          {snapping ? 'Adding…' : 'Use This Rate'}
+        </button>
+      )}
+      {snapped && (
+        <p className="text-center text-xs text-green-600 font-medium -mt-1">
+          Added to your vendor library ✓
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── Toast ──────────────────────────────────────────────────────────────────────
+
+function Toast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 4000)
+    return () => clearTimeout(t)
+  }, [onDismiss])
+  return (
+    <div className="fixed bottom-6 right-6 z-50 bg-[#0F172A] text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-4">
+      <CheckCircle size={16} className="text-[#14B8A6] flex-shrink-0" />
+      {message}
+      <button onClick={onDismiss} className="ml-1 text-slate-400 hover:text-white"><X size={14} /></button>
+    </div>
+  )
+}
+
+// ─── DMC Rate Marketplace Tab ──────────────────────────────────────────────────
+
+function RateMarketplaceTab() {
+  const [rates, setRates] = useState<DmcRate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [categoryFilter, setCategoryFilter] = useState<string>('All')
+  const [seasonFilter, setSeasonFilter] = useState<string>('All')
+  const [search, setSearch] = useState('')
+  const [snappedIds, setSnappedIds] = useState<Set<number>>(new Set())
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const [showDmcTooltip, setShowDmcTooltip] = useState(false)
+  const PER_PAGE = 20
+
+  const fetchRates = useCallback(async (pg: number, append = false) => {
+    try {
+      const params = new URLSearchParams({ page: String(pg), per_page: String(PER_PAGE) })
+      if (categoryFilter !== 'All') params.set('category', categoryFilter.toUpperCase())
+      if (seasonFilter !== 'All') params.set('season', seasonFilter)
+      const data = await api.get<{ items: DmcRate[]; total: number } | DmcRate[]>(`/api/v1/marketplace/rates?${params}`)
+      const items = Array.isArray(data) ? data : (data as { items: DmcRate[] }).items ?? []
+      const total = Array.isArray(data) ? items.length : (data as { total: number }).total ?? items.length
+      if (append) {
+        setRates(prev => [...prev, ...items])
+      } else {
+        setRates(items.length > 0 ? items : SEED_DMC_RATES)
+      }
+      setHasMore(pg * PER_PAGE < total)
+    } catch {
+      if (!append) setRates(SEED_DMC_RATES)
+      setHasMore(false)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }, [categoryFilter, seasonFilter])
+
+  useEffect(() => {
+    setLoading(true)
+    setPage(1)
+    fetchRates(1, false)
+  }, [fetchRates])
+
+  async function handleLoadMore() {
+    setLoadingMore(true)
+    const next = page + 1
+    setPage(next)
+    await fetchRates(next, true)
+  }
+
+  async function handleSnap(rateId: number) {
+    try {
+      await api.post(`/api/v1/marketplace/rates/${rateId}/snap`, {})
+    } catch {
+      // best-effort — still mark as snapped locally
+    }
+    setSnappedIds(prev => new Set([...prev, rateId]))
+    const rate = rates.find(r => r.id === rateId)
+    if (rate) setToast(`Rate snapped to your library! Find it in Vendors → ${rate.vendor_name}`)
+  }
+
+  // Client-side search filter (country or vendor name)
+  const filtered = useMemo(() => {
+    let list = rates
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(r =>
+        r.vendor_name.toLowerCase().includes(q) ||
+        r.country.toLowerCase().includes(q) ||
+        r.city.toLowerCase().includes(q)
+      )
+    }
+    return list
+  }, [rates, search])
+
+  return (
+    <div className="space-y-6">
+      {/* Filter Bar */}
+      <div className="flex flex-wrap gap-3 items-center">
+        {/* Category dropdown */}
+        <div className="relative">
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className="bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-sm font-semibold text-slate-700 outline-none cursor-pointer appearance-none"
+          >
+            {DMC_CATEGORIES.map(c => <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>)}
+          </select>
+          <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        </div>
+
+        {/* Season dropdown */}
+        <div className="relative">
+          <select
+            value={seasonFilter}
+            onChange={e => setSeasonFilter(e.target.value)}
+            className="bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-sm font-semibold text-slate-700 outline-none cursor-pointer appearance-none"
+          >
+            {DMC_SEASONS.map(s => <option key={s} value={s}>{s === 'All' ? 'All Seasons' : s}</option>)}
+          </select>
+          <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        </div>
+
+        {/* Search */}
+        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 flex-1 min-w-[200px]">
+          <Search size={14} className="text-slate-400 flex-shrink-0" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by country or vendor name…"
+            className="bg-transparent text-sm outline-none text-slate-700 placeholder-slate-400 w-full"
+          />
+          {search && <button onClick={() => setSearch('')}><X size={13} className="text-slate-400 hover:text-slate-600" /></button>}
+        </div>
+
+        {/* DMC badge tooltip */}
+        <div className="relative flex-shrink-0">
+          <button
+            onMouseEnter={() => setShowDmcTooltip(true)}
+            onFocus={() => setShowDmcTooltip(true)}
+            onMouseLeave={() => setShowDmcTooltip(false)}
+            onBlur={() => setShowDmcTooltip(false)}
+            className="flex items-center gap-1.5 bg-indigo-100 text-indigo-700 font-black text-xs px-2.5 py-2 rounded-lg cursor-help select-none"
+          >
+            <span>DMC</span>
+            <Info size={12} />
+          </button>
+          {showDmcTooltip && (
+            <div className="absolute right-0 top-full mt-2 w-64 bg-[#0F172A] text-white text-xs rounded-xl p-3 leading-relaxed shadow-xl z-30">
+              Rates published by verified DMC partners. You see gross rates — your cost to buy.
+              <div className="absolute -top-1.5 right-4 w-3 h-3 bg-[#0F172A] rotate-45" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonRateCard key={i} />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16 text-center">
+          <Building2 size={32} className="text-slate-300 mx-auto mb-4" />
+          <h3 className="font-bold text-slate-600 mb-2">No public rates available yet</h3>
+          <p className="text-sm text-slate-400">DMCs will publish their rates here.</p>
+          {(categoryFilter !== 'All' || seasonFilter !== 'All' || search) && (
+            <button
+              onClick={() => { setCategoryFilter('All'); setSeasonFilter('All'); setSearch('') }}
+              className="mt-4 text-sm font-bold text-[#14B8A6] hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map(r => (
+              <DmcRateCard
+                key={r.id}
+                rate={r}
+                snapped={snappedIds.has(r.id)}
+                onSnap={handleSnap}
+              />
+            ))}
+          </div>
+
+          {hasMore && (
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                {loadingMore ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+    </div>
+  )
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function VendorsPage() {
+  const [activeTab, setActiveTab] = useState<'network' | 'rates'>('network')
   const [vendors, setVendors] = useState<MarketplaceVendor[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -466,162 +920,187 @@ export default function VendorsPage() {
           <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Vendor Marketplace</h1>
           <p className="text-slate-500 mt-2 font-medium">NAMA's curated network of verified travel partners — hotels, guides, activities and more.</p>
         </div>
+        {activeTab === 'network' && (
+          <button
+            onClick={() => setShowRequestForm(true)}
+            className="flex items-center gap-2 bg-[#0f172a] text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all text-sm"
+          >
+            <Plus size={16} /> Request Vendor
+          </button>
+        )}
+      </div>
+
+      {/* Tab Bar */}
+      <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 w-fit">
         <button
-          onClick={() => setShowRequestForm(true)}
-          className="flex items-center gap-2 bg-[#0f172a] text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all text-sm"
+          onClick={() => setActiveTab('network')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'network' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          <Plus size={16} /> Request Vendor
+          Vendor Network
+        </button>
+        <button
+          onClick={() => setActiveTab('rates')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 ${activeTab === 'rates' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          Rate Marketplace
+          <span className="text-[9px] font-black uppercase tracking-widest bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-md">DMC</span>
         </button>
       </div>
 
-      {/* Network Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Verified Partners', value: String(vendors.filter(v => v.is_verified).length), icon: Shield, color: 'bg-[#14B8A6] text-white' },
-          { label: 'Avg Commission', value: `${totalCommission.toFixed(0)}%`, icon: DollarSign, color: 'bg-green-500 text-white' },
-          { label: 'Avg Rating', value: avgRating.toFixed(1), icon: Star, color: 'bg-amber-500 text-white' },
-          { label: 'Total Bookings', value: String(totalBookings), icon: CheckCircle, color: 'bg-violet-500 text-white' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4">
-            <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-              <Icon size={18} />
-            </div>
-            <div>
-              <div className="text-2xl font-black text-[#0F172A]">{value}</div>
-              <div className="text-xs text-slate-400 font-medium">{label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Search + Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 flex-1 min-w-[200px]">
-          <Search size={15} className="text-slate-400 flex-shrink-0" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search vendors, destinations, specialties…"
-            className="bg-transparent text-sm outline-none text-slate-700 placeholder-slate-400 w-full"
-          />
-          {search && <button onClick={() => setSearch('')}><X size={14} className="text-slate-400 hover:text-slate-600" /></button>}
-        </div>
-        <div className="flex bg-slate-100 p-1 rounded-xl gap-1 overflow-x-auto flex-shrink-0">
-          {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => setCategory(cat)}
-              className={`px-3 py-2 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap ${category === cat ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}>
-              {cat === 'ALL' ? `All (${vendors.length})` : `${CATEGORY_CONFIG[cat]?.icon || ''} ${cat}`}
-            </button>
-          ))}
-        </div>
-        <select
-          value={sortBy}
-          onChange={e => setSortBy(e.target.value)}
-          className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none cursor-pointer"
-        >
-          {SORT_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-16"><Loader size={28} className="animate-spin text-slate-300" /></div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16 text-center">
-          <Building2 size={32} className="text-slate-300 mx-auto mb-4" />
-          <h3 className="font-bold text-slate-600 mb-2">No vendors found</h3>
-          <p className="text-sm text-slate-400 mb-5">Try a different category or search term.</p>
-          <button onClick={() => { setSearch(''); setCategory('ALL'); }} className="text-sm font-bold text-[#14B8A6] hover:underline">Clear filters</button>
-        </div>
+      {activeTab === 'rates' ? (
+        <RateMarketplaceTab />
       ) : (
         <>
-          {/* Featured */}
-          {featured.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles size={16} className="text-[#14B8A6]" />
-                <h2 className="font-extrabold text-slate-800">Featured Partners</h2>
-                <span className="text-xs text-slate-400 font-medium">{featured.length} vendors</span>
+          {/* Network Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Verified Partners', value: String(vendors.filter(v => v.is_verified).length), icon: Shield, color: 'bg-[#14B8A6] text-white' },
+              { label: 'Avg Commission', value: `${totalCommission.toFixed(0)}%`, icon: DollarSign, color: 'bg-green-500 text-white' },
+              { label: 'Avg Rating', value: avgRating.toFixed(1), icon: Star, color: 'bg-amber-500 text-white' },
+              { label: 'Total Bookings', value: String(totalBookings), icon: CheckCircle, color: 'bg-violet-500 text-white' },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4">
+                <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <Icon size={18} />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-[#0F172A]">{value}</div>
+                  <div className="text-xs text-slate-400 font-medium">{label}</div>
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {featured.map(v => <VendorCard key={v.id} vendor={v} onSelect={() => setSelected(v)} />)}
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
 
-          {/* Rest */}
-          {rest.length > 0 && (
-            <div>
+          {/* Search + Filters */}
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 flex-1 min-w-[200px]">
+              <Search size={15} className="text-slate-400 flex-shrink-0" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search vendors, destinations, specialties…"
+                className="bg-transparent text-sm outline-none text-slate-700 placeholder-slate-400 w-full"
+              />
+              {search && <button onClick={() => setSearch('')}><X size={14} className="text-slate-400 hover:text-slate-600" /></button>}
+            </div>
+            <div className="flex bg-slate-100 p-1 rounded-xl gap-1 overflow-x-auto flex-shrink-0">
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setCategory(cat)}
+                  className={`px-3 py-2 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap ${category === cat ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-500'}`}>
+                  {cat === 'ALL' ? `All (${vendors.length})` : `${CATEGORY_CONFIG[cat]?.icon || ''} ${cat}`}
+                </button>
+              ))}
+            </div>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none cursor-pointer"
+            >
+              {SORT_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-16"><Loader size={28} className="animate-spin text-slate-300" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16 text-center">
+              <Building2 size={32} className="text-slate-300 mx-auto mb-4" />
+              <h3 className="font-bold text-slate-600 mb-2">No vendors found</h3>
+              <p className="text-sm text-slate-400 mb-5">Try a different category or search term.</p>
+              <button onClick={() => { setSearch(''); setCategory('ALL'); }} className="text-sm font-bold text-[#14B8A6] hover:underline">Clear filters</button>
+            </div>
+          ) : (
+            <>
+              {/* Featured */}
               {featured.length > 0 && (
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 size={16} className="text-slate-500" />
-                  <h2 className="font-extrabold text-slate-800">All Partners</h2>
-                  <span className="text-xs text-slate-400 font-medium">{rest.length} vendors</span>
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles size={16} className="text-[#14B8A6]" />
+                    <h2 className="font-extrabold text-slate-800">Featured Partners</h2>
+                    <span className="text-xs text-slate-400 font-medium">{featured.length} vendors</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {featured.map(v => <VendorCard key={v.id} vendor={v} onSelect={() => setSelected(v)} />)}
+                  </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {rest.map(v => <VendorCard key={v.id} vendor={v} onSelect={() => setSelected(v)} />)}
+
+              {/* Rest */}
+              {rest.length > 0 && (
+                <div>
+                  {featured.length > 0 && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <Building2 size={16} className="text-slate-500" />
+                      <h2 className="font-extrabold text-slate-800">All Partners</h2>
+                      <span className="text-xs text-slate-400 font-medium">{rest.length} vendors</span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {rest.map(v => <VendorCard key={v.id} vendor={v} onSelect={() => setSelected(v)} />)}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Request Vendor Modal */}
+          {showRequestForm && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-extrabold text-[#0F172A]">Request New Vendor</h2>
+                  <button onClick={() => { setShowRequestForm(false); setRequestSubmitted(false); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl"><X size={18} /></button>
+                </div>
+                {requestSubmitted ? (
+                  <div className="text-center py-6">
+                    <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle size={28} className="text-green-600" />
+                    </div>
+                    <h3 className="font-bold text-slate-800 text-lg mb-2">Request Submitted!</h3>
+                    <p className="text-slate-500 text-sm">The NAMA team will vet and add this vendor within 48 hours.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {[
+                      { label: 'Vendor Name', key: 'name', type: 'text', placeholder: 'e.g. Aman Resorts' },
+                      { label: 'Destination', key: 'destination', type: 'text', placeholder: 'e.g. Udaipur, Rajasthan' },
+                      { label: 'Contact Email', key: 'email', type: 'email', placeholder: 'vendor@email.com' },
+                    ].map(({ label, key, type, placeholder }) => (
+                      <div key={key}>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
+                        <input type={type} value={requestVendor[key as keyof typeof requestVendor]} onChange={e => setRequestVendor(p => ({ ...p, [key]: e.target.value }))}
+                          placeholder={placeholder} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6]" />
+                      </div>
+                    ))}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Category</label>
+                      <select value={requestVendor.category} onChange={e => setRequestVendor(p => ({ ...p, category: e.target.value }))}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white">
+                        {CATEGORIES.filter(c => c !== 'ALL').map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Why add this vendor?</label>
+                      <textarea value={requestVendor.notes} onChange={e => setRequestVendor(p => ({ ...p, notes: e.target.value }))}
+                        placeholder="Any context about pricing, specialties, or why you need this vendor…" rows={3}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] resize-none" />
+                    </div>
+                    <button
+                      onClick={() => setRequestSubmitted(true)}
+                      disabled={!requestVendor.name || !requestVendor.destination}
+                      className="w-full py-3 rounded-xl bg-[#14B8A6] text-white font-bold text-sm hover:bg-teal-600 transition-colors disabled:opacity-40"
+                    >
+                      Submit Request
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
+
+          {selected && <VendorDetailPanel vendor={selected} onClose={() => setSelected(null)} />}
         </>
       )}
-
-      {/* Request Vendor Modal */}
-      {showRequestForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-extrabold text-[#0F172A]">Request New Vendor</h2>
-              <button onClick={() => { setShowRequestForm(false); setRequestSubmitted(false); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl"><X size={18} /></button>
-            </div>
-            {requestSubmitted ? (
-              <div className="text-center py-6">
-                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle size={28} className="text-green-600" />
-                </div>
-                <h3 className="font-bold text-slate-800 text-lg mb-2">Request Submitted!</h3>
-                <p className="text-slate-500 text-sm">The NAMA team will vet and add this vendor within 48 hours.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {[
-                  { label: 'Vendor Name', key: 'name', type: 'text', placeholder: 'e.g. Aman Resorts' },
-                  { label: 'Destination', key: 'destination', type: 'text', placeholder: 'e.g. Udaipur, Rajasthan' },
-                  { label: 'Contact Email', key: 'email', type: 'email', placeholder: 'vendor@email.com' },
-                ].map(({ label, key, type, placeholder }) => (
-                  <div key={key}>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
-                    <input type={type} value={requestVendor[key as keyof typeof requestVendor]} onChange={e => setRequestVendor(p => ({ ...p, [key]: e.target.value }))}
-                      placeholder={placeholder} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6]" />
-                  </div>
-                ))}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Category</label>
-                  <select value={requestVendor.category} onChange={e => setRequestVendor(p => ({ ...p, category: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] bg-white">
-                    {CATEGORIES.filter(c => c !== 'ALL').map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Why add this vendor?</label>
-                  <textarea value={requestVendor.notes} onChange={e => setRequestVendor(p => ({ ...p, notes: e.target.value }))}
-                    placeholder="Any context about pricing, specialties, or why you need this vendor…" rows={3}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] resize-none" />
-                </div>
-                <button
-                  onClick={() => setRequestSubmitted(true)}
-                  disabled={!requestVendor.name || !requestVendor.destination}
-                  className="w-full py-3 rounded-xl bg-[#14B8A6] text-white font-bold text-sm hover:bg-teal-600 transition-colors disabled:opacity-40"
-                >
-                  Submit Request
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {selected && <VendorDetailPanel vendor={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }

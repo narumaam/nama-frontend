@@ -21,8 +21,9 @@ import {
   CheckCircle, X, Search, Zap, Eye, EyeOff, Save,
   RotateCcw, Star, ArrowRight, Info, Filter, UserPlus,
   ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Edit3,
-  Sliders, History, AlertCircle, Sparkles,
+  Sliders, History, AlertCircle, Sparkles, Loader2,
 } from 'lucide-react'
+import { api, rolesApi } from '@/lib/api'
 
 // ─── Permission atoms ─────────────────────────────────────────────────────────
 
@@ -840,6 +841,8 @@ export default function RolesPage() {
   const [search, setSearch]             = useState('')
   const [saving, setSaving]             = useState(false)
   const [saved, setSaved]               = useState(false)
+  const [creating, setCreating]         = useState(false)
+  const [toast, setToast]               = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [showCreateModal, setShowCreate]= useState(false)
   const [showAssignPanel, setShowAssign]= useState(false)
   const [users]                         = useState<UserAssignment[]>(SEED_USERS)
@@ -858,6 +861,60 @@ export default function RolesPage() {
     r.description.toLowerCase().includes(search.toLowerCase())
   )
 
+  const showToast = (msg: string, type: 'success' | 'error') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }
+
+  // On mount: fetch roles from backend and merge with seed data
+  useEffect(() => {
+    rolesApi.list().then(backendRoles => {
+      if (!backendRoles || backendRoles.length === 0) return
+      // Merge: backend roles take precedence by id; seed roles fill gaps
+      setRoles(prev => {
+        const byId = new Map(prev.map(r => [r.id, r]))
+        backendRoles.forEach(br => {
+          const existing = byId.get(br.id)
+          if (existing) {
+            // Rebuild permissions from backend flat array
+            const perms: Record<PermKey, Permission> = {}
+            br.permissions.forEach(p => {
+              perms[p] = { state: 'on', conditions: { ...EMPTY_CONDITION } }
+            })
+            byId.set(br.id, {
+              ...existing,
+              name: br.name,
+              description: br.description ?? existing.description,
+              permissions: perms,
+            })
+          } else {
+            // New role from backend — add it
+            const perms: Record<PermKey, Permission> = {}
+            br.permissions.forEach(p => {
+              perms[p] = { state: 'on', conditions: { ...EMPTY_CONDITION } }
+            })
+            byId.set(br.id, {
+              id: br.id,
+              name: br.name,
+              description: br.description ?? '',
+              color: '#64748b',
+              icon: '🔑',
+              isTemplate: false,
+              isLocked: false,
+              memberCount: 0,
+              version: 1,
+              createdAt: br.created_at ?? new Date().toISOString().split('T')[0],
+              permissions: perms,
+            })
+          }
+        })
+        return Array.from(byId.values())
+      })
+    }).catch(() => {
+      // Backend unreachable — silently use seed data
+    })
+  }, [])
+
   const updatePermission = useCallback((key: PermKey, perm: Permission) => {
     setRoles(prev => prev.map(r =>
       r.id === selectedRoleId
@@ -867,33 +924,84 @@ export default function RolesPage() {
   }, [selectedRoleId])
 
   const saveRole = async () => {
+    if (!selectedRole || selectedRole.isLocked) return
     setSaving(true)
-    await new Promise(r => setTimeout(r, 700))
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    try {
+      // Collect all granted/conditional permission keys
+      const permissionKeys = Object.entries(selectedRole.permissions)
+        .filter(([, p]) => p.state !== 'off')
+        .map(([key]) => key)
+
+      await rolesApi.updatePermissions(selectedRole.id, permissionKeys)
+      setSaved(true)
+      showToast('Role permissions saved successfully', 'success')
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to save role', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const createRole = () => {
+  const createRole = async () => {
     if (!newName.trim()) return
+    setCreating(true)
     const base = cloneFrom ? roles.find(r => r.id === cloneFrom) : null
-    const newRole: Role = {
-      id:          `role_${Date.now()}`,
-      name:        newName.trim(),
-      description: newDesc.trim() || 'Custom role',
-      color:       newColor,
-      icon:        newIcon,
-      isTemplate:  false,
-      isLocked:    false,
-      memberCount: 0,
-      version:     1,
-      createdAt:   new Date().toISOString().split('T')[0],
-      permissions: base ? { ...base.permissions } : {},
+    const basePermKeys = base
+      ? Object.entries(base.permissions).filter(([, p]) => p.state !== 'off').map(([k]) => k)
+      : []
+
+    try {
+      const created = await rolesApi.create({
+        name: newName.trim(),
+        description: newDesc.trim() || 'Custom role',
+        permissions: basePermKeys,
+      })
+
+      const perms: Record<PermKey, Permission> = {}
+      created.permissions.forEach(p => {
+        perms[p] = { state: 'on', conditions: { ...EMPTY_CONDITION } }
+      })
+
+      const newRole: Role = {
+        id:          created.id,
+        name:        created.name,
+        description: (created.description ?? newDesc.trim()) || 'Custom role',
+        color:       newColor,
+        icon:        newIcon,
+        isTemplate:  false,
+        isLocked:    false,
+        memberCount: 0,
+        version:     1,
+        createdAt:   created.created_at ?? new Date().toISOString().split('T')[0],
+        permissions: perms,
+      }
+      setRoles(prev => [...prev, newRole])
+      setSelectedId(newRole.id)
+      showToast(`Role "${newRole.name}" created`, 'success')
+    } catch (err) {
+      // Fallback: create locally if API fails
+      const newRole: Role = {
+        id:          `role_${Date.now()}`,
+        name:        newName.trim(),
+        description: newDesc.trim() || 'Custom role',
+        color:       newColor,
+        icon:        newIcon,
+        isTemplate:  false,
+        isLocked:    false,
+        memberCount: 0,
+        version:     1,
+        createdAt:   new Date().toISOString().split('T')[0],
+        permissions: base ? { ...base.permissions } : {},
+      }
+      setRoles(prev => [...prev, newRole])
+      setSelectedId(newRole.id)
+      showToast(err instanceof Error ? err.message : 'Created locally (backend offline)', 'error')
+    } finally {
+      setCreating(false)
+      setShowCreate(false)
+      setNewName(''); setNewDesc(''); setCloneFrom('')
     }
-    setRoles(prev => [...prev, newRole])
-    setSelectedId(newRole.id)
-    setShowCreate(false)
-    setNewName(''); setNewDesc(''); setCloneFrom('')
   }
 
   const deleteRole = (id: string) => {
@@ -909,6 +1017,21 @@ export default function RolesPage() {
 
   return (
     <div className="space-y-6">
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-bold transition-all ${
+          toast.type === 'success'
+            ? 'bg-emerald-600 text-white'
+            : 'bg-red-600 text-white'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+          {toast.msg}
+          <button onClick={() => setToast(null)} className="ml-2 opacity-70 hover:opacity-100">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -1046,7 +1169,11 @@ export default function RolesPage() {
                   {!selectedRole.isLocked && (
                     <button onClick={saveRole} disabled={saving}
                       className="flex items-center gap-1.5 px-4 py-2 bg-[#14B8A6] text-white rounded-xl text-xs font-bold hover:bg-teal-600 transition-all disabled:opacity-60">
-                      {saving ? <>Saving…</> : saved ? <><CheckCircle size={13} /> Saved!</> : <><Save size={13} /> Save</>}
+                      {saving
+                        ? <><Loader2 size={13} className="animate-spin" /> Saving…</>
+                        : saved
+                        ? <><CheckCircle size={13} /> Saved!</>
+                        : <><Save size={13} /> Save</>}
                     </button>
                   )}
                 </div>
@@ -1313,9 +1440,11 @@ export default function RolesPage() {
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
               <button onClick={() => setShowCreate(false)}
                 className="px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700">Cancel</button>
-              <button onClick={createRole} disabled={!newName.trim()}
+              <button onClick={createRole} disabled={!newName.trim() || creating}
                 className="flex items-center gap-2 px-5 py-2.5 bg-[#0F172A] text-white rounded-xl text-sm font-bold hover:bg-slate-800 disabled:opacity-40 transition-all">
-                <Plus size={14} /> Create Role
+                {creating
+                  ? <><Loader2 size={14} className="animate-spin" /> Creating…</>
+                  : <><Plus size={14} /> Create Role</>}
               </button>
             </div>
           </div>
