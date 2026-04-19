@@ -8,7 +8,7 @@ import {
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
-  UserCheck, Contact,
+  UserCheck, Contact, Building2, Shield,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -143,6 +143,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
     {
       name: 'Integrations', href: '/dashboard/integrations', icon: Plug,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'Org & Control', href: '/dashboard/org', icon: Building2, badge: 'New',
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'Role Builder', href: '/dashboard/roles', icon: Shield,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
     },
     {

@@ -50,6 +50,32 @@
 - EmptyState wired to leads, bookings, clients pages
 - **Frontend proxy fix (src/lib/api.ts):** browser on production now always uses relative URLs → vercel.json proxies to Railway, eliminating CORS failures on /api/v1/leads, /api/v1/bookings, /api/v1/quotations
 
+### ✅ Phase 1 Features (2026-04-19)
+
+**Self-Onboarding Wizard v2** (src/app/onboarding/page.tsx — 967 lines)
+- 6-step wizard: Welcome → Live AI Triage Demo → Connect Channels → Build Team → AI Workspace → Launch
+- Step 2 = WOW moment: WhatsApp bubble → 3-phase extraction animation → SVG ring 0→87% (requestAnimationFrame)
+- Step 6: CSS confetti, elapsed time display, dual CTA (leads or dashboard)
+- localStorage key `nama_onboarding_v2`, per-step timing labels
+
+**Org & Control Room** (src/app/dashboard/org/page.tsx — 1311 lines, NEW)
+- Tab 1 Founder Intelligence: KPI cards, revenue-leak AI banner, agent leaderboard, risk feed
+- Tab 2 Org Chart: pure CSS flexbox tree with ghost Add Member leaves
+- Tab 3 Role Builder: 6-role selector + 22-permission toggle matrix, inline role creation
+- Tab 4 Team Management: inline invite, table, bulk actions, per-member menus
+- Tab 5 Subscription: usage bars, plan comparison, CSS bar chart
+- Wired into sidebar as "Org & Control" (R0/R1/R2, Building2 icon, New badge)
+
+**Landing Page Rewrite** (src/app/page.tsx — 894 lines)
+- Pain-focused hero copy, Pain section (3 dark scenario cards)
+- AI Differentiators 2x2 grid with sample AI output blocks
+- Before/After comparison section, final CTA with ambient glow
+- "240+ agencies" social proof, all live triage demo retained
+
+**AI Lead Scoring v2** (backend/app/api/v1/copilot.py + leads/page.tsx)
+- POST /api/v1/copilot/score-lead → OpenRouter LLM scoring with heuristic fallback
+- Leads AI tab shows live LLM score with provider badge, loading spinner
+
 ### 🅱️ Parked — V6: NAMA Voice
 **Recommended stack:** Coqui TTS + OpenVoice + Bark + OpenRouter
 **High-ROI uses:** Voice itinerary narration, agent training sims, multi-language assistant
