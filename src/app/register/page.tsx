@@ -25,10 +25,18 @@ import { authApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 
 const JOURNEY_STEPS = [
-// ... (JOURNEY_STEPS remains the same)
+  { icon: Zap,         title: 'AI analyses your agency profile', desc: 'Tell us about your agency in plain English — NAMA configures itself.' },
+  { icon: Users,       title: 'Invite your team',               desc: 'Add agents and ops staff with role-based access in seconds.' },
+  { icon: Map,         title: 'Import your leads & bookings',    desc: 'Bring your existing data — CSV upload or manual entry.' },
+  { icon: TrendingUp,  title: 'Go live in under 4 minutes',     desc: 'Start managing leads, quotes and bookings immediately.' },
 ]
 
-// ... (PASSWORD_RULES remains the same)
+const PASSWORD_RULES = [
+  { label: 'At least 8 characters', rule: (p: string) => p.length >= 8 },
+  { label: 'One uppercase letter',  rule: (p: string) => /[A-Z]/.test(p) },
+  { label: 'One number',            rule: (p: string) => /[0-9]/.test(p) },
+  { label: 'One special character', rule: (p: string) => /[^A-Za-z0-9]/.test(p) },
+]
 
 export default function RegisterPage() {
   const router = useRouter()

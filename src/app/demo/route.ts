@@ -12,14 +12,15 @@ export async function GET(request: Request) {
   
   const response = NextResponse.redirect(dashboardUrl)
   
-  // Set the demo cookie (valid for 1 hour)
-  // sameSite: 'strict' prevents cross-site cookie submission
-  // httpOnly: false is intentional — client-side JS reads this to adjust UI
+  // Set the demo cookie as a SESSION cookie (no maxAge) so it expires
+  // automatically when the browser is closed. This prevents stale demo
+  // access — users must actively click "See Demo" each session.
+  // httpOnly: false is intentional — client-side JS reads this for UI state.
   response.cookies.set('nama_demo', '1', {
     path: '/',
-    maxAge: 3600,
-    sameSite: 'strict',
+    sameSite: 'lax',   // lax (not strict) so the cookie sends on top-level navigations
     httpOnly: false,
+    // No maxAge / no expires → session cookie, cleared on browser close
   })
   
   return response

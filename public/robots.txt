@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /pricing
+Allow: /terms
+Allow: /privacy
+Allow: /byok-calculator
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /owner/
+Disallow: /super-admin/
+Disallow: /portal/
+Sitemap: https://getnama.app/sitemap.xml

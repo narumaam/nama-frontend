@@ -50,16 +50,16 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Detect demo mode
+  // Detect demo mode — source of truth is ONLY the session cookie.
+  // localStorage was previously used as a secondary flag but caused stale
+  // demo access (users could enter the dashboard without clicking Demo again).
+  // Now: if cookie is gone (browser closed / explicit exit), demo mode is off.
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isLocal = localStorage.getItem('nama_demo_mode') === '1';
       const isCookie = document.cookie.split(';').some((item) => item.trim().startsWith('nama_demo=1'));
-      
-      if (isCookie && !isLocal) {
-        localStorage.setItem('nama_demo_mode', '1');
-      }
-      setIsDemoMode(isLocal || isCookie);
+      // Clean up any stale localStorage demo flag
+      if (!isCookie) localStorage.removeItem('nama_demo_mode');
+      setIsDemoMode(isCookie);
     }
   }, []);
 

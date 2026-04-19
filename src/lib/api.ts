@@ -21,14 +21,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
 
   // 401 → token expired/invalid → force logout and redirect to login with banner
+  // Skip the redirect when in demo mode — demo users have no real JWT so 401s are
+  // expected from Railway; the page will fall back to seed data via .catch().
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('nama_token')
-      localStorage.removeItem('nama_user')
-      document.cookie = 'nama_auth=; path=/; max-age=0; SameSite=Strict'
-      document.cookie = 'nama_demo=; path=/; max-age=0; SameSite=Lax'
-      localStorage.removeItem('nama_demo_mode')
-      window.location.href = '/login?expired=1'
+      const isDemo = document.cookie.split(';').some((c) => c.trim().startsWith('nama_demo=1'))
+      if (!isDemo) {
+        localStorage.removeItem('nama_token')
+        localStorage.removeItem('nama_user')
+        document.cookie = 'nama_auth=; path=/; max-age=0; SameSite=Strict'
+        window.location.href = '/login?expired=1'
+      }
     }
     throw new Error('Session expired. Please log in again.')
   }

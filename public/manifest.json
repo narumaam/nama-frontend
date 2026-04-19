@@ -23,24 +23,17 @@
   ],
   "shortcuts": [
     {
-      "name": "Query Inbox",
-      "short_name": "Queries",
-      "description": "Triage incoming travel queries",
-      "url": "/dashboard/queries",
+      "name": "Sign In",
+      "short_name": "Login",
+      "description": "Sign in to your NAMA OS account",
+      "url": "/login",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Leads",
-      "short_name": "Leads",
-      "description": "View and manage CRM leads",
-      "url": "/dashboard/leads",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "New Quotation",
-      "short_name": "Quote",
-      "description": "Create a new quotation",
-      "url": "/dashboard/quotations",
+      "name": "Get Started",
+      "short_name": "Register",
+      "description": "Create a free NAMA OS account",
+      "url": "/register",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
