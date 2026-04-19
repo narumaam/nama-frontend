@@ -2,7 +2,7 @@
 
 ## Current Status: ✅ LIVE · Backend + Frontend both operational
 
-**Last major commit:** Playwright E2E suite — 27/27 passing (auth, leads, bookings, quotations)
+**Last major commit:** `1ba1007` — Sprint 3+4: channels onboarding, sentinel, widget, SMTP/IMAP, social webhooks, routines live execution (2026-04-19)
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
@@ -52,10 +52,12 @@
 
 ### ✅ Phase 1 Features (2026-04-19)
 
-**Self-Onboarding Wizard v2** (src/app/onboarding/page.tsx — 967 lines)
-- 6-step wizard: Welcome → Live AI Triage Demo → Connect Channels → Build Team → AI Workspace → Launch
+**Self-Onboarding Wizard v3** (src/app/onboarding/page.tsx — 7 steps)
+- Steps: Welcome → AI Triage → AI Setup → Connect Channels → Team → Workspace → Launch
 - Step 2 = WOW moment: WhatsApp bubble → 3-phase extraction animation → SVG ring 0→87% (requestAnimationFrame)
-- Step 6: CSS confetti, elapsed time display, dual CTA (leads or dashboard)
+- Step 4 (Connect Channels): WhatsApp number → saves to tenant.settings; SMTP quick-connect → POST /api/v1/email-config; website widget embed code with copy button
+- Step 7: CSS confetti, elapsed time display, dual CTA (leads or dashboard)
+- Day 0 drip fires on finish(); days 1/3/7 scheduled via POST /api/v1/onboarding/schedule-drip
 - localStorage key `nama_onboarding_v2`, per-step timing labels
 
 **Org & Control Room** (src/app/dashboard/org/page.tsx — 1311 lines, NEW)
@@ -227,6 +229,52 @@
 - `src/components/CurrencySelector.tsx` — dropdown in dashboard header
 - Dashboard layout wrapped in CurrencyProvider
 
+### ✅ Sprint 3: Channel Integrations + Growth Infrastructure (2026-04-19)
+
+**Website Lead Capture Widget:**
+- `backend/app/api/v1/lead_capture.py` — public token-based endpoints (no JWT): GET /verify, POST /lead, GET /generate-token, POST /rotate-token, GET /stats
+- Rate limiter: 10 submissions/IP/hour; tenant resolved via `tenant.settings["capture_token"]`
+- `public/widget.js` — self-contained IIFE; reads `data-token`, `data-color`, `data-label`; floating button + modal with full form; POSTs to `/api/v1/capture/lead?token=`
+- `src/app/dashboard/widget/page.tsx` — color picker, embed code, test preview, token regeneration
+- `LeadSource.WEBSITE` enum added to models/leads.py
+- Migration: `k8l9m0n1o2p3_add_leadsource_website_enum.py` — `ALTER TYPE leadsource ADD VALUE IF NOT EXISTS 'WEBSITE'`
+
+**Per-Tenant SMTP/IMAP Email:**
+- `backend/app/models/email_config.py` — TenantEmailConfig model (SMTP + IMAP fields, Fernet-encrypted passwords)
+- Migration: `j7k8l9m0n1o2_add_tenant_email_config.py`
+- `backend/app/core/email_service.py` — `send_via_smtp()` (sets Message-ID for threading), `poll_imap_replies()`, `test_smtp()`, `test_imap()`
+- `backend/app/api/v1/email_config.py` — GET/POST/DELETE /, POST /test-smtp, POST /test-imap, POST /poll-replies
+- `src/app/dashboard/settings/email/page.tsx` — Gmail/Outlook/Zoho presets, SMTP + IMAP cards, test with latency
+
+**Facebook Lead Ads + Instagram DM Webhooks:**
+- `backend/app/api/v1/social_webhooks.py` — GET /webhook (hub.challenge), POST /webhook (HMAC validation), POST /connect, GET /status
+- `_handle_lead_ad()` — calls Meta Graph API for field_data, creates Lead(source=SOCIAL)
+- `_handle_instagram_dm()` — creates/appends Lead by PSID
+- `src/app/dashboard/integrations/page.tsx` — Social Media tab with FB + Instagram setup cards
+
+**NAMA Routines — Live Execution Engine:**
+- `backend/app/core/routine_executor.py` — RoutineExecutor class, 9 step handlers: fetch_data (real DB), ai_summarise (OpenRouter Llama 3.3), send_email (Resend), send_whatsapp (Meta API), ai_score_leads, update_records, generate_pdf, group_by, create_task
+- `backend/app/api/v1/routines.py` — updated to call RoutineExecutor(tenant_id, routine, db).execute()
+- Shared context dict passes state between steps; returns { success, output_summary, actions_log, duration_ms }
+
+**Calendar Reminders — Real API:**
+- `backend/app/api/v1/calendar_reminders.py` — GET/POST /reminders, DELETE /reminders/{id}, GET /ics-token, GET /ics-feed (live .ics, text/calendar)
+- `src/app/dashboard/calendar/page.tsx` — real API fetch with AbortController, reminder modal POSTs to API, WhatsApp reminder toggle, iCal subscribe URL banner
+
+**Infrastructure Sentinel (new 2026-04-19):**
+- `backend/app/api/v1/sentinel.py` — monitors Vercel (REST v2), Railway (GraphQL), Neon (REST v2) usage
+- Configurable warn_pct/alert_pct thresholds; stores config + alerts in tenant.settings JSONB
+- Sends Resend email alert when threshold exceeded; FIFO 50-item alert history
+- `src/app/dashboard/sentinel/page.tsx` — 3 service cards with animated usage bars (green→amber→red), collapsible config panel, alert history table, auto-refresh 5min
+- R0/R1 only; falls back to seed data gracefully when API keys not yet configured
+- Sidebar nav: "Sentinel" (Shield icon, R0/R1)
+
+**Alembic migration chain (as of 2026-04-19):**
+```
+baseline → rbac → vendor_rates → content_shared → webhook_endpoints → clients →
+routines (i6j7k8l9m0n1) → email_config (j7k8l9m0n1o2) → leadsource_website (k8l9m0n1o2p3)
+```
+
 ### 🅱️ Parked — V6: NAMA Voice
 **Recommended stack:** Coqui TTS + OpenVoice + Bark + OpenRouter
 **High-ROI uses:** Voice itinerary narration, agent training sims, multi-language assistant
@@ -237,45 +285,64 @@
 
 ## Pending Actions (User Must Do)
 
-🟡 **ANTHROPIC_API_KEY in Railway** — needed for Copilot Live AI mode
-- Go to: Railway → `intuitive-blessing` service → Variables → add `ANTHROPIC_API_KEY`
-- Without this, Copilot runs in demo/simulation mode (OpenRouter Llama fallback active)
+### 🔴 Required for Core Features
 
-🟡 **Vercel AI Gateway env vars in Railway** — needed for AI observability + caching
-- Add: `VERCEL_AI_GATEWAY_TEAM_ID=team_0ntK3Ywi8mYGSkVagPrRDXhd`
-- Add: `VERCEL_AI_GATEWAY_NAME=nama-ai-gateway`
-- Without these, Claude calls go direct to api.anthropic.com (still works, just no gateway logging)
-
-🟡 **PEXELS_API_KEY in Railway** — needed for live image search in Content library
-- Get free key at: https://www.pexels.com/api/
-- Add to Railway: `PEXELS_API_KEY=your_key`
-- Without this, image search returns 20 hardcoded Unsplash fallback images
-
-🟡 **RESEND_API_KEY in Railway** — needed for all email features (drip, reminders, invoices)
+🟡 **RESEND_API_KEY** — all email features (drip, reminders, invoices, sentinel alerts, SMTP fallback)
 - Get key at: https://resend.com (free tier: 100 emails/day)
-- Add to Railway: `RESEND_API_KEY=re_...`
-- Add to Vercel (nama-web): `RESEND_API_KEY=re_...` (needed for Next.js /api/email/drip route)
+- Add to **Railway** (`intuitive-blessing` → Variables): `RESEND_API_KEY=re_...`
+- Add to **Vercel** (nama-web → Environment Variables): `RESEND_API_KEY=re_...`
 - Without this, all email paths return graceful no-ops
 
-🟡 **RESEND_FROM_EMAIL in Vercel** — optional, defaults to `NAMA OS <onboarding@getnama.app>`
-- Add to Vercel: `RESEND_FROM_EMAIL=NAMA OS <onboarding@getnama.app>`
-- Domain must be verified in Resend dashboard
-
-🟡 **FRONTEND_URL in Railway** — needed for backend→Next.js email delegation
+🟡 **FRONTEND_URL in Railway** — backend→Next.js email delegation (drip, sentiment alerts)
 - Add to Railway: `FRONTEND_URL=https://getnama.app`
-- Without this, Python drip calls fail silently (non-breaking)
+- Without this, Python email calls fail silently (non-breaking but drip won't fire)
 
-🟡 **RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in Railway** — needed for payment links
-- Get keys at: https://razorpay.com (test mode available)
-- Add to Railway: `RAZORPAY_KEY_ID=rzp_...` and `RAZORPAY_KEY_SECRET=...`
+🟡 **ENCRYPTION_KEY in Railway** — Fernet encryption for SMTP/IMAP passwords
+- Generate: `python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+- Add to Railway: `ENCRYPTION_KEY=<generated_key>`
+- Without this, SMTP password storage uses fallback base64 (less secure)
+
+### 🟡 Required for Channel Integrations
+
+🟡 **WHATSAPP_TOKEN + WHATSAPP_PHONE_ID + WHATSAPP_APP_SECRET in Railway**
+- Get from: Meta Business → WhatsApp → API Setup
+- `WHATSAPP_TOKEN=EAA...` (permanent token), `WHATSAPP_PHONE_ID=12345...`, `WHATSAPP_APP_SECRET=abc...`
+- Set webhook URL in Meta: `https://intuitive-blessing-production-30de.up.railway.app/api/v1/whatsapp/webhook`
+
+🟡 **FACEBOOK_VERIFY_TOKEN + FACEBOOK_APP_SECRET in Railway**
+- `FACEBOOK_VERIFY_TOKEN` — any random string you choose (used to verify Meta webhook setup)
+- `FACEBOOK_APP_SECRET` — from Meta App Dashboard → Basic Settings
+- Set webhook URL in Meta: `https://intuitive-blessing-production-30de.up.railway.app/api/v1/social/webhook`
+
+### 🟡 Required for Payments + AI
+
+🟡 **RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in Railway**
+- Get at: https://razorpay.com (test mode: use `rzp_test_...` keys)
 - Without these, payment links return a demo URL (non-breaking)
 
-🟡 **Railway Static Outbound IP** — needed to fix automated runner blocking
-- Go to: Railway → `intuitive-blessing` → Settings → Networking → Enable Static Outbound IP
-- Whitelist the generated IP on any external APIs that block Railway
+🟡 **ANTHROPIC_API_KEY in Railway** — Copilot Live AI mode
+- Without this, Copilot uses OpenRouter Llama 3.3 70B fallback (still works)
+
+🟡 **Vercel AI Gateway env vars in Railway** — AI observability + caching
+- `VERCEL_AI_GATEWAY_TEAM_ID=team_0ntK3Ywi8mYGSkVagPrRDXhd`
+- `VERCEL_AI_GATEWAY_NAME=nama-ai-gateway`
+- Without these, Claude calls go direct (still works, no gateway logging)
+
+### 🟡 Optional but Recommended
+
+🟡 **PEXELS_API_KEY in Railway** — live image search in Content library
+- Get free key at: https://www.pexels.com/api/
+- Without this, returns 20 hardcoded Unsplash fallback images
+
+🟡 **RESEND_FROM_EMAIL in Vercel** — custom from address
+- `RESEND_FROM_EMAIL=NAMA OS <onboarding@getnama.app>`
+- Domain must be verified in Resend dashboard first
+
+🟡 **Railway Static Outbound IP** — stable IP for external API whitelisting
+- Railway → `intuitive-blessing` → Settings → Networking → Enable Static Outbound IP
 
 ✅ **nama-web Vercel project env vars** — synced 2026-04-18
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NAMA_API_KEY`, `NEXT_PUBLIC_API_URL`, `NAMA_JWT_SECRET` (= Railway SECRET_KEY) all added
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NAMA_API_KEY`, `NEXT_PUBLIC_API_URL`, `NAMA_JWT_SECRET` all added
 
 ## Railway Crash Loop — Resolved 2026-04-18
 Root causes fixed (see RAILWAY_INCIDENT_REPORT.md for full details):
@@ -293,8 +360,10 @@ Root causes fixed (see RAILWAY_INCIDENT_REPORT.md for full details):
 - Smart Pricing: static PRICING_BENCHMARKS — connect to Intelligence Aggregate API in V6
 - ✅ E2E tests (Playwright) — 27/27 passing, committed 2026-04-18
 - ✅ Sentry error monitoring — wired 2026-04-18, DSN in both Vercel projects
-- WhatsApp: wa.me deep links, not Business API (fine for beta)
-- PDF: browser print dialog, not server-side (fine for beta)
+- ✅ WhatsApp Business API — Meta Cloud API inbound/outbound (2026-04-19)
+- ✅ SMTP/IMAP per-tenant email — send from own domain, IMAP reply ingestion (2026-04-19)
+- ✅ PDF: WeasyPrint server-side generation (2026-04-19)
+- LeadSource WEBSITE enum: migration `k8l9m0n1o2p3` created; runs on next `alembic upgrade heads`
 
 ---
 
