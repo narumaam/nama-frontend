@@ -23,7 +23,7 @@ import {
   Check, ChevronRight, ChevronLeft, CheckCircle2,
   Loader, ArrowRight, Brain,
   TrendingUp, FileText, BarChart3, Star, Pencil,
-  MapPin, LayoutDashboard,
+  MapPin, LayoutDashboard, Plug2, Phone, Mail, Globe, Copy,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 
@@ -42,12 +42,13 @@ const ROLES      = [
 
 // Step config — icon, label, timing label, skippable flag
 const STEPS = [
-  { id: 1, label: 'Welcome',    Icon: Building2, timing: '~1 min',  skippable: false },
-  { id: 2, label: 'AI Triage',  Icon: Brain,     timing: '~2 min',  skippable: false },
-  { id: 3, label: 'AI Setup',   Icon: Wand2,     timing: '~1 min',  skippable: true  },
-  { id: 4, label: 'Team',       Icon: Users,     timing: '~2 min',  skippable: true  },
-  { id: 5, label: 'Workspace',  Icon: Sparkles,  timing: '~1 min',  skippable: true  },
-  { id: 6, label: 'Launch',     Icon: Rocket,    timing: '',        skippable: false },
+  { id: 1, label: 'Welcome',   Icon: Building2, timing: '~1 min',  skippable: false },
+  { id: 2, label: 'AI Triage', Icon: Brain,     timing: '~2 min',  skippable: false },
+  { id: 3, label: 'AI Setup',  Icon: Wand2,     timing: '~1 min',  skippable: true  },
+  { id: 4, label: 'Channels',  Icon: Plug2,     timing: '~2 min',  skippable: true  },
+  { id: 5, label: 'Team',      Icon: Users,     timing: '~2 min',  skippable: true  },
+  { id: 6, label: 'Workspace', Icon: Sparkles,  timing: '~1 min',  skippable: true  },
+  { id: 7, label: 'Launch',    Icon: Rocket,    timing: '',        skippable: false },
 ]
 
 const LS_KEY = 'nama_onboarding_v2'
@@ -682,7 +683,240 @@ function StepAISetup({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 4 — Build Your Team
+// Step 4 — Connect Channels
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ChannelForm {
+  whatsapp: string
+  smtpHost: string
+  smtpPort: string
+  smtpEmail: string
+  smtpPassword: string
+}
+
+function StepConnectChannels({
+  form, onChange,
+}: {
+  form: ChannelForm
+  onChange: (f: ChannelForm) => void
+}) {
+  const [waSaved, setWaSaved]       = useState(false)
+  const [waSaving, setWaSaving]     = useState(false)
+  const [smtpSaved, setSmtpSaved]   = useState(false)
+  const [smtpSaving, setSmtpSaving] = useState(false)
+  const [copied, setCopied]         = useState(false)
+
+  const widgetSnippet = `<script
+  src="https://getnama.app/widget.js"
+  data-token="YOUR_TOKEN"
+  data-color="#14B8A6"
+  data-label="Plan a Trip"
+></script>`
+
+  const copySnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(widgetSnippet)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (_) { /* ignore */ }
+  }
+
+  const saveWhatsApp = async () => {
+    if (!form.whatsapp.trim()) return
+    setWaSaving(true)
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
+      await fetch('/api/v1/settings/whatsapp-number', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '',
+        },
+        body: JSON.stringify({ whatsapp_number: form.whatsapp.trim() }),
+      }).catch(() => {})
+      setWaSaved(true)
+    } finally {
+      setWaSaving(false)
+    }
+  }
+
+  const saveSMTP = async () => {
+    if (!form.smtpEmail.trim() || !form.smtpHost.trim()) return
+    setSmtpSaving(true)
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
+      await fetch('/api/v1/email-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '',
+        },
+        body: JSON.stringify({
+          smtp_host: form.smtpHost,
+          smtp_port: parseInt(form.smtpPort) || 587,
+          smtp_username: form.smtpEmail,
+          smtp_password: form.smtpPassword,
+          from_email: form.smtpEmail,
+          from_name: 'Your Agency',
+          use_tls: true,
+        }),
+      }).catch(() => {})
+      setSmtpSaved(true)
+    } finally {
+      setSmtpSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── WhatsApp Business ───────────────────────────────────────────── */}
+      <div className="border border-slate-100 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 bg-green-50 border-b border-slate-100">
+          <div className="w-8 h-8 rounded-lg bg-[#25D366] flex items-center justify-center text-white text-xs font-black flex-shrink-0">WA</div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-[#0F172A]">WhatsApp Business</p>
+            <p className="text-[11px] text-slate-500 font-medium">Leads from WhatsApp messages auto-captured</p>
+          </div>
+          {waSaved && <CheckCircle2 size={16} className="text-emerald-500" />}
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <OLabel>Your Business WhatsApp Number</OLabel>
+            <div className="flex gap-2">
+              <input
+                value={form.whatsapp}
+                onChange={e => onChange({ ...form, whatsapp: e.target.value })}
+                placeholder="+91 98765 43210"
+                className={OInput + ' flex-1'}
+                type="tel"
+              />
+              <button
+                onClick={saveWhatsApp}
+                disabled={!form.whatsapp.trim() || waSaving || waSaved}
+                className="px-4 py-2.5 bg-[#0F172A] text-white text-xs font-black rounded-xl hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5 flex-shrink-0"
+              >
+                {waSaving ? <Loader size={13} className="animate-spin" /> : waSaved ? <CheckCircle2 size={13} /> : <Phone size={13} />}
+                {waSaved ? 'Saved' : 'Save'}
+              </button>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+            Next step: In Meta WhatsApp Business Manager → Webhooks, paste your webhook URL:{' '}
+            <code className="bg-slate-100 px-1 rounded text-slate-600">https://getnama.app/api/v1/whatsapp/webhook</code>
+          </p>
+        </div>
+      </div>
+
+      {/* ── Business Email (SMTP) ───────────────────────────────────────── */}
+      <div className="border border-slate-100 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border-b border-slate-100">
+          <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+            <Mail size={15} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-[#0F172A]">Business Email</p>
+            <p className="text-[11px] text-slate-500 font-medium">Send quotes & proposals from your own domain</p>
+          </div>
+          {smtpSaved && <CheckCircle2 size={16} className="text-emerald-500" />}
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <OLabel>SMTP Host</OLabel>
+              <input
+                value={form.smtpHost}
+                onChange={e => onChange({ ...form, smtpHost: e.target.value })}
+                placeholder="smtp.gmail.com"
+                className={OInput}
+              />
+            </div>
+            <div>
+              <OLabel>Port</OLabel>
+              <input
+                value={form.smtpPort}
+                onChange={e => onChange({ ...form, smtpPort: e.target.value })}
+                placeholder="587"
+                className={OInput}
+                type="number"
+              />
+            </div>
+          </div>
+          <div>
+            <OLabel>Email Address</OLabel>
+            <input
+              value={form.smtpEmail}
+              onChange={e => onChange({ ...form, smtpEmail: e.target.value })}
+              placeholder="bookings@youragency.com"
+              className={OInput}
+              type="email"
+            />
+          </div>
+          <div>
+            <OLabel>App Password</OLabel>
+            <input
+              value={form.smtpPassword}
+              onChange={e => onChange({ ...form, smtpPassword: e.target.value })}
+              placeholder="Google App Password / SMTP password"
+              className={OInput}
+              type="password"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={saveSMTP}
+              disabled={!form.smtpEmail.trim() || !form.smtpHost.trim() || smtpSaving || smtpSaved}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#0F172A] text-white py-2.5 rounded-xl text-xs font-black hover:bg-slate-800 disabled:opacity-40 transition-all"
+            >
+              {smtpSaving ? <Loader size={13} className="animate-spin" /> : smtpSaved ? <CheckCircle2 size={13} /> : <Mail size={13} />}
+              {smtpSaved ? 'Email connected ✓' : 'Connect Email'}
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-400">
+            Gmail users: use an App Password (Google Account → Security → 2FA → App passwords)
+          </p>
+        </div>
+      </div>
+
+      {/* ── Website Widget ──────────────────────────────────────────────── */}
+      <div className="border border-slate-100 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 bg-teal-50 border-b border-slate-100">
+          <div className="w-8 h-8 rounded-lg bg-[#14B8A6] flex items-center justify-center flex-shrink-0">
+            <Globe size={15} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-[#0F172A]">Website Lead Widget</p>
+            <p className="text-[11px] text-slate-500 font-medium">Capture leads from your travel website</p>
+          </div>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-slate-500 font-medium leading-relaxed">
+            Paste this snippet before <code className="bg-slate-100 px-1 rounded">&lt;/body&gt;</code> on your website. Replace <code className="bg-slate-100 px-1 rounded">YOUR_TOKEN</code> with your widget token from{' '}
+            <strong className="text-[#14B8A6]">Settings → Widget</strong> after setup.
+          </p>
+          <div className="relative">
+            <pre className="bg-[#0F172A] text-[#14B8A6] text-[10px] font-mono rounded-xl p-3 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+              {widgetSnippet}
+            </pre>
+            <button
+              onClick={copySnippet}
+              className="absolute top-2 right-2 px-2 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-[10px] font-bold flex items-center gap-1 transition-all"
+            >
+              {copied ? <CheckCircle2 size={11} /> : <Copy size={11} />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 5 — Build Your Team
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface InviteRow { email: string; role: string }
@@ -996,7 +1230,12 @@ export default function OnboardingPage() {
   // Step 3 — AI Setup
   const [agencyConfig, setAgencyConfig] = useState<AgencyConfigData | null>(null)
 
-  // Step 4
+  // Step 4 — Connect Channels
+  const [channels, setChannels] = useState<ChannelForm>({
+    whatsapp: '', smtpHost: '', smtpPort: '587', smtpEmail: '', smtpPassword: '',
+  })
+
+  // Step 5 — Team
   const [invites, setInvites] = useState<InviteRow[]>([
     { email: '', role: 'R3_SALES_MANAGER' },
   ])
@@ -1017,7 +1256,7 @@ export default function OnboardingPage() {
       const saved = localStorage.getItem(LS_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (parsed.step && parsed.step >= 1 && parsed.step <= 5) {
+        if (parsed.step && parsed.step >= 1 && parsed.step <= 6) {
           setStep(parsed.step)
         }
         if (parsed.startTime) startTimeRef.current = parsed.startTime
@@ -1040,20 +1279,20 @@ export default function OnboardingPage() {
 
   // ── Tick elapsed timer once on launch step ────────────────────────────────
   useEffect(() => {
-    if (step !== 6) return
+    if (step !== 7) return
     const now = Math.floor((Date.now() - startTimeRef.current) / 1000)
     setElapsed(now)
   }, [step])
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   const canSkip = STEPS[step - 1]?.skippable ?? false
-  const isLastStep = step === 6
+  const isLastStep = step === 7
 
   const next = useCallback(async (skip = false) => {
-    if (step === 6) return
+    if (step === 7) return
 
-    // Step 4 → send invites before advancing
-    if (step === 4 && !skip) {
+    // Step 5 → send invites before advancing
+    if (step === 5 && !skip) {
       const filled = invites.filter(i => i.email.trim())
       if (filled.length > 0) {
         setInviteSendState('sending')
@@ -1070,8 +1309,8 @@ export default function OnboardingPage() {
       }
     }
 
-    // Step 4 → 5: seed workspace and fetch real data to show in Step 5
-    if (step === 4) {
+    // Step 5 → 6: seed workspace and fetch real data to show in Step 6
+    if (step === 5) {
       setWorkspaceLoading(true)
       try {
         await fetch('/api/v1/onboarding/seed-workspace', {
@@ -1110,7 +1349,7 @@ export default function OnboardingPage() {
   }, [step, invites])
 
   const prev = useCallback(() => {
-    if (step <= 1 || step === 6) return
+    if (step <= 1 || step === 7) return
     setStep(s => s - 1)
   }, [step])
 
@@ -1158,8 +1397,8 @@ export default function OnboardingPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400 font-medium">Step {step} of 6</span>
-          {step < 6 && (
+          <span className="text-xs text-slate-400 font-medium">Step {step} of 7</span>
+          {step < 7 && (
             <button
               onClick={() => finish('/dashboard')}
               className="text-[11px] text-slate-400 hover:text-slate-600 font-bold transition-colors"
@@ -1181,7 +1420,7 @@ export default function OnboardingPage() {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
 
             {/* Card header — hidden on launch step */}
-            {step < 6 && (
+            {step < 7 && (
               <div className="mb-7 flex items-start gap-4">
                 <div className="w-11 h-11 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center flex-shrink-0">
                   <currentStepConfig.Icon size={20} className="text-[#14B8A6]" />
@@ -1220,6 +1459,16 @@ export default function OnboardingPage() {
                   {step === 4 && (
                     <>
                       <h2 className="text-xl font-black text-[#0F172A] tracking-tight">
+                        Connect your channels
+                      </h2>
+                      <p className="text-sm text-slate-500 font-medium mt-1">
+                        WhatsApp, email, and website widget — set up now or skip and do it later.
+                      </p>
+                    </>
+                  )}
+                  {step === 5 && (
+                    <>
+                      <h2 className="text-xl font-black text-[#0F172A] tracking-tight">
                         Build your team
                       </h2>
                       <p className="text-sm text-slate-500 font-medium mt-1">
@@ -1227,7 +1476,7 @@ export default function OnboardingPage() {
                       </p>
                     </>
                   )}
-                  {step === 5 && (
+                  {step === 6 && (
                     <>
                       <h2 className="text-xl font-black text-[#0F172A] tracking-tight">
                         Your AI workspace is alive
@@ -1260,6 +1509,10 @@ export default function OnboardingPage() {
             )}
 
             {step === 4 && (
+              <StepConnectChannels form={channels} onChange={setChannels} />
+            )}
+
+            {step === 5 && (
               <>
                 <StepTeam invites={invites} onChange={setInvites} />
                 {inviteSendState === 'done' && (
@@ -1270,7 +1523,7 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {step === 5 && (
+            {step === 6 && (
               <StepWorkspace
                 leads={seededLeads}
                 itinerary={seededItinerary}
@@ -1278,7 +1531,7 @@ export default function OnboardingPage() {
               />
             )}
 
-            {step === 6 && (
+            {step === 7 && (
               <StepLaunch
                 elapsed={elapsed}
                 onDashboard={() => finish('/dashboard')}
@@ -1327,7 +1580,7 @@ export default function OnboardingPage() {
           </div>
 
           {/* Fine print below card */}
-          {step < 6 && (
+          {step < 7 && (
             <p className="text-center text-[11px] text-slate-300 font-medium mt-5">
               All settings can be changed later in{' '}
               <span className="text-slate-400 font-bold">Settings → Organisation</span>

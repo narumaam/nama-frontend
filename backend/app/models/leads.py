@@ -43,6 +43,7 @@ class LeadSource(str, enum.Enum):
     REFERRAL = "REFERRAL"
     PORTAL   = "PORTAL"
     WALK_IN  = "WALK_IN"
+    WEBSITE  = "WEBSITE"
 
 
 class Lead(Base):

@@ -8,7 +8,7 @@ import {
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
-  UserCheck, Contact, Building2, Shield, Calendar,
+  UserCheck, Contact, Building2, Shield, Calendar, Globe,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -158,6 +158,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
     },
     {
+      name: 'Widget', href: '/dashboard/widget', icon: Globe,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
       name: 'Org & Control', href: '/dashboard/org', icon: Building2, badge: 'New',
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
     },
@@ -172,6 +176,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       name: 'Settings', href: '/dashboard/settings', icon: Settings,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN'],
+    },
+    {
+      name: 'Sentinel', href: '/dashboard/sentinel', icon: Shield,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN'],
     },
     {
       name: 'System Status', href: '/dashboard/status', icon: Activity,

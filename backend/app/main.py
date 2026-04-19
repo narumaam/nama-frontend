@@ -297,6 +297,27 @@ from app.api.v1 import routines as routines_router  # noqa: E402
 import app.models.routines  # noqa: F401
 app.include_router(routines_router.router,     prefix="/api/v1/routines",     tags=["routines"])
 
+#   Website Lead Capture Widget — public token-based endpoint
+from app.api.v1 import lead_capture as lead_capture_router  # noqa: E402
+app.include_router(lead_capture_router.router, prefix="/api/v1/capture",      tags=["lead-capture"])
+
+#   Per-tenant SMTP/IMAP Email Config
+from app.api.v1 import email_config as email_config_router  # noqa: E402
+import app.models.email_config  # noqa: F401
+app.include_router(email_config_router.router, prefix="/api/v1/email-config",  tags=["email-config"])
+
+#   Facebook Lead Ads + Instagram DM social webhooks
+from app.api.v1 import social_webhooks as social_webhooks_router  # noqa: E402
+app.include_router(social_webhooks_router.router, prefix="/api/v1/social",    tags=["social"])
+
+#   Calendar reminders + iCal feed
+from app.api.v1 import calendar_reminders as calendar_reminders_router  # noqa: E402
+app.include_router(calendar_reminders_router.router, prefix="/api/v1/calendar", tags=["calendar"])
+
+#   Infrastructure Sentinel — usage monitoring + threshold alerts
+from app.api.v1 import sentinel as sentinel_router  # noqa: E402
+app.include_router(sentinel_router.router, prefix="/api/v1/sentinel", tags=["sentinel"])
+
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
 @app.on_event("startup")

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ChevronLeft, ChevronRight, Calendar, Bell, Plane,
-  Download, ExternalLink, X, Plus, CheckCircle2,
+  Download, ExternalLink, X, Plus, CheckCircle2, Link2, Copy, Check,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -89,6 +89,9 @@ function getFirstDayOfMonth(year: number, month: number) {
 function toDateStr(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
+function tomorrowStr() {
+  return new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+}
 
 function formatAmount(n: number) {
   if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`
@@ -108,7 +111,21 @@ function statusColor(status?: string) {
   }
 }
 
-// ─── iCal export ─────────────────────────────────────────────────────────────
+/** Build auth headers for backend API calls */
+function apiHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  // In Next.js App Router the API key is available via the server-side env.
+  // On the client we can read NEXT_PUBLIC_ prefixed vars.
+  const apiKey = process.env.NEXT_PUBLIC_API_KEY ?? ''
+  if (apiKey) headers['X-Api-Key'] = apiKey
+  // JWT is stored in HttpOnly cookie so we can rely on cookie-forwarding
+  // by the Next.js server proxy routes. For direct calls we pass credentials.
+  return headers
+}
+
+// ─── iCal export (one-time download) ─────────────────────────────────────────
 
 function exportICal(allEvents: CalendarEvent[], year: number, month: number) {
   const lines = [
@@ -169,9 +186,15 @@ function ReminderModal({ defaultDate, onSave, onClose }: ReminderModalProps) {
   const [leadName, setLeadName] = useState('')
   const [date, setDate] = useState(defaultDate)
   const [notes, setNotes] = useState('')
+  const [waNotify, setWaNotify] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const handleSave = () => {
+  const isTomorrow = date === tomorrowStr()
+
+  const handleSave = async () => {
     if (!title.trim() || !date) return
+    setSaving(true)
+
     const event: CalendarEvent = {
       id: `manual_${Date.now()}`,
       type: 'manual',
@@ -181,7 +204,32 @@ function ReminderModal({ defaultDate, onSave, onClose }: ReminderModalProps) {
       color: 'blue',
       url: '/dashboard/calendar',
     }
+
+    // POST to backend — fire and forget (fall back to localStorage if it fails)
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      await fetch('/api/v1/calendar/reminders', {
+        method: 'POST',
+        headers: apiHeaders(),
+        credentials: 'include',
+        signal: controller.signal,
+        body: JSON.stringify({
+          title: title.trim(),
+          date,
+          time: '09:00',
+          type: 'manual',
+          notes: notes.trim() || null,
+          wa_notify: waNotify,
+        }),
+      })
+      clearTimeout(timeoutId)
+    } catch {
+      // Non-fatal — we still save locally
+    }
+
     onSave(event)
+    setSaving(false)
     onClose()
   }
 
@@ -252,6 +300,34 @@ function ReminderModal({ defaultDate, onSave, onClose }: ReminderModalProps) {
               className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors resize-none"
             />
           </div>
+
+          {/* WhatsApp notification toggle */}
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div className="relative mt-0.5 flex-shrink-0">
+              <input
+                type="checkbox"
+                checked={waNotify}
+                onChange={e => setWaNotify(e.target.checked)}
+                className="sr-only"
+              />
+              <div
+                className={`w-9 h-5 rounded-full transition-colors ${waNotify ? 'bg-green-500' : 'bg-slate-700'}`}
+              />
+              <div
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${waNotify ? 'translate-x-4' : 'translate-x-0'}`}
+              />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white leading-tight">Send me a WhatsApp reminder</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isTomorrow
+                  ? 'Will send immediately since the date is tomorrow'
+                  : date
+                  ? 'Will send when date is tomorrow (requires WHATSAPP_TOKEN)'
+                  : 'Sends a WhatsApp nudge the day before'}
+              </p>
+            </div>
+          </label>
         </div>
 
         <div className="px-6 py-4 border-t border-white/10 flex gap-3 justify-end">
@@ -263,14 +339,113 @@ function ReminderModal({ defaultDate, onSave, onClose }: ReminderModalProps) {
           </button>
           <button
             onClick={handleSave}
-            disabled={!title.trim() || !date}
+            disabled={!title.trim() || !date || saving}
             className="px-5 py-2 text-sm font-black text-[#0F172A] bg-[#14B8A6] hover:bg-[#0d9488] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-2"
           >
             <CheckCircle2 size={14} />
-            Save Reminder
+            {saving ? 'Saving…' : 'Save Reminder'}
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── iCal Subscribe Banner ────────────────────────────────────────────────────
+
+function ICalSubscribeBanner() {
+  const [subscribeUrl, setSubscribeUrl] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const loadUrl = async () => {
+    if (subscribeUrl) { setOpen(true); return }
+    setLoading(true)
+    try {
+      const controller = new AbortController()
+      setTimeout(() => controller.abort(), 5000)
+      const res = await fetch('/api/v1/calendar/ics-token', {
+        headers: apiHeaders(),
+        credentials: 'include',
+        signal: controller.signal,
+      })
+      if (res.ok) {
+        const data = await res.json()
+        // Build the frontend-accessible subscribe URL so it proxies through Next.js
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://getnama.app'
+        const url = `${baseUrl}/api/v1/calendar/ics-feed?token=${data.token}`
+        setSubscribeUrl(url)
+        setOpen(true)
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCopy = () => {
+    if (!subscribeUrl) return
+    navigator.clipboard.writeText(subscribeUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
+
+  return (
+    <div>
+      <button
+        onClick={loadUrl}
+        disabled={loading}
+        className="flex items-center gap-2 px-4 py-2 bg-slate-700/60 text-slate-300 border border-white/10 rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors"
+      >
+        <Link2 size={15} />
+        {loading ? 'Loading…' : 'Subscribe URL'}
+      </button>
+
+      {open && subscribeUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="relative bg-[#1E293B] rounded-2xl border border-white/10 shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-[#14B8A6]/20 rounded-lg flex items-center justify-center">
+                  <Link2 size={16} className="text-[#14B8A6]" />
+                </div>
+                <h3 className="font-black text-white">Subscribe to Calendar</h3>
+              </div>
+              <button onClick={() => setOpen(false)} className="p-1.5 text-slate-500 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Paste this URL into Google Calendar, Outlook, or Apple Calendar to get a live-updating feed of all your bookings and reminders.
+              </p>
+
+              <div className="bg-slate-800/60 border border-white/10 rounded-xl p-3 flex items-center gap-3">
+                <p className="flex-1 text-xs text-slate-300 font-mono break-all leading-relaxed">{subscribeUrl}</p>
+                <button
+                  onClick={handleCopy}
+                  className={`flex-shrink-0 p-2 rounded-lg transition-colors ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                  title="Copy URL"
+                >
+                  {copied ? <Check size={15} /> : <Copy size={15} />}
+                </button>
+              </div>
+
+              <div className="space-y-2 text-xs text-slate-500">
+                <p className="font-bold text-slate-400 uppercase tracking-wider text-[11px]">How to subscribe:</p>
+                <p>• <strong className="text-slate-300">Google Calendar</strong> → Other calendars → From URL → paste above</p>
+                <p>• <strong className="text-slate-300">Outlook</strong> → Add calendar → Subscribe from web → paste above</p>
+                <p>• <strong className="text-slate-300">Apple Calendar</strong> → File → New Calendar Subscription → paste above</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -296,7 +471,19 @@ export default function CalendarPage() {
   const fetchEvents = useCallback(async (y: number, m: number) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/v1/analytics/calendar-events?year=${y}&month=${m + 1}`)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+      const res = await fetch(
+        `/api/v1/analytics/calendar-events?year=${y}&month=${m + 1}`,
+        {
+          headers: apiHeaders(),
+          credentials: 'include',
+          signal: controller.signal,
+        },
+      )
+      clearTimeout(timeoutId)
+
       if (res.ok) {
         const data = await res.json()
         setEvents(data.events || [])
@@ -304,6 +491,7 @@ export default function CalendarPage() {
         setEvents(buildSeedEvents())
       }
     } catch {
+      // Timeout, network error, or backend down — fall back to seed silently
       setEvents(buildSeedEvents())
     } finally {
       setLoading(false)
@@ -357,7 +545,7 @@ export default function CalendarPage() {
     return allEvents.filter(e => e.date === dateStr)
   }
 
-  // ── iCal export ───────────────────────────────────────────────────────────
+  // ── iCal export (one-time download) ──────────────────────────────────────
   const handleExport = () => {
     exportICal(allEvents, year, month)
     setExportDone(true)
@@ -428,6 +616,7 @@ export default function CalendarPage() {
               <Download size={15} />
               {exportDone ? 'Downloaded!' : 'Export iCal'}
             </button>
+            <ICalSubscribeBanner />
           </div>
         </div>
 
@@ -443,7 +632,7 @@ export default function CalendarPage() {
             <span className="font-bold">{monthReminders.length}</span>
             <span className="text-slate-500">reminders</span>
           </div>
-          {loading && <span className="text-xs text-slate-500 animate-pulse">Syncing...</span>}
+          {loading && <span className="text-xs text-slate-500 animate-pulse">Syncing…</span>}
         </div>
       </div>
 

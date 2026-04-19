@@ -482,6 +482,38 @@ def get_fx_rates():
     return {"base": "INR", "rates": _FX_FALLBACK, "updated_at": "fallback"}
 
 
+# ── WhatsApp number save (onboarding Connect Channels step) ──────────────────
+
+class WhatsAppNumberRequest(BaseModel):
+    whatsapp_number: str
+
+
+@router.post("/whatsapp-number", summary="Save WhatsApp Business number for this tenant")
+def save_whatsapp_number(
+    body: WhatsAppNumberRequest,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    """
+    Stores the WhatsApp Business phone number in tenant.settings["whatsapp_number"].
+    Used by the onboarding Connect Channels step. The number is later used to match
+    inbound WhatsApp messages to this tenant's webhook.
+    """
+    try:
+        from app.models.auth import Tenant as TenantModel
+        tenant_row = db.query(TenantModel).filter(TenantModel.id == tenant_id).first()
+        if tenant_row:
+            settings = dict(tenant_row.settings or {})
+            settings["whatsapp_number"] = body.whatsapp_number.strip()
+            tenant_row.settings = settings
+            db.commit()
+            logger.info("save_whatsapp_number: tenant=%d number=%s", tenant_id, body.whatsapp_number)
+    except Exception as e:
+        logger.warning("save_whatsapp_number: failed: %s", e)
+        db.rollback()
+    return {"saved": True, "whatsapp_number": body.whatsapp_number.strip()}
+
+
 # ── Decryption helper for internal AI agent use ───────────────────────────────
 def get_active_byok_key(db: Session, tenant_id: int, provider: str) -> Optional[str]:
     """

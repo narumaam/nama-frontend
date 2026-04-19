@@ -253,10 +253,13 @@ ROUTINE_TEMPLATES = [
 
 def _execute_routine(routine_id: int, tenant_id: int, trigger_source: str, db: Session) -> None:
     """
-    Background executor: runs a routine's steps and logs the result.
-    Currently uses a rules-based executor; can be upgraded to an LLM agent
-    that interprets the natural-language prompt.
+    Background executor: runs a routine's steps using RoutineExecutor and logs the result.
+    Each step type (fetch_data, ai_summarise, send_email, send_whatsapp, generate_pdf,
+    group_by, update_records, ai_score_leads, create_task) is handled by a real
+    implementation in app.core.routine_executor.RoutineExecutor.
     """
+    from app.core.routine_executor import RoutineExecutor
+
     routine = db.query(Routine).filter(
         Routine.id == routine_id,
         Routine.tenant_id == tenant_id
@@ -274,52 +277,36 @@ def _execute_routine(routine_id: int, tenant_id: int, trigger_source: str, db: S
     db.commit()
     db.refresh(run)
 
-    start_ts = time.perf_counter()
-    actions_log: List[Dict[str, Any]] = []
-    output_lines: List[str] = []
-
     try:
-        # Simulate execution of each step
-        for step in (routine.steps_json or []):
-            step_type = step.get("type", "unknown")
-            step_params = step.get("params", {})
-            actions_log.append({
-                "step": step_type,
-                "params": step_params,
-                "status": "ok",
-                "ts": datetime.now(timezone.utc).isoformat(),
-            })
-            output_lines.append(f"✓ {step_type}")
+        executor = RoutineExecutor(tenant_id=tenant_id, routine=routine, db=db)
+        result = executor.execute()
 
-        # Compute output summary using the prompt
-        output_summary = (
-            f"Routine '{routine.name}' completed successfully.\n"
-            f"Steps executed: {len(routine.steps_json or [])}\n"
-            + "\n".join(output_lines)
-        )
-
-        duration_ms = (time.perf_counter() - start_ts) * 1000
-
-        run.status = RunStatus.SUCCESS
-        run.output_summary = output_summary
-        run.actions_log = actions_log
+        run.status = RunStatus.SUCCESS if result["success"] else RunStatus.FAILED
+        run.output_summary = result["output_summary"]
+        run.actions_log = result["actions_log"]
         run.completed_at = datetime.now(timezone.utc)
-        run.duration_ms = duration_ms
+        run.duration_ms = result["duration_ms"]
+
+        if not result["success"]:
+            run.error_message = "One or more steps encountered errors — see actions_log for details"
 
         # Update routine stats
         routine.run_count = (routine.run_count or 0) + 1
         routine.last_run_at = datetime.now(timezone.utc)
-        routine.last_run_status = RunStatus.SUCCESS
+        routine.last_run_status = run.status
 
         db.commit()
-        logger.info("_execute_routine: routine=%d run=%d SUCCESS (%.0fms)", routine.id, run.id, duration_ms)
+        logger.info(
+            "_execute_routine: routine=%d run=%d %s (%.0fms)",
+            routine.id, run.id, run.status, result["duration_ms"],
+        )
 
     except Exception as exc:
         logger.error("_execute_routine: routine=%d FAILED: %s", routine_id, exc)
         run.status = RunStatus.FAILED
         run.error_message = str(exc)
         run.completed_at = datetime.now(timezone.utc)
-        run.duration_ms = (time.perf_counter() - start_ts) * 1000
+        run.duration_ms = 0.0
         routine.last_run_status = RunStatus.FAILED
         db.commit()
 

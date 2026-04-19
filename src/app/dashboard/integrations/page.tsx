@@ -4,7 +4,8 @@
  * M19 — Marketplace & Integrations
  * ----------------------------------
  * Connect NAMA OS to WhatsApp Business, email providers,
- * payment gateways, GDS feeds, CRM tools, and custom webhooks.
+ * payment gateways, GDS feeds, CRM tools, custom webhooks,
+ * and social media lead capture (Facebook Lead Ads + Instagram DMs).
  *
  * Categories:
  *   - Messaging:     WhatsApp Business API, Twilio SMS, Telegram
@@ -13,6 +14,7 @@
  *   - Travel APIs:   Amadeus GDS, TBO Holidays, Hotelbeds
  *   - CRM/Ops:       HubSpot, Salesforce, Google Sheets
  *   - Webhooks:      Custom inbound/outbound webhooks
+ *   - Social:        Facebook Lead Ads, Instagram DMs
  */
 
 import React, { useState, useEffect } from "react";
@@ -20,6 +22,7 @@ import {
   Plug, CheckCircle, AlertCircle, Clock, ArrowRight,
   Zap, Shield, RefreshCw, ExternalLink, X, Copy,
   Eye, EyeOff, Plus, Trash2, Globe, Key, Loader2, Send,
+  Share2, Users,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -725,14 +728,63 @@ export default function IntegrationsPage() {
   const [webhooksLoading, setWebhooksLoading] = useState(false);
   const [useSeedWebhooks, setUseSeedWebhooks] = useState(false);
   const [connectingTo, setConnectingTo] = useState<Integration | null>(null);
-  const [activeTab, setActiveTab] = useState<"integrations" | "webhooks">("integrations");
+  const [activeTab, setActiveTab] = useState<"integrations" | "webhooks" | "social">("integrations");
   const [showAddWebhook, setShowAddWebhook] = useState(false);
+
+  // ── Social media state ─────────────────────────────────────────────────────
+  const [socialStatus, setSocialStatus] = useState<{
+    facebook_connected: boolean;
+    page_name: string;
+    instagram_connected: boolean;
+    leads_captured_count: number;
+    last_lead_at: string | null;
+  } | null>(null);
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [verifyToken, setVerifyToken] = useState<string>("");
+  const [verifyTokenCopied, setVerifyTokenCopied] = useState(false);
+  const [fbPageId, setFbPageId] = useState("");
+  const [fbAccessToken, setFbAccessToken] = useState("");
+  const [showFbToken, setShowFbToken] = useState(false);
+  const [igAccountId, setIgAccountId] = useState("");
+  const [socialConnecting, setSocialConnecting] = useState(false);
+  const [socialConnectResult, setSocialConnectResult] = useState<{
+    connected: boolean;
+    page_name: string;
+    instagram_connected: boolean;
+    error?: string;
+  } | null>(null);
 
   const connectedCount = integrations.filter((i) => i.status === "connected").length;
 
   const filtered = category === "all"
     ? integrations
     : integrations.filter((i) => i.category === category);
+
+  // Load social status + verify token when tab is active
+  useEffect(() => {
+    if (activeTab !== "social") return;
+    setSocialLoading(true);
+
+    const fetchAll = async () => {
+      try {
+        const [statusRes, tokenRes] = await Promise.all([
+          fetch("/api/v1/social/status"),
+          fetch("/api/v1/social/verify-token"),
+        ]);
+        if (statusRes.ok) setSocialStatus(await statusRes.json());
+        if (tokenRes.ok) {
+          const td = await tokenRes.json();
+          setVerifyToken(td.verify_token || "");
+        }
+      } catch {
+        // backend unreachable — leave null state, UI shows disconnected
+      } finally {
+        setSocialLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, [activeTab]);
 
   // Load webhooks from API when tab is active
   useEffect(() => {
@@ -784,6 +836,46 @@ export default function IntegrationsPage() {
     setUseSeedWebhooks(false);
   };
 
+  const handleSocialConnect = async () => {
+    if (!fbPageId.trim() || !fbAccessToken.trim()) return;
+    setSocialConnecting(true);
+    setSocialConnectResult(null);
+    try {
+      const res = await fetch("/api/v1/social/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          facebook_page_id: fbPageId.trim(),
+          page_access_token: fbAccessToken.trim(),
+          instagram_account_id: igAccountId.trim(),
+        }),
+      });
+      const data = await res.json();
+      setSocialConnectResult(data);
+      if (data.connected || !data.error) {
+        // Refresh status
+        const statusRes = await fetch("/api/v1/social/status");
+        if (statusRes.ok) setSocialStatus(await statusRes.json());
+      }
+    } catch {
+      setSocialConnectResult({
+        connected: false,
+        page_name: "",
+        instagram_connected: false,
+        error: "Could not reach server. Check your connection.",
+      });
+    } finally {
+      setSocialConnecting(false);
+    }
+  };
+
+  const handleCopyVerifyToken = () => {
+    if (!verifyToken) return;
+    navigator.clipboard.writeText(verifyToken);
+    setVerifyTokenCopied(true);
+    setTimeout(() => setVerifyTokenCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -818,17 +910,27 @@ export default function IntegrationsPage() {
         ))}
       </div>
 
-      {/* Tabs: Integrations vs Webhooks */}
+      {/* Tabs: Integrations / Webhooks / Social */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
-        {(["integrations", "webhooks"] as const).map((t) => (
+        {([
+          { key: "integrations", label: "Integrations" },
+          { key: "webhooks",     label: "Webhooks"     },
+          { key: "social",       label: "Social Media" },
+        ] as const).map((t) => (
           <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
-              activeTab === t ? "bg-white text-[#0F172A] shadow-sm" : "text-slate-500 hover:text-slate-700"
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === t.key ? "bg-white text-[#0F172A] shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            {t}
+            {t.key === "social" && <Share2 size={13} />}
+            {t.label}
+            {t.key === "social" && (
+              <span className="text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full uppercase leading-none">
+                New
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -981,6 +1083,391 @@ export default function IntegrationsPage() {
                       <td className="px-5 py-3">
                         <code className="text-[10px] text-slate-500 font-mono">{row.payload}</code>
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Social Media Tab ──────────────────────────────────────────── */}
+      {activeTab === "social" && (
+        <div className="space-y-6">
+          {/* Header banner */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 flex items-start gap-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Share2 size={24} className="text-white" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-white text-lg">Social Media Lead Capture</h3>
+              <p className="text-blue-100 text-sm mt-1">
+                Automatically create CRM leads when someone fills out a Facebook Lead Ad form
+                or sends your page an Instagram DM. One Meta App, one webhook — zero manual copy-paste.
+              </p>
+            </div>
+          </div>
+
+          {/* Status summary strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                label: "Facebook Lead Ads",
+                value: socialStatus?.facebook_connected
+                  ? socialStatus.page_name || "Connected"
+                  : "Not connected",
+                connected: socialStatus?.facebook_connected,
+                icon: "📘",
+              },
+              {
+                label: "Instagram DMs",
+                value: socialStatus?.instagram_connected ? "Connected" : "Not connected",
+                connected: socialStatus?.instagram_connected,
+                icon: "📸",
+              },
+              {
+                label: "Leads Captured",
+                value: socialLoading ? "…" : String(socialStatus?.leads_captured_count ?? 0),
+                connected: (socialStatus?.leads_captured_count ?? 0) > 0,
+                icon: "🎯",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4"
+              >
+                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                  {item.icon}
+                </div>
+                <div>
+                  <div className="text-xs text-slate-400 font-medium mb-0.5">{item.label}</div>
+                  <div className={`text-sm font-bold ${item.connected ? "text-emerald-600" : "text-slate-500"}`}>
+                    {item.value}
+                  </div>
+                </div>
+                {item.connected && (
+                  <CheckCircle size={14} className="text-emerald-500 ml-auto flex-shrink-0" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ── Facebook Lead Ads card ──────────────────────────────────── */}
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#1877F2] rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                  📘
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-sm">Facebook Lead Ads</span>
+                    {socialStatus?.facebook_connected ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
+                        <CheckCircle size={9} /> Connected
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                        <Plug size={9} /> Not connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Auto-create leads from Lead Ad form submissions
+                  </p>
+                </div>
+              </div>
+
+              {/* Setup instructions */}
+              <div className="p-5 space-y-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-700 mb-3">Setup instructions</p>
+                  <ol className="space-y-3 text-xs text-slate-600">
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-[#1877F2]/10 text-[#1877F2] rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">1</span>
+                      <span>
+                        Go to{" "}
+                        <a
+                          href="https://developers.facebook.com/apps"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline font-semibold"
+                        >
+                          Meta for Developers <ExternalLink size={10} className="inline" />
+                        </a>
+                        {" "}→ your App → Webhooks
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-[#1877F2]/10 text-[#1877F2] rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">2</span>
+                      <span>
+                        Subscribe endpoint URL to <strong>Page</strong> object:
+                        <code className="block mt-1 bg-slate-100 text-slate-700 px-2 py-1.5 rounded-lg text-[10px] font-mono break-all">
+                          https://getnama.app/api/v1/social/webhook
+                        </code>
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-[#1877F2]/10 text-[#1877F2] rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">3</span>
+                      <span>
+                        Verify token — copy this value into the Meta dashboard:
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <code className="flex-1 bg-slate-100 text-slate-700 px-2 py-1.5 rounded-lg text-[10px] font-mono truncate">
+                            {verifyToken || "loading…"}
+                          </code>
+                          <button
+                            onClick={handleCopyVerifyToken}
+                            disabled={!verifyToken}
+                            className="flex-shrink-0 p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-40"
+                            title="Copy verify token"
+                          >
+                            {verifyTokenCopied
+                              ? <CheckCircle size={13} className="text-emerald-500" />
+                              : <Copy size={13} className="text-slate-500" />}
+                          </button>
+                        </div>
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-[#1877F2]/10 text-[#1877F2] rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">4</span>
+                      <span>
+                        Subscribe to <strong className="text-slate-800">leadgen</strong> events on your Facebook Page
+                      </span>
+                    </li>
+                  </ol>
+                </div>
+
+                {/* Connect form */}
+                <div className="border-t border-slate-100 pt-4 space-y-3">
+                  <p className="text-xs font-bold text-slate-700">Connect your Facebook Page</p>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Page ID</label>
+                    <input
+                      type="text"
+                      value={fbPageId}
+                      onChange={(e) => setFbPageId(e.target.value)}
+                      placeholder="123456789012345"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-blue-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Page Access Token</label>
+                    <div className="relative">
+                      <input
+                        type={showFbToken ? "text" : "password"}
+                        value={fbAccessToken}
+                        onChange={(e) => setFbAccessToken(e.target.value)}
+                        placeholder="EAABsbCS..."
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-blue-400 transition-colors pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowFbToken(!showFbToken)}
+                        className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showFbToken ? <EyeOff size={13} /> : <Eye size={13} />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Generate a never-expiring token in Meta Business Suite → Page Settings → Advanced.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Instagram DMs card ──────────────────────────────────────── */}
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                  📸
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-sm">Instagram DMs</span>
+                    {socialStatus?.instagram_connected ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
+                        <CheckCircle size={9} /> Connected
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                        <Plug size={9} /> Not connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Turn Instagram DMs into CRM leads automatically
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* How it works */}
+                <div className="bg-purple-50 rounded-xl p-3 space-y-1.5">
+                  <p className="text-xs font-bold text-purple-800">How it works</p>
+                  <ul className="text-xs text-purple-700 space-y-1">
+                    <li>• When someone DMs your Instagram Business account, NAMA creates a lead instantly</li>
+                    <li>• Follow-up messages from the same user append to the same lead (no duplicates)</li>
+                    <li>• Uses the same Meta App and webhook URL as Facebook Lead Ads</li>
+                  </ul>
+                </div>
+
+                {/* Instructions */}
+                <div>
+                  <p className="text-xs font-bold text-slate-700 mb-3">Setup instructions</p>
+                  <ol className="space-y-3 text-xs text-slate-600">
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">1</span>
+                      <span>
+                        In your Meta App, add the <strong>Instagram</strong> product and link your Business account
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">2</span>
+                      <span>
+                        In Webhooks, add subscription for <strong>Instagram</strong> object with the same URL and verify token above
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">3</span>
+                      <span>
+                        Subscribe to the <strong className="text-slate-800">messages</strong> field
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5">4</span>
+                      <span>
+                        Enter your Instagram Business Account ID below to complete the setup
+                      </span>
+                    </li>
+                  </ol>
+                </div>
+
+                {/* Instagram Account ID input */}
+                <div className="border-t border-slate-100 pt-4">
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Instagram Business Account ID
+                  </label>
+                  <input
+                    type="text"
+                    value={igAccountId}
+                    onChange={(e) => setIgAccountId(e.target.value)}
+                    placeholder="17841400008460056"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-purple-400 transition-colors"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Find this in Instagram → Settings → Account → About account, or via the Graph API <code className="bg-slate-100 px-1 rounded text-[9px]">GET /me/accounts</code>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Connect button + result ──────────────────────────────────────── */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-5">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <p className="font-bold text-slate-800 text-sm">Save & Connect</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Stores credentials securely in your tenant settings and verifies the Facebook token.
+                </p>
+              </div>
+              <button
+                onClick={handleSocialConnect}
+                disabled={socialConnecting || !fbPageId.trim() || !fbAccessToken.trim()}
+                className="flex items-center gap-2 bg-[#0F172A] text-white font-black px-6 py-3 rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50 text-sm"
+              >
+                {socialConnecting ? (
+                  <><Loader2 size={15} className="animate-spin" /> Connecting…</>
+                ) : (
+                  <><Share2 size={15} /> Connect Social Media</>
+                )}
+              </button>
+            </div>
+
+            {/* Connection result */}
+            {socialConnectResult && (
+              <div className={`mt-4 rounded-xl p-4 flex items-start gap-3 ${
+                socialConnectResult.connected
+                  ? "bg-emerald-50 border border-emerald-200"
+                  : socialConnectResult.error
+                  ? "bg-red-50 border border-red-200"
+                  : "bg-amber-50 border border-amber-200"
+              }`}>
+                {socialConnectResult.connected ? (
+                  <CheckCircle size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                ) : socialConnectResult.error ? (
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <Clock size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  {socialConnectResult.connected ? (
+                    <>
+                      <p className="text-sm font-bold text-emerald-800">
+                        Facebook Page connected: {socialConnectResult.page_name}
+                      </p>
+                      {socialConnectResult.instagram_connected && (
+                        <p className="text-xs text-emerald-700 mt-0.5">Instagram account also connected.</p>
+                      )}
+                      <p className="text-xs text-emerald-600 mt-1">
+                        NAMA will now automatically create CRM leads from Lead Ads and Instagram DMs.
+                      </p>
+                    </>
+                  ) : socialConnectResult.error ? (
+                    <>
+                      <p className="text-sm font-bold text-red-700">Connection issue</p>
+                      <p className="text-xs text-red-600 mt-0.5">{socialConnectResult.error}</p>
+                      <p className="text-xs text-red-500 mt-1">
+                        Credentials have been saved. Webhooks will work if the token is valid — verify it in Meta&apos;s Webhook Tester.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-bold text-amber-800">Credentials saved.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Field mapping reference ──────────────────────────────────────── */}
+          <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <h3 className="font-extrabold text-[#0F172A] text-sm">Facebook Lead Ad Field Mapping</h3>
+              <p className="text-slate-400 text-xs mt-0.5">
+                NAMA maps Lead Ad question names to CRM fields automatically.
+                Unmapped fields are stored in the lead&apos;s notes.
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    {["Facebook field name", "NAMA CRM field", "Example value"].map((h) => (
+                      <th key={h} className="text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { fb: "full_name",     nama: "full_name",         example: "Priya Sharma" },
+                    { fb: "first_name + last_name", nama: "full_name", example: "Priya Sharma" },
+                    { fb: "email",         nama: "email",             example: "priya@example.com" },
+                    { fb: "phone_number",  nama: "phone",             example: "+91 98765 43210" },
+                    { fb: "destination",   nama: "destination",       example: "Bali, Indonesia" },
+                    { fb: "travel_date",   nama: "travel_dates",      example: "March 2025" },
+                    { fb: "budget",        nama: "budget_per_person", example: "50000" },
+                    { fb: "any other",     nama: "notes",             example: "Stored as extra fields" },
+                  ].map((row, i) => (
+                    <tr key={i} className="border-t border-slate-50 hover:bg-slate-50/50">
+                      <td className="px-5 py-3">
+                        <code className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-lg font-mono">{row.fb}</code>
+                      </td>
+                      <td className="px-5 py-3">
+                        <code className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg font-mono">{row.nama}</code>
+                      </td>
+                      <td className="px-5 py-3 text-xs text-slate-500">{row.example}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -21,6 +21,10 @@
       "destination": "/api/v1/onboarding/generate-config"
     },
     {
+      "source": "/api/v1/capture/:path*",
+      "destination": "/api/v1/capture/:path*"
+    },
+    {
       "source": "/api/v1/:path*",
       "destination": "https://intuitive-blessing-production-30de.up.railway.app/api/v1/:path*"
     },
