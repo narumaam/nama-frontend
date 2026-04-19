@@ -113,6 +113,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       roles: null, // all roles
     },
     {
+      name: 'Routines', href: '/dashboard/routines', icon: Zap,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER'],
+      badge: 'New',
+    },
+    {
       name: 'Clients', href: '/dashboard/clients', icon: Contact,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
     },

@@ -292,6 +292,11 @@ app.include_router(clients_router.router,      prefix="/api/v1/clients",      ta
 from app.api.v1 import whatsapp as whatsapp_router  # noqa: E402
 app.include_router(whatsapp_router.router,     prefix="/api/v1/whatsapp",     tags=["whatsapp"])
 
+#   Routines — in-product automation engine
+from app.api.v1 import routines as routines_router  # noqa: E402
+import app.models.routines  # noqa: F401
+app.include_router(routines_router.router,     prefix="/api/v1/routines",     tags=["routines"])
+
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
 @app.on_event("startup")
