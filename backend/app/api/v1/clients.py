@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional, Any, Dict
 
+import openpyxl
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -21,8 +22,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.db.session import get_db
-from app.api.v1.deps import require_tenant
+from app.api.v1.deps import require_tenant, can
 from app.models.clients import Client, ClientStatus
+from app.models.rbac import PermissionAuditLog
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -479,6 +481,134 @@ def clients_import_template():
         io.BytesIO(output.getvalue().encode("utf-8")),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=nama_clients_template.csv"},
+    )
+
+
+# ── Export endpoint ───────────────────────────────────────────────────────────
+
+@router.get("/export")
+def export_clients(
+    format: str = Query("csv", regex="^(csv|xlsx)$"),
+    status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    _claims: dict = Depends(can("clients", "export")),
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+):
+    """
+    Export clients as CSV or XLSX.
+    Requires clients:export permission (enforced by can() dependency).
+    Writes an audit log entry on every export.
+    """
+    # ── Build query ────────────────────────────────────────────────────────
+    q = db.query(Client).filter(Client.tenant_id == tenant_id)
+    if status:
+        try:
+            q = q.filter(Client.status == ClientStatus[status.upper()])
+        except KeyError:
+            pass
+    if search:
+        pattern = f"%{search}%"
+        q = q.filter(
+            (Client.full_name.ilike(pattern)) |
+            (Client.email.ilike(pattern)) |
+            (Client.phone.ilike(pattern)) |
+            (Client.city.ilike(pattern))
+        )
+    clients = q.order_by(Client.full_name).all()
+
+    # ── Audit log ──────────────────────────────────────────────────────────
+    try:
+        actor_id = int(_claims.get("user_id", 0)) if _claims else 0
+        log_entry = PermissionAuditLog(
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            action_type="export",
+            module="clients",
+            action_name="export",
+            meta={
+                "format": format,
+                "filters": {"status": status, "search": search},
+                "record_count": len(clients),
+                "exported_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        db.add(log_entry)
+        db.commit()
+    except Exception as e:
+        logger.warning("export audit log failed: %s", e)
+
+    # ── Column definitions ─────────────────────────────────────────────────
+    HEADERS = [
+        "ID", "Full Name", "Email", "Phone", "City", "Country",
+        "Status", "Travel Type", "Tags", "Total Bookings",
+        "Total Spend", "Currency", "Last Booking Date",
+        "Preferred Destinations", "Notes", "Import Source", "Created At",
+    ]
+
+    def _row(c: Client) -> list:
+        return [
+            c.id,
+            c.full_name,
+            c.email or "",
+            c.phone or "",
+            c.city or "",
+            c.country or "",
+            c.status.value if c.status else "",
+            c.travel_type or "",
+            ", ".join(c.tags or []),
+            c.total_bookings or 0,
+            c.total_spend or 0,
+            c.currency or "INR",
+            c.last_booking_date.strftime("%Y-%m-%d") if c.last_booking_date else "",
+            ", ".join(c.preferred_destinations or []),
+            c.notes or "",
+            c.import_source or "manual",
+            c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else "",
+        ]
+
+    if format == "xlsx":
+        from openpyxl.styles import Font, PatternFill, Alignment
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Clients"
+        # Header row — bold + teal fill
+        header_fill = PatternFill(start_color="10B981", end_color="10B981", fill_type="solid")
+        for col_idx, header in enumerate(HEADERS, 1):
+            cell = ws.cell(row=1, column=col_idx, value=header)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
+        # Data rows
+        for row_idx, client in enumerate(clients, 2):
+            for col_idx, value in enumerate(_row(client), 1):
+                ws.cell(row=row_idx, column=col_idx, value=value)
+        # Auto-width (approximate)
+        for col in ws.columns:
+            max_len = max((len(str(cell.value or "")) for cell in col), default=10)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        filename = f"nama_clients_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    # Default: CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(HEADERS)
+    for client in clients:
+        writer.writerow(_row(client))
+    output.seek(0)
+    filename = f"nama_clients_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),  # utf-8-sig for Excel compatibility
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 

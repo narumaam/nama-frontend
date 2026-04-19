@@ -9,6 +9,7 @@ import {
   Download, ArrowRight, ArrowLeft, Loader2, ChevronDown,
 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
+import { usePermission } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -693,6 +694,37 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
 
+  const canExport = usePermission('clients', 'export')
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async (fmt: 'csv' | 'xlsx') => {
+    setExporting(true)
+    try {
+      const params = new URLSearchParams({ format: fmt })
+      if (search) params.set('search', search)
+      if (filterStatus && filterStatus !== 'all') params.set('status', filterStatus)
+
+      const res = await fetch(`/api/v1/clients/export?${params}`, {
+        headers: { 'x-api-key': process.env.NEXT_PUBLIC_NAMA_API_KEY || '' },
+      })
+      if (!res.ok) throw new Error('Export failed')
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `nama-clients-${new Date().toISOString().slice(0, 10)}.${fmt}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Export error:', err)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const fetchClients = async () => {
     try {
       const res = await fetch('/api/v1/clients/')
@@ -769,13 +801,42 @@ export default function ClientsPage() {
             {clients.length} clients · {vipCount} VIP · ₹{(totalRevenue / 100000).toFixed(1)}L total spend
           </p>
         </div>
-        <button
-          onClick={() => setShowImportModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
-        >
-          <Upload className="w-4 h-4" />
-          Import Contacts
-        </button>
+        <div className="flex items-center gap-2">
+          {canExport && (
+            <div className="relative group">
+              <button
+                disabled={exporting}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                {exporting ? 'Exporting…' : 'Export'}
+                <span className="text-slate-400 text-xs">▾</span>
+              </button>
+              {/* Dropdown on hover */}
+              <div className="absolute right-0 top-11 hidden group-hover:block bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-20 min-w-[160px]">
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors rounded-t-xl"
+                >
+                  Export as CSV
+                </button>
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors rounded-b-xl border-t border-slate-700"
+                >
+                  Export as Excel
+                </button>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
+          >
+            <Upload className="w-4 h-4" />
+            Import Contacts
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}

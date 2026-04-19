@@ -155,6 +155,19 @@ const ALL_MODULES = [
     ],
   },
   {
+    id: 'clients',
+    label: 'Clients',
+    icon: '👥',
+    color: 'teal',
+    actions: [
+      { id: 'view_all', label: 'View all clients',     risk: 1 },
+      { id: 'create',   label: 'Add / import clients', risk: 2 },
+      { id: 'edit',     label: 'Edit client profiles', risk: 2 },
+      { id: 'delete',   label: 'Delete clients',       risk: 4 },
+      { id: 'export',   label: 'Export contacts',      risk: 4 },
+    ],
+  },
+  {
     id: 'settings',
     label: 'Settings & Admin',
     icon: '⚙️',
@@ -241,6 +254,7 @@ const SEED_ROLES: Role[] = [
     color: '#0F172A', icon: '👑', isTemplate: false, isLocked: true, memberCount: 1,
     version: 1, createdAt: '2026-01-01',
     permissions: buildRolePerms([
+      'clients:view_all','clients:create','clients:edit','clients:delete','clients:export',
       'leads:view_own','leads:view_team','leads:view_all','leads:create','leads:edit_own','leads:edit_all','leads:delete','leads:assign','leads:export','leads:view_ai_score',
       'quotations:view','quotations:create','quotations:edit','quotations:send','quotations:approve_discount','quotations:view_margin','quotations:override_price',
       'bookings:view_own','bookings:view_all','bookings:create','bookings:edit','bookings:cancel','bookings:approve','bookings:process_refund','bookings:export',
@@ -258,6 +272,7 @@ const SEED_ROLES: Role[] = [
     color: '#6d28d9', icon: '🛡️', isTemplate: true, isLocked: false, memberCount: 2,
     version: 2, createdAt: '2026-01-15',
     permissions: buildRolePerms([
+      'clients:view_all','clients:create','clients:edit','clients:delete','clients:export',
       'leads:view_own','leads:view_team','leads:view_all','leads:create','leads:edit_own','leads:edit_all','leads:assign','leads:export','leads:view_ai_score',
       'quotations:view','quotations:create','quotations:edit','quotations:send','quotations:approve_discount','quotations:view_margin',
       'bookings:view_own','bookings:view_all','bookings:create','bookings:edit','bookings:cancel','bookings:approve','bookings:export',
@@ -275,6 +290,7 @@ const SEED_ROLES: Role[] = [
     color: '#0369a1', icon: '📈', isTemplate: true, isLocked: false, memberCount: 3,
     version: 1, createdAt: '2026-02-01',
     permissions: buildRolePerms([
+      'clients:view_all','clients:create','clients:edit','clients:export',
       'leads:view_own','leads:view_team','leads:view_all','leads:create','leads:edit_own','leads:edit_all','leads:assign','leads:view_ai_score',
       'quotations:view','quotations:create','quotations:edit','quotations:send','quotations:approve_discount',
       'bookings:view_own','bookings:view_all','bookings:create',
@@ -290,6 +306,7 @@ const SEED_ROLES: Role[] = [
     color: '#0284c7', icon: '💼', isTemplate: true, isLocked: false, memberCount: 6,
     version: 1, createdAt: '2026-02-15',
     permissions: buildRolePerms([
+      'clients:view_all',
       'leads:view_own','leads:create','leads:edit_own','leads:view_ai_score',
       'quotations:view','quotations:create','quotations:edit','quotations:send',
       'bookings:view_own',
@@ -304,6 +321,7 @@ const SEED_ROLES: Role[] = [
     color: '#d97706', icon: '⚙️', isTemplate: true, isLocked: false, memberCount: 4,
     version: 1, createdAt: '2026-03-01',
     permissions: buildRolePerms([
+      'clients:view_all','clients:create','clients:edit',
       'leads:view_team',
       'bookings:view_own','bookings:view_all','bookings:create','bookings:edit',
       'itineraries:view','itineraries:create','itineraries:edit','itineraries:publish',
@@ -317,6 +335,7 @@ const SEED_ROLES: Role[] = [
     color: '#059669', icon: '💰', isTemplate: true, isLocked: false, memberCount: 1,
     version: 1, createdAt: '2026-03-15',
     permissions: buildRolePerms([
+      'clients:view_all','clients:export',
       'bookings:view_all','bookings:export',
       'finance:view_basic','finance:view_full','finance:view_margin','finance:approve_payment','finance:export','finance:reconcile',
       'reports:view_own','reports:view_team','reports:view_company','reports:export',
