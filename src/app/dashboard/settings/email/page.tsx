@@ -263,8 +263,8 @@ export default function EmailSettingsPage() {
   const loadConfig = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await api.get('/api/v1/email-config/')
-      if (data && !data.configured === false && data.id) {
+      const data = await api.get('/api/v1/email-config/') as EmailConfig
+      if (data && data.configured !== false && data.id) {
         setIsConfigured(true)
         setConfig({
           ...data,
@@ -345,7 +345,7 @@ export default function EmailSettingsPage() {
     setTestingSmtp(true)
     setSmtpTest(null)
     try {
-      const res = await api.post('/api/v1/email-config/test-smtp', {})
+      const res = await api.post('/api/v1/email-config/test-smtp', {}) as TestResult
       setSmtpTest(res)
       if (res.success) {
         setConfig(prev => ({ ...prev, smtp_verified: true }))
@@ -362,7 +362,7 @@ export default function EmailSettingsPage() {
     setTestingImap(true)
     setImapTest(null)
     try {
-      const res = await api.post('/api/v1/email-config/test-imap', {})
+      const res = await api.post('/api/v1/email-config/test-imap', {}) as TestResult
       setImapTest(res)
       if (res.success) {
         setConfig(prev => ({ ...prev, imap_verified: true }))
@@ -379,7 +379,7 @@ export default function EmailSettingsPage() {
     setPolling(true)
     setPollResult(null)
     try {
-      const res = await api.post('/api/v1/email-config/poll-replies', {})
+      const res = await api.post('/api/v1/email-config/poll-replies', {}) as PollResult
       setPollResult(res)
       setConfig(prev => ({ ...prev, last_imap_poll: new Date().toISOString() }))
       setShowPollDetails(true)
