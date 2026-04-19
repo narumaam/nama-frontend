@@ -267,8 +267,8 @@ function PaymentLinkModal({ quotation, onClose }: { quotation: Quotation; onClos
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-[28px] p-8 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-[28px] sm:rounded-[28px] p-6 md:p-8 w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-5">
           <div>
             <h2 className="text-lg font-extrabold text-[#0F172A]">Collect Deposit</h2>
@@ -386,15 +386,15 @@ function QuotationCard({ q, onView }: { q: Quotation; onView: (q: Quotation) => 
         </span>
       </div>
       <div className="flex items-end justify-between">
-        <div>
-          <div className="text-2xl font-extrabold text-[#00236f]">
+        <div className="min-w-0 mr-2">
+          <div className="text-xl md:text-2xl font-extrabold text-[#00236f]">
             {q.currency} {q.total_price.toLocaleString('en-IN')}
           </div>
           <div className="text-xs text-slate-400 mt-0.5">
-            {q.margin_pct}% margin · Created {new Date(q.created_at).toLocaleDateString()}
+            {q.margin_pct}% margin · {new Date(q.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
           </div>
         </div>
-        <ChevronRight size={18} className="text-slate-300 group-hover:text-[#14B8A6] transition-colors" />
+        <ChevronRight size={18} className="text-slate-300 group-hover:text-[#14B8A6] transition-colors flex-shrink-0" />
       </div>
     </div>
   )
@@ -588,14 +588,14 @@ export default function QuotationsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Quotations</h1>
-          <p className="text-slate-500 mt-2 font-medium">Build, send and track travel proposals.</p>
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-[#0F172A]">Quotations</h1>
+          <p className="text-slate-500 mt-1 md:mt-2 font-medium text-sm md:text-base">Build, send and track travel proposals.</p>
         </div>
         <button
           onClick={() => setShowNew(true)}
-          className="bg-[#00236f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00236f]/10 hover:bg-slate-800 transition-all"
+          className="bg-[#00236f] text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00236f]/10 hover:bg-slate-800 transition-all self-start sm:self-auto"
         >
           <Plus size={18} /> New Quotation
         </button>
@@ -609,13 +609,13 @@ export default function QuotationsPage() {
           { label: 'Won Value', value: `₹${(wonValue/100000).toFixed(1)}L`, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
           { label: 'Conversion Rate', value: `${convRate}%`, icon: Sparkles, color: 'text-[#14B8A6] bg-teal-50' },
         ].map(stat => (
-          <div key={stat.label} className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-            <div className={`w-11 h-11 ${stat.color.split(' ')[1]} rounded-xl flex items-center justify-center flex-shrink-0`}>
-              <stat.icon size={20} className={stat.color.split(' ')[0]} />
+          <div key={stat.label} className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-3 md:p-5 flex items-center gap-3 md:gap-4">
+            <div className={`w-9 h-9 md:w-11 md:h-11 ${stat.color.split(' ')[1]} rounded-xl flex items-center justify-center flex-shrink-0`}>
+              <stat.icon size={18} className={stat.color.split(' ')[0]} />
             </div>
-            <div>
-              <div className="text-2xl font-extrabold text-[#0F172A]">{stat.value}</div>
-              <div className="text-xs text-slate-400 font-medium">{stat.label}</div>
+            <div className="min-w-0">
+              <div className="text-xl md:text-2xl font-extrabold text-[#0F172A]">{stat.value}</div>
+              <div className="text-[10px] md:text-xs text-slate-400 font-medium truncate">{stat.label}</div>
             </div>
           </div>
         ))}
@@ -636,7 +636,7 @@ export default function QuotationsPage() {
         const topDestName = Object.entries(topDest).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
         const topBench = topDestName ? getPricingBenchmark(topDestName) : null;
         return (
-          <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-2xl p-5 flex items-center gap-6 flex-wrap">
+          <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-2xl p-4 md:p-5 flex items-center gap-4 md:gap-6 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#14B8A6]/20 flex items-center justify-center flex-shrink-0">
                 <BarChart3 size={18} className="text-[#14B8A6]" />
@@ -671,7 +671,7 @@ export default function QuotationsPage() {
       })()}
 
       {/* Filter tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit flex-wrap">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-fit flex-wrap overflow-x-auto">
         {['ALL', 'DRAFT', 'SENT', 'ACCEPTED', 'REJECTED'].map(s => (
           <button
             key={s}
@@ -720,8 +720,8 @@ export default function QuotationsPage() {
 
       {/* ── New Quotation Modal ── */}
       {showNew && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[28px] p-8 w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-[28px] sm:rounded-[28px] p-6 md:p-8 w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-extrabold text-[#0F172A]">New Quotation</h2>
               <button onClick={() => setShowNew(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl">
@@ -781,8 +781,8 @@ export default function QuotationsPage() {
 
       {/* ── Quotation Detail Modal ── */}
       {selectedQuote && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedQuote(null)}>
-          <div className="bg-white rounded-[28px] p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSelectedQuote(null)}>
+          <div className="bg-white rounded-t-[28px] sm:rounded-[28px] p-6 md:p-8 w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-xl font-extrabold text-[#0F172A]">{selectedQuote.lead_name || `Quote #${selectedQuote.id}`}</h2>
@@ -791,8 +791,8 @@ export default function QuotationsPage() {
               <button onClick={() => setSelectedQuote(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl"><X size={18} /></button>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-5 mb-5">
-              <div className="text-3xl font-black text-[#00236f]">{selectedQuote.currency} {selectedQuote.total_price.toLocaleString('en-IN')}</div>
+            <div className="bg-slate-50 rounded-2xl p-4 md:p-5 mb-5">
+              <div className="text-2xl md:text-3xl font-black text-[#00236f]">{selectedQuote.currency} {selectedQuote.total_price.toLocaleString('en-IN')}</div>
               <div className="text-sm text-slate-400 mt-1">{selectedQuote.margin_pct}% margin included</div>
             </div>
 
@@ -875,8 +875,8 @@ export default function QuotationsPage() {
 
       {/* ── Send to Client Modal ── */}
       {sendModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSendModal(null)}>
-          <div className="bg-white rounded-[28px] p-8 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSendModal(null)}>
+          <div className="bg-white rounded-t-[28px] sm:rounded-[28px] p-6 md:p-8 w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-lg font-extrabold text-[#0F172A]">Send Quote to Client</h2>
               <button onClick={() => setSendModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl">

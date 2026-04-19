@@ -422,3 +422,90 @@ def get_team_performance(
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Booking Calendar Events ───────────────────────────────────────────────────
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+@router.get("/calendar-events")
+def get_calendar_events(
+    year: int = Query(default=None),
+    month: int = Query(default=None),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Returns all bookings + follow-up reminders for a given month as calendar events."""
+    from app.models.bookings import Booking
+    now = datetime.now(timezone.utc)
+    y = year or now.year
+    m = month or now.month
+
+    events = []
+
+    # 1. Bookings — fetch all tenant bookings; use BookingItem start_date when available,
+    #    fall back to booking created_at.
+    try:
+        bookings = db.query(Booking).filter(
+            Booking.tenant_id == current_user.tenant_id,
+        ).all()
+
+        for b in bookings:
+            # Resolve a display date: first BookingItem start_date, else created_at
+            event_date = None
+            if b.items:
+                first_item = sorted(b.items, key=lambda i: i.start_date)[0]
+                event_date = first_item.start_date.date().isoformat()
+            elif b.created_at:
+                event_date = b.created_at.date().isoformat()
+
+            # Resolve lead name + destination via relationship
+            lead_name = "Booking"
+            destination = ""
+            if b.lead:
+                lead_name = b.lead.full_name or f"Lead #{b.lead_id}"
+                destination = b.lead.destination or ""
+
+            events.append({
+                "id": f"booking_{b.id}",
+                "type": "booking",
+                "title": lead_name,
+                "subtitle": destination,
+                "date": event_date,
+                "status": b.status.value if b.status else "DRAFT",
+                "color": "emerald",
+                "url": "/dashboard/bookings",
+                "booking_ref": f"BK{b.id:05d}",
+                "amount": b.total_price or 0,
+            })
+    except Exception as e:
+        logger.warning("calendar bookings query failed: %s", e)
+
+    # 2. Lead follow-up reminders — CONTACTED/QUALIFIED leads, suggest follow-up 3 days after last update
+    try:
+        from app.models.leads import Lead, LeadStatus
+
+        active_leads = db.query(Lead).filter(
+            Lead.tenant_id == current_user.tenant_id,
+            Lead.status.in_([LeadStatus.CONTACTED, LeadStatus.QUALIFIED]),
+        ).limit(30).all()
+
+        for lead in active_leads:
+            if lead.updated_at:
+                follow_up_date = (lead.updated_at + timedelta(days=3)).date()
+                events.append({
+                    "id": f"reminder_{lead.id}",
+                    "type": "reminder",
+                    "title": f"Follow up: {lead.full_name or 'Lead'}",
+                    "subtitle": lead.destination or "",
+                    "date": follow_up_date.isoformat(),
+                    "status": lead.status.value if lead.status else "",
+                    "color": "amber",
+                    "url": "/dashboard/leads",
+                })
+    except Exception as e:
+        logger.warning("calendar reminders query failed: %s", e)
+
+    return {"events": events, "year": y, "month": m}

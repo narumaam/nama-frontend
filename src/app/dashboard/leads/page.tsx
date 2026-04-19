@@ -291,11 +291,11 @@ function ImportLeadsModal({ onClose, onSuccess }: { onClose: () => void; onSucce
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-[28px] p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-[28px] sm:rounded-[28px] p-6 md:p-8 w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-xl font-extrabold text-[#0F172A]">Import Leads</h2>
+            <h2 className="text-lg md:text-xl font-extrabold text-[#0F172A]">Import Leads</h2>
             <p className="text-xs text-slate-400 mt-0.5">Upload a CSV or Excel file to bulk-import leads</p>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl">
@@ -728,24 +728,25 @@ export default function LeadsPage() {
       <div className={`flex-1 min-w-0 space-y-6 transition-all ${selectedLead ? 'hidden xl:block xl:max-w-[55%]' : ''}`}>
 
         {/* Header */}
-        <div data-tour="leads-header" className="flex justify-between items-end">
+        <div data-tour="leads-header" className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A]">Leads Pipeline</h1>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#0F172A]">Leads Pipeline</h1>
             <p className="text-slate-500 mt-1 text-sm font-medium">Track, qualify, and convert every opportunity.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-bold transition-colors"
+              className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-bold transition-colors"
             >
               <Upload className="w-4 h-4" />
-              Import CSV
+              <span className="hidden sm:inline">Import CSV</span>
+              <span className="sm:hidden">Import</span>
             </button>
             <button
               onClick={() => { setShowInquiry(true); setInquirySuccess(null) }}
-              className="bg-[#00236f] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00236f]/10 hover:bg-slate-800 transition-all active:scale-95 text-sm"
+              className="bg-[#00236f] text-white px-3 md:px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00236f]/10 hover:bg-slate-800 transition-all active:scale-95 text-sm"
             >
-              <Plus size={16} /> New Inquiry
+              <Plus size={16} /> <span className="hidden sm:inline">New Inquiry</span><span className="sm:hidden">New</span>
             </button>
           </div>
         </div>
@@ -868,7 +869,7 @@ export default function LeadsPage() {
                         <span className="text-slate-400">{timeAgo(lead.created_at)}</span>
                       </div>
                     </div>
-                    {/* Quick actions */}
+                    {/* Quick actions — on mobile show only WhatsApp + chevron; full set on sm+ */}
                     <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
                       {lead.phone && (
                         <button onClick={() => handleWhatsApp(lead)} title="WhatsApp"
@@ -878,13 +879,13 @@ export default function LeadsPage() {
                       )}
                       {lead.phone && (
                         <button onClick={() => handleCall(lead)} title="Call"
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                          className="hidden sm:flex p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
                           <Phone size={15} />
                         </button>
                       )}
                       {lead.email && (
                         <button onClick={() => handleEmail(lead)} title="Email"
-                          className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-all">
+                          className="hidden sm:flex p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-all">
                           <Mail size={15} />
                         </button>
                       )}
@@ -913,7 +914,7 @@ export default function LeadsPage() {
       {/* ── RIGHT: Detail Panel ── */}
       {selectedLead && (
         <div className="w-full xl:w-[44%] flex-shrink-0">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm sticky top-4 max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm sticky top-4 max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
             {/* Panel header */}
             <div className="p-5 border-b border-slate-100 flex-shrink-0">
               <div className="flex items-start justify-between">
@@ -1282,10 +1283,10 @@ export default function LeadsPage() {
 
       {/* ── New Inquiry Modal ── */}
       {showInquiry && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] p-8 w-full max-w-lg shadow-2xl">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-[32px] sm:rounded-[32px] p-6 md:p-8 w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-extrabold text-[#0F172A]">New Inquiry</h2>
+              <h2 className="text-xl md:text-2xl font-extrabold text-[#0F172A]">New Inquiry</h2>
               <button onClick={() => setShowInquiry(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl">
                 <X size={20} />
               </button>

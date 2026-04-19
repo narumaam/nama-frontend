@@ -100,7 +100,7 @@ function BookingCard({
 
   return (
     <div
-      className={`bg-white border-2 ${st.card} rounded-2xl p-5 hover:shadow-md transition-all cursor-pointer group`}
+      className={`bg-white border-2 ${st.card} rounded-2xl p-3 md:p-5 hover:shadow-md transition-all cursor-pointer group`}
       onClick={() => onView(booking)}
     >
       <div className="flex items-start justify-between mb-3">
@@ -127,7 +127,7 @@ function BookingCard({
 
       <div className="flex items-end justify-between mb-4">
         <div>
-          <div className="text-2xl font-extrabold text-[#0F172A]">{fmtINR(booking.total_price)}</div>
+          <div className="text-xl md:text-2xl font-extrabold text-[#0F172A]">{fmtINR(booking.total_price)}</div>
           <div className="text-xs text-slate-400 mt-0.5">
             {booking.currency} · {new Date(booking.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
           </div>
@@ -142,7 +142,7 @@ function BookingCard({
       </div>
 
       {/* Action buttons — stop propagation so card click doesn't fire */}
-      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+      <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
         {(booking.status === "DRAFT" || booking.status === "PENDING_CONFIRMATION") && (
           <button
             onClick={() => onConfirm(booking.id)}
@@ -224,7 +224,7 @@ function BookingDetail({ booking, onClose }: { booking: ReturnType<typeof enrich
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex" onClick={onClose}>
-      <div className="ml-auto h-full w-full max-w-md bg-white overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="ml-auto h-full w-full sm:max-w-md bg-white overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
           <div>
@@ -626,12 +626,12 @@ export default function BookingsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-end flex-wrap gap-4">
+      <div className="flex justify-between items-end flex-wrap gap-3">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Bookings</h1>
-          <p className="text-slate-500 mt-2 font-medium">Manage booking lifecycle from confirmation to completion.</p>
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-[#0F172A]">Bookings</h1>
+          <p className="text-slate-500 mt-1 md:mt-2 font-medium text-sm md:text-base">Manage booking lifecycle from confirmation to completion.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
             <button
               onClick={() => setViewMode('bookings')}
@@ -665,13 +665,13 @@ export default function BookingsPage() {
           { label: "Cancellation Rate",  value: `${cancelRate}%`,            icon: TrendingDown,color: cancelRate > 10 ? "bg-red-500" : "bg-amber-500" },
           { label: "Avg Booking Value",  value: fmtINR(avgValue),            icon: Briefcase,   color: "bg-violet-500" },
         ].map((k) => (
-          <div key={k.label} className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center gap-4">
-            <div className={`w-10 h-10 ${k.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-              <k.icon size={18} className="text-white" />
+          <div key={k.label} className="bg-white border border-slate-100 rounded-2xl p-3 md:p-5 flex items-center gap-3 md:gap-4">
+            <div className={`w-9 h-9 md:w-10 md:h-10 ${k.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+              <k.icon size={16} className="text-white" />
             </div>
-            <div>
-              <div className="text-2xl font-black text-[#0F172A]">{k.value}</div>
-              <div className="text-xs text-slate-400 font-medium">{k.label}</div>
+            <div className="min-w-0">
+              <div className="text-xl md:text-2xl font-black text-[#0F172A]">{k.value}</div>
+              <div className="text-[10px] md:text-xs text-slate-400 font-medium truncate">{k.label}</div>
             </div>
           </div>
         ))}
@@ -811,7 +811,7 @@ export default function BookingsPage() {
       {/* ── Send Invoice Modal ── */}
       {sendInvoiceBooking && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSendInvoiceBooking(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="font-extrabold text-[#0F172A] text-lg flex items-center gap-2">

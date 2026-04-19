@@ -15,6 +15,7 @@ Endpoints:
   PATCH  /quotations/{id}       — update fields (status, price, notes)
   DELETE /quotations/{id}       — soft-delete (mark EXPIRED)
   POST   /quotations/{id}/send  — mark as SENT (sets sent_at timestamp)
+  POST   /quotations/{id}/respond — public: client accepts or requests changes
 """
 
 import io
@@ -461,3 +462,186 @@ def quotation_pdf(
                 "Content-Disposition": f'inline; filename="quotation-{q.id}.html"',
             },
         )
+
+
+# ── Public: Client Respond endpoint ──────────────────────────────────────────
+
+class QuotationRespondRequest(BaseModel):
+    action: str                          # "accept" or "request_changes"
+    client_name: str
+    client_email: Optional[str] = None
+    message: Optional[str] = None       # optional message with change details
+
+
+class QuotationRespondResponse(BaseModel):
+    success: bool
+    new_status: str
+    message: str
+
+
+def _send_respond_notification(
+    quotation: "Quotation",
+    body: QuotationRespondRequest,
+    db: Session,
+) -> None:
+    """Fire-and-forget Resend email to the agent. Graceful no-op if RESEND_API_KEY absent."""
+    import os
+    import httpx
+
+    resend_key = os.getenv("RESEND_API_KEY")
+    if not resend_key:
+        logger.info("RESEND_API_KEY not set — skipping respond notification email")
+        return
+
+    # Try to find the agent's email via the associated lead
+    agent_email: Optional[str] = None
+    agent_name: str = "your agent"
+    try:
+        from app.models.leads import Lead
+        from app.models.auth import User
+
+        if quotation.lead_id:
+            lead = db.query(Lead).filter(Lead.id == quotation.lead_id).first()
+            if lead and lead.assigned_user_id:
+                user = db.query(User).filter(User.id == lead.assigned_user_id).first()
+                if user:
+                    agent_email = user.email
+                    agent_name = user.full_name or user.email
+    except Exception as exc:
+        logger.warning(f"Could not resolve agent for quotation {quotation.id}: {exc}")
+
+    if not agent_email:
+        logger.info(f"No agent email found for quotation {quotation.id} — skipping notification")
+        return
+
+    is_accept = body.action == "accept"
+    subject = (
+        f"✅ Quote Accepted by {body.client_name}"
+        if is_accept
+        else f"🔄 {body.client_name} requested changes on their quote"
+    )
+
+    change_section = ""
+    if not is_accept and body.message:
+        change_section = f"""
+        <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:16px;margin:16px 0;">
+          <strong>Client's message:</strong><br>
+          {body.message}
+        </div>
+        """
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1e293b;">
+  <div style="background:#0f766e;color:white;padding:24px;border-radius:8px 8px 0 0;">
+    <h2 style="margin:0;">{"✅ Quote Accepted" if is_accept else "🔄 Changes Requested"}</h2>
+  </div>
+  <div style="padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;">
+    <p>Hi {agent_name},</p>
+    <p>
+      {"Your client <strong>" + body.client_name + "</strong> has <strong>accepted</strong> the quote." if is_accept
+       else "Your client <strong>" + body.client_name + "</strong> has <strong>requested changes</strong> on the quote."}
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#475569;width:160px;">Quote ID</td><td style="padding:6px 12px;">#{quotation.id}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#475569;">Client</td><td style="padding:6px 12px;">{body.client_name}</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:6px 12px;font-weight:bold;color:#475569;">Destination</td><td style="padding:6px 12px;">{quotation.destination}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#475569;">Total</td><td style="padding:6px 12px;">{quotation.currency} {float(quotation.total_price):,.2f}</td></tr>
+      {"<tr style='background:#f8fafc;'><td style='padding:6px 12px;font-weight:bold;color:#475569;'>Client Email</td><td style='padding:6px 12px;'>" + body.client_email + "</td></tr>" if body.client_email else ""}
+    </table>
+    {change_section}
+    <div style="margin-top:24px;">
+      <a href="https://getnama.app/dashboard/quotations"
+         style="background:#0f766e;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
+        View Quote in Dashboard →
+      </a>
+    </div>
+    <p style="margin-top:24px;font-size:12px;color:#94a3b8;">NAMA OS · Automated Notification</p>
+  </div>
+</body>
+</html>"""
+
+    from_email = os.getenv("RESEND_FROM_EMAIL", "NAMA OS <onboarding@getnama.app>")
+    try:
+        resp = httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+            json={"from": from_email, "to": [agent_email], "subject": subject, "html": html_body},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+        logger.info(f"Respond notification sent to {agent_email} for quotation {quotation.id}")
+    except Exception as exc:
+        logger.warning(f"Failed to send respond notification email: {exc}")
+
+
+@router.post(
+    "/{quotation_id}/respond",
+    response_model=QuotationRespondResponse,
+    summary="Public: client accepts or requests changes on a quote",
+)
+def client_respond_to_quotation(
+    quotation_id: int,
+    body: QuotationRespondRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Public endpoint — no auth required. Called from /portal/[bookingId].
+    Clients can accept or request changes on a SENT quotation.
+    Sends a notification email to the assigned agent via Resend.
+    """
+    if body.action not in ("accept", "request_changes"):
+        raise HTTPException(
+            status_code=422,
+            detail="action must be 'accept' or 'request_changes'",
+        )
+
+    # Public lookup — no tenant filter since client has no JWT
+    q = (
+        db.query(Quotation)
+        .filter(Quotation.id == quotation_id, Quotation.is_deleted.is_(False))
+        .first()
+    )
+    if not q:
+        raise HTTPException(status_code=404, detail="Quotation not found")
+
+    if q.status not in (QuotationStatus.SENT, QuotationStatus.DRAFT):
+        # Already actioned — return current state gracefully
+        return QuotationRespondResponse(
+            success=True,
+            new_status=q.status.value,
+            message=f"This quote has already been {q.status.value.lower()}.",
+        )
+
+    if body.action == "accept":
+        q.status = QuotationStatus.ACCEPTED
+        user_message = "Quote accepted! Your travel consultant will be in touch shortly to confirm next steps."
+    else:
+        q.status = QuotationStatus.REJECTED  # closest existing status for revision
+        note_prefix = f"[Revision requested by {body.client_name}]"
+        if body.message:
+            note_prefix += f" {body.message}"
+        existing_notes = q.notes or ""
+        q.notes = f"{note_prefix}\n\n{existing_notes}".strip()
+        user_message = "Your change request has been noted. Your travel consultant will review and send a revised quote."
+
+    q.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(q)
+
+    logger.info(
+        f"Quotation {quotation_id} responded: action={body.action} client={body.client_name!r} new_status={q.status}"
+    )
+
+    # Send agent notification (graceful no-op if Resend not configured)
+    try:
+        _send_respond_notification(q, body, db)
+    except Exception as exc:
+        logger.warning(f"Notification dispatch failed silently: {exc}")
+
+    return QuotationRespondResponse(
+        success=True,
+        new_status=q.status.value,
+        message=user_message,
+    )

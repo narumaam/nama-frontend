@@ -22,7 +22,7 @@ import {
   Calendar, Clock, Users, CheckCircle, Circle, AlertCircle,
   Download, Share2, Copy, Check, ChevronDown, ChevronUp,
   Sun, Cloud, CloudRain, Wind, FileText, Star, ArrowRight,
-  Shield, Globe, Navigation, Zap, Heart
+  Shield, Globe, Navigation, Zap, Heart, FileCheck, Edit3
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -55,6 +55,11 @@ interface TripDocument {
   color: string;
 }
 
+interface QuotationLineItem {
+  label: string;
+  amount: number;
+}
+
 interface Booking {
   bookingRef: string;
   clientName: string;
@@ -72,6 +77,12 @@ interface Booking {
   days: TripDay[];
   documents: TripDocument[];
   emergencyPhone: string;
+  // Quote acceptance
+  quotationStatus?: 'PENDING' | 'SENT' | 'ACCEPTED' | 'REVISION_REQUESTED' | 'REJECTED';
+  quotationTotal?: number;
+  quotationId?: number;
+  quotationCurrency?: string;
+  quotationItems?: QuotationLineItem[];
 }
 
 // ─── Demo Booking ─────────────────────────────────────────────────────────────
@@ -112,6 +123,19 @@ function makeDemoBooking(bookingId: string): Booking {
     agentPhoto: '',
     heroImage: '',
     emergencyPhone: '+91 99999 00001',
+    // Quote acceptance demo data
+    quotationStatus: 'SENT',
+    quotationId: 1,
+    quotationTotal: 184800,
+    quotationCurrency: 'INR',
+    quotationItems: [
+      { label: 'Flights (BOM ↔ DPS × 2 Pax)', amount: 48000 },
+      { label: 'The Layar Private Villas (7 nights)', amount: 84000 },
+      { label: 'All Transfers & Drivers', amount: 12000 },
+      { label: 'Activities & Experiences', amount: 24000 },
+      { label: 'Welcome Dinner + Farewell Dinner', amount: 8800 },
+      { label: 'Travel Insurance (ICICI)', amount: 8000 },
+    ],
     documents: [
       { name: 'E-Tickets (IndiGo 6E-234)', type: 'PDF', size: '1.2 MB', icon: Plane, color: 'text-blue-600' },
       { name: 'Hotel Voucher — The Layar', type: 'PDF', size: '0.8 MB', icon: Hotel, color: 'text-purple-600' },
@@ -324,6 +348,280 @@ function DayCard({ day }: { day: TripDay }) {
   );
 }
 
+// ─── Quote Acceptance Section ─────────────────────────────────────────────────
+
+function QuoteAcceptanceSection({
+  booking,
+  quotationId,
+}: {
+  booking: Booking;
+  quotationId: number;
+}) {
+  const [action, setAction] = useState<null | 'accept' | 'changes'>(null);
+  const [message, setMessage] = useState('');
+  const [clientName, setClientName] = useState(booking.clientName || '');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [finalStatus, setFinalStatus] = useState<string | null>(null);
+
+  // If already accepted/actioned from a previous session, show badge
+  const alreadyActioned =
+    booking.quotationStatus === 'ACCEPTED' ||
+    booking.quotationStatus === 'REVISION_REQUESTED' ||
+    booking.quotationStatus === 'REJECTED';
+
+  const currency = booking.quotationCurrency || 'INR';
+  const total = booking.quotationTotal ?? 0;
+  const items = booking.quotationItems ?? [];
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+
+  async function handleSubmit() {
+    if (!action) return;
+    if (!clientName.trim()) {
+      setError('Please enter your name to continue.');
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/quotations/${quotationId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: action === 'accept' ? 'accept' : 'request_changes',
+          client_name: clientName.trim(),
+          message: message.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSubmitted(true);
+        setFinalStatus(data.new_status);
+      } else {
+        setError(data.detail || 'Something went wrong. Please try again.');
+      }
+    } catch {
+      setError('Network error — please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (alreadyActioned) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <CheckCircle size={20} className="text-emerald-600" />
+          </div>
+          <div>
+            <div className="font-bold text-emerald-800 text-sm">Quote Accepted ✓</div>
+            <div className="text-xs text-emerald-600 mt-0.5">
+              Your travel consultant has been notified and will be in touch shortly.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    const isAccepted = action === 'accept';
+    return (
+      <div className={`rounded-2xl border p-5 ${isAccepted ? 'border-emerald-200 bg-emerald-50' : 'border-blue-200 bg-blue-50'}`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isAccepted ? 'bg-emerald-100' : 'bg-blue-100'}`}>
+            <CheckCircle size={20} className={isAccepted ? 'text-emerald-600' : 'text-blue-600'} />
+          </div>
+          <div>
+            <div className={`font-bold text-sm ${isAccepted ? 'text-emerald-800' : 'text-blue-800'}`}>
+              {isAccepted ? '✅ Quote Accepted!' : '✏️ Change Request Sent!'}
+            </div>
+            <div className={`text-xs mt-0.5 ${isAccepted ? 'text-emerald-600' : 'text-blue-600'}`}>
+              {isAccepted
+                ? "We've notified your travel consultant. They'll be in touch shortly to confirm next steps."
+                : "Your travel consultant has been notified and will review your request and send a revised quote."}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-slate-800 overflow-hidden shadow-lg">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-700">
+        <div className="w-9 h-9 rounded-xl bg-teal-500/20 flex items-center justify-center flex-shrink-0">
+          <FileCheck size={18} className="text-teal-400" />
+        </div>
+        <div>
+          <div className="font-black text-white text-base">Your Travel Quote</div>
+          <div className="text-xs text-slate-400 mt-0.5">Review and respond to your personalised itinerary quote</div>
+        </div>
+      </div>
+
+      {/* Quote Summary */}
+      <div className="px-5 py-4 border-b border-slate-700">
+        {/* Destination + dates */}
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <MapPin size={12} className="text-teal-400" />
+              <span className="text-xs font-bold text-teal-400 uppercase tracking-wide">{booking.destination}</span>
+            </div>
+            <div className="font-bold text-white text-sm">{booking.packageName}</div>
+            <div className="text-xs text-slate-400 mt-0.5">
+              {new Date(booking.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {' → '}
+              {new Date(booking.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {' · '}{booking.pax} Pax
+            </div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-xs text-slate-400 mb-0.5">Total</div>
+            <div className="text-2xl font-black text-white">{formatCurrency(total)}</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">All inclusive</div>
+          </div>
+        </div>
+
+        {/* Line items */}
+        {items.length > 0 && (
+          <div className="rounded-xl border border-slate-700 bg-slate-900/60 divide-y divide-slate-700/60 overflow-hidden">
+            {items.map((item, i) => (
+              <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-xs text-slate-300">{item.label}</span>
+                <span className="text-xs font-semibold text-slate-200 flex-shrink-0 ml-4">
+                  {formatCurrency(item.amount)}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between px-4 py-3 bg-teal-500/10">
+              <span className="text-sm font-bold text-teal-300">Total Package Price</span>
+              <span className="text-sm font-black text-teal-300">{formatCurrency(total)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Action Section */}
+      <div className="px-5 py-4">
+        {/* Client name input */}
+        <div className="mb-4">
+          <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">
+            Your Name
+          </label>
+          <input
+            type="text"
+            value={clientName}
+            onChange={e => setClientName(e.target.value)}
+            placeholder="Enter your full name to confirm"
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+          />
+        </div>
+
+        {/* Action buttons */}
+        {action === null && (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setAction('accept')}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors"
+            >
+              <CheckCircle size={16} />
+              Accept Quote
+            </button>
+            <button
+              onClick={() => setAction('changes')}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm transition-colors border border-slate-600"
+            >
+              <Edit3 size={16} />
+              Request Changes
+            </button>
+          </div>
+        )}
+
+        {/* Accept confirmation */}
+        {action === 'accept' && (
+          <div className="space-y-3">
+            <div className="rounded-xl bg-emerald-900/30 border border-emerald-700/50 px-4 py-3 text-sm text-emerald-300">
+              You're about to <strong>accept this quote</strong>. Your travel consultant will be notified immediately.
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  <CheckCircle size={16} />
+                )}
+                {loading ? 'Confirming…' : '✅ Confirm Acceptance'}
+              </button>
+              <button
+                onClick={() => setAction(null)}
+                className="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold text-sm transition-colors"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Request changes form */}
+        {action === 'changes' && (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">
+                What would you like changed?
+              </label>
+              <textarea
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="e.g. Can we add one more night? We'd also prefer business class flights if possible..."
+                rows={4}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors resize-none"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  <Edit3 size={16} />
+                )}
+                {loading ? 'Sending…' : '✏️ Send Change Request'}
+              </button>
+              <button
+                onClick={() => setAction(null)}
+                className="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold text-sm transition-colors"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-xl px-3 py-2">
+            <AlertCircle size={13} className="flex-shrink-0" />
+            {error}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Portal Page ──────────────────────────────────────────────────────────────
 
 function PortalPageInner() {
@@ -526,6 +824,19 @@ function PortalPageInner() {
             </div>
           )}
         </div>
+
+        {/* Quote Acceptance Section — shown when quote is pending client action or already actioned */}
+        {booking.quotationId != null && (
+          booking.quotationStatus === 'SENT' ||
+          booking.quotationStatus === 'PENDING' ||
+          booking.quotationStatus === 'ACCEPTED' ||
+          booking.quotationStatus === 'REVISION_REQUESTED'
+        ) && (
+          <QuoteAcceptanceSection
+            booking={booking}
+            quotationId={booking.quotationId!}
+          />
+        )}
 
         {/* Day-by-Day Timeline */}
         <div>

@@ -288,6 +288,10 @@ app.include_router(search_router.router,       prefix="/api/v1",              ta
 from app.api.v1 import clients as clients_router  # noqa: E402
 app.include_router(clients_router.router,      prefix="/api/v1/clients",      tags=["clients"])
 
+#   WhatsApp Business API — inbound webhook + outbound send
+from app.api.v1 import whatsapp as whatsapp_router  # noqa: E402
+app.include_router(whatsapp_router.router,     prefix="/api/v1/whatsapp",     tags=["whatsapp"])
+
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
 @app.on_event("startup")

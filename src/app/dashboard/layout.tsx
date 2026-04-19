@@ -8,7 +8,7 @@ import {
   CreditCard, FileText, Settings, Zap, X, Bell,
   LogOut, Store, FileQuestion, Menu,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
-  UserCheck, Contact, Building2, Shield,
+  UserCheck, Contact, Building2, Shield, Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import NamaCopilot from '@/components/NamaCopilot';
@@ -109,6 +109,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE','R6_SUB_AGENT','R7_CLIENT_PORTAL'],
     },
     {
+      name: 'Calendar', href: '/dashboard/calendar', icon: Calendar,
+      roles: null, // all roles
+    },
+    {
       name: 'Clients', href: '/dashboard/clients', icon: Contact,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
     },
@@ -189,7 +193,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <aside className={`
-      ${mobile ? 'fixed inset-y-0 left-0 z-50 w-72 shadow-2xl' : 'fixed inset-y-0 z-50'}
+      ${mobile
+        ? `fixed inset-y-0 left-0 z-50 w-72 shadow-2xl transform transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`
+        : 'fixed inset-y-0 z-50'}
       ${!mobile && (sidebarOpen ? 'w-64' : 'w-[72px]')}
       bg-[#0F172A] text-white flex flex-col transition-all duration-300
     `}>
@@ -336,17 +342,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Mobile sidebar overlay */}
-      {mobileOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
-          <div className="lg:hidden">
-            <Sidebar mobile />
-          </div>
-        </>
-      )}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setMobileOpen(false)}
+      />
+      <div className="lg:hidden">
+        <Sidebar mobile />
+      </div>
 
-      {/* Main content — margin must use complete class strings for Tailwind JIT to detect them */}
-      <main className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-[72px]'}`}>
+      {/* Main content — no left margin on mobile (sidebar is overlay); margin only on lg+ */}
+      <main className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-[72px]'}`}>
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-100 px-4 md:px-6 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center gap-3">
@@ -380,7 +385,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {notifOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                <div className="absolute top-10 right-0 z-50 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <div className="absolute top-10 right-0 z-50 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                     <p className="text-sm font-black text-slate-800">Notifications</p>
                     <span className="text-[10px] font-bold text-[#14B8A6] bg-[#14B8A6]/10 px-2 py-0.5 rounded-full">{unreadCount} new</span>

@@ -12,6 +12,7 @@
  *   - Draft history (last 10, click to reload)
  *   - Copy + WhatsApp deep-link + mailto shortcut
  *   - Message log table (simulated sent history)
+ *   - WhatsApp Business Cloud API panel (Meta Cloud API, demo-safe)
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -19,9 +20,28 @@ import {
   MessageSquare, Mail, Copy, Check, Loader, AlertCircle,
   Plus, Search, Send, Clock, ChevronDown, Zap,
   BarChart2, Phone, RefreshCw, Smile, Briefcase,
-  AlertTriangle, Star, History, X,
+  AlertTriangle, Star, History, X, Wifi, WifiOff,
+  ChevronRight,
 } from "lucide-react";
 import { leadsApi, commsApi, Lead } from "@/lib/api";
+
+// ── WhatsApp template type ────────────────────────────────────────────────────
+interface WaTemplate {
+  name: string;
+  language: string;
+  category: string;
+  body: string;
+  params: string[];
+}
+
+// ── Sent message log entry ─────────────────────────────────────────────────────
+interface SentLogEntry {
+  id: string;
+  to: string;
+  template: string;
+  status: "sent" | "demo" | "failed";
+  ts: string;
+}
 
 // ── Seed leads (shown when backend is empty or unreachable) ──────────────────
 const CTS = (d: number) => new Date(Date.now() - d * 86400000).toISOString()
@@ -240,6 +260,377 @@ function LeadOption({ lead, selected, onClick }: { lead: Lead; selected: boolean
         {lead.status || "NEW"}
       </span>
     </button>
+  );
+}
+
+// ── WhatsApp Business API Panel ────────────────────────────────────────────────
+function WhatsAppBusinessPanel() {
+  const [status, setStatus]             = useState<{ connected: boolean; mode: string; phone_id?: string; message?: string } | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [templates, setTemplates]       = useState<WaTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState<WaTemplate | null>(null);
+  const [phone, setPhone]               = useState("");
+  const [params, setParams]             = useState<string[]>([]);
+  const [freeText, setFreeText]         = useState("");
+  const [sending, setSending]           = useState(false);
+  const [sendResult, setSendResult]     = useState<{ success: boolean; message_id?: string; demo?: boolean; error?: string } | null>(null);
+  const [sentLog, setSentLog]           = useState<SentLogEntry[]>([]);
+  const [collapsed, setCollapsed]       = useState(false);
+
+  // Load status on mount
+  useEffect(() => {
+    fetch("/api/v1/whatsapp/status", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("nama_token") || ""}` },
+    })
+      .then((r) => r.json())
+      .then((d) => setStatus(d))
+      .catch(() => setStatus({ connected: false, mode: "demo", message: "Backend unreachable" }))
+      .finally(() => setStatusLoading(false));
+  }, []);
+
+  // Load templates on mount
+  useEffect(() => {
+    fetch("/api/v1/whatsapp/templates", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("nama_token") || ""}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        const list: WaTemplate[] = d.templates || [];
+        setTemplates(list);
+        if (list.length > 0) {
+          setSelectedTemplate(list[0]);
+          setParams(new Array(list[0].params.length).fill(""));
+        }
+      })
+      .catch(() => setTemplates([]))
+      .finally(() => setTemplatesLoading(false));
+  }, []);
+
+  const handleTemplateChange = (tpl: WaTemplate) => {
+    setSelectedTemplate(tpl);
+    setParams(new Array(tpl.params.length).fill(""));
+    setSendResult(null);
+  };
+
+  const handleSend = async () => {
+    if (!phone) { setSendResult({ success: false, error: "Phone number is required" }); return; }
+    setSending(true);
+    setSendResult(null);
+    try {
+      const body = selectedTemplate
+        ? {
+            to: phone,
+            message_type: "template",
+            template_name: selectedTemplate.name,
+            template_language: selectedTemplate.language,
+            template_params: params,
+          }
+        : {
+            to: phone,
+            message_type: "text",
+            text: freeText || "Hello from NAMA OS",
+          };
+
+      const res = await fetch("/api/v1/whatsapp/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("nama_token") || ""}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      setSendResult(data);
+
+      if (data.success) {
+        const entry: SentLogEntry = {
+          id: data.message_id || String(Date.now()),
+          to: phone,
+          template: selectedTemplate?.name || "text",
+          status: data.demo ? "demo" : "sent",
+          ts: new Date().toLocaleTimeString(),
+        };
+        setSentLog((prev) => [entry, ...prev.slice(0, 4)]);
+      }
+    } catch (e) {
+      setSendResult({ success: false, error: String(e) });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Quick-send helpers
+  const quickSend = (templateName: string) => {
+    const tpl = templates.find((t) => t.name === templateName);
+    if (tpl) { handleTemplateChange(tpl); }
+  };
+
+  return (
+    <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+      {/* Header */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center justify-between px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-[#25D366] rounded-xl flex items-center justify-center flex-shrink-0">
+            <Phone size={16} className="text-white" />
+          </div>
+          <div className="text-left">
+            <h3 className="font-extrabold text-[#0F172A] text-sm">WhatsApp Business API</h3>
+            <p className="text-xs text-slate-400">Meta Cloud API — send templates directly from NAMA</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Status badge */}
+          {statusLoading ? (
+            <span className="text-[11px] text-slate-400 flex items-center gap-1"><Loader size={11} className="animate-spin" /> checking…</span>
+          ) : status?.connected ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+              <Wifi size={10} /> Live
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+              <WifiOff size={10} /> Demo mode
+            </span>
+          )}
+          <ChevronRight
+            size={16}
+            className={`text-slate-400 transition-transform duration-200 ${collapsed ? "" : "rotate-90"}`}
+          />
+        </div>
+      </button>
+
+      {!collapsed && (
+        <div className="p-6 space-y-5">
+          {/* Demo mode note */}
+          {status && !status.connected && (
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700">
+              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+              <div className="text-xs leading-relaxed">
+                <span className="font-bold block mb-0.5">Demo mode active</span>
+                {status.message || "Add WHATSAPP_TOKEN + WHATSAPP_PHONE_ID in Railway to activate live sending."}
+                {" "}Messages will be simulated and not actually sent.
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ── Left: compose ── */}
+            <div className="space-y-4">
+              {/* Phone number */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Recipient phone number</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. 919876543210 (with country code)"
+                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366]/20 transition-colors"
+                />
+              </div>
+
+              {/* Template selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Message template</label>
+                {templatesLoading ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                    <Loader size={12} className="animate-spin" /> Loading templates…
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {templates.map((tpl) => (
+                      <button
+                        key={tpl.name}
+                        onClick={() => handleTemplateChange(tpl)}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl border text-xs transition-all ${
+                          selectedTemplate?.name === tpl.name
+                            ? "bg-[#25D366]/10 border-[#25D366]/40 text-slate-800"
+                            : "border-slate-100 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="font-bold mb-0.5">{tpl.name.replace(/_/g, " ")}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{tpl.body}</div>
+                        <span className={`mt-1 inline-block text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
+                          tpl.category === "UTILITY" ? "bg-blue-50 text-blue-600" : "bg-violet-50 text-violet-600"
+                        }`}>{tpl.category}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Template params */}
+              {selectedTemplate && selectedTemplate.params.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Template parameters</label>
+                  <div className="space-y-2">
+                    {selectedTemplate.params.map((paramName, idx) => (
+                      <div key={paramName} className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-slate-400 w-6 text-right flex-shrink-0">{`{{${idx + 1}}}`}</span>
+                        <input
+                          type="text"
+                          value={params[idx] || ""}
+                          onChange={(e) => {
+                            const next = [...params];
+                            next[idx] = e.target.value;
+                            setParams(next);
+                          }}
+                          placeholder={paramName.replace(/_/g, " ")}
+                          className="flex-1 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#25D366] transition-colors"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick send buttons */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Quick send</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Quote Ready", name: "quote_ready" },
+                    { label: "Booking Confirmed", name: "booking_confirmed" },
+                    { label: "Follow-up", name: "follow_up" },
+                  ].map((q) => (
+                    <button
+                      key={q.name}
+                      onClick={() => quickSend(q.name)}
+                      className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                        selectedTemplate?.name === q.name
+                          ? "bg-[#25D366] text-white border-[#25D366]"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-[#25D366]/40 hover:bg-[#25D366]/5"
+                      }`}
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Send button */}
+              <button
+                onClick={handleSend}
+                disabled={sending || !phone}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#25D366] text-white font-black text-sm hover:bg-[#20bb5a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sending ? (
+                  <><Loader size={15} className="animate-spin" /> Sending…</>
+                ) : (
+                  <><Send size={15} /> Send WhatsApp Message</>
+                )}
+              </button>
+
+              {/* Send result */}
+              {sendResult && (
+                <div className={`flex items-start gap-2.5 rounded-xl p-3 text-xs ${
+                  sendResult.success
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                    : "bg-red-50 border border-red-200 text-red-700"
+                }`}>
+                  {sendResult.success ? <Check size={14} className="mt-0.5 flex-shrink-0" /> : <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />}
+                  <div>
+                    {sendResult.success ? (
+                      <>
+                        <span className="font-bold">Message {sendResult.demo ? "simulated" : "sent"}!</span>
+                        {sendResult.message_id && (
+                          <span className="text-[10px] block text-slate-400 mt-0.5">ID: {sendResult.message_id}</span>
+                        )}
+                        {sendResult.demo && (
+                          <span className="text-[10px] block mt-0.5 text-amber-600">Demo mode — add env vars to send live</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="font-bold">{sendResult.error || "Send failed"}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Right: preview + sent log ── */}
+            <div className="space-y-4">
+              {/* Message preview */}
+              {selectedTemplate && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Preview</label>
+                  <div className="bg-[#e5ddd5] rounded-2xl p-4">
+                    <div className="bg-white rounded-xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm">
+                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
+                        {selectedTemplate.body.replace(
+                          /\{\{(\d+)\}\}/g,
+                          (_, n) => params[parseInt(n) - 1] || `[${selectedTemplate.params[parseInt(n) - 1] || `param ${n}`}]`,
+                        )}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1.5 text-right">
+                        {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sent log */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                  Recent sends <span className="text-slate-300 font-normal">(this session)</span>
+                </label>
+                {sentLog.length === 0 ? (
+                  <div className="text-[11px] text-slate-400 py-3 text-center border border-dashed border-slate-200 rounded-xl">
+                    No messages sent yet
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {sentLog.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 rounded-xl text-xs"
+                      >
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          entry.status === "sent" ? "bg-[#25D366]" :
+                          entry.status === "demo" ? "bg-amber-400" : "bg-red-400"
+                        }`}>
+                          {entry.status === "failed"
+                            ? <X size={10} className="text-white" />
+                            : <Check size={10} className="text-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-700 truncate">+{entry.to.replace(/^\+/, "")}</p>
+                          <p className="text-[10px] text-slate-400">{entry.template.replace(/_/g, " ")}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                            entry.status === "sent" ? "bg-emerald-50 text-emerald-600" :
+                            entry.status === "demo" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"
+                          }`}>{entry.status}</span>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{entry.ts}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Setup instructions when in demo mode */}
+              {status && !status.connected && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 space-y-2">
+                  <p className="font-bold text-slate-700">How to activate live mode</p>
+                  <ol className="space-y-1 list-decimal list-inside text-slate-500">
+                    <li>Get a Meta Business account + WhatsApp Business App</li>
+                    <li>Add <code className="bg-white px-1 py-0.5 rounded border border-slate-200 font-mono text-[10px]">WHATSAPP_TOKEN</code> in Railway</li>
+                    <li>Add <code className="bg-white px-1 py-0.5 rounded border border-slate-200 font-mono text-[10px]">WHATSAPP_PHONE_ID</code> in Railway</li>
+                    <li>Set webhook URL to <code className="bg-white px-1 py-0.5 rounded border border-slate-200 font-mono text-[10px]">/api/v1/whatsapp/webhook</code></li>
+                    <li>Use verify token: <code className="bg-white px-1 py-0.5 rounded border border-slate-200 font-mono text-[10px]">nama_webhook_verify</code></li>
+                  </ol>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -841,6 +1232,9 @@ export default function CommsPage() {
           </div>
         </div>
       )}
+
+      {/* ── WhatsApp Business Cloud API Panel ── */}
+      <WhatsAppBusinessPanel />
     </div>
   );
 }
