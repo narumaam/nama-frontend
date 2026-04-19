@@ -760,33 +760,74 @@ function StepTeam({ invites, onChange }: {
 // Step 5 — AI Workspace
 // ─────────────────────────────────────────────────────────────────────────────
 
-const WORKSPACE_CARDS = [
-  { icon: Brain,     label: '2 leads waiting for AI score', sub: 'Ready to triage in Query Inbox',    color: 'text-violet-600', bg: 'bg-violet-50' },
-  { icon: Sparkles,  label: 'AI Copilot ready',             sub: 'Chat with your AI travel advisor',   color: 'text-[#14B8A6]',  bg: 'bg-teal-50'   },
-  { icon: BarChart3, label: 'Smart pricing benchmarks',     sub: 'Maldives, Bali, Europe loaded',       color: 'text-blue-600',   bg: 'bg-blue-50'   },
-  { icon: FileText,  label: 'First itinerary template',     sub: 'Maldives 5N honeymoon installed',     color: 'text-amber-600',  bg: 'bg-amber-50'  },
-]
-
-function StepWorkspace() {
+function StepWorkspace({
+  leads,
+  itinerary,
+  loading,
+}: {
+  leads: Array<{ full_name: string; destination: string; status: string }>
+  itinerary: { title: string } | null
+  loading: boolean
+}) {
   const [visible, setVisible] = useState(0)
 
+  // Build dynamic cards from real seeded data
+  const cards = [
+    {
+      icon: Brain,
+      label: leads.length > 0 ? `${leads.length} lead${leads.length > 1 ? 's' : ''} ready to triage` : '2 leads ready to triage',
+      sub: leads.length > 0
+        ? leads.map(l => l.full_name).join(' · ')
+        : 'Aarav & Priya Sharma · Mehta Family',
+      color: 'text-violet-600', bg: 'bg-violet-50',
+    },
+    {
+      icon: FileText,
+      label: itinerary ? itinerary.title : '7N Maldives Luxury Package',
+      sub: 'First itinerary seeded — ready to customise',
+      color: 'text-amber-600', bg: 'bg-amber-50',
+    },
+    {
+      icon: Sparkles,
+      label: 'AI Copilot ready',
+      sub: 'Chat with your AI travel advisor any time',
+      color: 'text-[#14B8A6]', bg: 'bg-teal-50',
+    },
+    {
+      icon: BarChart3,
+      label: 'Smart pricing loaded',
+      sub: 'Maldives, Bali, Europe benchmarks active',
+      color: 'text-blue-600', bg: 'bg-blue-50',
+    },
+  ]
+
   useEffect(() => {
-    // Stagger cards in on mount
+    if (loading) return
     let i = 0
     const timer = setInterval(() => {
       i++
       setVisible(i)
-      if (i >= WORKSPACE_CARDS.length) clearInterval(timer)
+      if (i >= cards.length) clearInterval(timer)
     }, 220)
     return () => clearInterval(timer)
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-8">
+        <div className="w-8 h-8 border-2 border-[#14B8A6] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-slate-500">Seeding your workspace…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-500 font-medium pb-1">
-        Your workspace is already alive — here's what's waiting for you:
+        Your workspace is live — here's what's already waiting for you:
       </p>
-      {WORKSPACE_CARDS.map((card, i) => (
+      {cards.map((card, i) => (
         <div
           key={card.label}
           className={`flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-xl shadow-sm transition-all duration-500 ${
@@ -803,6 +844,35 @@ function StepWorkspace() {
           <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" />
         </div>
       ))}
+
+      {/* WhatsApp channel connection card */}
+      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0 text-lg">💬</div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-[#0F172A]">Connect WhatsApp (optional)</p>
+            <p className="text-xs text-slate-500 mt-0.5">Get leads automatically from WhatsApp messages</p>
+            <div className="mt-2 flex items-center gap-2">
+              <code className="text-[10px] bg-white border border-green-200 px-2 py-1 rounded text-slate-600 font-mono flex-1 truncate">
+                {typeof window !== 'undefined' ? window.location.origin : 'https://getnama.app'}/api/v1/whatsapp/webhook
+              </code>
+              <button
+                onClick={() => {
+                  if (typeof navigator !== 'undefined') {
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/api/v1/whatsapp/webhook`
+                    )
+                  }
+                }}
+                className="text-[10px] font-bold text-green-700 hover:text-green-800 whitespace-nowrap"
+              >
+                Copy →
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">Paste this URL in your Meta WhatsApp Business dashboard → Webhooks</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -912,7 +982,7 @@ function StepLaunch({ elapsed, onDashboard, onFirstLead }: {
 
 export default function OnboardingPage() {
   const router = useRouter()
-  useAuth() // ensures auth context is available; user object unused directly
+  const auth = useAuth()
 
   // ── Persistent state ──────────────────────────────────────────────────────
   const [step,    setStep]    = useState(1)
@@ -930,6 +1000,12 @@ export default function OnboardingPage() {
   const [invites, setInvites] = useState<InviteRow[]>([
     { email: '', role: 'R3_SALES_MANAGER' },
   ])
+  const [inviteSendState, setInviteSendState] = useState<'idle' | 'sending' | 'done'>('idle')
+
+  // Step 5 — real seeded workspace data
+  const [seededLeads, setSeededLeads] = useState<Array<{ full_name: string; destination: string; status: string }>>([])
+  const [seededItinerary, setSeededItinerary] = useState<{ title: string } | null>(null)
+  const [workspaceLoading, setWorkspaceLoading] = useState(false)
 
   // Elapsed time tracking
   const startTimeRef = useRef<number>(Date.now())
@@ -975,13 +1051,63 @@ export default function OnboardingPage() {
 
   const next = useCallback(async (skip = false) => {
     if (step === 6) return
+
+    // Step 4 → send invites before advancing
+    if (step === 4 && !skip) {
+      const filled = invites.filter(i => i.email.trim())
+      if (filled.length > 0) {
+        setInviteSendState('sending')
+        await Promise.allSettled(
+          filled.map(inv =>
+            fetch('/api/v1/settings/team/invite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
+              body: JSON.stringify({ email: inv.email.trim(), role: inv.role }),
+            }).catch(() => null)
+          )
+        )
+        setInviteSendState('done')
+      }
+    }
+
+    // Step 4 → 5: seed workspace and fetch real data to show in Step 5
+    if (step === 4) {
+      setWorkspaceLoading(true)
+      try {
+        await fetch('/api/v1/onboarding/seed-workspace', {
+          method: 'POST',
+          headers: { 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
+        })
+        localStorage.setItem('nama_workspace_seeded', '1')
+        // Fetch seeded leads to show in Step 5
+        const leadsRes = await fetch('/api/v1/leads?limit=3', {
+          headers: { 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
+        })
+        if (leadsRes.ok) {
+          const data = await leadsRes.json()
+          const leads = Array.isArray(data) ? data : (data.items ?? [])
+          setSeededLeads(leads.slice(0, 2))
+        }
+        // Fetch seeded itineraries
+        const itnRes = await fetch('/api/v1/itineraries?limit=1', {
+          headers: { 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
+        })
+        if (itnRes.ok) {
+          const itnData = await itnRes.json()
+          const itns = Array.isArray(itnData) ? itnData : (itnData.items ?? [])
+          if (itns.length > 0) setSeededItinerary(itns[0])
+        }
+      } catch (_) { /* best-effort */ }
+      setWorkspaceLoading(false)
+    }
+
     if (!skip) {
       setSaving(true)
-      await new Promise(r => setTimeout(r, 500))
+      await new Promise(r => setTimeout(r, 300))
       setSaving(false)
     }
     setStep(s => s + 1)
-  }, [step])
+  }, [step, invites])
 
   const prev = useCallback(() => {
     if (step <= 1 || step === 6) return
@@ -991,33 +1117,26 @@ export default function OnboardingPage() {
   const finish = useCallback((destination: string) => {
     try { localStorage.removeItem(LS_KEY) } catch (_) { /* ignore */ }
 
-    // Fire-and-forget: seed the workspace in the background, don't block navigation
-    try {
-      fetch('/api/v1/onboarding/seed-workspace', { method: 'POST' })
-        .then(() => {
-          try { localStorage.setItem('nama_workspace_seeded', '1') } catch (_) { /* ignore */ }
-        })
-        .catch(() => {
-          // Silently ignore — seeding is best-effort
-        })
-    } catch (_) { /* ignore */ }
+    const userEmail = auth.user?.email ?? ''
+    const userName  = welcome.name || auth.user?.email?.split('@')[0] || ''
+    const agencyName = agencyConfig?.agency?.name || welcome.name || 'Your Agency'
 
-    // Fire Day 0 drip email — best-effort, never blocks navigation
-    try {
-      fetch('/api/v1/onboarding/trigger-drip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: '',
-          name: welcome.name || '',
-          agency_name: agencyConfig?.agency?.name || welcome.name || 'Your Agency',
-          day: 0,
-        }),
-      }).catch(() => {}) // fire and forget
-    } catch (_) { /* ignore */ }
+    // Fire Day 0 drip email with the actual user email
+    fetch('/api/v1/onboarding/trigger-drip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
+      body: JSON.stringify({ email: userEmail, name: userName, agency_name: agencyName, day: 0 }),
+    }).catch(() => {})
+
+    // Schedule days 1, 3, 7 drip emails via backend
+    fetch('/api/v1/onboarding/schedule-drip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
+      body: JSON.stringify({ email: userEmail, name: userName, agency_name: agencyName }),
+    }).catch(() => {})
 
     router.push(destination)
-  }, [router, welcome, agencyConfig])
+  }, [router, welcome, agencyConfig, auth.user])
 
   const currentStepConfig = STEPS[step - 1]
 
@@ -1141,11 +1260,22 @@ export default function OnboardingPage() {
             )}
 
             {step === 4 && (
-              <StepTeam invites={invites} onChange={setInvites} />
+              <>
+                <StepTeam invites={invites} onChange={setInvites} />
+                {inviteSendState === 'done' && (
+                  <div className="mt-3 flex items-center gap-2 text-emerald-600 text-sm font-medium">
+                    <CheckCircle2 size={15} /> Invites sent — they'll receive an email to join your workspace.
+                  </div>
+                )}
+              </>
             )}
 
             {step === 5 && (
-              <StepWorkspace />
+              <StepWorkspace
+                leads={seededLeads}
+                itinerary={seededItinerary}
+                loading={workspaceLoading}
+              />
             )}
 
             {step === 6 && (

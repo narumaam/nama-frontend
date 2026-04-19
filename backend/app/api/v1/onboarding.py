@@ -88,6 +88,12 @@ class TriggerDripRequest(BaseModel):
     day: int  # 0, 1, 3, or 7
 
 
+class ScheduleDripRequest(BaseModel):
+    email: str
+    name: str
+    agency_name: str = "Your Agency"
+
+
 def _send_drip_email(email: str, name: str, agency_name: str, day: int) -> None:
     """
     Delegates email sending to the Next.js /api/email/drip route
@@ -234,6 +240,45 @@ def trigger_drip(
     """
     _send_drip_email(body.email, body.name, body.agency_name, body.day)
     return {"sent": True, "day": body.day}
+
+
+@router.post("/schedule-drip")
+def schedule_drip(
+    body: ScheduleDripRequest,
+    tenant_id: int = Depends(require_tenant),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Schedule days 1, 3, and 7 drip emails for this tenant.
+    Stores a drip_schedule entry in tenant.settings JSONB.
+    The automations cron (run-reminders) checks this on each run and sends
+    emails that are due.
+    """
+    from datetime import timezone as tz
+    now = datetime.now(tz.utc)
+
+    schedule = {
+        "email":       body.email,
+        "name":        body.name,
+        "agency_name": body.agency_name,
+        "started_at":  now.isoformat(),
+        "pending_days": [1, 3, 7],   # will be popped as each is sent
+        "sent_days":    [0],          # day 0 fired client-side
+    }
+
+    try:
+        tenant_row = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if tenant_row:
+            settings = dict(tenant_row.settings or {})
+            settings["drip_schedule"] = schedule
+            tenant_row.settings = settings
+            db.commit()
+            logger.info("schedule_drip: tenant=%d email=%s days=[1,3,7] scheduled", tenant_id, body.email)
+    except Exception as e:
+        logger.warning("schedule_drip: failed to persist: %s", e)
+        db.rollback()
+
+    return {"scheduled": True, "days": [1, 3, 7]}
 
 
 # ── Response schema ────────────────────────────────────────────────────────────

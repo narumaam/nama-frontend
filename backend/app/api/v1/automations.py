@@ -482,6 +482,35 @@ def run_reminders(
 
         agents_notified += 1
 
+    # ── Drip email schedule check ──────────────────────────────────────────────
+    # After processing lead reminders, check if any scheduled drip emails are due.
+    try:
+        from app.models.auth import Tenant
+        from app.api.v1.onboarding import _send_drip_email
+        tenant_row = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if tenant_row and tenant_row.settings:
+            drip = tenant_row.settings.get("drip_schedule")
+            if drip and drip.get("pending_days"):
+                started_at = datetime.fromisoformat(drip["started_at"])
+                days_elapsed = (now - started_at.replace(tzinfo=timezone.utc)).days
+                still_pending = []
+                for d in drip["pending_days"]:
+                    if days_elapsed >= d:
+                        _send_drip_email(
+                            drip["email"], drip["name"], drip["agency_name"], d
+                        )
+                        drip.setdefault("sent_days", []).append(d)
+                        logger.info("run_reminders: drip day=%d sent to %s", d, drip["email"])
+                    else:
+                        still_pending.append(d)
+                drip["pending_days"] = still_pending
+                settings = dict(tenant_row.settings)
+                settings["drip_schedule"] = drip
+                tenant_row.settings = settings
+                db.commit()
+    except Exception as exc:
+        logger.warning("run_reminders: drip check failed (non-fatal): %s", exc)
+
     return ReminderResult(
         reminders_sent=reminders_sent,
         leads_flagged=len(all_flagged),
