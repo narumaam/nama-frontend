@@ -27,7 +27,7 @@ import { api, rolesApi } from '@/lib/api'
 
 // ─── Permission atoms ─────────────────────────────────────────────────────────
 
-export const ALL_MODULES = [
+const ALL_MODULES = [
   {
     id: 'leads',
     label: 'Leads & CRM',
