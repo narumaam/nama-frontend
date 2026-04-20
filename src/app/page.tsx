@@ -643,6 +643,36 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── 7b. GLOBE — NAMA NETWORK ────────────────────────────────────────── */}
+      <section className="bg-[#020A18] overflow-hidden">
+        {/* Header copy sits above the globe iframe */}
+        <div className="text-center pt-20 pb-0 px-6">
+          <p className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#C9963A' }}>
+            The NAMA network
+          </p>
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
+            Your business, connected<br className="hidden md:block" /> to the world.
+          </h2>
+          <p className="text-sm font-medium max-w-2xl mx-auto mb-0" style={{ color: 'rgba(234,224,204,0.55)' }}>
+            312 DMCs · 1,840 agencies · 89 countries. Real-time travel flows, live bookings, and global payments — all orchestrated through NAMA OS.
+          </p>
+        </div>
+
+        {/* Globe iframe — self-contained Three.js experience */}
+        {/* height: 420px mobile → 680px desktop via inline + Tailwind md: override */}
+        <div className="w-full" style={{ marginTop: '-24px' }}>
+          <div className="h-[420px] md:h-[680px]">
+            <iframe
+              src="/globe.html"
+              className="w-full h-full border-0"
+              title="NAMA Global Network"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* ── 8. MODULE GRID ───────────────────────────────────────────────────── */}
       <section id="modules" className="py-24 px-6 bg-[#0F172A]">
         <div className="max-w-7xl mx-auto">

@@ -16,7 +16,7 @@
  */
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import {
   Plane, Hotel, Car, Utensils, MapPin, Phone, MessageCircle,
   Calendar, Clock, Users, CheckCircle, Circle, AlertCircle,
@@ -353,9 +353,11 @@ function DayCard({ day }: { day: TripDay }) {
 function QuoteAcceptanceSection({
   booking,
   quotationId,
+  respondToken,
 }: {
   booking: Booking;
   quotationId: number;
+  respondToken: string;
 }) {
   const [action, setAction] = useState<null | 'accept' | 'changes'>(null);
   const [message, setMessage] = useState('');
@@ -394,6 +396,7 @@ function QuoteAcceptanceSection({
           action: action === 'accept' ? 'accept' : 'request_changes',
           client_name: clientName.trim(),
           message: message.trim() || undefined,
+          token: respondToken,
         }),
       });
       const data = await res.json();
@@ -626,7 +629,9 @@ function QuoteAcceptanceSection({
 
 function PortalPageInner() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const bookingId = (params?.bookingId as string) || 'DEMO-001';
+  const respondToken = searchParams?.get('token') ?? '';
   const [booking, setBooking] = useState<Booking | null>(null);
   const [copied, setCopied] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
@@ -835,6 +840,7 @@ function PortalPageInner() {
           <QuoteAcceptanceSection
             booking={booking}
             quotationId={booking.quotationId!}
+            respondToken={respondToken}
           />
         )}
 

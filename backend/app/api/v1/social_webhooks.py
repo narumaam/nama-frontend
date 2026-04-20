@@ -77,18 +77,18 @@ async def receive_event(
 
         # ── HMAC-SHA256 signature validation ──────────────────────────────────
         app_secret = FB_APP_SECRET()
-        if app_secret:
-            sig_header = request.headers.get("X-Hub-Signature-256", "")
-            expected = "sha256=" + hmac.new(
-                app_secret.encode(), body_bytes, hashlib.sha256
-            ).hexdigest()
-            if not hmac.compare_digest(sig_header, expected):
-                logger.warning("social_webhooks: invalid X-Hub-Signature-256 — dropping event")
-                raise HTTPException(status_code=401, detail="Invalid signature")
-        else:
-            logger.warning(
-                "social_webhooks: FACEBOOK_APP_SECRET not set — skipping HMAC validation (demo mode)"
+        if not app_secret:
+            logger.error(
+                "social_webhooks: FACEBOOK_APP_SECRET not set — rejecting webhook (set env var to enable)"
             )
+            raise HTTPException(status_code=401, detail="Webhook not configured")
+        sig_header = request.headers.get("X-Hub-Signature-256", "")
+        expected = "sha256=" + hmac.new(
+            app_secret.encode(), body_bytes, hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(sig_header, expected):
+            logger.warning("social_webhooks: invalid X-Hub-Signature-256 — dropping event")
+            raise HTTPException(status_code=401, detail="Invalid signature")
 
         payload = await request.json()
         obj_field = payload.get("object", "")

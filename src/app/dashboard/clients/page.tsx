@@ -704,8 +704,9 @@ export default function ClientsPage() {
       if (search) params.set('search', search)
       if (filterStatus && filterStatus !== 'all') params.set('status', filterStatus)
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
       const res = await fetch(`/api/v1/clients/export?${params}`, {
-        headers: { 'x-api-key': process.env.NEXT_PUBLIC_NAMA_API_KEY || '' },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       if (!res.ok) throw new Error('Export failed')
 

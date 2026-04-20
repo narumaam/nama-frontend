@@ -111,17 +111,11 @@ function statusColor(status?: string) {
   }
 }
 
-/** Build auth headers for backend API calls */
+/** Build auth headers for backend API calls — JWT only, no public API key */
 function apiHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  // In Next.js App Router the API key is available via the server-side env.
-  // On the client we can read NEXT_PUBLIC_ prefixed vars.
-  const apiKey = process.env.NEXT_PUBLIC_API_KEY ?? ''
-  if (apiKey) headers['X-Api-Key'] = apiKey
-  // JWT is stored in HttpOnly cookie so we can rely on cookie-forwarding
-  // by the Next.js server proxy routes. For direct calls we pass credentials.
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
+  if (token) headers['Authorization'] = `Bearer ${token}`
   return headers
 }
 

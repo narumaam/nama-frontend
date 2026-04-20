@@ -18,6 +18,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { api } from '@/lib/api'
 import {
   Building2, Zap, Wand2, Users, Sparkles, Rocket,
   Check, ChevronRight, ChevronLeft, CheckCircle2,
@@ -725,18 +726,9 @@ function StepConnectChannels({
     if (!form.whatsapp.trim()) return
     setWaSaving(true)
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
-      await fetch('/api/v1/settings/whatsapp-number', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '',
-        },
-        body: JSON.stringify({ whatsapp_number: form.whatsapp.trim() }),
-      }).catch(() => {})
+      await api.post('/api/v1/settings/whatsapp-number', { whatsapp_number: form.whatsapp.trim() })
       setWaSaved(true)
-    } finally {
+    } catch (_) { /* best-effort */ } finally {
       setWaSaving(false)
     }
   }
@@ -745,26 +737,17 @@ function StepConnectChannels({
     if (!form.smtpEmail.trim() || !form.smtpHost.trim()) return
     setSmtpSaving(true)
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
-      await fetch('/api/v1/email-config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '',
-        },
-        body: JSON.stringify({
-          smtp_host: form.smtpHost,
-          smtp_port: parseInt(form.smtpPort) || 587,
-          smtp_username: form.smtpEmail,
-          smtp_password: form.smtpPassword,
-          from_email: form.smtpEmail,
-          from_name: 'Your Agency',
-          use_tls: true,
-        }),
-      }).catch(() => {})
+      await api.post('/api/v1/email-config', {
+        smtp_host: form.smtpHost,
+        smtp_port: parseInt(form.smtpPort) || 587,
+        smtp_username: form.smtpEmail,
+        smtp_password: form.smtpPassword,
+        from_email: form.smtpEmail,
+        from_name: 'Your Agency',
+        use_tls: true,
+      })
       setSmtpSaved(true)
-    } finally {
+    } catch (_) { /* best-effort */ } finally {
       setSmtpSaving(false)
     }
   }
@@ -1298,11 +1281,7 @@ export default function OnboardingPage() {
         setInviteSendState('sending')
         await Promise.allSettled(
           filled.map(inv =>
-            fetch('/api/v1/settings/team/invite', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
-              body: JSON.stringify({ email: inv.email.trim(), role: inv.role }),
-            }).catch(() => null)
+            api.post('/api/v1/settings/team/invite', { email: inv.email.trim(), role: inv.role }).catch(() => null)
           )
         )
         setInviteSendState('done')
@@ -1313,29 +1292,20 @@ export default function OnboardingPage() {
     if (step === 5) {
       setWorkspaceLoading(true)
       try {
-        await fetch('/api/v1/onboarding/seed-workspace', {
-          method: 'POST',
-          headers: { 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
-        })
+        await api.post('/api/v1/onboarding/seed-workspace', {})
         localStorage.setItem('nama_workspace_seeded', '1')
         // Fetch seeded leads to show in Step 5
-        const leadsRes = await fetch('/api/v1/leads?limit=3', {
-          headers: { 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
-        })
-        if (leadsRes.ok) {
-          const data = await leadsRes.json()
-          const leads = Array.isArray(data) ? data : (data.items ?? [])
-          setSeededLeads(leads.slice(0, 2))
-        }
+        try {
+          const data = await api.get<{items?: unknown[]} | unknown[]>('/api/v1/leads?limit=3')
+          const leads = Array.isArray(data) ? data : ((data as {items?: unknown[]}).items ?? [])
+          setSeededLeads((leads as []).slice(0, 2))
+        } catch (_) { /* best-effort */ }
         // Fetch seeded itineraries
-        const itnRes = await fetch('/api/v1/itineraries?limit=1', {
-          headers: { 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
-        })
-        if (itnRes.ok) {
-          const itnData = await itnRes.json()
-          const itns = Array.isArray(itnData) ? itnData : (itnData.items ?? [])
-          if (itns.length > 0) setSeededItinerary(itns[0])
-        }
+        try {
+          const itnData = await api.get<{items?: unknown[]} | unknown[]>('/api/v1/itineraries?limit=1')
+          const itns = Array.isArray(itnData) ? itnData : ((itnData as {items?: unknown[]}).items ?? [])
+          if (itns.length > 0) setSeededItinerary(itns[0] as never)
+        } catch (_) { /* best-effort */ }
       } catch (_) { /* best-effort */ }
       setWorkspaceLoading(false)
     }
@@ -1361,18 +1331,10 @@ export default function OnboardingPage() {
     const agencyName = agencyConfig?.agency?.name || welcome.name || 'Your Agency'
 
     // Fire Day 0 drip email with the actual user email
-    fetch('/api/v1/onboarding/trigger-drip', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
-      body: JSON.stringify({ email: userEmail, name: userName, agency_name: agencyName, day: 0 }),
-    }).catch(() => {})
+    api.post('/api/v1/onboarding/trigger-drip', { email: userEmail, name: userName, agency_name: agencyName, day: 0 }).catch(() => {})
 
     // Schedule days 1, 3, 7 drip emails via backend
-    fetch('/api/v1/onboarding/schedule-drip', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
-      body: JSON.stringify({ email: userEmail, name: userName, agency_name: agencyName }),
-    }).catch(() => {})
+    api.post('/api/v1/onboarding/schedule-drip', { email: userEmail, name: userName, agency_name: agencyName }).catch(() => {})
 
     router.push(destination)
   }, [router, welcome, agencyConfig, auth.user])

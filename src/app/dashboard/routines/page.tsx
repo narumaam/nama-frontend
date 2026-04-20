@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { api } from "@/lib/api";
 import {
   Zap, Play, Pause, Plus, Clock, Calendar, MousePointer2,
   CheckCircle2, XCircle, Loader2, ChevronRight, ChevronDown,
@@ -553,11 +554,8 @@ function RunHistoryDrawer({ routine, onClose }: { routine: Routine; onClose: () 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/v1/routines/${routine.id}/runs`, {
-          headers: { "X-Api-Key": process.env.NEXT_PUBLIC_API_KEY ?? "" },
-        });
-        if (res.ok) setRuns(await res.json());
-        else throw new Error();
+        const data = await api.get<RoutineRun[]>(`/api/v1/routines/${routine.id}/runs`);
+        setRuns(data);
       } catch {
         // Seed data for demo
         setRuns([
@@ -814,17 +812,14 @@ export default function RoutinesPage() {
   const [tab, setTab] = useState<"all" | "active" | "paused">("all");
   const [templateToUse, setTemplateToUse] = useState<Template | null>(null);
 
-  const headers = { "Content-Type": "application/json", "X-Api-Key": process.env.NEXT_PUBLIC_API_KEY ?? "" };
-
   const fetchAll = useCallback(async () => {
     try {
-      const [rRes, tRes] = await Promise.all([
-        fetch("/api/v1/routines", { headers }),
-        fetch("/api/v1/routines/templates", { headers }),
+      const [routinesData, templatesData] = await Promise.all([
+        api.get<Routine[]>("/api/v1/routines"),
+        api.get<Template[]>("/api/v1/routines/templates"),
       ]);
-      if (rRes.ok) setRoutines(await rRes.json());
-      else setRoutines(SEED_ROUTINES);
-      if (tRes.ok) setTemplates(await tRes.json());
+      setRoutines(routinesData);
+      setTemplates(templatesData);
     } catch {
       setRoutines(SEED_ROUTINES);
     }
@@ -835,22 +830,16 @@ export default function RoutinesPage() {
 
   const handleSave = async (data: Partial<Routine>) => {
     try {
-      const url = editRoutine ? `/api/v1/routines/${editRoutine.id}` : "/api/v1/routines";
-      const method = editRoutine ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers, body: JSON.stringify(data) });
-      if (res.ok) {
-        const saved = await res.json();
-        if (editRoutine) {
-          setRoutines(r => r.map(x => x.id === saved.id ? saved : x));
-        } else {
-          setRoutines(r => [saved, ...r]);
-        }
+      const saved = editRoutine
+        ? await api.put<Routine>(`/api/v1/routines/${editRoutine.id}`, data)
+        : await api.post<Routine>("/api/v1/routines", data);
+      if (editRoutine) {
+        setRoutines(r => r.map(x => x.id === saved.id ? saved : x));
       } else {
-        // Optimistic update for demo
-        const fake = { id: Date.now(), ...data, run_count: 0, last_run_at: null, last_run_status: null, next_run_at: null, is_template: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as Routine;
-        setRoutines(r => editRoutine ? r.map(x => x.id === editRoutine.id ? { ...x, ...data } : x) : [fake, ...r]);
+        setRoutines(r => [saved, ...r]);
       }
     } catch {
+      // Optimistic update for demo
       const fake = { id: Date.now(), ...data, run_count: 0, last_run_at: null, last_run_status: null, next_run_at: null, is_template: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as Routine;
       setRoutines(r => editRoutine ? r.map(x => x.id === editRoutine.id ? { ...x, ...data } : x) : [fake, ...r]);
     }
@@ -861,11 +850,8 @@ export default function RoutinesPage() {
 
   const handleToggle = async (routine: Routine) => {
     try {
-      const res = await fetch(`/api/v1/routines/${routine.id}/toggle`, { method: "POST", headers });
-      if (res.ok) {
-        const updated = await res.json();
-        setRoutines(r => r.map(x => x.id === routine.id ? { ...x, status: updated.status } : x));
-      } else throw new Error();
+      const updated = await api.post<{ status: string }>(`/api/v1/routines/${routine.id}/toggle`, {});
+      setRoutines(r => r.map(x => x.id === routine.id ? { ...x, status: updated.status as Routine["status"] } : x));
     } catch {
       setRoutines(r => r.map(x =>
         x.id === routine.id ? { ...x, status: x.status === "ACTIVE" ? "PAUSED" : "ACTIVE" } : x
@@ -876,7 +862,7 @@ export default function RoutinesPage() {
   const handleRun = async (routine: Routine) => {
     setRunningIds(s => new Set(s).add(routine.id));
     try {
-      await fetch(`/api/v1/routines/${routine.id}/run`, { method: "POST", headers });
+      await api.post(`/api/v1/routines/${routine.id}/run`, {});
       setTimeout(() => {
         setRunningIds(s => { const ns = new Set(s); ns.delete(routine.id); return ns; });
         setRoutines(r => r.map(x =>
@@ -893,7 +879,7 @@ export default function RoutinesPage() {
   const handleDelete = async (routine: Routine) => {
     if (!confirm(`Delete "${routine.name}"?`)) return;
     try {
-      await fetch(`/api/v1/routines/${routine.id}`, { method: "DELETE", headers });
+      await api.delete(`/api/v1/routines/${routine.id}`);
     } catch { /* demo */ }
     setRoutines(r => r.filter(x => x.id !== routine.id));
   };

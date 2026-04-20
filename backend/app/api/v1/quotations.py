@@ -20,6 +20,7 @@ Endpoints:
 
 import io
 import logging
+import secrets
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, List
@@ -75,6 +76,7 @@ class Quotation(Base):
     valid_until     = Column(DateTime, nullable=True)
     sent_at         = Column(DateTime, nullable=True)
     is_deleted      = Column(Boolean, default=False, nullable=False)
+    respond_token   = Column(String(64), nullable=True, index=True)  # SECURITY: validates public respond endpoint
     created_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
@@ -307,6 +309,9 @@ def send_quotation(
     q.status  = QuotationStatus.SENT
     q.sent_at = datetime.now(timezone.utc)
     q.updated_at = datetime.now(timezone.utc)
+    # Generate a secure respond token if not already set
+    if not q.respond_token:
+        q.respond_token = secrets.token_urlsafe(32)
     db.commit()
     db.refresh(q)
     logger.info(f"Quotation sent: tenant={tenant_id} id={quotation_id}")
@@ -471,6 +476,7 @@ class QuotationRespondRequest(BaseModel):
     client_name: str
     client_email: Optional[str] = None
     message: Optional[str] = None       # optional message with change details
+    token: str                           # SECURITY: respond_token generated when quote was SENT
 
 
 class QuotationRespondResponse(BaseModel):
@@ -587,9 +593,9 @@ def client_respond_to_quotation(
     db: Session = Depends(get_db),
 ):
     """
-    Public endpoint — no auth required. Called from /portal/[bookingId].
-    Clients can accept or request changes on a SENT quotation.
-    Sends a notification email to the assigned agent via Resend.
+    Public endpoint — no JWT required, but respond_token validation is mandatory.
+    The token is generated when the quote is SENT and must be included by the client portal.
+    This prevents unauthorised accept/reject of quotes by guessing integer IDs.
     """
     if body.action not in ("accept", "request_changes"):
         raise HTTPException(
@@ -605,6 +611,10 @@ def client_respond_to_quotation(
     )
     if not q:
         raise HTTPException(status_code=404, detail="Quotation not found")
+
+    # SECURITY: validate respond token using constant-time comparison
+    if not q.respond_token or not secrets.compare_digest(q.respond_token, body.token):
+        raise HTTPException(status_code=403, detail="Invalid or expired respond token")
 
     if q.status not in (QuotationStatus.SENT, QuotationStatus.DRAFT):
         # Already actioned — return current state gracefully
