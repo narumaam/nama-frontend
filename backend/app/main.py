@@ -294,7 +294,7 @@ app.include_router(whatsapp_router.router,     prefix="/api/v1/whatsapp",     ta
 
 #   Routines — in-product automation engine
 from app.api.v1 import routines as routines_router  # noqa: E402
-import app.models.routines  # noqa: F401
+from app.models import routines as _routines_model  # noqa: F401
 app.include_router(routines_router.router,     prefix="/api/v1/routines",     tags=["routines"])
 
 #   Website Lead Capture Widget — public token-based endpoint
