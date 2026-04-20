@@ -318,6 +318,10 @@ app.include_router(calendar_reminders_router.router, prefix="/api/v1/calendar", 
 from app.api.v1 import sentinel as sentinel_router  # noqa: E402
 app.include_router(sentinel_router.router, prefix="/api/v1/sentinel", tags=["sentinel"])
 
+#   Intentra — M20 intent intelligence feed
+from app.api.v1 import intentra as intentra_router  # noqa: E402
+app.include_router(intentra_router.router, prefix="/api/v1/intentra", tags=["intentra"])
+
 #   Subscription & Billing — plan management, proration, event log
 from app.api.v1 import billing as billing_api  # noqa: E402
 from app.api.v1 import admin_subscriptions as admin_subscriptions_router  # noqa: E402

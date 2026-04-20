@@ -1,12 +1,15 @@
 """
-NAMA Email Service — SendGrid integration (P3-2)
-Gracefully degrades to a log warning if SENDGRID_API_KEY is not set.
+NAMA Email Service — Resend integration
+Gracefully degrades to a log warning if RESEND_API_KEY is not set.
 """
 import logging
 import os
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# Default from address — override with RESEND_FROM_EMAIL env var
+_DEFAULT_FROM = "NAMA OS <onboarding@getnama.app>"
 
 
 def send_email(
@@ -18,48 +21,48 @@ def send_email(
     text_body: Optional[str] = None,
 ) -> bool:
     """
-    Send an email via SendGrid. Returns True on success, False on failure.
-    Logs a warning and returns False if SENDGRID_API_KEY is not configured.
+    Send an email via Resend. Returns True on success, False on failure.
+    Logs a warning and returns False if RESEND_API_KEY is not configured.
     """
-    api_key = os.getenv("SENDGRID_API_KEY")
-    sender = from_email or os.getenv("SENDGRID_FROM_EMAIL", "noreply@namatravel.com")
+    api_key = os.getenv("RESEND_API_KEY")
+    sender = from_email or os.getenv("RESEND_FROM_EMAIL", _DEFAULT_FROM)
 
     if not api_key:
         logger.warning(
-            f"SENDGRID_API_KEY not set — email NOT sent | to={to} | subject={subject}"
+            f"RESEND_API_KEY not set — email NOT sent | to={to} | subject={subject}"
         )
         return False
 
     try:
-        import sendgrid
-        from sendgrid.helpers.mail import Mail
+        import resend  # pip install resend
 
-        message = Mail(
-            from_email=sender,
-            to_emails=to,
-            subject=subject,
-            html_content=html_body,
-        )
+        resend.api_key = api_key
+
+        params: dict = {
+            "from": sender,
+            "to": [to] if isinstance(to, str) else to,
+            "subject": subject,
+            "html": html_body,
+        }
         if text_body:
-            message.plain_text_content = text_body
+            params["text"] = text_body
         if reply_to:
-            from sendgrid.helpers.mail import ReplyTo
-            message.reply_to = ReplyTo(reply_to)
+            params["reply_to"] = reply_to
 
-        sg = sendgrid.SendGridAPIClient(api_key=api_key)
-        response = sg.send(message)
-        success = response.status_code in (200, 201, 202)
+        email = resend.Emails.send(params)
+        # Resend returns {"id": "..."} on success; raises on error
+        success = bool(email and email.get("id"))
         if success:
-            logger.info(f"Email sent | to={to} | status={response.status_code}")
+            logger.info(f"Email sent via Resend | to={to} | id={email['id']}")
         else:
-            logger.warning(f"SendGrid unexpected status={response.status_code} | to={to}")
+            logger.warning(f"Resend returned unexpected response: {email}")
         return success
 
     except ImportError:
-        logger.error("sendgrid package not installed — run: pip install sendgrid")
+        logger.error("resend package not installed — run: pip install resend")
         return False
     except Exception as e:
-        logger.error(f"SendGrid error | to={to} | error={e}")
+        logger.error(f"Resend error | to={to} | error={e}")
         return False
 
 

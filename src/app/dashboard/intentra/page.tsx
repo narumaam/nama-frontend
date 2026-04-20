@@ -11,7 +11,7 @@
  * Design: Intentra's own dark-gold identity within the NAMA shell.
  */
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   Radar, RefreshCw, Sparkles, Loader, X, MapPin,
   Plus, Send, ArrowRight, CheckCircle2, Zap,
@@ -176,6 +176,41 @@ export default function IntentraPage() {
   const [destInput, setDestInput]       = useState('')
   const [refreshing, setRefreshing]     = useState(false)
   const [toast, setToast]               = useState<{ msg: string; type: 'success' | 'info' } | null>(null)
+  const [liveData, setLiveData]         = useState(false)
+
+  // Load signals from backend; gracefully falls back to seed data
+  useEffect(() => {
+    let cancelled = false
+    async function fetchSignals() {
+      try {
+        const res = await fetch('/api/v1/intentra/signals?limit=20', {
+          signal: AbortSignal.timeout(5000),
+        })
+        if (res.ok && !cancelled) {
+          const data = await res.json()
+          if (Array.isArray(data) && data.length > 0) {
+            // Map backend snake_case → frontend camelCase
+            const mapped: Signal[] = data.map((s: {
+              id: number; source: string; post: string; username: string;
+              subreddit?: string; time: string; destinations: string[];
+              intent: number; intent_level: string; is_hot: boolean; upvotes?: number;
+            }) => ({
+              id: s.id, source: s.source as Source, post: s.post,
+              username: s.username, subreddit: s.subreddit, time: s.time,
+              destinations: s.destinations, intent: s.intent,
+              intentLevel: s.intent_level as 'HIGH' | 'MID' | 'LOW',
+              isHot: s.is_hot, upvotes: s.upvotes,
+              saved: false, responded: false, leadConverted: false,
+            }))
+            setSignals(mapped)
+            setLiveData(true)
+          }
+        }
+      } catch { /* silently fall back to seed data */ }
+    }
+    fetchSignals()
+    return () => { cancelled = true }
+  }, [])
 
   // Respond modal
   const [respondTarget, setRespondTarget] = useState<Signal | null>(null)
@@ -285,20 +320,39 @@ export default function IntentraPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await new Promise(r => setTimeout(r, 1200))
-    // Simulate 2 new signals arriving
-    const newSignals: Signal[] = [
-      {
-        id: Date.now(), source: 'REDDIT',
-        post: 'Planning a solo trip to Spiti Valley next summer. Need 10 days itinerary, budget guesthouses, and local guide contacts. Any agencies that do personalised offbeat trips?',
-        username: 'u/offbeat_wanderer', subreddit: 'r/IndiaTravel', time: 'just now',
-        destinations: ['Spiti Valley'], intent: 79, intentLevel: 'MID', isHot: false,
-        saved: false, responded: false, leadConverted: false, upvotes: 0,
-      },
-    ]
-    setSignals(ss => [...newSignals, ...ss])
-    setRefreshing(false)
-    showToast(`1 new intent signal found`, 'info')
+    try {
+      const res = await fetch('/api/v1/intentra/signals?limit=20', {
+        signal: AbortSignal.timeout(5000),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: Signal[] = data.map((s: {
+            id: number; source: string; post: string; username: string;
+            subreddit?: string; time: string; destinations: string[];
+            intent: number; intent_level: string; is_hot: boolean; upvotes?: number;
+          }) => ({
+            id: s.id, source: s.source as Source, post: s.post,
+            username: s.username, subreddit: s.subreddit, time: s.time,
+            destinations: s.destinations, intent: s.intent,
+            intentLevel: s.intent_level as 'HIGH' | 'MID' | 'LOW',
+            isHot: s.is_hot, upvotes: s.upvotes,
+            saved: false, responded: false, leadConverted: false,
+          }))
+          setSignals(mapped)
+          setLiveData(true)
+          showToast(`${data.length} intent signals loaded`, 'info')
+        } else {
+          showToast('No new signals found', 'info')
+        }
+      } else {
+        showToast('Refresh failed — using cached data', 'info')
+      }
+    } catch {
+      showToast('Cannot reach backend — using cached signals', 'info')
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   const addDestination = () => {

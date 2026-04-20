@@ -120,7 +120,21 @@ export default function QueriesPage() {
     setError(null)
     setResult(null)
     try {
-      const data = await queriesApi.ingest({ raw_message: rawMessage, source })
+      const raw = await queriesApi.ingest({ raw_message: rawMessage, source })
+      // Normalize backend QueryTriageResult shape → UI TriageResult shape
+      const data: TriageResult = {
+        lead_id: raw.lead_id,
+        destination: raw.destination ?? raw.extracted_data?.destination,
+        duration_days: raw.duration_days ?? raw.extracted_data?.duration_days,
+        travelers_count: raw.travelers_count ?? raw.extracted_data?.travelers_count ?? 2,
+        budget_per_person: raw.budget_per_person ?? raw.extracted_data?.budget_per_person,
+        currency: raw.currency ?? raw.extracted_data?.currency ?? '₹',
+        travel_style: raw.travel_style ?? raw.extracted_data?.style,
+        triage_confidence: raw.triage_confidence ?? raw.extracted_data?.confidence_score ?? 80,
+        suggested_reply: raw.suggested_reply,
+        is_valid: raw.is_valid ?? raw.is_valid_query ?? true,
+        priority: raw.priority ?? 2,
+      }
       setResult(data)
       setHistory(prev => [{ query: rawMessage, source, result: data, ts: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)])
       // Remove from queue if present

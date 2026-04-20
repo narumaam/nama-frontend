@@ -243,19 +243,47 @@ export interface TriageRequest {
 }
 
 export interface TriageResult {
-  lead_id: number
+  lead_id?: number
   destination?: string
   duration_days?: number
   travelers_count?: number
   budget_per_person?: number
   currency?: string
   travel_style?: string
-  triage_confidence: number
+  triage_confidence?: number
+  priority?: number
+  is_valid?: boolean
+  // QueryTriageResult shape (backend)
+  is_valid_query?: boolean
+  extracted_data?: {
+    destination?: string
+    duration_days?: number
+    travelers_count?: number
+    budget_per_person?: number
+    currency?: string
+    style?: string
+    confidence_score?: number
+  }
   suggested_reply?: string
+  reasoning?: string
+}
+
+// Map frontend source names → backend QuerySource enum values
+const _sourceMap: Record<string, string> = {
+  WHATSAPP: 'WHATSAPP',
+  EMAIL: 'EMAIL',
+  WEBSITE: 'DIRECT',
+  PHONE: 'DIRECT',
+  DASHBOARD: 'DIRECT',
 }
 
 export const queriesApi = {
-  ingest: (data: TriageRequest) => api.post<TriageResult>('/api/v1/queries/ingest', data),
+  ingest: (data: TriageRequest) => api.post<TriageResult>('/api/v1/queries/ingest', {
+    content: data.raw_message,
+    source: _sourceMap[data.source ?? 'WHATSAPP'] ?? 'DIRECT',
+    sender_id: data.sender_id ?? 'dashboard-user',
+    tenant_id: 1,  // extracted from JWT server-side; body value required by schema
+  }),
 }
 
 // Vendors (M6)
