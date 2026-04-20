@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { Shield, LogOut, BarChart3, Users, Building2, Settings } from 'lucide-react'
+import { Shield, LogOut, BarChart3, Users, Building2, Settings, Tag } from 'lucide-react'
 import Link from 'next/link'
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
@@ -39,6 +39,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     { href: '/owner', label: 'Overview', icon: BarChart3 },
     { href: '/owner/tenants', label: 'Tenants', icon: Building2 },
     { href: '/owner/users', label: 'Users', icon: Users },
+    { href: '/owner/plans', label: 'Plans', icon: Tag },
     { href: '/owner/settings', label: 'Settings', icon: Settings },
   ]
 

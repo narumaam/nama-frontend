@@ -549,3 +549,143 @@ export const clientsApi = {
   },
   importTemplate: () => fetch('/api/v1/clients/import/template'),
 }
+
+// Billing & Subscriptions
+export interface SubscriptionPlan {
+  id:            number
+  name:          string
+  slug:          string
+  price_monthly: number
+  price_yearly:  number
+  max_users:     number | null
+  max_leads:     number | null
+  features:      Record<string, boolean> | null
+  is_active:     boolean
+  sort_order:    number
+}
+
+export interface TenantSubscription {
+  id:                       number
+  tenant_id:                number
+  plan_id:                  number
+  plan:                     SubscriptionPlan | null
+  status:                   'active' | 'trial' | 'cancelled' | 'paused'
+  billing_cycle:            'monthly' | 'yearly'
+  current_period_start:     string | null
+  current_period_end:       string | null
+  cancel_at_period_end:     boolean
+  trial_ends_at:            string | null
+  razorpay_subscription_id: string | null
+  notes:                    string | null
+  created_at:               string
+  updated_at:               string | null
+}
+
+export interface ProrationPreview {
+  current_plan_name:  string
+  new_plan_name:      string
+  current_daily_rate: number
+  new_daily_rate:     number
+  days_remaining:     number
+  net_charge:         number
+  credit:             number
+  is_upgrade:         boolean
+  billing_cycle:      string
+}
+
+export interface SubscriptionEvent {
+  id:                number
+  event_type:        string
+  old_plan_id:       number | null
+  new_plan_id:       number | null
+  old_billing_cycle: string | null
+  new_billing_cycle: string | null
+  amount_charged:    number | null
+  proration_credit:  number | null
+  notes:             string | null
+  created_at:        string
+}
+
+export interface AdminSubscriptionRow {
+  id:                   number
+  tenant_id:            number
+  plan:                 SubscriptionPlan | null
+  status:               string
+  billing_cycle:        string
+  cancel_at_period_end: boolean
+  current_period_end:   string | null
+  created_at:           string
+}
+
+export interface PlanCreateData {
+  name:          string
+  slug:          string
+  price_monthly: number
+  price_yearly:  number
+  max_users?:    number | null
+  max_leads?:    number | null
+  features?:     Record<string, boolean> | null
+  is_active?:    boolean
+  sort_order?:   number
+}
+
+export interface PlanUpdateData {
+  name?:          string
+  price_monthly?: number
+  price_yearly?:  number
+  max_users?:     number | null
+  max_leads?:     number | null
+  features?:      Record<string, boolean> | null
+  is_active?:     boolean
+  sort_order?:    number
+}
+
+export const billingApi = {
+  getPlans: () =>
+    api.get<SubscriptionPlan[]>('/api/v1/billing/plans'),
+
+  createPlan: (data: PlanCreateData) =>
+    api.post<SubscriptionPlan>('/api/v1/billing/plans', data),
+
+  updatePlan: (planId: number, data: PlanUpdateData) =>
+    api.put<SubscriptionPlan>(`/api/v1/billing/plans/${planId}`, data),
+
+  deactivatePlan: (planId: number) =>
+    api.delete<void>(`/api/v1/billing/plans/${planId}`),
+
+  getSubscription: () =>
+    api.get<TenantSubscription>('/api/v1/billing/subscription'),
+
+  changePlan: (planId: number, billingCycle: 'monthly' | 'yearly') =>
+    api.post<TenantSubscription>('/api/v1/billing/subscription', {
+      plan_id: planId,
+      billing_cycle: billingCycle,
+    }),
+
+  previewProration: (planId: number, billingCycle: 'monthly' | 'yearly') =>
+    api.post<ProrationPreview>('/api/v1/billing/prorate', {
+      plan_id: planId,
+      billing_cycle: billingCycle,
+    }),
+
+  getEvents: (page = 1, perPage = 50) =>
+    api.get<SubscriptionEvent[]>(`/api/v1/billing/events?page=${page}&per_page=${perPage}`),
+
+  cancel: () =>
+    api.put<TenantSubscription>('/api/v1/billing/cancel', {}),
+
+  reactivate: () =>
+    api.put<TenantSubscription>('/api/v1/billing/reactivate', {}),
+
+  adminGetAll: (status?: string) => {
+    const q = new URLSearchParams()
+    if (status) q.set('status', status)
+    return api.get<AdminSubscriptionRow[]>(`/api/v1/billing/admin/all?${q}`)
+  },
+
+  adminChangePlan: (tenantId: number, planId: number, billingCycle: 'monthly' | 'yearly' = 'monthly') =>
+    api.put<TenantSubscription>(`/api/v1/billing/admin/${tenantId}`, {
+      plan_id: planId,
+      billing_cycle: billingCycle,
+    }),
+}
