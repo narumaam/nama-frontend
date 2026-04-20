@@ -24,6 +24,19 @@ const secretKey = JWT_SECRET ? encoder.encode(JWT_SECRET) : null;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const hostname = request.headers.get('host') || ''
+
+  // demo.getnama.app → auto-activate demo mode, redirect to /dashboard
+  if (hostname.startsWith('demo.')) {
+    const dashboardUrl = new URL('/dashboard', request.url)
+    const response = NextResponse.redirect(dashboardUrl)
+    response.cookies.set('nama_demo', '1', {
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: false,
+    })
+    return response
+  }
 
   // Check for cookies
   const authCookie = request.cookies.get('nama_auth')?.value
@@ -83,7 +96,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // Protect all dashboard sub-routes, Kinetic command center, and internal portals
+  // Also match root (/) so demo.getnama.app hostname redirect fires on landing
   matcher: [
+    '/',
     '/dashboard',
     '/dashboard/:path*',
     '/kinetic',

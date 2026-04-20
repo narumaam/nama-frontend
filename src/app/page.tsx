@@ -311,8 +311,8 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex items-center gap-3">
-            <Link href="/demo" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-[#14B8A6] border border-[#14B8A6]/30 bg-[#14B8A6]/5 hover:bg-[#14B8A6]/10 transition-all px-3 py-2 rounded-full">
-              <Play size={12} fill="currentColor" /> See Demo
+            <Link href="https://demo.getnama.app" target="_blank" rel="noopener noreferrer" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-[#14B8A6] border border-[#14B8A6]/30 bg-[#14B8A6]/5 hover:bg-[#14B8A6]/10 transition-all px-3 py-2 rounded-full">
+              <Play size={12} fill="currentColor" /> Watch Demo
             </Link>
             <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-[#0F172A] transition-colors px-3 py-2">
               Log In
@@ -363,10 +363,12 @@ export default function LandingPage() {
                   Start Free Trial <ArrowRight size={18} />
                 </Link>
                 <Link
-                  href="/demo"
+                  href="https://demo.getnama.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 bg-white border-2 border-slate-200 text-[#0F172A] text-base px-8 py-4 rounded-full font-bold hover:border-slate-400 hover:-translate-y-0.5 transition-all active:scale-95"
                 >
-                  <Play size={16} fill="currentColor" className="text-[#14B8A6]" /> See 2-min Demo
+                  <Play size={16} fill="currentColor" className="text-[#14B8A6]" /> Watch Demo
                 </Link>
               </div>
 

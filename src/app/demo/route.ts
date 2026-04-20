@@ -1,27 +1,28 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 /**
  * NAMA OS — Demo Mode Quick Entry
- * -------------------------------
- * Sets the 'nama_demo' cookie and redirects directly to /dashboard.
- * This bypasses the client-side loading screen for a faster experience.
+ * --------------------------------
+ * Handles two entry points:
+ *   1. demo.getnama.app   → any request to this hostname sets demo cookie + redirects to dashboard
+ *   2. getnama.app/demo   → same behaviour (legacy/direct link support)
+ *
+ * The nama_demo=1 cookie is a SESSION cookie (no maxAge) so it clears on browser close,
+ * preventing stale demo access across sessions.
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const dashboardUrl = new URL('/dashboard', url.origin)
-  
+
   const response = NextResponse.redirect(dashboardUrl)
-  
-  // Set the demo cookie as a SESSION cookie (no maxAge) so it expires
-  // automatically when the browser is closed. This prevents stale demo
-  // access — users must actively click "See Demo" each session.
-  // httpOnly: false is intentional — client-side JS reads this for UI state.
+
   response.cookies.set('nama_demo', '1', {
     path: '/',
-    sameSite: 'lax',   // lax (not strict) so the cookie sends on top-level navigations
+    sameSite: 'lax',
     httpOnly: false,
-    // No maxAge / no expires → session cookie, cleared on browser close
+    // No maxAge → session cookie, clears when browser closes
   })
-  
+
   return response
 }
