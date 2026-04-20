@@ -2,8 +2,8 @@
 
 ## Current Status: ✅ LIVE · Backend + Frontend both operational
 
-**Last major commit:** `1ba1007` — Sprint 3+4: channels onboarding, sentinel, widget, SMTP/IMAP, social webhooks, routines live execution (2026-04-19)
-**Latest work (2026-04-20):** Finance page fetch fixed, Settings team wired to API, CLAUDE.md updated
+**Last major commit:** `6a53b55` — fix: make landing page public — remove / from middleware matcher (2026-04-20)
+**Latest work (2026-04-20):** TypeScript build errors fixed (4 files), vercel.json proxy rewrites added, landing page made public, getnama.live v2 design deployed
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
@@ -91,6 +91,41 @@
 ```
 ... → leadsource_website (k8l9m0n1o2p3) → billing_plans + tenant_subscriptions + subscription_events
 ```
+
+### ✅ Sprint 6: Build Fix + Launch Deploy (2026-04-20)
+
+**TypeScript build errors fixed (P0 — site was down):**
+- `src/app/dashboard/org/page.tsx`: 4 type cast errors — added `as unknown as` bridge casts for PlansResponse type mismatches (lines 1248, 1251, 1517, 1518)
+- `src/app/owner/plans/page.tsx`: PlansResponse treated as array → fixed to `.plans` property access (lines 696, 713)
+- `src/app/owner/subscriptions/page.tsx`: PlansResponse array check → added `Array.isArray()` guard with `.plans` fallback (line 343)
+- Commit: `d4e238d` — 4 files changed, 20 insertions, 7 deletions
+
+**vercel.json explicit proxy rewrites:**
+- Added 3 explicit rewrites BEFORE catch-all to prevent Next.js route handlers from intercepting Railway proxy:
+  - `/api/v1/leads/:path*` → Railway
+  - `/api/v1/bookings/:path*` → Railway
+  - `/api/v1/quotations` → Railway (exact match — `/api/v1/quotations/[id]/respond` stays local)
+
+**Landing page made public:**
+- Removed `'/'` from middleware matcher so unauthenticated visitors see the landing page
+- Commit: `6a53b55`
+
+**Domain configuration confirmed:**
+- `getnama.app` → 307 redirect → `www.getnama.app` (Production)
+- `nama-frontend.vercel.app` (Production)
+- DNS Change Recommended warnings present but non-blocking
+
+**getnama.live v2 design:**
+- Updated from Tailwind/Material Design to Netflix-style dark UI (Inter + JetBrains Mono, red accent)
+- 5 pages: index (Live TV), channels, studio, video-studio, call-center
+- All pages cross-linked with consistent nav
+- Deployed via `npx vercel --prod`
+
+**Duplicate Vercel projects identified:**
+- `nama-frontend` (prj_sytPELLP8AUNTAul3P5WBra38GNk) — PRIMARY, git-connected
+- `nama-web` (prj_tMzjcD6IUGVyd510PXl32GgI6Xs4) — DUPLICATE, same repo, has `demo.getnama.app`
+- Recommendation: decommission `nama-web`, move `demo.getnama.app` to `nama-frontend`
+
 
 ### ✅ Phase 1 Features (2026-04-19)
 
