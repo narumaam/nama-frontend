@@ -324,14 +324,33 @@ export default function FinancePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [quotationsRes] = await Promise.allSettled([
-          api.get("/api/v1/quotations/"),
-        ]);
-        if (quotationsRes.status === "fulfilled" && Array.isArray(quotationsRes.value) && quotationsRes.value.length > 0) {
-          setQuotations(quotationsRes.value);
+        // Quotations API returns paginated shape: { items: [], total, page, size }
+        const quotationsRes = await api
+          .get<{ items: Array<{
+            id: number; lead_name: string; destination: string;
+            total_price: number; margin_pct: number; created_at: string;
+            status: QuoteStatus;
+          }>; total: number }>("/api/v1/quotations/?size=100")
+          .catch(() => null);
+
+        if (quotationsRes && Array.isArray(quotationsRes.items) && quotationsRes.items.length > 0) {
+          const mapped: Quotation[] = quotationsRes.items.map((q) => ({
+            id: `Q-${q.id}`,
+            client: q.lead_name,
+            from: "—",
+            to: q.destination,
+            amount: q.total_price,
+            margin: q.margin_pct,
+            createdDate: q.created_at ? q.created_at.slice(0, 10) : "—",
+            status: q.status,
+            lineItems: [],
+          }));
+          setQuotations(mapped);
         }
+        // Finance summary (KPIs) — endpoint: GET /api/v1/finance/summary
+        // If unavailable, overview KPIs remain as seed values (static cards)
       } catch {
-        // fallback to seed data
+        // fallback to seed data already set in initial state
       }
     }
     fetchData();

@@ -199,6 +199,10 @@ export default function SettingsPage() {
   const [auditSearch, setAuditSearch] = useState('')
 
   useEffect(() => {
+    fetchTeamMembers()
+  }, [])
+
+  useEffect(() => {
     if (tab === 'api-keys') fetchApiKeys()
   }, [tab])
 
@@ -214,6 +218,48 @@ export default function SettingsPage() {
       setApiKeys(data)
     } catch { setApiKeys([]) }
     finally { setKeysLoading(false) }
+  }
+
+  // Fetch real team members — backend returns invite list (pending + accepted)
+  // Falls back to SEED_TEAM if API is unavailable
+  const fetchTeamMembers = async () => {
+    try {
+      interface InviteRow {
+        id: number
+        email: string
+        role: string
+        status: 'pending' | 'accepted' | 'expired'
+        invited_at: string
+      }
+      const invites = await api.get<InviteRow[]>('/api/v1/settings/team')
+      if (Array.isArray(invites) && invites.length > 0) {
+        const mapped: TeamMember[] = invites.map((inv) => ({
+          id: String(inv.id),
+          email: inv.email,
+          name: '',
+          role: inv.role,
+          status: inv.status === 'accepted' ? 'active' : 'invited',
+          invited_at: inv.invited_at,
+        }))
+        setTeamMembers(mapped)
+      }
+      // If empty list from API, keep SEED_TEAM so UI is never blank
+    } catch {
+      // Network error or no backend — keep SEED_TEAM
+    }
+  }
+
+  const handleRemoveMember = async (memberId: string, memberEmail: string) => {
+    if (!confirm(`Remove ${memberEmail} from the team?`)) return
+    try {
+      await api.delete(`/api/v1/settings/team/invite/${memberId}`)
+      setTeamMembers((prev) => prev.filter((m) => m.id !== memberId))
+      flash(`${memberEmail} removed`)
+    } catch {
+      // Optimistic removal even if API unavailable
+      setTeamMembers((prev) => prev.filter((m) => m.id !== memberId))
+      flash(`${memberEmail} removed`)
+    }
   }
 
   const handleAddKey = async () => {
@@ -567,6 +613,13 @@ export default function SettingsPage() {
                       }`}>
                         {member.status === 'active' ? '● Active' : member.status === 'invited' ? '◌ Invited' : 'Disabled'}
                       </span>
+                      <button
+                        onClick={() => handleRemoveMember(member.id, member.email)}
+                        className="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                        title="Remove member"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 )

@@ -12,7 +12,7 @@
  * Tabs: Dashboard · Applications · Compliance · Analytics
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Stamp, Users, MapPin, Clock, CheckCircle, AlertCircle, XCircle,
   Search, Filter, Plus, ChevronRight, BarChart2, Globe, Shield,
@@ -441,6 +441,167 @@ function AnalyticsView() {
   );
 }
 
+// ── Seed checklist for fallback ────────────────────────────────────────────────
+const SEED_REQUIREMENTS: Record<string, string[]> = {
+  default: [
+    "Valid passport (minimum 6 months validity beyond travel date)",
+    "Completed visa application form",
+    "Passport-size photographs (2, white background)",
+    "Proof of travel itinerary (flights + hotel bookings)",
+    "Travel insurance with minimum USD 30,000 cover",
+    "Bank statements from last 3 months",
+    "Proof of employment / income (salary slips or ITR)",
+    "No-objection certificate (if employed)",
+    "Return flight tickets",
+  ],
+};
+
+// ── Visa Requirements Checker ──────────────────────────────────────────────────
+const COUNTRIES = [
+  "India", "United States", "United Kingdom", "Canada", "Australia",
+  "Germany", "France", "Italy", "Spain", "Japan", "UAE", "Singapore",
+  "Thailand", "Maldives", "Bali (Indonesia)", "Sri Lanka", "Nepal",
+  "New Zealand", "South Africa", "Brazil",
+];
+
+function VisaRequirementsChecker() {
+  const [origin, setOrigin]           = useState("");
+  const [destination, setDestination] = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [checklist, setChecklist]     = useState<string[] | null>(null);
+  const [error, setError]             = useState<string | null>(null);
+  const [isLive, setIsLive]           = useState(false);
+
+  const fetchRequirements = useCallback(async () => {
+    if (!origin || !destination) return;
+    setLoading(true);
+    setError(null);
+    setChecklist(null);
+    setIsLive(false);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("nama_token") : null;
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const params = new URLSearchParams({ origin, destination });
+      const res = await fetch(`/api/v1/visa/requirements?${params}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        // Expect { checklist: string[] } or { requirements: string[] }
+        const list = data.checklist || data.requirements || data.items || null;
+        if (Array.isArray(list) && list.length > 0) {
+          setChecklist(list);
+          setIsLive(true);
+          return;
+        }
+      }
+    } catch {
+      // Fall through to seed
+    }
+    // Fallback to seed
+    setChecklist(SEED_REQUIREMENTS.default);
+    setError("Using estimated checklist — connect Visa API for live data.");
+    setLoading(false);
+  }, [origin, destination]);
+
+  useEffect(() => {
+    // Reset when countries change
+    setChecklist(null);
+    setError(null);
+    setIsLive(false);
+  }, [origin, destination]);
+
+  useEffect(() => {
+    if (checklist !== null) setLoading(false);
+  }, [checklist]);
+
+  return (
+    <div className="bg-white border border-slate-100 rounded-2xl p-5 mb-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 bg-[#1B2E5E]/10 rounded-xl flex items-center justify-center">
+          <Stamp size={15} className="text-[#1B2E5E]" />
+        </div>
+        <div>
+          <h3 className="text-sm font-extrabold text-[#1B2E5E]">Visa Requirements Checker</h3>
+          <p className="text-xs text-slate-400">Select origin + destination to generate a document checklist</p>
+        </div>
+        {isLive && (
+          <span className="ml-auto flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            Live
+          </span>
+        )}
+      </div>
+
+      {/* Country selectors */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+        <div className="flex-1 w-full">
+          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Origin Country</label>
+          <select
+            value={origin}
+            onChange={e => setOrigin(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 text-slate-700"
+          >
+            <option value="">Select country…</option>
+            {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="hidden sm:flex items-center text-slate-300 mt-5">→</div>
+        <div className="flex-1 w-full">
+          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Destination Country</label>
+          <select
+            value={destination}
+            onChange={e => setDestination(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 text-slate-700"
+          >
+            <option value="">Select country…</option>
+            {COUNTRIES.filter(c => c !== origin).map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <button
+          onClick={fetchRequirements}
+          disabled={!origin || !destination || loading}
+          className="flex items-center gap-2 px-4 py-2 bg-[#1B2E5E] text-white rounded-xl text-sm font-semibold hover:bg-[#1B2E5E]/90 transition-colors disabled:opacity-50 mt-5 sm:mt-0 whitespace-nowrap self-end"
+        >
+          {loading ? <RefreshCw size={13} className="animate-spin" /> : <Search size={13} />}
+          {loading ? "Checking…" : "Get Checklist"}
+        </button>
+      </div>
+
+      {/* Error/notice */}
+      {error && (
+        <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl mb-3">
+          <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+          {error}
+        </div>
+      )}
+
+      {/* Checklist result */}
+      {checklist && (
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+          <p className="text-xs font-extrabold text-[#1B2E5E] uppercase tracking-wider mb-3">
+            Documents Required — {origin || "Origin"} → {destination || "Destination"}
+          </p>
+          <div className="space-y-2">
+            {checklist.map((item, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-[#1B2E5E]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check size={10} className="text-[#1B2E5E]" />
+                </div>
+                <span className="text-sm text-slate-600">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!checklist && !loading && origin && destination && (
+        <p className="text-xs text-slate-400 text-center py-3">
+          Click "Get Checklist" to load requirements for {origin} → {destination}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function VisasPage() {
   const [activeSection, setActiveSection] = useState("queue");
@@ -572,6 +733,9 @@ export default function VisasPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Visa Requirements Checker */}
+              {activeTopTab === "Dashboard" && <VisaRequirementsChecker />}
 
               {/* KPI strip */}
               <div className="grid grid-cols-3 gap-4">

@@ -3,6 +3,7 @@
 ## Current Status: ✅ LIVE · Backend + Frontend both operational
 
 **Last major commit:** `1ba1007` — Sprint 3+4: channels onboarding, sentinel, widget, SMTP/IMAP, social webhooks, routines live execution (2026-04-19)
+**Latest work (2026-04-20):** Finance page fetch fixed, Settings team wired to API, CLAUDE.md updated
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
@@ -49,6 +50,47 @@
 - Middleware: full JWT signature verification with jose (jwtVerify) — already in place
 - EmptyState wired to leads, bookings, clients pages
 - **Frontend proxy fix (src/lib/api.ts):** browser on production now always uses relative URLs → vercel.json proxies to Railway, eliminating CORS failures on /api/v1/leads, /api/v1/bookings, /api/v1/quotations
+
+### ✅ Sprint 5: Data Wiring + Backend Expansion (2026-04-20)
+
+**Finance page useEffect fixed:**
+- useEffect now correctly calls `GET /api/v1/quotations/?size=100` — extracts `.items` from paginated response (was failing because `Array.isArray` on `{items, total}` always returned false)
+- Maps backend `Quotation` schema → local display shape (id, client, destination, amount, margin, status)
+- Falls back to SEED_QUOTATIONS when API unavailable
+
+**Settings team data wired to API:**
+- `fetchTeamMembers()` calls `GET /api/v1/settings/team` on mount — maps invite rows to `TeamMember[]`
+- Falls back to SEED_TEAM if API unavailable (ensures UI never goes blank)
+- `handleRemoveMember()` calls `DELETE /api/v1/settings/team/invite/{id}` with confirm dialog
+- Remove button (Trash2) added to each team member row
+- Invite flow already wired to `POST /api/v1/settings/team/invite` — confirmed correct endpoint
+
+**Dynamic subscription management (Billing API):**
+- `billingApi` added to `src/lib/api.ts` — full CRUD: getPlans, getSubscription, changePlan, previewProration, getEvents, cancel, reactivate, adminGetAll, adminChangePlan
+- INR/USD geo-currency detection via `detected_currency` in `GET /api/v1/billing/plans` response
+- Owner portal pages: `/owner/subscriptions` (all tenants), `/owner/plans` (plan editor)
+- Backend: `backend/app/api/v1/billing.py` + `admin_subscriptions.py` registered in main.py
+
+**Holiday Management backend:**
+- `HolidayPackage` model with full CRUD at `GET/POST/PUT/DELETE /api/v1/holidays`
+- Holiday pages wired to new backend (was using seed data only)
+
+**Visa Intelligence backend:**
+- OpenRouter LLM wiring for visa requirement lookups
+- Passport upload fixed (was throwing on file read)
+
+**Reports page** (`/dashboard/reports` — 4 tabs):
+- Team Performance, Revenue by Destination, Lead Funnel, Booking Calendar
+- Wired to `GET /api/v1/analytics/team-performance`
+
+**Watch Demo → demo.getnama.app:**
+- Middleware hostname detection added
+- Landing page "Watch Demo" CTA routes to demo subdomain
+
+**Alembic migration chain (as of 2026-04-20):**
+```
+... → leadsource_website (k8l9m0n1o2p3) → billing_plans + tenant_subscriptions + subscription_events
+```
 
 ### ✅ Phase 1 Features (2026-04-19)
 
@@ -363,7 +405,9 @@ Root causes fixed (see RAILWAY_INCIDENT_REPORT.md for full details):
 - ✅ WhatsApp Business API — Meta Cloud API inbound/outbound (2026-04-19)
 - ✅ SMTP/IMAP per-tenant email — send from own domain, IMAP reply ingestion (2026-04-19)
 - ✅ PDF: WeasyPrint server-side generation (2026-04-19)
-- LeadSource WEBSITE enum: migration `k8l9m0n1o2p3` created; runs on next `alembic upgrade heads`
+- ✅ LeadSource WEBSITE enum: migration `k8l9m0n1o2p3` — runs on next `alembic upgrade heads`
+- ✅ Finance page useEffect fixed — fetches real quotations from API (2026-04-20)
+- ✅ Settings team tab wired to GET /api/v1/settings/team + DELETE invite endpoint (2026-04-20)
 
 ---
 

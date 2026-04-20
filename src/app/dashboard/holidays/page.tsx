@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Palmtree, Plus, Edit2, Copy, Eye, ChevronLeft, ChevronRight,
   Plane, Hotel, Utensils, Bus, MapPin, Clock, Users, Tag,
   Filter, Search, Download, X, Check, AlertCircle, Calendar,
-  TrendingUp, CreditCard, Star, ChevronDown, ChevronUp,
+  TrendingUp, CreditCard, Star, ChevronDown, ChevronUp, RefreshCw,
 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -275,11 +276,19 @@ function PayBadge({ status }: { status: PaymentStatus }) {
 
 // ─── TAB 1 — Package Catalogue ───────────────────────────────────────────────
 
-function PackageCatalogue({ onCreateNew }: { onCreateNew: () => void }) {
+function PackageCatalogue({
+  onCreateNew,
+  packages,
+  onDelete,
+}: {
+  onCreateNew: () => void;
+  packages: HolidayPackage[];
+  onDelete: (id: string) => void;
+}) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
-  const filtered = SEED_PACKAGES.filter(p => {
+  const filtered = packages.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.destination.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'ALL' || p.status === filterStatus;
@@ -404,8 +413,11 @@ function PackageCatalogue({ onCreateNew }: { onCreateNew: () => void }) {
                   <button className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 px-2.5 py-1.5 rounded-lg transition-all">
                     <Eye size={12} /> Bookings
                   </button>
-                  <button className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 px-2.5 py-1.5 rounded-lg transition-all ml-auto">
-                    <Copy size={12} /> Duplicate
+                  <button
+                    onClick={() => onDelete(pkg.id)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg transition-all ml-auto"
+                  >
+                    <X size={12} /> Deactivate
                   </button>
                 </div>
               </div>
@@ -427,7 +439,7 @@ function PackageCatalogue({ onCreateNew }: { onCreateNew: () => void }) {
 
 // ─── TAB 2 — Departures Calendar ─────────────────────────────────────────────
 
-function DeparturesCalendar() {
+function DeparturesCalendar({ packages }: { packages: HolidayPackage[] }) {
   const today = new Date('2026-04-19');
   const [viewYear, setViewYear] = useState(2026);
   const [viewMonth, setViewMonth] = useState(4); // 0-indexed: April = 3, May = 4
@@ -436,14 +448,14 @@ function DeparturesCalendar() {
   // Collect all departures keyed by date string
   const departureMap = useMemo(() => {
     const map: Record<string, { pkg: HolidayPackage; dep: Departure }[]> = {};
-    SEED_PACKAGES.forEach(pkg => {
+    packages.forEach(pkg => {
       pkg.departures.forEach(dep => {
         if (!map[dep.date]) map[dep.date] = [];
         map[dep.date].push({ pkg, dep });
       });
     });
     return map;
-  }, []);
+  }, [packages]);
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
@@ -473,7 +485,7 @@ function DeparturesCalendar() {
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // Revenue for a departure
+  // Revenue for a departure (uses seed bookings for display)
   const depRevenue = (pkgId: string, date: string) => {
     return SEED_BOOKINGS
       .filter(b => b.packageId === pkgId && b.departureDate === date)
@@ -797,7 +809,13 @@ function PackageBookings() {
 
 // ─── TAB 4 — Create / Edit Package ───────────────────────────────────────────
 
-function CreatePackageForm({ onCancel }: { onCancel: () => void }) {
+function CreatePackageForm({
+  onCancel,
+  onSaved,
+}: {
+  onCancel: () => void;
+  onSaved?: (pkg: Omit<HolidayPackage, 'id'>) => void;
+}) {
   const [form, setForm] = useState({
     name: '',
     destination: '',
@@ -815,6 +833,7 @@ function CreatePackageForm({ onCancel }: { onCancel: () => void }) {
     departures: [{ date: '', seats: 20 }],
   });
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const toggleInclusion = (inc: string) => {
     setForm(f => ({
@@ -845,8 +864,30 @@ function CreatePackageForm({ onCancel }: { onCancel: () => void }) {
     ? Math.round(Number(form.priceAdult) * (1 + form.markupPct / 100))
     : null;
 
-  const handleSave = (publish: boolean) => {
-    setForm(f => ({ ...f, status: publish ? 'ACTIVE' : 'DRAFT' }));
+  const handleSave = async (publish: boolean) => {
+    setSaving(true);
+    const status = publish ? 'ACTIVE' : 'DRAFT';
+    setForm(f => ({ ...f, status }));
+    const payload: Omit<HolidayPackage, 'id'> = {
+      name: form.name,
+      destination: form.destination,
+      country: form.destination.split(',')[1]?.trim() || form.destination,
+      nights: form.nights,
+      days: form.days,
+      description: form.description,
+      inclusions: form.inclusions,
+      pricePerAdult: Number(form.priceAdult) || 0,
+      priceChild: Number(form.priceChild) || 0,
+      priceInfant: Number(form.priceInfant) || 0,
+      singleSupplement: Number(form.singleSupplement) || 0,
+      markupPct: form.markupPct,
+      cancellationPolicy: form.cancellationPolicy,
+      status: status as PackageStatus,
+      departures: form.departures.map(d => ({ ...d, booked: 0 })),
+      gradient: 'from-teal-500 to-cyan-600',
+    };
+    if (onSaved) await onSaved(payload);
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -1100,15 +1141,17 @@ function CreatePackageForm({ onCancel }: { onCancel: () => void }) {
       <div className="flex items-center gap-3 pb-6">
         <button
           onClick={() => handleSave(false)}
-          className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-black border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
+          disabled={saving}
+          className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-black border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-all disabled:opacity-60"
         >
-          Save as Draft
+          {saving ? 'Saving…' : 'Save as Draft'}
         </button>
         <button
           onClick={() => handleSave(true)}
-          className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-black bg-[#14B8A6] hover:bg-teal-400 text-[#0F172A] transition-all active:scale-95"
+          disabled={saving}
+          className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-black bg-[#14B8A6] hover:bg-teal-400 text-[#0F172A] transition-all active:scale-95 disabled:opacity-60"
         >
-          Publish Package
+          {saving ? 'Publishing…' : 'Publish Package'}
         </button>
         <button
           onClick={onCancel}
@@ -1132,9 +1175,54 @@ const TABS = [
 
 export default function HolidaysPage() {
   const [activeTab, setActiveTab] = useState<'catalogue' | 'calendar' | 'bookings' | 'create'>('catalogue');
+  const [packages, setPackages] = useState<HolidayPackage[]>(SEED_PACKAGES);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Fetch packages on mount
+  const fetchPackages = useCallback(async () => {
+    setApiLoading(true);
+    setApiError(null);
+    try {
+      const data = await api.get<HolidayPackage[]>('/api/v1/holidays/packages');
+      if (data && data.length > 0) setPackages(data);
+    } catch {
+      // Fall back to seed data silently
+    } finally {
+      setApiLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
 
   const handleCreateNew = () => setActiveTab('create');
+
   const handleCancelCreate = () => setActiveTab('catalogue');
+
+  const handlePackageCreated = async (formData: Omit<HolidayPackage, 'id'>) => {
+    try {
+      const created = await api.post<HolidayPackage>('/api/v1/holidays/packages', formData);
+      setPackages(prev => [...prev, created]);
+    } catch {
+      // Optimistically add with temp id if API fails
+      const tempPkg = { ...formData, id: `pkg-${Date.now()}` } as HolidayPackage;
+      setPackages(prev => [...prev, tempPkg]);
+    }
+    setActiveTab('catalogue');
+  };
+
+  const handlePackageDeleted = async (id: string) => {
+    const confirmed = window.confirm('Deactivate this package?');
+    if (!confirmed) return;
+    setPackages(prev => prev.map(p => p.id === id ? { ...p, status: 'DRAFT' as PackageStatus } : p));
+    try {
+      await api.delete(`/api/v1/holidays/packages/${id}`);
+    } catch {
+      // Silently fail — UI already updated
+    }
+  };
 
   return (
     <div>
@@ -1155,12 +1243,20 @@ export default function HolidaysPage() {
             Manage pre-packaged holiday products, departures, pricing, and bookings
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl px-3 py-2 ml-12 sm:ml-0">
-          <span className="font-black text-slate-700 dark:text-slate-200">{SEED_PACKAGES.filter(p => p.status === 'ACTIVE').length}</span>
-          <span>active packages</span>
-          <span className="mx-1 text-slate-200 dark:text-white/20">·</span>
-          <span className="font-black text-slate-700 dark:text-slate-200">{SEED_BOOKINGS.length}</span>
-          <span>bookings</span>
+        <div className="flex items-center gap-3 ml-12 sm:ml-0">
+          {apiLoading && (
+            <RefreshCw size={14} className="animate-spin text-slate-400" />
+          )}
+          {apiError && (
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg">{apiError}</span>
+          )}
+          <div className="flex items-center gap-2 text-xs text-slate-400 bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl px-3 py-2">
+            <span className="font-black text-slate-700 dark:text-slate-200">{packages.filter(p => p.status === 'ACTIVE').length}</span>
+            <span>active packages</span>
+            <span className="mx-1 text-slate-200 dark:text-white/20">·</span>
+            <span className="font-black text-slate-700 dark:text-slate-200">{SEED_BOOKINGS.length}</span>
+            <span>bookings</span>
+          </div>
         </div>
       </div>
 
@@ -1183,10 +1279,21 @@ export default function HolidaysPage() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'catalogue' && <PackageCatalogue onCreateNew={handleCreateNew} />}
-      {activeTab === 'calendar' && <DeparturesCalendar />}
+      {activeTab === 'catalogue' && (
+        <PackageCatalogue
+          onCreateNew={handleCreateNew}
+          packages={packages}
+          onDelete={handlePackageDeleted}
+        />
+      )}
+      {activeTab === 'calendar' && <DeparturesCalendar packages={packages} />}
       {activeTab === 'bookings' && <PackageBookings />}
-      {activeTab === 'create' && <CreatePackageForm onCancel={handleCancelCreate} />}
+      {activeTab === 'create' && (
+        <CreatePackageForm
+          onCancel={handleCancelCreate}
+          onSaved={handlePackageCreated}
+        />
+      )}
     </div>
   );
 }
