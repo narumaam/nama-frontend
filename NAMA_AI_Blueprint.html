@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAMA Intelligence Layer — AI Blueprint</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050508;--surface:#0D0D12;--surface2:#12121A;--surface3:#1A1A24;
+  --teal:#00E5C0;--blue:#0A84FF;--purple:#BF5AF2;--pink:#FF375F;--amber:#FFD60A;
+  --text:#F5F5F7;--muted:#86868B;--border:rgba(255,255,255,0.06);
+  --radius:16px;--font:'Inter',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;overflow-x:hidden}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(5,5,8,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-logo{font-weight:800;font-size:18px;background:linear-gradient(135deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-decoration:none}
+.nav-links{display:flex;gap:4px;flex-wrap:wrap}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;padding:6px 10px;border-radius:8px;transition:all .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--text);background:rgba(255,255,255,0.06)}
+/* SECTIONS */
+section{padding:100px 24px;max-width:1200px;margin:0 auto}
+.section-label{font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+h1{font-size:clamp(42px,7vw,80px);font-weight:900;line-height:1.05;letter-spacing:-2px}
+h2{font-size:clamp(28px,4vw,48px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:16px}
+h3{font-size:20px;font-weight:700;margin-bottom:8px}
+p{color:var(--muted);line-height:1.7}
+.tag{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;letter-spacing:.5px}
+/* FADE IN */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.fade-in.visible{opacity:1;transform:none}
+/* HERO */
+#hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding-top:80px;position:relative;overflow:hidden;max-width:100%}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,229,192,.12) 0%,transparent 60%),radial-gradient(ellipse 40% 40% at 80% 60%,rgba(10,132,255,.08) 0%,transparent 50%),radial-gradient(ellipse 30% 30% at 20% 80%,rgba(191,90,242,.07) 0%,transparent 50%);pointer-events:none}
+.hero-inner{max-width:1200px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(0,229,192,.08);border:1px solid rgba(0,229,192,.2);border-radius:100px;padding:6px 16px;margin-bottom:32px}
+.hero-eyebrow span{font-size:12px;font-weight:600;color:var(--teal);letter-spacing:1px;text-transform:uppercase}
+.hero-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.hero-title{font-size:clamp(48px,8vw,88px);font-weight:900;letter-spacing:-3px;line-height:1.0;margin-bottom:24px}
+.hero-title .grad-teal{background:linear-gradient(135deg,var(--teal) 0%,var(--blue) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:20px;color:var(--muted);max-width:600px;margin-bottom:56px;line-height:1.6}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:800px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,229,192,.03),transparent);pointer-events:none}
+.stat-number{font-size:36px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:13px;color:var(--muted);margin-top:4px;font-weight:500}
+/* ARCHITECTURE */
+#architecture{padding-top:120px}
+.arch-wrapper{max-width:1200px;margin:0 auto}
+.layer-stack{display:flex;flex-direction:column;gap:2px;margin-top:48px}
+.layer{display:grid;grid-template-columns:140px 1fr;align-items:center;gap:0;border-radius:12px;overflow:hidden;transition:transform .2s}
+.layer:hover{transform:translateX(4px)}
+.layer-num{padding:20px 24px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-align:center;border-right:1px solid rgba(255,255,255,.04)}
+.layer-body{padding:20px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.layer-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.layer-desc{font-size:13px;color:var(--muted)}
+.layer-pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pill{padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600;background:rgba(255,255,255,.06);color:var(--muted);white-space:nowrap}
+.l0{background:linear-gradient(90deg,rgba(0,229,192,.12),rgba(0,229,192,.04))}.l0 .layer-num{color:var(--teal);background:rgba(0,229,192,.08)}
+.l1{background:linear-gradient(90deg,rgba(10,132,255,.12),rgba(10,132,255,.04))}.l1 .layer-num{color:var(--blue);background:rgba(10,132,255,.08)}
+.l2{background:linear-gradient(90deg,rgba(191,90,242,.12),rgba(191,90,242,.04))}.l2 .layer-num{color:var(--purple);background:rgba(191,90,242,.08)}
+.l3{background:linear-gradient(90deg,rgba(255,214,10,.1),rgba(255,214,10,.03))}.l3 .layer-num{color:var(--amber);background:rgba(255,214,10,.07)}
+.l4{background:linear-gradient(90deg,rgba(255,55,95,.1),rgba(255,55,95,.03))}.l4 .layer-num{color:var(--pink);background:rgba(255,55,95,.07)}
+.l5{background:linear-gradient(90deg,rgba(0,229,192,.08),rgba(0,229,192,.02))}.l5 .layer-num{color:var(--teal);background:rgba(0,229,192,.05)}
+.l6{background:linear-gradient(90deg,rgba(10,132,255,.08),rgba(10,132,255,.02))}.l6 .layer-num{color:var(--blue);background:rgba(10,132,255,.05)}
+/* ROADMAP */
+#roadmap{padding-top:120px}
+.timeline{position:relative;margin-top:56px}
+.timeline::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--teal),var(--blue),var(--purple),transparent);transform:translateX(-50%)}
+.phase{display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:start;margin-bottom:40px;position:relative}
+.phase-content{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .3s}
+.phase-content:hover{border-color:rgba(255,255,255,.12)}
+.phase-left{text-align:right;padding-right:32px}
+.phase-right{padding-left:32px}
+.phase-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:20px;z-index:1}
+.phase-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.phase-line{width:1px;flex:1;min-height:20px}
+.phase-tag{display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:10px}
+.phase-months{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.phase-title{font-size:17px;font-weight:700;margin-bottom:8px}
+.phase-items{list-style:none;display:flex;flex-direction:column;gap:4px}
+.phase-items li{font-size:13px;color:var(--muted);display:flex;align-items:flex-start;gap:8px}
+.phase-items li::before{content:'→';color:var(--teal);font-size:11px;margin-top:2px;flex-shrink:0}
+.ph1{--c:var(--teal)}.ph2{--c:var(--blue)}.ph3{--c:var(--purple)}.ph4{--c:var(--amber)}.ph5{--c:var(--pink)}.ph6{--c:#FF9F0A}
+.phase-tag{background:rgba(var(--cr),.12);color:rgb(var(--cr))}
+.ph1 .phase-tag,.ph1 .phase-dot{background:rgba(0,229,192,.12);color:var(--teal);border-color:var(--teal)}.ph1 .phase-dot{background:var(--teal)}
+.ph2 .phase-tag,.ph2 .phase-dot{background:rgba(10,132,255,.12);color:var(--blue)}.ph2 .phase-dot{background:var(--blue)}
+.ph3 .phase-tag,.ph3 .phase-dot{background:rgba(191,90,242,.12);color:var(--purple)}.ph3 .phase-dot{background:var(--purple)}
+.ph4 .phase-tag,.ph4 .phase-dot{background:rgba(255,214,10,.12);color:var(--amber)}.ph4 .phase-dot{background:var(--amber)}
+.ph5 .phase-tag,.ph5 .phase-dot{background:rgba(255,55,95,.12);color:var(--pink)}.ph5 .phase-dot{background:var(--pink)}
+.ph6 .phase-tag,.ph6 .phase-dot{background:rgba(255,159,10,.12);color:#FF9F0A}.ph6 .phase-dot{background:#FF9F0A}
+/* USE CASES */
+#usecases{padding-top:120px}
+.uc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:48px}
+.uc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;transition:all .3s;position:relative;overflow:hidden}
+.uc-card::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;pointer-events:none}
+.uc-card:hover{border-color:rgba(0,229,192,.2);transform:translateY(-2px)}
+.uc-card:hover::after{opacity:1;background:linear-gradient(135deg,rgba(0,229,192,.03),transparent)}
+.uc-num{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:12px;text-transform:uppercase}
+.uc-icon{font-size:32px;margin-bottom:12px}
+.uc-title{font-size:17px;font-weight:700;margin-bottom:8px}
+.uc-desc{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+.uc-example{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--muted);font-style:italic;border-left:3px solid var(--teal)}
+/* DB SCHEMA */
+#schema{padding-top:120px}
+.schema-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:48px}
+.schema-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .3s}
+.schema-card:hover{border-color:rgba(10,132,255,.3)}
+.table-name{font-family:'Courier New',monospace;font-size:14px;font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.table-name::before{content:'⬡';font-size:16px;color:var(--blue)}
+.col-list{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.col-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.col-name{font-family:'Courier New',monospace;color:var(--text);font-weight:500}
+.col-type{font-size:10px;color:var(--muted);background:rgba(255,255,255,.05);padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace}
+.col-pk{font-size:9px;color:var(--amber);background:rgba(255,214,10,.1);padding:1px 5px;border-radius:4px;font-weight:700}
+.schema-purpose{font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
+/* API CATALOG */
+#api{padding-top:120px}
+.api-category{margin-bottom:40px}
+.cat-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.cat-title{font-size:16px;font-weight:700}
+.cat-count{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);padding:3px 10px;border-radius:100px}
+.fn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.fn-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;transition:all .2s}
+.fn-card:hover{border-color:rgba(255,255,255,.12);transform:translateY(-1px)}
+.fn-name{font-family:'Courier New',monospace;font-size:12px;font-weight:700;margin-bottom:4px}
+.fn-desc{font-size:11px;color:var(--muted);line-height:1.5}
+.cat-teal .fn-name{color:var(--teal)}.cat-blue .fn-name{color:var(--blue)}.cat-purple .fn-name{color:var(--purple)}
+.cat-amber .fn-name{color:var(--amber)}.cat-pink .fn-name{color:var(--pink)}.cat-green .fn-name{color:#30D158}
+.cat-orange .fn-name{color:#FF9F0A}.cat-cyan .fn-name{color:#64D2FF}.cat-red .fn-name{color:#FF453A}.cat-muted .fn-name{color:var(--muted)}
+/* UI MAPPING */
+#uimapping{padding-top:120px}
+.ui-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:48px}
+.ui-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:all .3s}
+.ui-card:hover{border-color:rgba(191,90,242,.2);transform:translateY(-2px)}
+.ui-screen{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
+.ui-title{font-size:16px;font-weight:700;margin-bottom:10px}
+.ai-features{display:flex;flex-direction:column;gap:6px}
+.ai-feat{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--muted)}
+.ai-feat::before{content:'✦';color:var(--purple);font-size:10px;margin-top:3px;flex-shrink:0}
+/* PRIVACY */
+#privacy{padding-top:120px}
+.privacy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px}
+.priv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px}
+.priv-icon{font-size:28px;margin-bottom:16px}
+.priv-title{font-size:17px;font-weight:700;margin-bottom:16px}
+.check-list{display:flex;flex-direction:column;gap:10px}
+.check-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--muted)}
+.check-icon{width:18px;height:18px;border-radius:50%;background:rgba(48,209,88,.15);color:#30D158;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+/* SYSTEM PROMPT */
+#sysprompt{padding-top:120px}
+.code-block{background:#0A0A0F;border:1px solid rgba(0,229,192,.15);border-radius:var(--radius);padding:32px;margin-top:40px;position:relative;overflow:hidden}
+.code-block::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal),transparent)}
+.code-header{display:flex;align-items:center;gap:8px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.code-dot{width:10px;height:10px;border-radius:50%}
+.code-title{font-size:12px;color:var(--muted);font-family:'Courier New',monospace;margin-left:8px}
+pre{font-family:'Courier New',monospace;font-size:13px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.c-comment{color:var(--muted)}.c-key{color:var(--teal)}.c-val{color:var(--blue)}.c-str{color:var(--amber)}.c-num{color:var(--purple)}
+/* TECH STACK */
+#techstack{padding-top:120px;padding-bottom:120px}
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:48px}
+.tech-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:all .3s}
+.tech-card:hover{border-color:rgba(255,255,255,.12);transform:translateY(-2px)}
+.tech-category{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.tech-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.tech-names{font-size:13px;color:var(--teal);font-weight:600;margin-bottom:10px}
+.tech-desc{font-size:12px;color:var(--muted);line-height:1.6}
+/* BACK TO TOP */
+#btt{position:fixed;bottom:28px;right:28px;width:44px;height:44px;border-radius:50%;background:var(--teal);color:#000;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s,transform .3s;z-index:99;transform:translateY(8px)}
+#btt.visible{opacity:1;transform:translateY(0)}
+#btt:hover{transform:translateY(-2px) scale(1.05)}
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:48px 24px;text-align:center;color:var(--muted);font-size:13px;max-width:100%}
+footer span{color:var(--teal);font-weight:600}
+/* RESPONSIVE */
+@media(max-width:900px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .timeline::before{left:24px}
+  .phase{grid-template-columns:24px 1fr;gap:12px}
+  .phase-left{display:none}
+  .phase-center{align-items:flex-start;padding-top:16px}
+  .phase-right{padding-left:0}
+  .privacy-grid{grid-template-columns:1fr}
+  .nav-links{display:none}
+}
+@media(max-width:600px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  h1{font-size:40px;letter-spacing:-1px}
+}
+/* DIVIDER */
+.section-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#hero" class="nav-logo">NAMA AI</a>
+    <div class="nav-links">
+      <a href="#hero">Hero</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#usecases">Use Cases</a>
+      <a href="#schema">Schema</a>
+      <a href="#api">API</a>
+      <a href="#uimapping">UI Map</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#sysprompt">System Prompt</a>
+      <a href="#techstack">Tech Stack</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SECTION 1: HERO -->
+<div id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner fade-in">
+    <div class="hero-eyebrow">
+      <div class="hero-dot"></div>
+      <span>Intelligence Layer Blueprint</span>
+    </div>
+    <h1 class="hero-title">NAMA<br><span class="grad-teal">Intelligence</span><br>Layer</h1>
+    <p class="hero-sub">The complete AI architecture powering the next generation of travel operations — from lead scoring to voice-driven itinerary generation.</p>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-number" data-target="60" data-suffix="">0</div>
+        <div class="stat-label">API Tools</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" data-target="19" data-suffix=" Mo">M0</div>
+        <div class="stat-label">M1–M19 Roadmap</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" data-target="10" data-suffix="">0</div>
+        <div class="stat-label">Use Cases</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="-webkit-text-fill-color:var(--teal);color:var(--teal)">✓</div>
+        <div class="stat-label">GDPR Ready</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="section-divider"></div>
+
+<!-- SECTION 2: ARCHITECTURE -->
+<section id="architecture" class="arch-wrapper">
+  <div class="fade-in">
+    <div class="section-label">System Design</div>
+    <h2>6-Layer Architecture</h2>
+    <p>Every request passes through a deterministic stack — from user interface to encrypted storage — with no layer bypassing the one above it.</p>
+  </div>
+  <div class="layer-stack fade-in">
+    <div class="layer l0">
+      <div class="layer-num">Layer 0</div>
+      <div class="layer-body">
+        <div>
+          <div class="layer-title">Interface</div>
+          <div class="layer-desc">All entry points where users and systems interact with NAMA AI</div>
+        </div>
+        <div class="layer-pills">
+          <span class="pill">Web App</span><span class="pill">Mobile</span><span class="pill">Voice</span><span class="pill">Chat Widget</span><span class="pill">API</span>
+        </div>
+      </div>
+    </div>
+    <div class="layer l1">
+      <div class="layer-num">Layer 1</div>
+      <div class="layer-body">
+        <div>
+          <div class="layer-title">AI Orchestration</div>
+          <div class="layer-desc">Intent classification, routing, working memory, and context injection pipeline</div>
+        </div>
+        <div class="layer-pills">
+          <span class="pill">Intent Router</span><span class="pill">Memory Manager</span><span class="pill">Context Engine</span><span class="pill">Task Planner</span>
+        </div>
+      </div>
+    </div>
+    <div class="layer l2">
+      <div class="layer-num">Layer 2</div>
+      <div class="layer-body">
+        <div>
+          <div class="layer-title">Tool / Action Engine</div>
+          <div class="layer-desc">60 callable functions — database reads/writes, external APIs, document generation</div>
+        </div>
+        <div class="layer-pills">
+          <span class="pill">60 Functions</span><span class="pill">Structured Output</span><span class="pill">Retry Logic</span><span class="pill">Schema Validation</span>
+        </div>
+      </div>
+    </div>
+    <div class="layer l3">
+      <div class="layer-num">Layer 3</div>
+      <div class="layer-body">
+        <div>
+          <div class="layer-title">Knowledge &amp; RAG</div>
+          <div class="layer-desc">Vector embeddings with 3-tier memory: Global platform knowledge, Tenant business data, User preferences</div>
+        </div>
+        <div class="layer-pills">
+          <span class="pill">Qdrant Vector DB</span><span class="pill">Global Memory</span><span class="pill">Tenant Memory</span><span class="pill">User Memory</span>
+        </div>
+      </div>
+    </div>
+    <div class="layer l4">
+      <div class="layer-num">Layer 4</div>
+      <div class="layer-body">
+        <div>
+          <div class="layer-title">Model Layer</div>
+          <div class="layer-desc">Multiple LLMs served via vLLM — routed by task complexity, cost, and latency requirements</div>
+        </div>
+        <div class="layer-pills">
+          <span class="pill">LLaMA 3 70B</span><span class="pill">Mixtral 8x7B</span><span class="pill">DeepSeek-V3</span><span class="pill">vLLM</span><span class="pill">OpenRouter</span>
+        </div>
+      </div>
+    </div>
+    <div class="layer l5">
+      <div class="layer-num">Layer 5</div>
+      <div class="layer-body">
+        <div>
+          <div class="layer-title">Data</div>
+          <div class="layer-desc">Persistent storage — relational, cache, and object layers with tenant isolation enforced at row level</div>
+        </div>
+        <div class="layer-pills">
+          <span class="pill">PostgreSQL (Neon)</span><span class="pill">Redis Cache</span><span class="pill">Object Storage</span><span class="pill">RLS Policies</span>
+        </div>
+      </div>
+    </div>
+    <div class="layer l6">
+      <div class="layer-num">Layer 6</div>
+      <div class="layer-body">
+        <div>
+          <div class="layer-title">Security</div>
+          <div class="layer-desc">Cross-cutting concerns applied at every layer — RBAC, PII masking, immutable audit trail</div>
+        </div>
+        <div class="layer-pills">
+          <span class="pill">RBAC + ABAC</span><span class="pill">PII Masking</span><span class="pill">Audit Logs</span><span class="pill">JWT Verification</span><span class="pill">OPA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- SECTION 3: ROADMAP -->
+<section id="roadmap">
+  <div class="fade-in">
+    <div class="section-label">Execution Plan</div>
+    <h2>M1–M19 Roadmap</h2>
+    <p>Six phases taking NAMA AI from infrastructure setup to fully autonomous operations intelligence.</p>
+  </div>
+  <div class="timeline fade-in">
+
+    <div class="phase ph1">
+      <div class="phase-content phase-left">
+        <div class="phase-tag">Phase 1</div>
+        <div class="phase-months">Months 1 – 3</div>
+        <div class="phase-title">Foundation</div>
+        <ul class="phase-items">
+          <li>AI infrastructure setup &amp; model serving (vLLM)</li>
+          <li>RAG v1 — vector DB, chunking pipeline, embeddings</li>
+          <li>Context engine — session memory, tenant isolation</li>
+          <li>Base tool calling framework with schema validation</li>
+        </ul>
+      </div>
+      <div class="phase-center"><div class="phase-dot"></div></div>
+      <div class="phase-right"></div>
+    </div>
+
+    <div class="phase ph2">
+      <div class="phase-left"></div>
+      <div class="phase-center"><div class="phase-dot"></div></div>
+      <div class="phase-content phase-right">
+        <div class="phase-tag">Phase 2</div>
+        <div class="phase-months">Months 4 – 6</div>
+        <div class="phase-title">Core Use Cases</div>
+        <ul class="phase-items">
+          <li>AI itinerary generation from natural language</li>
+          <li>Automated quotation engine with margin optimizer</li>
+          <li>Lead AI — scoring, qualification, conversion prediction</li>
+          <li>Smart pricing benchmarks from aggregated data</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase ph3">
+      <div class="phase-content phase-left">
+        <div class="phase-tag">Phase 3</div>
+        <div class="phase-months">Months 7 – 9</div>
+        <div class="phase-title">Tool Calling</div>
+        <ul class="phase-items">
+          <li>Tool Layer v1 — 60 functions wired &amp; tested</li>
+          <li>Workflow execution engine (multi-step agent tasks)</li>
+          <li>Comms integration — WhatsApp, email, draft &amp; send</li>
+          <li>Document generation: invoices, vouchers, PDFs</li>
+        </ul>
+      </div>
+      <div class="phase-center"><div class="phase-dot"></div></div>
+      <div class="phase-right"></div>
+    </div>
+
+    <div class="phase ph4">
+      <div class="phase-left"></div>
+      <div class="phase-center"><div class="phase-dot"></div></div>
+      <div class="phase-content phase-right">
+        <div class="phase-tag">Phase 4</div>
+        <div class="phase-months">Months 10 – 12</div>
+        <div class="phase-title">Intelligence</div>
+        <ul class="phase-items">
+          <li>Customer memory — persistent profile per traveller</li>
+          <li>Vendor AI — performance scoring &amp; recommendations</li>
+          <li>Pricing optimization — demand-aware margin tuning</li>
+          <li>Anomaly detection on bookings &amp; payments</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase ph5">
+      <div class="phase-content phase-left">
+        <div class="phase-tag">Phase 5</div>
+        <div class="phase-months">Months 13 – 15</div>
+        <div class="phase-title">Multi-Tenant AI</div>
+        <ul class="phase-items">
+          <li>Complete tenant model isolation &amp; data boundaries</li>
+          <li>Custom AI behaviour per agency (tone, rules, focus)</li>
+          <li>Admin controls — usage quotas, model selection</li>
+          <li>AI audit trail — every inference logged &amp; reviewable</li>
+        </ul>
+      </div>
+      <div class="phase-center"><div class="phase-dot"></div></div>
+      <div class="phase-right"></div>
+    </div>
+
+    <div class="phase ph6">
+      <div class="phase-left"></div>
+      <div class="phase-center"><div class="phase-dot"></div></div>
+      <div class="phase-content phase-right">
+        <div class="phase-tag">Phase 6</div>
+        <div class="phase-months">Months 16 – 19</div>
+        <div class="phase-title">Voice, Automation &amp; Insights</div>
+        <ul class="phase-items">
+          <li>Voice operations — Coqui TTS + OpenVoice narration</li>
+          <li>Fully autonomous routine execution engine</li>
+          <li>CEO Analytics Dashboard with predictive insights</li>
+          <li>Demand forecasting &amp; revenue projection models</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+<div class="section-divider"></div>
+
+<!-- SECTION 4: USE CASES -->
+<section id="usecases">
+  <div class="fade-in">
+    <div class="section-label">Applications</div>
+    <h2>Top 10 Use Cases</h2>
+    <p>Where the intelligence layer surfaces value — from the first lead to the final invoice.</p>
+  </div>
+  <div class="uc-grid fade-in">
+
+    <div class="uc-card">
+      <div class="uc-num">01</div>
+      <div class="uc-icon">✈️</div>
+      <div class="uc-title">Instant Itinerary Creation</div>
+      <div class="uc-desc">Generate fully structured, day-by-day travel itineraries from a single natural language prompt — complete with activities, hotels, transfers, and cost estimates.</div>
+      <div class="uc-example">"Create a 7-day Rajasthan trip for a family of 4 with a mid-range budget and cultural focus."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">02</div>
+      <div class="uc-icon">💰</div>
+      <div class="uc-title">Smart Pricing &amp; Margin</div>
+      <div class="uc-desc">Benchmark prices against historical bookings and market data, then suggest optimal markups to maximise revenue without losing conversions.</div>
+      <div class="uc-example">"Your Maldives package is 18% below median market rate. Recommend increasing by ₹12,000."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">03</div>
+      <div class="uc-icon">🎯</div>
+      <div class="uc-title">Lead Qualification</div>
+      <div class="uc-desc">Score inbound leads 0–100 using intent signals, budget indicators, travel dates, and communication patterns — with LLM reasoning on each score.</div>
+      <div class="uc-example">"Lead #4821 scores 87 — high-intent, budget confirmed, departure in 45 days. Prioritise now."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">04</div>
+      <div class="uc-icon">📋</div>
+      <div class="uc-title">Auto-Quotation Engine</div>
+      <div class="uc-desc">Assemble a fully-formatted quote from an itinerary in one click — pulling live vendor rates, applying configured markups, and generating a PDF ready to send.</div>
+      <div class="uc-example">"Quote for Ananya Sharma generated: ₹1,84,000 · 22% margin · PDF ready · sent via WhatsApp."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">05</div>
+      <div class="uc-icon">🏨</div>
+      <div class="uc-title">Vendor Intelligence</div>
+      <div class="uc-desc">Rank and recommend vendors based on past performance, pricing competitiveness, cancellation rates, and guest feedback — surfacing the best fit for each itinerary.</div>
+      <div class="uc-example">"Taj Ranthambore has 96% satisfaction on wildlife safaris. 3 alternatives shown below."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">06</div>
+      <div class="uc-icon">🧠</div>
+      <div class="uc-title">Customer Memory</div>
+      <div class="uc-desc">Build a persistent, enriched traveller profile across every interaction — preferences, past trips, dietary needs, room types — enabling hyper-personalised proposals.</div>
+      <div class="uc-example">"Rahul prefers sea-view rooms, vegetarian meals, and has booked Maldives twice. Pre-fill accordingly."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">07</div>
+      <div class="uc-icon">⚙️</div>
+      <div class="uc-title">AI Ops Assistant</div>
+      <div class="uc-desc">Monitor all active bookings for risk signals — unpaid balances, missing vouchers, visa deadlines, overdue follow-ups — and surface prioritised action lists.</div>
+      <div class="uc-example">"3 departures in 72 hours with missing hotel vouchers. 2 invoices overdue &gt;14 days."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">08</div>
+      <div class="uc-icon">🎙️</div>
+      <div class="uc-title">Voice Operations</div>
+      <div class="uc-desc">Narrate itineraries in natural speech for client presentations, run voice-driven agent training simulations, and support multi-language audio briefs for field teams.</div>
+      <div class="uc-example">"Playing Day 3 itinerary narration in Hindi for client review — 2 min 14 sec."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">09</div>
+      <div class="uc-icon">🔔</div>
+      <div class="uc-title">Automated Follow-ups</div>
+      <div class="uc-desc">Trigger contextual follow-up messages at optimal intervals based on lead temperature, last interaction, and booking stage — via WhatsApp, email, or in-app.</div>
+      <div class="uc-example">"Lead cold for 4 days. Sending personalised re-engagement message referencing their Bali enquiry."</div>
+    </div>
+
+    <div class="uc-card">
+      <div class="uc-num">10</div>
+      <div class="uc-icon">📊</div>
+      <div class="uc-title">CEO Analytics Dashboard</div>
+      <div class="uc-desc">Answer free-text business questions in real time — revenue drivers, conversion bottlenecks, team performance, demand trends — without any SQL or data analyst required.</div>
+      <div class="uc-example">"Why did revenue drop 23% in March?" → "Fewer Maldives enquiries, down 41% vs February."</div>
+    </div>
+
+  </div>
+</section>
+<div class="section-divider"></div>
+
+<!-- SECTION 5: DATABASE SCHEMA -->
+<section id="schema">
+  <div class="fade-in">
+    <div class="section-label">Data Model</div>
+    <h2>Database Schema</h2>
+    <p>10 purpose-built tables extending the core NAMA database — all multi-tenant, all auditable.</p>
+  </div>
+  <div class="schema-grid fade-in">
+
+    <div class="schema-card">
+      <div class="table-name">ai_interactions</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">user_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">session_id</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">prompt</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">response</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">model_used</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">tokens_in / out</span><span class="col-type">INT</span></div>
+        <div class="col-item"><span class="col-name">latency_ms</span><span class="col-type">INT</span></div>
+        <div class="col-item"><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+      <div class="schema-purpose">Full record of every AI call — for billing, debugging, and fine-tuning</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_embeddings</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">source_type</span><span class="col-type">ENUM</span></div>
+        <div class="col-item"><span class="col-name">source_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">content_hash</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">vector</span><span class="col-type">VECTOR(1536)</span></div>
+        <div class="col-item"><span class="col-name">model</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">updated_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+      <div class="schema-purpose">Embedding vectors for RAG retrieval — leads, itineraries, vendors, content</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_memory</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">scope</span><span class="col-type">ENUM</span></div>
+        <div class="col-item"><span class="col-name">key</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">value</span><span class="col-type">JSONB</span></div>
+        <div class="col-item"><span class="col-name">ttl</span><span class="col-type">INTERVAL</span></div>
+        <div class="col-item"><span class="col-name">expires_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+      <div class="schema-purpose">3-tier memory store: global platform facts, tenant preferences, user context</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_customer_profiles</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">lead_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">preferences</span><span class="col-type">JSONB</span></div>
+        <div class="col-item"><span class="col-name">travel_history</span><span class="col-type">JSONB</span></div>
+        <div class="col-item"><span class="col-name">dietary</span><span class="col-type">TEXT[]</span></div>
+        <div class="col-item"><span class="col-name">budget_tier</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">enriched_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+      <div class="schema-purpose">Persistent traveller intelligence — accumulated across all interactions</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_tool_calls</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-name">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">interaction_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">tool_name</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">input_args</span><span class="col-type">JSONB</span></div>
+        <div class="col-item"><span class="col-name">output</span><span class="col-type">JSONB</span></div>
+        <div class="col-item"><span class="col-name">status</span><span class="col-type">ENUM</span></div>
+        <div class="col-item"><span class="col-name">duration_ms</span><span class="col-type">INT</span></div>
+      </div>
+      <div class="schema-purpose">Audit trail for every tool invocation — inputs, outputs, timing</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_agent_tasks</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">task_type</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">status</span><span class="col-type">ENUM</span></div>
+        <div class="col-item"><span class="col-name">steps</span><span class="col-type">JSONB[]</span></div>
+        <div class="col-item"><span class="col-name">result</span><span class="col-type">JSONB</span></div>
+        <div class="col-item"><span class="col-name">triggered_by</span><span class="col-type">UUID</span></div>
+      </div>
+      <div class="schema-purpose">Multi-step agentic task tracking — from trigger to completion</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_feedback</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">interaction_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">rating</span><span class="col-type">SMALLINT</span></div>
+        <div class="col-item"><span class="col-name">thumbs</span><span class="col-type">BOOL</span></div>
+        <div class="col-item"><span class="col-name">comment</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">used_for_rlhf</span><span class="col-type">BOOL</span></div>
+      </div>
+      <div class="schema-purpose">Human feedback signals for RLHF fine-tuning and quality monitoring</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_tenant_config</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">default_model</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">tone</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">custom_rules</span><span class="col-type">TEXT[]</span></div>
+        <div class="col-item"><span class="col-name">monthly_token_quota</span><span class="col-type">INT</span></div>
+        <div class="col-item"><span class="col-name">tokens_used</span><span class="col-type">INT</span></div>
+        <div class="col-item"><span class="col-name">features_enabled</span><span class="col-type">JSONB</span></div>
+      </div>
+      <div class="schema-purpose">Per-agency AI behaviour configuration — models, quotas, tone, enabled features</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_knowledge_base</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">UUID</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">title</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">content</span><span class="col-type">TEXT</span></div>
+        <div class="col-item"><span class="col-name">category</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">is_master</span><span class="col-type">BOOL</span></div>
+        <div class="col-item"><span class="col-name">embedding_id</span><span class="col-type">UUID</span></div>
+      </div>
+      <div class="schema-purpose">Structured knowledge articles indexed for RAG — destinations, policies, FAQs</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="table-name">ai_audit_log</div>
+      <div class="col-list">
+        <div class="col-item"><span class="col-name">id</span><span class="col-type">BIGSERIAL</span><span class="col-pk">PK</span></div>
+        <div class="col-item"><span class="col-name">tenant_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">actor_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">action</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">resource_type</span><span class="col-type">VARCHAR</span></div>
+        <div class="col-item"><span class="col-name">resource_id</span><span class="col-type">UUID</span></div>
+        <div class="col-item"><span class="col-name">pii_accessed</span><span class="col-type">BOOL</span></div>
+        <div class="col-item"><span class="col-name">ip_address</span><span class="col-type">INET</span></div>
+        <div class="col-item"><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+      <div class="schema-purpose">Immutable audit trail for every AI action — required for GDPR Article 22 compliance</div>
+    </div>
+
+  </div>
+</section>
+<div class="section-divider"></div>
+
+<!-- SECTION 6: API CATALOG -->
+<section id="api">
+  <div class="fade-in">
+    <div class="section-label">Tool Library</div>
+    <h2>API Catalog — 60 Functions</h2>
+    <p>Every callable function available to the AI orchestration layer, organised by domain.</p>
+  </div>
+
+  <div class="api-category fade-in cat-teal">
+    <div class="cat-header"><span class="tag" style="background:rgba(0,229,192,.12);color:var(--teal)">Lead Management</span><span class="cat-count">6 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">analyze_lead</div><div class="fn-desc">Deep analysis of lead intent, urgency, and travel requirements</div></div>
+      <div class="fn-card"><div class="fn-name">score_lead_batch</div><div class="fn-desc">Score multiple leads in one pass using LLM + heuristic pipeline</div></div>
+      <div class="fn-card"><div class="fn-name">suggest_follow_up</div><div class="fn-desc">Generate personalised follow-up message based on lead history</div></div>
+      <div class="fn-card"><div class="fn-name">qualify_lead</div><div class="fn-desc">Determine lead qualification status with reasoning</div></div>
+      <div class="fn-card"><div class="fn-name">predict_conversion</div><div class="fn-desc">Predict booking probability with confidence interval</div></div>
+      <div class="fn-card"><div class="fn-name">extract_lead_from_email</div><div class="fn-desc">Parse inbound email and create structured lead record</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-blue">
+    <div class="cat-header"><span class="tag" style="background:rgba(10,132,255,.12);color:var(--blue)">Quotation &amp; Pricing</span><span class="cat-count">7 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">create_quote</div><div class="fn-desc">Assemble complete quotation from itinerary with live vendor rates</div></div>
+      <div class="fn-card"><div class="fn-name">optimize_pricing</div><div class="fn-desc">Suggest price adjustments based on market benchmarks</div></div>
+      <div class="fn-card"><div class="fn-name">apply_markup</div><div class="fn-desc">Apply configured markup rules to a quote line-by-line</div></div>
+      <div class="fn-card"><div class="fn-name">compare_vendor_rates</div><div class="fn-desc">Side-by-side rate comparison across available vendors</div></div>
+      <div class="fn-card"><div class="fn-name">generate_payment_plan</div><div class="fn-desc">Create instalment schedule based on booking value and dates</div></div>
+      <div class="fn-card"><div class="fn-name">upsell_suggestions</div><div class="fn-desc">Recommend relevant add-ons to increase booking value</div></div>
+      <div class="fn-card"><div class="fn-name">validate_quote</div><div class="fn-desc">Check quote for margin floor, missing items, and expiry</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-purple">
+    <div class="cat-header"><span class="tag" style="background:rgba(191,90,242,.12);color:var(--purple)">Itinerary</span><span class="cat-count">6 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">generate_itinerary</div><div class="fn-desc">Create day-by-day itinerary from natural language brief</div></div>
+      <div class="fn-card"><div class="fn-name">optimize_itinerary</div><div class="fn-desc">Improve pacing, routing, and budget allocation</div></div>
+      <div class="fn-card"><div class="fn-name">suggest_activities</div><div class="fn-desc">Recommend activities based on destination + traveller profile</div></div>
+      <div class="fn-card"><div class="fn-name">find_alternatives</div><div class="fn-desc">Suggest alternative hotels or activities for a specific block</div></div>
+      <div class="fn-card"><div class="fn-name">calculate_itinerary_cost</div><div class="fn-desc">Sum all vendor costs and apply markup to produce total</div></div>
+      <div class="fn-card"><div class="fn-name">export_itinerary</div><div class="fn-desc">Render itinerary to PDF, Word, or HTML format</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-cyan">
+    <div class="cat-header"><span class="tag" style="background:rgba(100,210,255,.12);color:#64D2FF">Customer Intelligence</span><span class="cat-count">6 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">get_customer_profile</div><div class="fn-desc">Retrieve enriched traveller profile with full history</div></div>
+      <div class="fn-card"><div class="fn-name">update_customer_memory</div><div class="fn-desc">Persist new preferences or facts from current interaction</div></div>
+      <div class="fn-card"><div class="fn-name">predict_customer_needs</div><div class="fn-desc">Infer next likely travel request based on past behaviour</div></div>
+      <div class="fn-card"><div class="fn-name">segment_customer</div><div class="fn-desc">Classify customer into value/behaviour segment</div></div>
+      <div class="fn-card"><div class="fn-name">get_customer_history</div><div class="fn-desc">Full booking and interaction timeline for a lead/client</div></div>
+      <div class="fn-card"><div class="fn-name">personalize_communication</div><div class="fn-desc">Adapt message tone and content to customer profile</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-amber">
+    <div class="cat-header"><span class="tag" style="background:rgba(255,214,10,.12);color:var(--amber)">Vendor Intelligence</span><span class="cat-count">5 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">get_vendor_recommendations</div><div class="fn-desc">Rank vendors for a trip by fit, cost, and performance score</div></div>
+      <div class="fn-card"><div class="fn-name">analyze_vendor_performance</div><div class="fn-desc">Summarise vendor KPIs: satisfaction, reliability, pricing trend</div></div>
+      <div class="fn-card"><div class="fn-name">compare_vendors</div><div class="fn-desc">Head-to-head comparison on specified criteria</div></div>
+      <div class="fn-card"><div class="fn-name">get_vendor_availability</div><div class="fn-desc">Check real-time availability for dates and pax count</div></div>
+      <div class="fn-card"><div class="fn-name">flag_vendor_issues</div><div class="fn-desc">Detect pattern anomalies: price spikes, cancellations, complaints</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-orange">
+    <div class="cat-header"><span class="tag" style="background:rgba(255,159,10,.12);color:#FF9F0A">Operations</span><span class="cat-count">7 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">get_ops_summary</div><div class="fn-desc">Today's briefing: departures, tasks due, overdue items</div></div>
+      <div class="fn-card"><div class="fn-name">check_booking_health</div><div class="fn-desc">Scan booking for missing docs, unpaid balances, risks</div></div>
+      <div class="fn-card"><div class="fn-name">generate_voucher</div><div class="fn-desc">Auto-create hotel/transfer voucher from booking data</div></div>
+      <div class="fn-card"><div class="fn-name">generate_invoice</div><div class="fn-desc">Create formatted invoice PDF with payment details</div></div>
+      <div class="fn-card"><div class="fn-name">send_document</div><div class="fn-desc">Email or WhatsApp a document to client with tracking</div></div>
+      <div class="fn-card"><div class="fn-name">flag_overdue_payments</div><div class="fn-desc">Identify bookings with outstanding balances past due date</div></div>
+      <div class="fn-card"><div class="fn-name">get_team_workload</div><div class="fn-desc">Per-agent open leads, bookings, and task count</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-green">
+    <div class="cat-header"><span class="tag" style="background:rgba(48,209,88,.12);color:#30D158">Communication</span><span class="cat-count">6 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">draft_email</div><div class="fn-desc">Compose professional email from intent and context</div></div>
+      <div class="fn-card"><div class="fn-name">draft_whatsapp</div><div class="fn-desc">Create concise WhatsApp message with appropriate tone</div></div>
+      <div class="fn-card"><div class="fn-name">schedule_follow_up</div><div class="fn-desc">Queue a follow-up at optimal time based on lead stage</div></div>
+      <div class="fn-card"><div class="fn-name">analyze_reply</div><div class="fn-desc">Classify inbound reply: interested / objection / ready to book</div></div>
+      <div class="fn-card"><div class="fn-name">translate_message</div><div class="fn-desc">Translate communication to/from 20+ languages</div></div>
+      <div class="fn-card"><div class="fn-name">suggest_response</div><div class="fn-desc">Generate 3 response options ranked by conversion likelihood</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-blue">
+    <div class="cat-header"><span class="tag" style="background:rgba(10,132,255,.12);color:var(--blue)">Analytics</span><span class="cat-count">7 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">get_business_insights</div><div class="fn-desc">Natural language summary of key business metrics</div></div>
+      <div class="fn-card"><div class="fn-name">explain_metric_change</div><div class="fn-desc">Root-cause analysis for any KPI movement</div></div>
+      <div class="fn-card"><div class="fn-name">forecast_revenue</div><div class="fn-desc">30/60/90-day revenue projection with confidence range</div></div>
+      <div class="fn-card"><div class="fn-name">identify_bottlenecks</div><div class="fn-desc">Find where leads drop off in the conversion funnel</div></div>
+      <div class="fn-card"><div class="fn-name">generate_report</div><div class="fn-desc">Create structured performance report for any time range</div></div>
+      <div class="fn-card"><div class="fn-name">answer_business_question</div><div class="fn-desc">Free-text Q&amp;A over business data without SQL</div></div>
+      <div class="fn-card"><div class="fn-name">get_demand_trends</div><div class="fn-desc">Identify high-demand destinations and travel periods</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-pink">
+    <div class="cat-header"><span class="tag" style="background:rgba(255,55,95,.12);color:var(--pink)">Finance</span><span class="cat-count">5 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">reconcile_payments</div><div class="fn-desc">Match payments to bookings and flag discrepancies</div></div>
+      <div class="fn-card"><div class="fn-name">flag_payment_anomalies</div><div class="fn-desc">Detect unusual payment patterns — duplicates, underpayments</div></div>
+      <div class="fn-card"><div class="fn-name">calculate_profitability</div><div class="fn-desc">Net margin per booking, agent, destination, or period</div></div>
+      <div class="fn-card"><div class="fn-name">forecast_cash_flow</div><div class="fn-desc">Projected cash position based on confirmed bookings</div></div>
+      <div class="fn-card"><div class="fn-name">generate_tax_summary</div><div class="fn-desc">GST/tax-ready revenue summary for specified period</div></div>
+    </div>
+  </div>
+
+  <div class="api-category fade-in cat-muted">
+    <div class="cat-header"><span class="tag" style="background:rgba(134,134,139,.12);color:var(--muted)">System</span><span class="cat-count">5 functions</span></div>
+    <div class="fn-grid">
+      <div class="fn-card"><div class="fn-name">mask_pii</div><div class="fn-desc">Detect and redact PII before storing or forwarding data</div></div>
+      <div class="fn-card"><div class="fn-name">check_permissions</div><div class="fn-desc">ABAC evaluation for current user and requested action</div></div>
+      <div class="fn-card"><div class="fn-name">log_ai_action</div><div class="fn-desc">Append immutable record to ai_audit_log</div></div>
+      <div class="fn-card"><div class="fn-name">get_ai_usage_stats</div><div class="fn-desc">Token consumption, cost, and quota remaining per tenant</div></div>
+      <div class="fn-card"><div class="fn-name">rotate_embeddings</div><div class="fn-desc">Re-embed stale vectors when source content changes</div></div>
+    </div>
+  </div>
+
+</section>
+<div class="section-divider"></div>
+
+<!-- SECTION 7: UI SCREEN MAPPING -->
+<section id="uimapping">
+  <div class="fade-in">
+    <div class="section-label">Product Integration</div>
+    <h2>UI Screen Mapping</h2>
+    <p>Where the AI layer surfaces inside every NAMA screen — contextual, non-intrusive, action-oriented.</p>
+  </div>
+  <div class="ui-grid fade-in">
+    <div class="ui-card"><div class="ui-screen">Dashboard</div><div class="ui-title">AI Insights Panel</div><div class="ai-features"><div class="ai-feat">Daily ops briefing — departures, overdue items, team workload</div><div class="ai-feat">Revenue anomaly alerts with root-cause explanation</div><div class="ai-feat">Predictive revenue forecast widget (30-day)</div><div class="ai-feat">Top action recommendations ranked by impact</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Leads</div><div class="ui-title">Score Badges + AI Actions</div><div class="ai-features"><div class="ai-feat">Live AI score ring (0–100) on every lead card</div><div class="ai-feat">One-click "Suggest Follow-up" message generation</div><div class="ai-feat">Bulk lead scoring with LLM reasoning panel</div><div class="ai-feat">Conversion probability badge with confidence %</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Quotations</div><div class="ui-title">Pricing Suggestions + Margin Optimizer</div><div class="ai-features"><div class="ai-feat">Benchmark indicator: above / at / below market rate</div><div class="ai-feat">Margin optimizer — suggested price to hit target %</div><div class="ai-feat">Upsell suggestion panel with estimated revenue lift</div><div class="ai-feat">One-click validate quote before sending</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Itineraries</div><div class="ui-title">AI Generation + Alternatives</div><div class="ai-features"><div class="ai-feat">"Generate from brief" — natural language to full itinerary</div><div class="ai-feat">Per-block alternatives: swap hotel or activity instantly</div><div class="ai-feat">Pacing analysis — flags too-busy or too-loose days</div><div class="ai-feat">Auto cost calculation on every edit</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Bookings</div><div class="ui-title">Health Check + Risk Alerts</div><div class="ai-features"><div class="ai-feat">Booking health score with traffic-light indicator</div><div class="ai-feat">Risk alerts: missing docs, unpaid balance, visa deadlines</div><div class="ai-feat">Auto-generate and send vouchers to suppliers</div><div class="ai-feat">Departure readiness checklist, AI-populated</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Communications</div><div class="ui-title">Reply Suggestions</div><div class="ai-features"><div class="ai-feat">Inbound message intent classification in real time</div><div class="ai-feat">3 AI-drafted reply options per message, ranked</div><div class="ai-feat">Tone selector: formal / friendly / urgent</div><div class="ai-feat">Auto-translation for international clients</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Vendors</div><div class="ui-title">AI Recommendations</div><div class="ai-features"><div class="ai-feat">Smart vendor ranking by destination and trip type</div><div class="ai-feat">Performance score card — reliability, pricing, satisfaction</div><div class="ai-feat">Anomaly flags: price spikes, cancellation patterns</div><div class="ai-feat">Rate competitiveness vs DMC marketplace</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Finance</div><div class="ui-title">Anomaly Detection</div><div class="ai-features"><div class="ai-feat">Duplicate and partial payment detection</div><div class="ai-feat">Cash flow forecast from confirmed future bookings</div><div class="ai-feat">Profitability drill-down by agent / destination / period</div><div class="ai-feat">One-click tax summary generation for GST filing</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Routines</div><div class="ui-title">AI Automation Builder</div><div class="ai-features"><div class="ai-feat">Natural language routine creation from plain description</div><div class="ai-feat">AI-generated step sequences from brief</div><div class="ai-feat">Live execution log with AI step summaries</div><div class="ai-feat">Smart triggers: lead score change, booking status, date</div></div></div>
+    <div class="ui-card"><div class="ui-screen">Copilot</div><div class="ui-title">Global Assistant</div><div class="ai-features"><div class="ai-feat">Floating chat available on every screen</div><div class="ai-feat">Context-aware: knows current page, open record, user role</div><div class="ai-feat">Executes actions: "create quote for Rahul's Bali trip"</div><div class="ai-feat">Paperclip context attachment — paste emails, docs, briefs</div></div></div>
+  </div>
+</section>
+<div class="section-divider"></div>
+
+<!-- SECTION 8: PRIVACY & GDPR -->
+<section id="privacy">
+  <div class="fade-in">
+    <div class="section-label">Compliance</div>
+    <h2>Privacy &amp; GDPR</h2>
+    <p>Enterprise-grade data governance built into the architecture from day one — not bolted on after.</p>
+  </div>
+  <div class="privacy-grid fade-in">
+
+    <div class="priv-card">
+      <div class="priv-icon">🔒</div>
+      <div class="priv-title">Data Governance</div>
+      <div class="check-list">
+        <div class="check-item"><div class="check-icon">✓</div>All PII masked before entering LLM context via Microsoft Presidio</div>
+        <div class="check-item"><div class="check-icon">✓</div>Tenant data fully isolated at database row level (RLS policies)</div>
+        <div class="check-item"><div class="check-icon">✓</div>Embeddings scoped to tenant — no cross-tenant RAG leakage</div>
+        <div class="check-item"><div class="check-icon">✓</div>Right to erasure: cascade delete removes all AI records for a customer</div>
+        <div class="check-item"><div class="check-icon">✓</div>Data residency controls — EU/IN region selection per tenant</div>
+      </div>
+    </div>
+
+    <div class="priv-card">
+      <div class="priv-icon">🛡️</div>
+      <div class="priv-title">AI Safety</div>
+      <div class="check-list">
+        <div class="check-item"><div class="check-icon">✓</div>RBAC + ABAC on every tool call — AI cannot exceed user permissions</div>
+        <div class="check-item"><div class="check-icon">✓</div>Structured output schemas prevent prompt injection via tool args</div>
+        <div class="check-item"><div class="check-icon">✓</div>Rate limiting per tenant to prevent runaway token consumption</div>
+        <div class="check-item"><div class="check-icon">✓</div>Human-in-the-loop confirmation for irreversible actions (send, delete)</div>
+        <div class="check-item"><div class="check-icon">✓</div>Model output toxicity filter before surfacing to users</div>
+      </div>
+    </div>
+
+    <div class="priv-card">
+      <div class="priv-icon">📋</div>
+      <div class="priv-title">Compliance</div>
+      <div class="check-list">
+        <div class="check-item"><div class="check-icon">✓</div>GDPR Article 22 — automated decision explanations available on demand</div>
+        <div class="check-item"><div class="check-icon">✓</div>Immutable audit log of every AI inference with actor, timestamp, output</div>
+        <div class="check-item"><div class="check-icon">✓</div>Consent tracking for AI-assisted communications to customers</div>
+        <div class="check-item"><div class="check-icon">✓</div>SOC 2 Type II compatible logging and access controls</div>
+        <div class="check-item"><div class="check-icon">✓</div>Data Processing Agreements available for enterprise tenants</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+<div class="section-divider"></div>
+
+<!-- SECTION 9: SYSTEM PROMPT -->
+<section id="sysprompt">
+  <div class="fade-in">
+    <div class="section-label">Core Identity</div>
+    <h2>Core System Prompt</h2>
+    <p>The foundational instruction set that governs every NAMA AI interaction — consistent, safe, and business-focused.</p>
+  </div>
+  <div class="code-block fade-in">
+    <div class="code-header">
+      <div class="code-dot" style="background:#FF453A"></div>
+      <div class="code-dot" style="background:#FFD60A"></div>
+      <div class="code-dot" style="background:#30D158"></div>
+      <span class="code-title">nama_system_prompt.txt — loaded on every session initialisation</span>
+    </div>
+<pre><span class="c-key">You are NAMA AI</span>, an intelligent operations assistant built exclusively for
+travel companies and destination management companies (DMCs).
+
+<span class="c-key">Your role</span> is to help users complete real business tasks — not to chat,
+not to entertain, not to answer general knowledge questions.
+
+<span class="c-key">RULES:</span>
+
+<span class="c-num">1.</span> <span class="c-str">Always act within the user's role permissions.</span> You have access to a
+   permission check tool. Use it before any write or send action. If the
+   user cannot perform an action, explain why and suggest who can.
+
+<span class="c-num">2.</span> <span class="c-str">Never expose raw customer data.</span> All PII is masked before reaching
+   your context. Never ask users to paste passport numbers, payment details,
+   or full addresses into chat.
+
+<span class="c-num">3.</span> <span class="c-str">Be precise and brief.</span> Travel agents are busy. Respond with the minimum
+   required to complete the task. Use bullet points and structured output
+   wherever possible. No filler text.
+
+<span class="c-num">4.</span> <span class="c-str">Use tools, not guesses.</span> You have 60 callable tools. If a task requires
+   data, call the correct tool. Never fabricate lead scores, prices,
+   booking statuses, or vendor availability. Say "I'll check that" and use
+   the appropriate function.
+
+<span class="c-num">5.</span> <span class="c-str">Confirm before irreversible actions.</span> Sending a quote, posting a WhatsApp
+   message, or generating a payment link requires explicit user confirmation.
+   Present a summary and wait for approval.
+
+<span class="c-num">6.</span> <span class="c-str">Respect tenant boundaries.</span> You only have access to data belonging to
+   the current tenant. You must never reference or compare data from other
+   agencies. Each workspace is fully isolated.
+
+<span class="c-num">7.</span> <span class="c-str">Log every action.</span> All tool calls are automatically written to the
+   audit log. This cannot be disabled. This protects the user and the
+   agency in case of dispute.
+
+<span class="c-num">8.</span> <span class="c-str">Stay in domain.</span> If a user asks something unrelated to travel operations,
+   politely redirect: "I'm focused on helping you run your agency. For that
+   question, a general assistant like Claude or ChatGPT would be more useful."
+
+<span class="c-comment">---</span>
+
+<span class="c-key">You are not a chatbot.</span>
+<span class="c-key">You are an execution engine.</span>
+<span class="c-key">Every response should move the business forward.</span></pre>
+  </div>
+</section>
+<div class="section-divider"></div>
+
+<!-- SECTION 10: TECH STACK -->
+<section id="techstack">
+  <div class="fade-in">
+    <div class="section-label">Infrastructure</div>
+    <h2>Tech Stack</h2>
+    <p>Best-in-class open-source components — chosen for performance, cost efficiency, and vendor independence.</p>
+  </div>
+  <div class="tech-grid fade-in">
+
+    <div class="tech-card">
+      <div class="tech-category">Foundation Models</div>
+      <div class="tech-title">Language Models</div>
+      <div class="tech-names">LLaMA 3 70B · Mixtral 8x7B · DeepSeek-V3</div>
+      <div class="tech-desc">Multi-model routing based on task complexity, latency requirements, and cost. LLaMA 3 for reasoning, Mixtral for speed, DeepSeek for code and structured output.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-category">Model Serving</div>
+      <div class="tech-title">vLLM</div>
+      <div class="tech-names">vLLM + OpenRouter fallback</div>
+      <div class="tech-desc">Self-hosted vLLM for primary inference with PagedAttention for 24x higher throughput. OpenRouter as fallback and for model diversity during early phases.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-category">Orchestration</div>
+      <div class="tech-title">Custom Agent Framework</div>
+      <div class="tech-names">LangChain bootstrap → custom router</div>
+      <div class="tech-desc">LangChain for initial scaffolding, migrated to a lightweight custom orchestrator as tool surface grows. Deterministic routing beats ReAct loops for production reliability.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-category">Vector Database</div>
+      <div class="tech-title">Qdrant / Weaviate</div>
+      <div class="tech-names">Qdrant (primary) · Weaviate (enterprise)</div>
+      <div class="tech-desc">Qdrant for self-hosted vector search with filtering and tenant namespacing. Weaviate available for enterprise deployments requiring managed SaaS with RBAC on collections.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-category">PII Protection</div>
+      <div class="tech-title">Microsoft Presidio</div>
+      <div class="tech-names">Presidio Analyzer + Anonymizer</div>
+      <div class="tech-desc">Real-time PII detection and redaction applied before any text enters LLM context. Supports 20+ entity types: names, phone numbers, passport IDs, payment info, emails.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-category">Access Control</div>
+      <div class="tech-title">Open Policy Agent</div>
+      <div class="tech-names">OPA + Rego policies</div>
+      <div class="tech-desc">Declarative ABAC policies evaluated at tool-call boundary. Rego policies encode geography, product type, deal size, and time-of-day constraints with sub-millisecond evaluation.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-category">Secrets Management</div>
+      <div class="tech-title">HashiCorp Vault</div>
+      <div class="tech-names">Vault + dynamic secrets</div>
+      <div class="tech-desc">All API keys, encryption keys, and credentials managed via Vault with dynamic secret rotation. Zero long-lived credentials in application code or environment variables.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-category">Observability</div>
+      <div class="tech-title">Langfuse + Helicone</div>
+      <div class="tech-names">Langfuse (traces) · Helicone (cost)</div>
+      <div class="tech-desc">Full LLM observability: prompt traces, token costs, latency histograms, and feedback correlation. Langfuse for open-source self-hosting, Helicone for cost dashboards and caching.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- BACK TO TOP -->
+<button id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- FOOTER -->
+<footer>
+  <p>Built by <span>NAMA OS</span> · Intelligence Layer Blueprint · Version 1.0 · April 2026</p>
+  <p style="margin-top:8px;font-size:12px">Confidential — for internal and investor use only</p>
+</footer>
+
+<script>
+// Intersection Observer for fade-in
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); } });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Back to top button
+const btt = document.getElementById('btt');
+window.addEventListener('scroll', () => {
+  btt.classList.toggle('visible', window.scrollY > 400);
+});
+
+// Counter animation for hero stats
+function animateCounter(el) {
+  const target = parseInt(el.dataset.target);
+  const suffix = el.dataset.suffix || '';
+  if(isNaN(target)) return;
+  let start = 0;
+  const duration = 1800;
+  const step = (timestamp) => {
+    if(!start) start = timestamp;
+    const progress = Math.min((timestamp - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(eased * target) + suffix;
+    if(progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+const heroObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      e.target.querySelectorAll('[data-target]').forEach(animateCounter);
+      heroObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+const statsRow = document.querySelector('.stats-row');
+if(statsRow) heroObserver.observe(statsRow);
+
+// Active nav link highlight
+const sections = document.querySelectorAll('section[id], div[id]');
+const navLinks = document.querySelectorAll('.nav-links a');
+const navObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      navLinks.forEach(a => a.style.color = '');
+      const active = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+      if(active) active.style.color = 'var(--teal)';
+    }
+  });
+}, { threshold: 0.4 });
+document.querySelectorAll('section[id]').forEach(s => navObserver.observe(s));
+document.getElementById('hero') && navObserver.observe(document.getElementById('hero'));
+</script>
+</body>
+</html>

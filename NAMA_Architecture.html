@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAMA OS — System Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #111318;
+    --surface2: #181c24;
+    --border:   #252a35;
+    --border2:  #2e3546;
+    --text:     #e2e8f0;
+    --muted:    #8892a4;
+    --accent:   #6366f1;
+    --accent2:  #818cf8;
+    --green:    #22c55e;
+    --amber:    #f59e0b;
+    --red:      #ef4444;
+    --cyan:     #06b6d4;
+    --purple:   #a855f7;
+    --pink:     #ec4899;
+    --orange:   #f97316;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 40px 32px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-area { display: flex; align-items: center; gap: 16px; }
+  .logo-mark {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -1px;
+    box-shadow: 0 0 32px rgba(99,102,241,0.4);
+  }
+  .header-title { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .header-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .header-meta { text-align: right; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge-green { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .badge-purple { background: rgba(99,102,241,0.15); color: var(--accent2); border: 1px solid rgba(99,102,241,0.3); }
+  .meta-row { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .meta-val { color: var(--text); }
+
+  /* ── Section ── */
+  .section { margin-bottom: 56px; }
+  .section-label {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted); margin-bottom: 20px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .section-num {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--accent2); font-weight: 800;
+  }
+
+  /* ── Architecture Diagram ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    overflow-x: auto;
+  }
+
+  .arch-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 0;
+  }
+
+  .arch-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Layer labels */
+  .layer-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    padding: 0 8px;
+    border-right: 2px solid var(--border2);
+    margin-right: 20px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Service boxes */
+  .svc {
+    border-radius: 12px;
+    padding: 14px 18px;
+    border: 1px solid;
+    position: relative;
+    min-width: 160px;
+    transition: box-shadow 0.2s;
+  }
+  .svc:hover { box-shadow: 0 0 24px rgba(99,102,241,0.15); }
+  .svc-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .svc-sub { font-size: 11px; opacity: 0.7; }
+  .svc-tag {
+    position: absolute; top: -8px; right: 10px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 2px 7px; border-radius: 4px;
+  }
+
+  /* Color variants */
+  .svc-indigo {
+    background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.35); color: #c7d2fe;
+  }
+  .svc-indigo .svc-tag { background: rgba(99,102,241,0.3); color: #a5b4fc; }
+
+  .svc-green {
+    background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.35); color: #bbf7d0;
+  }
+  .svc-green .svc-tag { background: rgba(34,197,94,0.3); color: #86efac; }
+
+  .svc-cyan {
+    background: rgba(6,182,212,0.08); border-color: rgba(6,182,212,0.35); color: #a5f3fc;
+  }
+  .svc-cyan .svc-tag { background: rgba(6,182,212,0.3); color: #67e8f9; }
+
+  .svc-purple {
+    background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.35); color: #e9d5ff;
+  }
+  .svc-purple .svc-tag { background: rgba(168,85,247,0.3); color: #d8b4fe; }
+
+  .svc-amber {
+    background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.35); color: #fde68a;
+  }
+  .svc-amber .svc-tag { background: rgba(245,158,11,0.3); color: #fcd34d; }
+
+  .svc-pink {
+    background: rgba(236,72,153,0.08); border-color: rgba(236,72,153,0.35); color: #fbcfe8;
+  }
+  .svc-pink .svc-tag { background: rgba(236,72,153,0.3); color: #f9a8d4; }
+
+  .svc-orange {
+    background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.35); color: #fed7aa;
+  }
+  .svc-orange .svc-tag { background: rgba(249,115,22,0.3); color: #fdba74; }
+
+  .svc-red {
+    background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.35); color: #fecaca;
+  }
+  .svc-red .svc-tag { background: rgba(239,68,68,0.3); color: #fca5a5; }
+
+  /* Connector arrows */
+  .arrow-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    gap: 6px;
+    padding-top: 20px;
+  }
+  .arrow-line {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .arrow-dash {
+    width: 32px; height: 1px;
+    background: repeating-linear-gradient(
+      90deg, var(--border2) 0, var(--border2) 4px, transparent 4px, transparent 8px
+    );
+  }
+  .arrow-head { font-size: 14px; color: var(--border2); }
+  .arrow-label { font-size: 9px; color: var(--muted); text-align: center; margin-top: 2px; white-space: nowrap; }
+
+  /* Vertical connector between layers */
+  .v-connector {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 8px 0; color: var(--muted);
+  }
+  .v-line { width: 1px; height: 20px; background: var(--border2); }
+  .v-arrow { font-size: 12px; color: var(--border2); }
+
+  /* Grid layout for the diagram */
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: 80px 1fr 48px 1fr 48px 1fr;
+    gap: 0;
+    align-items: start;
+  }
+
+  .layer-stripe {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .layer-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+
+  /* Full arch layout */
+  .arch-full {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .arch-layer {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .arch-lbl {
+    width: 90px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .arch-content {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .arch-connector {
+    width: 90px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .v-conn-line {
+    width: 2px;
+    height: 40px;
+    background: var(--border2);
+    margin-left: 44px; /* align with center of content */
+    position: relative;
+  }
+  .v-conn-line::after {
+    content: '▼';
+    position: absolute;
+    bottom: -14px;
+    left: -5px;
+    font-size: 10px;
+    color: var(--border2);
+  }
+
+  /* ── Services Table ── */
+  .services-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .services-table th {
+    background: var(--surface2);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .services-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .services-table tr:last-child td { border-bottom: none; }
+  .services-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .svc-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 8px; flex-shrink: 0;
+    vertical-align: middle;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-indigo { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot-cyan { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .dot-purple { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+  .dot-pink { background: var(--pink); box-shadow: 0 0 6px var(--pink); }
+  .dot-orange { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.07);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--cyan);
+  }
+  .code-list { display: flex; flex-direction: column; gap: 4px; }
+
+  /* ── Data Flow ── */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 24px;
+    overflow-x: auto;
+  }
+
+  .flow-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+
+  .flow-icon {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    border: 1px solid;
+    flex-shrink: 0;
+  }
+
+  .flow-name { font-size: 12px; font-weight: 700; text-align: center; }
+  .flow-sub { font-size: 10px; color: var(--muted); text-align: center; }
+
+  .flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 64px;
+    flex-shrink: 0;
+  }
+
+  .flow-arrow-line {
+    display: flex; align-items: center; gap: 0;
+  }
+  .fa-dash {
+    height: 2px; width: 40px;
+    background: linear-gradient(90deg, var(--border2), var(--accent2));
+  }
+  .fa-head { color: var(--accent2); font-size: 12px; }
+  .flow-arrow-label {
+    font-size: 9px; color: var(--muted); text-align: center;
+    white-space: nowrap; line-height: 1.3;
+  }
+
+  /* branch arrows (for parallel deps) */
+  .flow-branch {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .branch-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── Env Vars Table ── */
+  .env-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 800px) {
+    .env-grid { grid-template-columns: 1fr; }
+  }
+
+  .env-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .env-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .env-card-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .env-card-title { font-size: 14px; font-weight: 700; }
+  .env-card-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .env-table { width: 100%; border-collapse: collapse; }
+  .env-table tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  .env-table td {
+    padding: 10px 20px;
+    vertical-align: top;
+    font-size: 12px;
+  }
+  .env-table td:first-child {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 12px;
+  }
+  .env-table td:last-child { color: var(--muted); }
+  .env-req { color: var(--amber) !important; }
+  .env-opt { color: var(--green) !important; }
+
+  /* ── Deployment Flow ── */
+  .deploy-steps {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+  }
+
+  .deploy-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  .deploy-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 28px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--border2) 0%, var(--accent) 100%);
+    z-index: 0;
+  }
+
+  .deploy-num {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: var(--accent2);
+    position: relative; z-index: 1;
+    box-shadow: 0 0 20px rgba(99,102,241,0.25);
+  }
+
+  .deploy-body {
+    margin-top: 16px;
+    text-align: center;
+    padding: 0 8px;
+  }
+
+  .deploy-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .deploy-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  .deploy-tags {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    justify-content: center; margin-top: 8px;
+  }
+
+  .dtag {
+    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 2px 7px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--muted);
+  }
+
+  /* ── Migration Chain ── */
+  .migration-chain {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+
+  .mig-node {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .mig-node.mig-start { border-color: var(--accent); color: var(--accent2); }
+  .mig-node.mig-latest { border-color: var(--green); color: #86efac; }
+
+  .mig-arrow {
+    padding: 0 6px;
+    color: var(--border2);
+    font-size: 14px;
+  }
+
+  /* ── Router Modules ── */
+  .router-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  .router-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 13px;
+    font-size: 11px;
+  }
+
+  .router-chip-path { font-family: monospace; color: var(--cyan); font-size: 10px; }
+  .router-chip-desc { color: var(--muted); margin-top: 2px; font-size: 10px; }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; color: #111; padding: 20px; }
+    .arch-diagram, .flow-diagram, .env-card, .migration-chain { border-color: #ddd; }
+    code { background: #f3f4f6; color: #0e7490; }
+    .services-table th, .services-table td { border-color: #e5e7eb; }
+    .svc { border-color: #d1d5db !important; background: #f9fafb !important; }
+    .svc-name, .svc-sub, .flow-name, .flow-sub { color: #111 !important; }
+    .header-title, .deploy-title, .env-card-title, .layer-title { color: #111 !important; }
+    .muted, .section-label, .env-table td:last-child, .arch-lbl { color: #6b7280 !important; }
+    @page { margin: 20mm; }
+  }
+
+  /* utility */
+  .mt-4 { margin-top: 16px; }
+  .gap-sm { gap: 8px; }
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .align-center { align-items: center; }
+  .wrap { flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════ -->
+<div class="header">
+  <div class="logo-area">
+    <div class="logo-mark">N</div>
+    <div>
+      <div class="header-title">NAMA OS — System Architecture</div>
+      <div class="header-sub">Travel Agency SaaS · Full-Stack Reference Document</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div><span class="badge badge-green">● LIVE</span> &nbsp; <span class="badge badge-purple">v0.3.0</span></div>
+    <div class="meta-row">Generated <span class="meta-val">2026-04-20</span></div>
+    <div class="meta-row">Repo <span class="meta-val">narumaam/nama-frontend</span></div>
+    <div class="meta-row">Backend health <span class="meta-val">{"status":"healthy","version":"0.3.0"}</span></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 1 — ARCHITECTURE DIAGRAM
+═══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label"><div class="section-num">1</div> Visual Architecture Diagram</div>
+
+  <div class="arch-diagram">
+
+    <!-- ── USERS ── -->
+    <div class="arch-layer">
+      <div class="arch-lbl">Users</div>
+      <div class="arch-content" style="justify-content: center; gap: 16px;">
+        <div class="svc svc-indigo" style="min-width:140px;">
+          <div class="svc-tag">Browser</div>
+          <div class="svc-name">Agency Staff</div>
+          <div class="svc-sub">Dashboard users (R0–R5)</div>
+        </div>
+        <div class="svc svc-indigo" style="min-width:140px;">
+          <div class="svc-tag">Public</div>
+          <div class="svc-name">Travellers</div>
+          <div class="svc-sub">Portal + widget</div>
+        </div>
+        <div class="svc svc-indigo" style="min-width:140px;">
+          <div class="svc-tag">External</div>
+          <div class="svc-name">Meta / Zapier</div>
+          <div class="svc-sub">Webhook sources</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- connector -->
+    <div class="arch-layer" style="height: 40px;">
+      <div class="arch-lbl"></div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:80px;">
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+      </div>
+    </div>
+
+    <!-- ── VERCEL ── -->
+    <div class="arch-layer">
+      <div class="arch-lbl" style="color:#818cf8;">Vercel</div>
+      <div class="arch-content" style="background: rgba(99,102,241,0.04); border-color: rgba(99,102,241,0.25);">
+        <div class="svc svc-indigo">
+          <div class="svc-tag">Edge</div>
+          <div class="svc-name">Middleware</div>
+          <div class="svc-sub">JWT verify (jose)<br>/dashboard /owner<br>/kinetic /super-admin</div>
+        </div>
+        <div class="svc svc-indigo">
+          <div class="svc-tag">Next.js 14.2</div>
+          <div class="svc-name">App Router</div>
+          <div class="svc-sub">TypeScript 5<br>Tailwind 3.4<br>React Server Components</div>
+        </div>
+        <div class="svc svc-indigo">
+          <div class="svc-tag">Local API</div>
+          <div class="svc-name">/api/auth/*</div>
+          <div class="svc-sub">set-cookie, HttpOnly<br>Demo cookie (strict)</div>
+        </div>
+        <div class="svc svc-indigo">
+          <div class="svc-tag">Local API</div>
+          <div class="svc-name">/api/v1/intelligence</div>
+          <div class="svc-sub">Context capture<br>Onboarding config</div>
+        </div>
+        <div class="svc svc-indigo">
+          <div class="svc-tag">Local API</div>
+          <div class="svc-name">/api/v1/capture</div>
+          <div class="svc-sub">Lead widget<br>Token verify</div>
+        </div>
+        <div class="svc svc-indigo">
+          <div class="svc-tag">Local API</div>
+          <div class="svc-name">/api/email/drip</div>
+          <div class="svc-sub">React Email<br>Resend JS SDK</div>
+        </div>
+        <div class="svc svc-indigo" style="width:100%; min-width:auto; background:rgba(99,102,241,0.04); border-style:dashed;">
+          <div class="svc-name" style="font-size:11px; color: #818cf8;">Proxy rule (vercel.json): <code style="color:#a5b4fc;">/api/v1/*</code> → Railway backend &nbsp;|&nbsp; <code style="color:#a5b4fc;">/api/auth/*</code> → local handlers (bypass proxy)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- connector -->
+    <div class="arch-layer" style="height: 40px;">
+      <div class="arch-lbl"></div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:120px;">
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+      </div>
+    </div>
+
+    <!-- ── RAILWAY ── -->
+    <div class="arch-layer">
+      <div class="arch-lbl" style="color:#22c55e;">Railway</div>
+      <div class="arch-content" style="background: rgba(34,197,94,0.03); border-color: rgba(34,197,94,0.2);">
+        <div class="svc svc-green">
+          <div class="svc-tag">FastAPI</div>
+          <div class="svc-name">Gunicorn + Uvicorn</div>
+          <div class="svc-sub">Python 3.10<br>4-worker cap<br>intuitive-blessing</div>
+        </div>
+        <div class="svc svc-green">
+          <div class="svc-tag">Auth</div>
+          <div class="svc-name">Bearer Auth</div>
+          <div class="svc-sub">NAMA_API_KEY<br>JWT validation<br>RBAC + ABAC can()</div>
+        </div>
+        <div class="svc svc-green">
+          <div class="svc-tag">30+ Routers</div>
+          <div class="svc-name">API Modules</div>
+          <div class="svc-sub">Leads, Bookings,<br>Vendors, Finance,<br>Copilot, Routines…</div>
+        </div>
+        <div class="svc svc-green">
+          <div class="svc-tag">Rate Limit</div>
+          <div class="svc-name">Sliding Window</div>
+          <div class="svc-sub">Intelligence: 20/min<br>Auth: 10/min<br>Context: 60/min</div>
+        </div>
+        <div class="svc svc-green">
+          <div class="svc-tag">AI</div>
+          <div class="svc-name">AI Client</div>
+          <div class="svc-sub">OpenRouter (primary)<br>Anthropic (optional)<br>Vercel AI Gateway</div>
+        </div>
+        <div class="svc svc-green">
+          <div class="svc-tag">PDF</div>
+          <div class="svc-name">WeasyPrint</div>
+          <div class="svc-sub">Quotation PDF<br>Invoice PDF<br>Server-side render</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- connector → data tier -->
+    <div class="arch-layer" style="height: 40px;">
+      <div class="arch-lbl"></div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:60px;">
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+      </div>
+    </div>
+
+    <!-- ── DATA + SERVICES TIER ── -->
+    <div class="arch-layer">
+      <div class="arch-lbl" style="color:#06b6d4;">Data &amp;<br>Services</div>
+      <div class="arch-content" style="justify-content: center;">
+        <div class="svc svc-cyan">
+          <div class="svc-tag">Neon</div>
+          <div class="svc-name">PostgreSQL</div>
+          <div class="svc-sub">Serverless<br>Alembic migrations<br>JSONB ABAC</div>
+        </div>
+        <div class="svc svc-purple">
+          <div class="svc-tag">Upstash</div>
+          <div class="svc-name">Redis</div>
+          <div class="svc-sub">Rate limiting<br>FX cache (1hr TTL)<br>Session data</div>
+        </div>
+        <div class="svc svc-amber">
+          <div class="svc-tag">OpenRouter</div>
+          <div class="svc-name">LLM / AI</div>
+          <div class="svc-sub">Llama 3.3 70B<br>Lead scoring<br>Copilot</div>
+        </div>
+        <div class="svc svc-pink">
+          <div class="svc-tag">Resend</div>
+          <div class="svc-name">Email</div>
+          <div class="svc-sub">Transactional<br>Drip campaigns<br>Invoices</div>
+        </div>
+        <div class="svc svc-orange">
+          <div class="svc-tag">Razorpay</div>
+          <div class="svc-name">Payments</div>
+          <div class="svc-sub">Deposit links<br>25% default<br>Demo fallback</div>
+        </div>
+        <div class="svc svc-red">
+          <div class="svc-tag">Sentry</div>
+          <div class="svc-name">Monitoring</div>
+          <div class="svc-sub">Frontend errors<br>Backend errors<br>Both environments</div>
+        </div>
+        <div class="svc svc-cyan">
+          <div class="svc-tag">Meta API</div>
+          <div class="svc-name">WhatsApp / Social</div>
+          <div class="svc-sub">Cloud API<br>Lead Ads<br>Instagram DM</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 2 — SERVICES TABLE
+═══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label"><div class="section-num">2</div> Service Inventory</div>
+
+  <table class="services-table">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Provider</th>
+        <th>Identifier / URL</th>
+        <th>Purpose</th>
+        <th>Key Env Vars</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="svc-dot dot-indigo"></span><strong>nama-web</strong></td>
+        <td>Vercel</td>
+        <td><code>getnama.app</code><br><code>www.getnama.app</code></td>
+        <td>Next.js 14.2 frontend — App Router, SSR, edge middleware, local API routes, email drip, widget capture</td>
+        <td class="code-list">
+          <code>NEXT_PUBLIC_API_URL</code>
+          <code>NAMA_API_KEY</code>
+          <code>NAMA_JWT_SECRET</code>
+          <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
+          <code>RESEND_API_KEY</code>
+          <code>NEXT_PUBLIC_SENTRY_DSN</code>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-green"></span><strong>intuitive-blessing</strong></td>
+        <td>Railway</td>
+        <td><code style="font-size:10px;">intuitive-blessing-production-30de.up.railway.app</code></td>
+        <td>FastAPI backend — 30+ routers, Gunicorn+Uvicorn, RBAC/ABAC, WeasyPrint PDF, routine executor, sentinel</td>
+        <td class="code-list">
+          <code>DATABASE_URL</code>
+          <code>NAMA_API_KEY</code>
+          <code>NAMA_JWT_SECRET</code>
+          <code>OPENROUTER_API_KEY</code>
+          <code>RESEND_API_KEY</code>
+          <code>ENCRYPTION_KEY</code>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-cyan"></span><strong>Neon PostgreSQL</strong></td>
+        <td>Neon</td>
+        <td><code>DATABASE_URL</code> (in Railway)</td>
+        <td>Primary database — all tenant data, RBAC tables, JSONB ABAC conditions, 9-step Alembic migration chain</td>
+        <td class="code-list"><code>DATABASE_URL</code></td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-purple"></span><strong>Upstash Redis</strong></td>
+        <td>Upstash</td>
+        <td>REST API (serverless)</td>
+        <td>Rate limiting (sliding window), FX rate caching (1 hr TTL), session data — shared across all Vercel instances</td>
+        <td class="code-list">
+          <code>UPSTASH_REDIS_REST_URL</code>
+          <code>UPSTASH_REDIS_REST_TOKEN</code>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-amber"></span><strong>OpenRouter</strong></td>
+        <td>OpenRouter</td>
+        <td><code>openrouter.ai/api/v1</code></td>
+        <td>Primary LLM — Llama 3.3 70B (free), lead scoring, copilot, config generation, routine AI steps</td>
+        <td class="code-list"><code>OPENROUTER_API_KEY</code></td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-amber"></span><strong>Anthropic Claude</strong></td>
+        <td>Anthropic</td>
+        <td>Optional via AI Gateway</td>
+        <td>Optional Claude model for Copilot — falls back to OpenRouter when key absent</td>
+        <td class="code-list">
+          <code>ANTHROPIC_API_KEY</code>
+          <code>VERCEL_AI_GATEWAY_TEAM_ID</code>
+          <code>VERCEL_AI_GATEWAY_NAME</code>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-pink"></span><strong>Resend</strong></td>
+        <td>Resend</td>
+        <td><code>api.resend.com</code></td>
+        <td>Transactional email — registration, 4-day drip (Day 0/1/3/7), follow-up reminders, invoice attachments, sentinel alerts</td>
+        <td class="code-list">
+          <code>RESEND_API_KEY</code>
+          <code>RESEND_FROM_EMAIL</code>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-orange"></span><strong>Razorpay</strong></td>
+        <td>Razorpay</td>
+        <td><code>api.razorpay.com</code></td>
+        <td>Booking deposit payment links — 25% default split, copy + WhatsApp send. Demo URL fallback when keys absent</td>
+        <td class="code-list">
+          <code>RAZORPAY_KEY_ID</code>
+          <code>RAZORPAY_KEY_SECRET</code>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-red"></span><strong>Sentry</strong></td>
+        <td>Sentry</td>
+        <td>DSN in both envs</td>
+        <td>Error monitoring — frontend (Vercel) + backend (Railway), exception capture, performance tracing</td>
+        <td class="code-list">
+          <code>NEXT_PUBLIC_SENTRY_DSN</code>
+          <code>SENTRY_DSN</code> (Railway)
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-green"></span><strong>Meta Cloud API</strong></td>
+        <td>Meta</td>
+        <td>Graph API v18+</td>
+        <td>WhatsApp Business (inbound/outbound), Facebook Lead Ads webhook, Instagram DM lead capture</td>
+        <td class="code-list">
+          <code>WHATSAPP_TOKEN</code>
+          <code>WHATSAPP_PHONE_ID</code>
+          <code>WHATSAPP_APP_SECRET</code>
+          <code>FACEBOOK_APP_SECRET</code>
+          <code>FACEBOOK_VERIFY_TOKEN</code>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-cyan"></span><strong>Pexels API</strong></td>
+        <td>Pexels</td>
+        <td><code>api.pexels.com</code></td>
+        <td>Live image search in Content Library — falls back to 20 hardcoded Unsplash images when key absent</td>
+        <td class="code-list"><code>PEXELS_API_KEY</code></td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-indigo"></span><strong>getnama-live</strong></td>
+        <td>Vercel</td>
+        <td><code>getnama.live</code></td>
+        <td>Separate marketing site — 5 static pages (index, channels, studio, video-studio, call-center)</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="svc-dot dot-indigo"></span><strong>GitHub</strong></td>
+        <td>GitHub</td>
+        <td><code>narumaam/nama-frontend</code></td>
+        <td>Source of truth — push to <code>main</code> triggers Vercel auto-deploy (frontend) and Railway auto-deploy (backend)</td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 3 — DATA FLOW DIAGRAM
+═══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label"><div class="section-num">3</div> Request Data Flow</div>
+
+  <!-- Standard authenticated request -->
+  <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:12px; text-transform:uppercase; letter-spacing:1px;">
+    Flow A — Authenticated Dashboard Request (e.g. Load Leads)
+  </div>
+
+  <div class="flow-diagram">
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.4);">🌐</div>
+      <div class="flow-name">Browser</div>
+      <div class="flow-sub">Agency Staff<br>getnama.app</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">HTTPS GET<br>/dashboard/leads</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.4);">⚡</div>
+      <div class="flow-name">Edge Middleware</div>
+      <div class="flow-sub">jose jwtVerify<br>nama_auth cookie</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">Token valid?<br>Pass through</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.4);">📄</div>
+      <div class="flow-name">Next.js Page</div>
+      <div class="flow-sub">SSR / Client<br>Seed data fallback</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">fetch /api/v1/leads<br>+ Bearer token</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.4);">🔀</div>
+      <div class="flow-name">Vercel Proxy</div>
+      <div class="flow-sub">vercel.json rewrite<br>/api/v1/* → Railway</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">HTTP proxy<br>to Railway</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(34,197,94,0.12); border-color:rgba(34,197,94,0.4);">🚂</div>
+      <div class="flow-name">FastAPI Router</div>
+      <div class="flow-sub">requireApiKey<br>RBAC can() check</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">SQL query<br>via SQLAlchemy</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(6,182,212,0.12); border-color:rgba(6,182,212,0.4);">🗄️</div>
+      <div class="flow-name">Neon PostgreSQL</div>
+      <div class="flow-sub">Serverless<br>Multi-tenant rows</div>
+    </div>
+
+  </div>
+
+  <!-- Flow B -->
+  <div style="font-size:12px; font-weight:600; color:var(--muted); margin: 28px 0 12px; text-transform:uppercase; letter-spacing:1px;">
+    Flow B — AI Copilot Request (Lead Scoring)
+  </div>
+
+  <div class="flow-diagram">
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.4);">🖥️</div>
+      <div class="flow-name">Leads Page</div>
+      <div class="flow-sub">AI Score tab<br>getnama.app</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">POST /api/v1/<br>copilot/score-lead</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(34,197,94,0.12); border-color:rgba(34,197,94,0.4);">🤖</div>
+      <div class="flow-name">copilot.py</div>
+      <div class="flow-sub">FastAPI endpoint<br>get_ai_client()</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">LLM API call<br>Llama 3.3 70B</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.4);">✨</div>
+      <div class="flow-name">OpenRouter</div>
+      <div class="flow-sub">Primary model<br>Free tier</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">Score + rationale<br>JSON response</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(34,197,94,0.12); border-color:rgba(34,197,94,0.4);">📊</div>
+      <div class="flow-name">Score Response</div>
+      <div class="flow-sub">Provider badge<br>LLM score + SVG ring</div>
+    </div>
+
+  </div>
+
+  <!-- Flow C -->
+  <div style="font-size:12px; font-weight:600; color:var(--muted); margin: 28px 0 12px; text-transform:uppercase; letter-spacing:1px;">
+    Flow C — Widget Lead Capture (Public, No Auth)
+  </div>
+
+  <div class="flow-diagram">
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.4);">🌐</div>
+      <div class="flow-name">Traveller</div>
+      <div class="flow-sub">Agency website<br>widget.js loaded</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">POST /api/v1/<br>capture/lead?token=</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.4);">🔌</div>
+      <div class="flow-name">Vercel (local)</div>
+      <div class="flow-sub">/api/v1/capture/*<br>Rate: 10/IP/hr</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">Resolve tenant<br>via capture_token</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(6,182,212,0.12); border-color:rgba(6,182,212,0.4);">🗄️</div>
+      <div class="flow-name">Neon</div>
+      <div class="flow-sub">Insert Lead<br>source=WEBSITE</div>
+    </div>
+
+    <div class="flow-arrow">
+      <div class="flow-arrow-line"><div class="fa-dash"></div><div class="fa-head">▶</div></div>
+      <div class="flow-arrow-label">Webhook fire<br>lead.created</div>
+    </div>
+
+    <div class="flow-node">
+      <div class="flow-icon" style="background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.4);">🔔</div>
+      <div class="flow-name">Webhooks</div>
+      <div class="flow-sub">HMAC-SHA256<br>Zapier / CRM</div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 4 — ENVIRONMENT VARIABLES
+═══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label"><div class="section-num">4</div> Environment Variables Reference</div>
+
+  <div style="font-size:11px; color:var(--muted); margin-bottom:16px;">
+    <span style="color:var(--amber);">■</span> Required for full functionality &nbsp;&nbsp;
+    <span style="color:var(--green);">■</span> Optional / enhances features
+  </div>
+
+  <div class="env-grid">
+
+    <!-- Railway -->
+    <div class="env-card">
+      <div class="env-card-header" style="background: rgba(34,197,94,0.06);">
+        <div class="env-card-icon" style="background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3);">🚂</div>
+        <div>
+          <div class="env-card-title">Railway Variables</div>
+          <div class="env-card-sub">Service: intuitive-blessing → Variables</div>
+        </div>
+      </div>
+      <table class="env-table">
+        <tr><td>DATABASE_URL</td><td class="env-req">● Required — Neon PostgreSQL connection string</td></tr>
+        <tr><td>NAMA_API_KEY</td><td class="env-req">● Required — Bearer token for /api/v1/* routes</td></tr>
+        <tr><td>NAMA_JWT_SECRET</td><td class="env-req">● Required — JWT signing secret (shared with Vercel)</td></tr>
+        <tr><td>RESEND_API_KEY</td><td class="env-req">● Required — All email paths (drip, reminders, invoices, alerts)</td></tr>
+        <tr><td>ENCRYPTION_KEY</td><td class="env-req">● Required — Fernet key for SMTP/IMAP password encryption</td></tr>
+        <tr><td>FRONTEND_URL</td><td class="env-req">● Required — e.g. https://getnama.app (email delegation)</td></tr>
+        <tr><td>OPENROUTER_API_KEY</td><td class="env-req">● Required — LLM (Llama 3.3 70B, primary AI model)</td></tr>
+        <tr><td>UPSTASH_REDIS_REST_URL</td><td class="env-req">● Required — Rate limiting + FX cache</td></tr>
+        <tr><td>UPSTASH_REDIS_REST_TOKEN</td><td class="env-req">● Required — Rate limiting + FX cache</td></tr>
+        <tr><td>WHATSAPP_TOKEN</td><td class="env-req">● Required — Meta Cloud API permanent token</td></tr>
+        <tr><td>WHATSAPP_PHONE_ID</td><td class="env-req">● Required — Meta WhatsApp Phone Number ID</td></tr>
+        <tr><td>WHATSAPP_APP_SECRET</td><td class="env-req">● Required — HMAC webhook validation</td></tr>
+        <tr><td>FACEBOOK_VERIFY_TOKEN</td><td class="env-req">● Required — Meta webhook challenge verification</td></tr>
+        <tr><td>FACEBOOK_APP_SECRET</td><td class="env-req">● Required — Facebook Lead Ads HMAC validation</td></tr>
+        <tr><td>RAZORPAY_KEY_ID</td><td class="env-opt">○ Optional — Payment links (demo mode if absent)</td></tr>
+        <tr><td>RAZORPAY_KEY_SECRET</td><td class="env-opt">○ Optional — Payment links (demo mode if absent)</td></tr>
+        <tr><td>ANTHROPIC_API_KEY</td><td class="env-opt">○ Optional — Claude Copilot (OpenRouter fallback if absent)</td></tr>
+        <tr><td>VERCEL_AI_GATEWAY_TEAM_ID</td><td class="env-opt">○ Optional — AI observability via Vercel Gateway</td></tr>
+        <tr><td>VERCEL_AI_GATEWAY_NAME</td><td class="env-opt">○ Optional — Gateway name: nama-ai-gateway</td></tr>
+        <tr><td>PEXELS_API_KEY</td><td class="env-opt">○ Optional — Live image search (hardcoded fallback if absent)</td></tr>
+        <tr><td>SENTRY_DSN</td><td class="env-opt">○ Optional — Backend error monitoring</td></tr>
+        <tr><td>RESEND_FROM_EMAIL</td><td class="env-opt">○ Optional — Custom from address (verified domain)</td></tr>
+      </table>
+    </div>
+
+    <!-- Vercel -->
+    <div class="env-card">
+      <div class="env-card-header" style="background: rgba(99,102,241,0.06);">
+        <div class="env-card-icon" style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3);">▲</div>
+        <div>
+          <div class="env-card-title">Vercel Variables</div>
+          <div class="env-card-sub">Project: nama-web → Environment Variables</div>
+        </div>
+      </div>
+      <table class="env-table">
+        <tr><td>NEXT_PUBLIC_API_URL</td><td class="env-req">● Required — Railway backend base URL for SSR calls</td></tr>
+        <tr><td>NAMA_API_KEY</td><td class="env-req">● Required — Must match Railway value exactly</td></tr>
+        <tr><td>NAMA_JWT_SECRET</td><td class="env-req">● Required — JWT verification in edge middleware</td></tr>
+        <tr><td>NEXT_PUBLIC_GOOGLE_CLIENT_ID</td><td class="env-req">● Required — Google OAuth (registration / login)</td></tr>
+        <tr><td>RESEND_API_KEY</td><td class="env-req">● Required — Drip email via /api/email/drip route</td></tr>
+        <tr><td>UPSTASH_REDIS_REST_URL</td><td class="env-req">● Required — Rate limiting on Vercel API routes</td></tr>
+        <tr><td>UPSTASH_REDIS_REST_TOKEN</td><td class="env-req">● Required — Rate limiting on Vercel API routes</td></tr>
+        <tr><td>NEXT_PUBLIC_SENTRY_DSN</td><td class="env-opt">○ Optional — Frontend error monitoring</td></tr>
+        <tr><td>RESEND_FROM_EMAIL</td><td class="env-opt">○ Optional — Custom from address for drip emails</td></tr>
+        <tr><td>VERCEL_AI_GATEWAY_TEAM_ID</td><td class="env-opt">○ Optional — team_0ntK3Ywi8mYGSkVagPrRDXhd</td></tr>
+      </table>
+
+      <div style="padding: 16px 20px; border-top: 1px solid var(--border); background: rgba(99,102,241,0.04);">
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:10px;">vercel.json Proxy Rules</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <code>/api/auth/*</code>
+            <span style="color:var(--muted);">→</span>
+            <span style="color:var(--green);">Local Next.js handler (bypass Railway)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <code>/api/v1/context/*</code>
+            <span style="color:var(--muted);">→</span>
+            <span style="color:var(--green);">Local Next.js handler</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <code>/api/v1/intelligence/*</code>
+            <span style="color:var(--muted);">→</span>
+            <span style="color:var(--green);">Local Next.js handler</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <code>/api/v1/capture/*</code>
+            <span style="color:var(--muted);">→</span>
+            <span style="color:var(--green);">Local Next.js handler (widget)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <code>/api/v1/*</code>
+            <span style="color:var(--muted);">→</span>
+            <span style="color:var(--amber);">Railway backend (catch-all proxy)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 5 — DEPLOYMENT FLOW
+═══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label"><div class="section-num">5</div> Deployment Flow</div>
+
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:40px 32px;">
+    <div class="deploy-steps">
+
+      <div class="deploy-step">
+        <div class="deploy-num">1</div>
+        <div class="deploy-body">
+          <div class="deploy-title">Git Push</div>
+          <div class="deploy-desc">Developer pushes commits to <code>main</code> branch on <code>narumaam/nama-frontend</code></div>
+          <div class="deploy-tags"><span class="dtag">GitHub</span><span class="dtag">main branch</span></div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="deploy-num">2</div>
+        <div class="deploy-body">
+          <div class="deploy-title">Vercel Build</div>
+          <div class="deploy-desc">Auto-triggered. Runs <code>next build</code>, TypeScript check, deploys edge + serverless functions to CDN</div>
+          <div class="deploy-tags"><span class="dtag">~2-3 min</span><span class="dtag">getnama.app</span></div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="deploy-num">3</div>
+        <div class="deploy-body">
+          <div class="deploy-title">Railway Build</div>
+          <div class="deploy-desc">Auto-triggered (when connected). Docker build via nixpacks, installs Python deps, runs <code>alembic upgrade heads</code></div>
+          <div class="deploy-tags"><span class="dtag">~3-5 min</span><span class="dtag">Dockerfile</span></div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="deploy-num">4</div>
+        <div class="deploy-body">
+          <div class="deploy-title">DB Migrations</div>
+          <div class="deploy-desc">Alembic applies pending migrations in chain order. <code>checkfirst=True</code> prevents duplicate column errors</div>
+          <div class="deploy-tags"><span class="dtag">upgrade heads</span><span class="dtag">Neon</span></div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="deploy-num">5</div>
+        <div class="deploy-body">
+          <div class="deploy-title">Live</div>
+          <div class="deploy-desc">Gunicorn starts 4 Uvicorn workers. Health endpoint returns <code>{"status":"healthy"}</code></div>
+          <div class="deploy-tags"><span class="dtag">4 workers</span><span class="dtag">Railway</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Alembic chain -->
+    <div style="margin-top:40px; border-top:1px solid var(--border); padding-top:28px;">
+      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:14px;">
+        Alembic Migration Chain (Step 3 Detail)
+      </div>
+      <div class="migration-chain">
+        <div class="mig-node mig-start">baseline</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node">rbac</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node">vendor_rates</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node">content_shared</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node">webhook_endpoints</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node">clients</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node">routines</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node">email_config</div>
+        <div class="mig-arrow">→</div>
+        <div class="mig-node mig-latest">leadsource_website ★</div>
+      </div>
+    </div>
+
+    <!-- Security headers applied on deploy -->
+    <div style="margin-top:24px; border-top:1px solid var(--border); padding-top:24px;">
+      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:14px;">
+        Security Headers (next.config.mjs — applied every deploy)
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:11px;">
+          <div style="font-family:monospace; color:var(--cyan);">Content-Security-Policy</div>
+          <div style="color:var(--muted); margin-top:3px;">strict-origin + script-src self</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:11px;">
+          <div style="font-family:monospace; color:var(--cyan);">Strict-Transport-Security</div>
+          <div style="color:var(--muted); margin-top:3px;">max-age=31536000; includeSubDomains</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:11px;">
+          <div style="font-family:monospace; color:var(--cyan);">X-Frame-Options</div>
+          <div style="color:var(--muted); margin-top:3px;">DENY</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:11px;">
+          <div style="font-family:monospace; color:var(--cyan);">X-Content-Type-Options</div>
+          <div style="color:var(--muted); margin-top:3px;">nosniff</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:11px;">
+          <div style="font-family:monospace; color:var(--cyan);">Referrer-Policy</div>
+          <div style="color:var(--muted); margin-top:3px;">strict-origin-when-cross-origin</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 6 — BACKEND ROUTER MODULES
+═══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label"><div class="section-num">6</div> Backend API Router Modules (30+)</div>
+
+  <div class="router-grid">
+    <div class="router-chip"><div class="router-chip-path">/api/v1/leads</div><div class="router-chip-desc">CRM, HOT/WARM/COLD, CSV import, AI scoring</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/bookings</div><div class="router-chip-desc">Booking lifecycle, live trip tracker</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/quotations</div><div class="router-chip-desc">Quotation builder, PDF, send to client</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/itineraries</div><div class="router-chip-desc">Builder, blocks, rate lookup pipeline</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/vendors</div><div class="router-chip-desc">Vendor CRM, rate cards, CSV import</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/marketplace</div><div class="router-chip-desc">DMC rate marketplace, snap rates</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/copilot</div><div class="router-chip-desc">AI assistant, score-lead, generate-config</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/roles</div><div class="router-chip-desc">RBAC CRUD, permissions, ABAC check</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/analytics</div><div class="router-chip-desc">Pricing benchmarks, team performance</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/documents</div><div class="router-chip-desc">WeasyPrint PDF, invoice, quotation send</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/content</div><div class="router-chip-desc">Destinations, image search, master library</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/email-config</div><div class="router-chip-desc">Per-tenant SMTP/IMAP, test, poll replies</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/automations</div><div class="router-chip-desc">Follow-up reminders, schedule toggle</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/webhooks/outbound</div><div class="router-chip-desc">Webhook CRUD, HMAC-SHA256 dispatcher</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/payments</div><div class="router-chip-desc">Razorpay payment links, demo fallback</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/routines</div><div class="router-chip-desc">9-step routine executor (live execution)</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/calendar</div><div class="router-chip-desc">Reminders, iCal feed (.ics), WhatsApp toggle</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/sentinel</div><div class="router-chip-desc">Infra monitoring: Vercel/Railway/Neon usage</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/social</div><div class="router-chip-desc">Facebook Lead Ads + Instagram DM webhooks</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/whatsapp</div><div class="router-chip-desc">Meta Cloud API inbound/outbound</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/capture</div><div class="router-chip-desc">Widget token, lead submit, rate limit</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/onboarding</div><div class="router-chip-desc">apply-config, seed-workspace, schedule-drip</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/settings</div><div class="router-chip-desc">FX rates (1hr cache), tenant settings</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/search</div><div class="router-chip-desc">Global full-text search (ILIKE, all modules)</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/clients</div><div class="router-chip-desc">Client portal data, trip data (public)</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/finance</div><div class="router-chip-desc">Finance records, dashboard KPIs</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/comms</div><div class="router-chip-desc">12-template comms library</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/intelligence</div><div class="router-chip-desc">Aggregate API, sync API, context capture</div></div>
+    <div class="router-chip"><div class="router-chip-path">/api/v1/ai-budget</div><div class="router-chip-desc">AI spend tracking per tenant</div></div>
+    <div class="router-chip"><div class="router-chip-path">/health</div><div class="router-chip-desc">{"status":"healthy","version":"0.3.0"}</div></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 7 — AUTH & SECURITY MODEL
+═══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label"><div class="section-num">7</div> Auth &amp; Security Model</div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px;">
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:12px;">Cookie Auth (Frontend)</div>
+      <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+        <div><code>nama_auth</code> — HttpOnly JWT<br><span style="color:var(--muted);">Set via server-side /api/auth/set-cookie<br>Verified by jose jwtVerify in middleware</span></div>
+        <div><code>nama_demo=1</code> — Demo mode<br><span style="color:var(--muted);">SameSite=Strict<br>Acts as R3_SALES_MANAGER role<br>Hides R0/R1-only pages</span></div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px;">
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:12px;">Role Hierarchy (RBAC)</div>
+      <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+        <div style="display:flex; justify-content:space-between;"><code>R0</code><span style="color:var(--muted);">Super Admin / Founder</span></div>
+        <div style="display:flex; justify-content:space-between;"><code>R1</code><span style="color:var(--muted);">System Admin</span></div>
+        <div style="display:flex; justify-content:space-between;"><code>R2_ORG_ADMIN</code><span style="color:var(--muted);">Org Admin</span></div>
+        <div style="display:flex; justify-content:space-between;"><code>R3_SALES_MANAGER</code><span style="color:var(--muted);">Sales Manager</span></div>
+        <div style="display:flex; justify-content:space-between;"><code>R4_OPS_EXECUTIVE</code><span style="color:var(--muted);">Ops Executive</span></div>
+        <div style="display:flex; justify-content:space-between;"><code>R5_FINANCE_ADMIN</code><span style="color:var(--muted);">Finance Admin</span></div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px;">
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:12px;">ABAC Conditions (JSONB)</div>
+      <div style="display:flex; flex-direction:column; gap:5px; font-size:11px;">
+        <div style="color:var(--muted);">Evaluated by <code>can()</code> FastAPI dep:</div>
+        <div><span style="color:var(--cyan);">override_deny</span> → always block</div>
+        <div><span style="color:var(--cyan);">override_grant</span> → always allow</div>
+        <div><span style="color:var(--cyan);">roles</span> → check role permissions</div>
+        <div><span style="color:var(--cyan);">deny</span> → default block</div>
+        <div style="margin-top:6px; color:var(--muted);">Conditions: geography, product_types, customer_types, deal_size, own_data_only, shift_hours, valid_until</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════ -->
+<div class="footer">
+  <div>
+    <strong style="color:var(--text);">NAMA OS</strong> — Travel Agency SaaS &nbsp;·&nbsp;
+    Backend v0.3.0 &nbsp;·&nbsp;
+    Next.js 14.2 &nbsp;·&nbsp;
+    FastAPI (Python 3.10)
+  </div>
+  <div style="text-align:right;">
+    Generated 2026-04-20 &nbsp;·&nbsp;
+    <code>narumaam/nama-frontend</code> &nbsp;·&nbsp;
+    <span style="color:var(--green);">● Both services live</span>
+  </div>
+</div>
+
+</body>
+</html>

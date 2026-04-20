@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAMA OS — Visual Sitemap</title>
+<style>
+  :root {
+    --bg-base: #0a0b0e;
+    --bg-surface: #111318;
+    --bg-card: #181c25;
+    --bg-card-hover: #1e2433;
+    --border: #252b3b;
+    --border-bright: #2e3650;
+    --text-primary: #e8eaf0;
+    --text-secondary: #8892a4;
+    --text-muted: #525e74;
+
+    /* Section colors */
+    --col-public: #0d7a5f;
+    --col-public-bg: #0a2e25;
+    --col-public-border: #1a5c47;
+
+    --col-onboarding: #7c4dff;
+    --col-onboarding-bg: #1e1540;
+    --col-onboarding-border: #4a2eb5;
+
+    --col-crm: #0074d9;
+    --col-crm-bg: #0a1e35;
+    --col-crm-border: #1a4a7a;
+
+    --col-ops: #e67e22;
+    --col-ops-bg: #2a1a08;
+    --col-ops-border: #7a4a10;
+
+    --col-intel: #9b59b6;
+    --col-intel-bg: #1e1030;
+    --col-intel-border: #5a2080;
+
+    --col-settings: #34495e;
+    --col-settings-bg: #0f1820;
+    --col-settings-border: #2a3c50;
+
+    --col-growth: #27ae60;
+    --col-growth-bg: #0a2015;
+    --col-growth-border: #1a5c30;
+
+    --col-reports: #e74c3c;
+    --col-reports-bg: #250a08;
+    --col-reports-border: #7a1e18;
+
+    --col-infra: #f39c12;
+    --col-infra-bg: #251808;
+    --col-infra-border: #7a4a08;
+
+    --col-admin: #c0392b;
+    --col-admin-bg: #200a08;
+    --col-admin-border: #5a1510;
+
+    /* Auth badges */
+    --badge-public: #0d7a5f;
+    --badge-auth: #0074d9;
+    --badge-r0r1: #f39c12;
+    --badge-r0: #e74c3c;
+    --badge-staff: #9b59b6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    background: linear-gradient(135deg, #0a0b0e 0%, #111827 100%);
+    border-bottom: 1px solid var(--border-bright);
+    padding: 28px 40px 22px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .header-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: white;
+    letter-spacing: -0.5px;
+  }
+  .logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .header-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ─── Main layout ─── */
+  .main {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 32px 40px 60px;
+  }
+
+  /* ─── Legend ─── */
+  .legend {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .legend-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 160px;
+  }
+  .legend-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-public { background: rgba(13,122,95,0.25); color: #4ecca3; border: 1px solid rgba(13,122,95,0.4); }
+  .badge-auth { background: rgba(0,116,217,0.25); color: #60b8ff; border: 1px solid rgba(0,116,217,0.4); }
+  .badge-r0r1 { background: rgba(243,156,18,0.2); color: #f9c74f; border: 1px solid rgba(243,156,18,0.35); }
+  .badge-r0 { background: rgba(231,76,60,0.2); color: #ff7b72; border: 1px solid rgba(231,76,60,0.35); }
+  .badge-staff { background: rgba(155,89,182,0.2); color: #c084fc; border: 1px solid rgba(155,89,182,0.35); }
+
+  .conn-line {
+    display: inline-block;
+    width: 28px;
+    height: 2px;
+    border-radius: 1px;
+    vertical-align: middle;
+  }
+  .conn-primary { background: rgba(99,102,241,0.7); }
+  .conn-secondary { background: rgba(100,116,139,0.5); border-top: 2px dashed rgba(100,116,139,0.5); height: 0; }
+
+  /* ─── Section titles ─── */
+  .section-heading {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    margin-top: 36px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── Tree / Hierarchy ─── */
+  .tree-root {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* ─── Section blocks ─── */
+  .section-block {
+    border-radius: 14px;
+    border: 1px solid;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: default;
+  }
+  .section-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .section-name {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: -0.1px;
+  }
+  .section-desc {
+    font-size: 11px;
+    margin-left: auto;
+    opacity: 0.7;
+  }
+  .section-count {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+
+  .section-body {
+    padding: 0 16px 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+  }
+
+  /* ─── Page nodes ─── */
+  .page-node {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 9px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .page-node:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .page-node.active-node {
+    border-color: rgba(99,102,241,0.5);
+    background: rgba(99,102,241,0.08);
+    box-shadow: 0 0 0 1px rgba(99,102,241,0.2);
+  }
+  .node-path {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0;
+  }
+  .node-name {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  .node-desc {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+  .node-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 3px;
+  }
+  .node-tag {
+    font-size: 9px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--text-muted);
+  }
+  .node-links {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+  .link-chip {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid;
+    color: var(--text-muted);
+    background: transparent;
+    white-space: nowrap;
+  }
+
+  /* ─── Flow diagram ─── */
+  .flow-section {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-top: 8px;
+  }
+  .flow-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .flow-title::before {
+    content: '';
+    width: 3px;
+    height: 16px;
+    background: #6366f1;
+    border-radius: 2px;
+  }
+
+  .flow-diagram {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  /* SVG flow */
+  .flow-svg {
+    min-width: 900px;
+    width: 100%;
+  }
+
+  /* ─── Connections tooltip ─── */
+  .tooltip {
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text-primary);
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .tooltip-path {
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .tooltip-links {
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ─── User journey ─── */
+  .journey-container {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding: 8px 0 16px;
+  }
+  .journey-step {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .journey-node {
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-width: 130px;
+    text-align: center;
+    transition: all 0.18s;
+    cursor: default;
+  }
+  .journey-node:hover {
+    background: var(--bg-card-hover);
+    transform: scale(1.03);
+  }
+  .journey-node-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .journey-node-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .journey-node-path {
+    font-family: monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .journey-arrow {
+    width: 32px;
+    flex-shrink: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .journey-arrow::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  }
+  .journey-arrow::after {
+    content: '▶';
+    font-size: 8px;
+    color: #8b5cf6;
+    position: absolute;
+    right: 2px;
+  }
+
+  /* ─── Stats bar ─── */
+  .stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-pill {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stat-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+
+  /* ─── Section-specific coloring ─── */
+  .sec-public { background: var(--col-public-bg); border-color: var(--col-public-border); }
+  .sec-public .section-header { background: rgba(13,122,95,0.12); }
+  .sec-public .section-icon { background: rgba(13,122,95,0.2); }
+  .sec-public .section-name { color: #4ecca3; }
+
+  .sec-onboarding { background: var(--col-onboarding-bg); border-color: var(--col-onboarding-border); }
+  .sec-onboarding .section-header { background: rgba(124,77,255,0.12); }
+  .sec-onboarding .section-icon { background: rgba(124,77,255,0.2); }
+  .sec-onboarding .section-name { color: #a78bfa; }
+
+  .sec-crm { background: var(--col-crm-bg); border-color: var(--col-crm-border); }
+  .sec-crm .section-header { background: rgba(0,116,217,0.12); }
+  .sec-crm .section-icon { background: rgba(0,116,217,0.2); }
+  .sec-crm .section-name { color: #60b8ff; }
+
+  .sec-ops { background: var(--col-ops-bg); border-color: var(--col-ops-border); }
+  .sec-ops .section-header { background: rgba(230,126,34,0.12); }
+  .sec-ops .section-icon { background: rgba(230,126,34,0.2); }
+  .sec-ops .section-name { color: #fbbf24; }
+
+  .sec-intel { background: var(--col-intel-bg); border-color: var(--col-intel-border); }
+  .sec-intel .section-header { background: rgba(155,89,182,0.12); }
+  .sec-intel .section-icon { background: rgba(155,89,182,0.2); }
+  .sec-intel .section-name { color: #c084fc; }
+
+  .sec-settings { background: var(--col-settings-bg); border-color: var(--col-settings-border); }
+  .sec-settings .section-header { background: rgba(52,73,94,0.2); }
+  .sec-settings .section-icon { background: rgba(52,73,94,0.3); }
+  .sec-settings .section-name { color: #94a3b8; }
+
+  .sec-growth { background: var(--col-growth-bg); border-color: var(--col-growth-border); }
+  .sec-growth .section-header { background: rgba(39,174,96,0.12); }
+  .sec-growth .section-icon { background: rgba(39,174,96,0.2); }
+  .sec-growth .section-name { color: #4ade80; }
+
+  .sec-reports { background: var(--col-reports-bg); border-color: var(--col-reports-border); }
+  .sec-reports .section-header { background: rgba(231,76,60,0.12); }
+  .sec-reports .section-icon { background: rgba(231,76,60,0.2); }
+  .sec-reports .section-name { color: #f87171; }
+
+  .sec-infra { background: var(--col-infra-bg); border-color: var(--col-infra-border); }
+  .sec-infra .section-header { background: rgba(243,156,18,0.12); }
+  .sec-infra .section-icon { background: rgba(243,156,18,0.2); }
+  .sec-infra .section-name { color: #f9c74f; }
+
+  .sec-admin { background: var(--col-admin-bg); border-color: var(--col-admin-border); }
+  .sec-admin .section-header { background: rgba(192,57,43,0.15); }
+  .sec-admin .section-icon { background: rgba(192,57,43,0.2); }
+  .sec-admin .section-name { color: #ff6b6b; }
+
+  /* ─── Print styles ─── */
+  @media print {
+    body { background: white; color: black; }
+    .header { position: static; background: white; border-bottom: 2px solid #ccc; }
+    .page-node { border: 1px solid #ddd; background: #f8f8f8; }
+    .page-node:hover { transform: none; box-shadow: none; }
+    .tooltip { display: none; }
+    .section-block { break-inside: avoid; }
+  }
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3e4a65; }
+</style>
+</head>
+<body>
+
+<!-- ─── Header ─── -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-mark">N</div>
+      <div>
+        <div class="logo-text">NAMA OS</div>
+        <div class="logo-sub">Visual Sitemap &amp; Architecture Diagram</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span><span class="live-dot"></span> v0.3.0 · Live</span>
+      <span>Next.js 14 App Router · FastAPI · Neon PostgreSQL</span>
+      <span>Generated 2026-04-20</span>
+    </div>
+  </div>
+</header>
+
+<!-- ─── Tooltip ─── -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tt-title"></div>
+  <div class="tooltip-path" id="tt-path"></div>
+  <div class="tooltip-links" id="tt-links"></div>
+</div>
+
+<!-- ─── Main ─── -->
+<main class="main">
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-pill">
+      <div class="stat-num">43</div>
+      <div class="stat-label">Total<br>Routes</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num">5</div>
+      <div class="stat-label">Public<br>Routes</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num">34</div>
+      <div class="stat-label">Dashboard<br>Pages</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num">4</div>
+      <div class="stat-label">R0/R1<br>Restricted</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num">2</div>
+      <div class="stat-label">Staff<br>Only</div>
+    </div>
+    <div class="stat-pill" style="margin-left:auto;">
+      <div style="font-size:10px;color:var(--text-muted);">Hover any node<br>to see connections</div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-group">
+      <div class="legend-title">Auth Level</div>
+      <div class="legend-item"><span class="badge badge-public">Public</span> No login required</div>
+      <div class="legend-item"><span class="badge badge-auth">Auth</span> Login required</div>
+      <div class="legend-item"><span class="badge badge-r0r1">R0/R1</span> Owner + Super-Admin only</div>
+      <div class="legend-item"><span class="badge badge-r0">R0 Only</span> Owner-exclusive</div>
+      <div class="legend-item"><span class="badge badge-staff">Staff</span> NAMA internal staff</div>
+    </div>
+    <div class="legend-group">
+      <div class="legend-title">Sections</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#0d7a5f"></span> Public Routes</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#7c4dff"></span> Onboarding</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#0074d9"></span> Core CRM</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#e67e22"></span> Operations</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#9b59b6"></span> Intelligence</div>
+    </div>
+    <div class="legend-group">
+      <div class="legend-title">&nbsp;</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#34495e"></span> Settings &amp; Admin</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#27ae60"></span> Growth &amp; Marketing</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#e74c3c"></span> Reporting</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#f39c12"></span> Infrastructure (R0/R1)</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#c0392b"></span> Internal Admin</div>
+    </div>
+    <div class="legend-group">
+      <div class="legend-title">Connections</div>
+      <div class="legend-item"><span class="conn-line conn-primary"></span> Primary data flow</div>
+      <div class="legend-item"><span class="conn-line conn-secondary"></span> Secondary / reference</div>
+      <div class="legend-item" style="margin-top:4px; font-size:10px; color:var(--text-muted);">Tags show which pages<br>link to or from this page</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       USER JOURNEY FLOW
+  ════════════════════════════════════════ -->
+  <div class="section-heading">Primary User Journey</div>
+  <div class="flow-section" style="margin-bottom:28px;">
+    <div class="flow-title">New user onboarding &amp; activation flow</div>
+    <div class="journey-container">
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(13,122,95,0.5);">
+          <div class="journey-node-icon">🌐</div>
+          <div class="journey-node-name">Landing Page</div>
+          <div class="journey-node-path">/</div>
+        </div>
+      </div>
+      <div class="journey-arrow"></div>
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(13,122,95,0.5);">
+          <div class="journey-node-icon">📝</div>
+          <div class="journey-node-name">Register</div>
+          <div class="journey-node-path">/register</div>
+        </div>
+      </div>
+      <div class="journey-arrow"></div>
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(124,77,255,0.5);">
+          <div class="journey-node-icon">🚀</div>
+          <div class="journey-node-name">Onboarding</div>
+          <div class="journey-node-path">/onboarding</div>
+        </div>
+      </div>
+      <div class="journey-arrow"></div>
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(0,116,217,0.5);">
+          <div class="journey-node-icon">📊</div>
+          <div class="journey-node-name">Dashboard</div>
+          <div class="journey-node-path">/dashboard</div>
+        </div>
+      </div>
+      <div class="journey-arrow"></div>
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(0,116,217,0.5);">
+          <div class="journey-node-icon">🎯</div>
+          <div class="journey-node-name">Leads CRM</div>
+          <div class="journey-node-path">/dashboard/leads</div>
+        </div>
+      </div>
+      <div class="journey-arrow"></div>
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(0,116,217,0.5);">
+          <div class="journey-node-icon">💰</div>
+          <div class="journey-node-name">Quotations</div>
+          <div class="journey-node-path">/dashboard/quotations</div>
+        </div>
+      </div>
+      <div class="journey-arrow"></div>
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(0,116,217,0.5);">
+          <div class="journey-node-icon">✅</div>
+          <div class="journey-node-name">Bookings</div>
+          <div class="journey-node-path">/dashboard/bookings</div>
+        </div>
+      </div>
+      <div class="journey-arrow"></div>
+      <div class="journey-step">
+        <div class="journey-node" style="border-color:rgba(230,126,34,0.5);">
+          <div class="journey-node-icon">📄</div>
+          <div class="journey-node-name">Documents</div>
+          <div class="journey-node-path">/dashboard/documents</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       INTERCONNECTION DIAGRAM (SVG)
+  ════════════════════════════════════════ -->
+  <div class="section-heading">Page Interconnections</div>
+  <div class="flow-section" style="margin-bottom:28px;">
+    <div class="flow-title">Data flow between core modules</div>
+    <div class="flow-diagram">
+      <svg class="flow-svg" viewBox="0 0 1100 480" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#6366f1" opacity="0.8"/>
+          </marker>
+          <marker id="arr-soft" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#475569" opacity="0.7"/>
+          </marker>
+          <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#22c55e" opacity="0.8"/>
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Grid lines (subtle) -->
+        <line x1="0" y1="120" x2="1100" y2="120" stroke="#1e2433" stroke-width="1"/>
+        <line x1="0" y1="240" x2="1100" y2="240" stroke="#1e2433" stroke-width="1"/>
+        <line x1="0" y1="360" x2="1100" y2="360" stroke="#1e2433" stroke-width="1"/>
+
+        <!-- ── Row labels ── -->
+        <text x="8" y="65" fill="#3e4a65" font-size="9" font-family="monospace">ACQUISITION</text>
+        <text x="8" y="185" fill="#3e4a65" font-size="9" font-family="monospace">CORE CRM</text>
+        <text x="8" y="305" fill="#3e4a65" font-size="9" font-family="monospace">OPERATIONS</text>
+        <text x="8" y="425" fill="#3e4a65" font-size="9" font-family="monospace">INTELLIGENCE</text>
+
+        <!-- ─ Nodes ─ -->
+        <!-- Landing / register / login -->
+        <g class="svg-node" transform="translate(80,30)">
+          <rect width="110" height="48" rx="8" fill="#0a2e25" stroke="#1a5c47" stroke-width="1.5"/>
+          <text x="55" y="18" text-anchor="middle" fill="#4ecca3" font-size="11" font-weight="700">/</text>
+          <text x="55" y="32" text-anchor="middle" fill="#4ecca3" font-size="9.5" font-weight="600">Landing</text>
+          <text x="55" y="44" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/</text>
+        </g>
+        <g transform="translate(220,30)">
+          <rect width="100" height="48" rx="8" fill="#0a2e25" stroke="#1a5c47" stroke-width="1.5"/>
+          <text x="50" y="18" text-anchor="middle" fill="#4ecca3" font-size="9.5" font-weight="600">Register</text>
+          <text x="50" y="32" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/register</text>
+          <text x="50" y="44" text-anchor="middle" fill="#4ecca3" font-size="8">→ Onboarding</text>
+        </g>
+        <g transform="translate(350,30)">
+          <rect width="100" height="48" rx="8" fill="#1e1540" stroke="#4a2eb5" stroke-width="1.5"/>
+          <text x="50" y="18" text-anchor="middle" fill="#a78bfa" font-size="9.5" font-weight="600">Onboarding</text>
+          <text x="50" y="32" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/onboarding</text>
+          <text x="50" y="44" text-anchor="middle" fill="#a78bfa" font-size="8">6-step wizard</text>
+        </g>
+
+        <!-- Widget -->
+        <g transform="translate(500,30)">
+          <rect width="100" height="48" rx="8" fill="#0a2015" stroke="#1a5c30" stroke-width="1.5"/>
+          <text x="50" y="18" text-anchor="middle" fill="#4ade80" font-size="9.5" font-weight="600">Widget</text>
+          <text x="50" y="32" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/widget</text>
+          <text x="50" y="44" text-anchor="middle" fill="#4ade80" font-size="8">Lead capture JS</text>
+        </g>
+
+        <!-- Queries -->
+        <g transform="translate(640,30)">
+          <rect width="100" height="48" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="1.5"/>
+          <text x="50" y="18" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="600">Queries</text>
+          <text x="50" y="32" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/queries</text>
+          <text x="50" y="44" text-anchor="middle" fill="#60b8ff" font-size="8">AI triage inbox</text>
+        </g>
+
+        <!-- Integrations -->
+        <g transform="translate(790,30)">
+          <rect width="110" height="48" rx="8" fill="#0a2015" stroke="#1a5c30" stroke-width="1.5"/>
+          <text x="55" y="18" text-anchor="middle" fill="#4ade80" font-size="9.5" font-weight="600">Integrations</text>
+          <text x="55" y="32" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/integrations</text>
+          <text x="55" y="44" text-anchor="middle" fill="#4ade80" font-size="8">WA/FB/Zapier</text>
+        </g>
+
+        <!-- ─ Row 2: Core CRM ─ -->
+        <g transform="translate(80,150)">
+          <rect width="110" height="52" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="1.5"/>
+          <text x="55" y="20" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="700">Dashboard</text>
+          <text x="55" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/dashboard</text>
+          <text x="55" y="47" text-anchor="middle" fill="#60b8ff" font-size="8">KPIs + charts</text>
+        </g>
+        <g transform="translate(220,150)">
+          <rect width="100" height="52" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="2" filter="url(#glow)"/>
+          <text x="50" y="20" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="700">Leads</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/leads</text>
+          <text x="50" y="47" text-anchor="middle" fill="#60b8ff" font-size="8">HOT/WARM/COLD</text>
+        </g>
+        <g transform="translate(350,150)">
+          <rect width="100" height="52" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="2"/>
+          <text x="50" y="20" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="700">Quotations</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/quotations</text>
+          <text x="50" y="47" text-anchor="middle" fill="#60b8ff" font-size="8">PDF + deposit</text>
+        </g>
+        <g transform="translate(480,150)">
+          <rect width="100" height="52" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="2"/>
+          <text x="50" y="20" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="700">Bookings</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/bookings</text>
+          <text x="50" y="47" text-anchor="middle" fill="#60b8ff" font-size="8">Confirm + invoice</text>
+        </g>
+        <g transform="translate(610,150)">
+          <rect width="100" height="52" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="700">Clients</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/clients</text>
+          <text x="50" y="47" text-anchor="middle" fill="#60b8ff" font-size="8">Contact DB</text>
+        </g>
+        <g transform="translate(740,150)">
+          <rect width="100" height="52" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="700">Finance</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/finance</text>
+          <text x="50" y="47" text-anchor="middle" fill="#60b8ff" font-size="8">P&amp;L + expenses</text>
+        </g>
+        <g transform="translate(870,150)">
+          <rect width="100" height="52" rx="8" fill="#0a1e35" stroke="#1a4a7a" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#60b8ff" font-size="9.5" font-weight="700">Comms</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/comms</text>
+          <text x="50" y="47" text-anchor="middle" fill="#60b8ff" font-size="8">12 templates</text>
+        </g>
+
+        <!-- ─ Row 3: Operations ─ -->
+        <g transform="translate(80,270)">
+          <rect width="110" height="52" rx="8" fill="#2a1a08" stroke="#7a4a10" stroke-width="1.5"/>
+          <text x="55" y="20" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="700">Itineraries</text>
+          <text x="55" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/itineraries</text>
+          <text x="55" y="47" text-anchor="middle" fill="#fbbf24" font-size="8">AI builder</text>
+        </g>
+        <g transform="translate(220,270)">
+          <rect width="100" height="52" rx="8" fill="#2a1a08" stroke="#7a4a10" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="700">Vendors</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/vendors</text>
+          <text x="50" y="47" text-anchor="middle" fill="#fbbf24" font-size="8">+ Marketplace</text>
+        </g>
+        <g transform="translate(350,270)">
+          <rect width="100" height="52" rx="8" fill="#2a1a08" stroke="#7a4a10" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="700">Documents</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/documents</text>
+          <text x="50" y="47" text-anchor="middle" fill="#fbbf24" font-size="8">Inv/Voucher/Conf</text>
+        </g>
+        <g transform="translate(480,270)">
+          <rect width="100" height="52" rx="8" fill="#2a1a08" stroke="#7a4a10" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="700">Calendar</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/calendar</text>
+          <text x="50" y="47" text-anchor="middle" fill="#fbbf24" font-size="8">iCal + reminders</text>
+        </g>
+        <g transform="translate(610,270)">
+          <rect width="100" height="52" rx="8" fill="#2a1a08" stroke="#7a4a10" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="700">Content</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/content</text>
+          <text x="50" y="47" text-anchor="middle" fill="#fbbf24" font-size="8">Pexels + AI</text>
+        </g>
+        <g transform="translate(740,270)">
+          <rect width="100" height="52" rx="8" fill="#2a1a08" stroke="#7a4a10" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="700">Routines</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/routines</text>
+          <text x="50" y="47" text-anchor="middle" fill="#fbbf24" font-size="8">9 step handlers</text>
+        </g>
+        <g transform="translate(870,270)">
+          <rect width="100" height="52" rx="8" fill="#2a1a08" stroke="#7a4a10" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="700">Automations</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/automations</text>
+          <text x="50" y="47" text-anchor="middle" fill="#fbbf24" font-size="8">Follow-up drip</text>
+        </g>
+
+        <!-- ─ Row 4: Intelligence / Infra ─ -->
+        <g transform="translate(80,390)">
+          <rect width="105" height="52" rx="8" fill="#1e1030" stroke="#5a2080" stroke-width="1.5"/>
+          <text x="52" y="20" text-anchor="middle" fill="#c084fc" font-size="9.5" font-weight="700">Intelligence</text>
+          <text x="52" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/intel</text>
+          <text x="52" y="47" text-anchor="middle" fill="#c084fc" font-size="8">Health + sync</text>
+        </g>
+        <g transform="translate(215,390)">
+          <rect width="100" height="52" rx="8" fill="#1e1030" stroke="#5a2080" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#c084fc" font-size="9.5" font-weight="700">Intentra</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/intentra</text>
+          <text x="50" y="47" text-anchor="middle" fill="#c084fc" font-size="8">Social intent</text>
+        </g>
+        <g transform="translate(345,390)">
+          <rect width="100" height="52" rx="8" fill="#1e1030" stroke="#5a2080" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#c084fc" font-size="9.5" font-weight="700">KB</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/kb</text>
+          <text x="50" y="47" text-anchor="middle" fill="#c084fc" font-size="8">Knowledge base</text>
+        </g>
+        <g transform="translate(475,390)">
+          <rect width="100" height="52" rx="8" fill="#250a08" stroke="#7a1e18" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#f87171" font-size="9.5" font-weight="700">Reports</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/reports</text>
+          <text x="50" y="47" text-anchor="middle" fill="#f87171" font-size="8">Team perf.</text>
+        </g>
+        <g transform="translate(605,390)">
+          <rect width="100" height="52" rx="8" fill="#251808" stroke="#7a4a08" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#f9c74f" font-size="9.5" font-weight="700">Audit</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/audit</text>
+          <text x="50" y="47" text-anchor="middle" fill="#f9c74f" font-size="8">16 health checks</text>
+        </g>
+        <g transform="translate(735,390)">
+          <rect width="100" height="52" rx="8" fill="#251808" stroke="#7a4a08" stroke-width="1.5"/>
+          <text x="50" y="20" text-anchor="middle" fill="#f9c74f" font-size="9.5" font-weight="700">Sentinel</text>
+          <text x="50" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/sentinel</text>
+          <text x="50" y="47" text-anchor="middle" fill="#f9c74f" font-size="8">Infra usage</text>
+        </g>
+        <g transform="translate(865,390)">
+          <rect width="105" height="52" rx="8" fill="#200a08" stroke="#5a1510" stroke-width="1.5"/>
+          <text x="52" y="20" text-anchor="middle" fill="#ff6b6b" font-size="9.5" font-weight="700">Investor</text>
+          <text x="52" y="34" text-anchor="middle" fill="#525e74" font-size="8.5" font-family="monospace">/investor</text>
+          <text x="52" y="47" text-anchor="middle" fill="#ff6b6b" font-size="8">R0 only</text>
+        </g>
+
+        <!-- ═══════════════════ ARROWS ═══════════════════ -->
+        <!-- Landing → Register -->
+        <line x1="190" y1="54" x2="218" y2="54" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Register → Onboarding -->
+        <line x1="320" y1="54" x2="348" y2="54" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Onboarding → Dashboard -->
+        <path d="M 400 78 L 400 130 L 135 130 L 135 148" fill="none" stroke="#7c4dff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+        <!-- Widget → Queries (lead capture) -->
+        <line x1="600" y1="54" x2="638" y2="54" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arr-green)"/>
+        <!-- Queries → Leads -->
+        <path d="M 690 78 L 690 130 L 270 130 L 270 148" fill="none" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-soft)"/>
+        <!-- Integrations → Leads (social/WA leads) -->
+        <path d="M 845 78 L 845 130 L 290 130" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+        <!-- Leads → Quotations -->
+        <line x1="320" y1="176" x2="348" y2="176" stroke="#6366f1" stroke-width="2" marker-end="url(#arr)"/>
+        <!-- Quotations → Bookings -->
+        <line x1="450" y1="176" x2="478" y2="176" stroke="#6366f1" stroke-width="2" marker-end="url(#arr)"/>
+        <!-- Bookings → Documents -->
+        <path d="M 530 202 L 530 248 L 400 248 L 400 268" fill="none" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Bookings → Finance -->
+        <line x1="580" y1="176" x2="608" y2="176" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Bookings → Comms -->
+        <path d="M 580 185 Q 760 210 868 176" fill="none" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-soft)"/>
+        <!-- Quotations → Documents (PDF) -->
+        <path d="M 400 202 Q 375 248 400 268" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
+        <!-- Leads → Clients -->
+        <path d="M 320 185 Q 450 210 608 185" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+        <!-- Itineraries → Vendors (rate lookup) -->
+        <line x1="190" y1="296" x2="218" y2="296" stroke="#e67e22" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Itineraries → Quotations (pricing) -->
+        <path d="M 135 270 L 135 230 L 375 230 L 375 202" fill="none" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6" marker-end="url(#arr-soft)"/>
+        <!-- Itineraries → Content -->
+        <path d="M 190 305 Q 400 330 608 305" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+        <!-- Bookings → Calendar -->
+        <path d="M 530 202 Q 510 260 530 268" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+        <!-- Leads → Intel (scoring) -->
+        <path d="M 270 202 Q 200 330 132 388" fill="none" stroke="#9b59b6" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6" marker-end="url(#arr-soft)"/>
+        <!-- Leads → Reports -->
+        <path d="M 320 200 Q 420 360 473 388" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+        <!-- Leads → Automations -->
+        <path d="M 320 190 Q 700 240 868 270" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+        <!-- Routines → Leads/Comms -->
+        <path d="M 790 322 Q 790 290 920 296" fill="none" stroke="#e67e22" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SECTION TREE
+  ════════════════════════════════════════ -->
+  <div class="section-heading">All Routes — Grouped by Section</div>
+  <div class="tree-root">
+
+    <!-- ── PUBLIC ── -->
+    <div class="section-block sec-public">
+      <div class="section-header">
+        <div class="section-icon">🌐</div>
+        <div class="section-name">Public Routes</div>
+        <span class="section-count">5</span>
+        <span class="section-desc">No authentication required</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Landing Page"
+          data-path="/"
+          data-desc="Hero, pain points, AI triage demo, pricing CTA"
+          data-links="Links to: /register, /login">
+          <div class="node-path">/</div>
+          <div class="node-name">Landing Page</div>
+          <div class="node-desc">Hero, pain points, AI triage demo, pricing CTA. Entry point for all new visitors.</div>
+          <div class="node-footer">
+            <span class="badge badge-public">Public</span>
+            <span class="node-tag">→ /register</span>
+            <span class="node-tag">→ /login</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Login"
+          data-path="/login"
+          data-desc="Email/password auth, Google SSO, demo mode entry"
+          data-links="Links to: /dashboard, /register">
+          <div class="node-path">/login</div>
+          <div class="node-name">Login</div>
+          <div class="node-desc">Email/password, Google SSO, demo mode cookie. JWT stored as HttpOnly cookie.</div>
+          <div class="node-footer">
+            <span class="badge badge-public">Public</span>
+            <span class="node-tag">→ /dashboard</span>
+            <span class="node-tag">→ /register</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Register"
+          data-path="/register"
+          data-desc="New user sign-up, triggers Day 0 drip email"
+          data-links="Links to: /onboarding (auto-redirect after signup)">
+          <div class="node-path">/register</div>
+          <div class="node-name">Register</div>
+          <div class="node-desc">New account sign-up. Fires Day 0 drip email. Redirects to onboarding wizard.</div>
+          <div class="node-footer">
+            <span class="badge badge-public">Public</span>
+            <span class="node-tag">→ /onboarding</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Privacy Policy"
+          data-path="/privacy"
+          data-desc="Legal privacy policy page"
+          data-links="">
+          <div class="node-path">/privacy</div>
+          <div class="node-name">Privacy Policy</div>
+          <div class="node-desc">Legal privacy policy. Static content, no auth required.</div>
+          <div class="node-footer">
+            <span class="badge badge-public">Public</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Customer Portal"
+          data-path="/portal/[bookingId]"
+          data-desc="Public-facing customer booking portal — no login needed"
+          data-links="Linked from: /dashboard/bookings (share link)">
+          <div class="node-path">/portal/[bookingId]</div>
+          <div class="node-name">Customer Portal</div>
+          <div class="node-desc">Public customer view of their booking — itinerary, trip tracker, documents. No login needed.</div>
+          <div class="node-footer">
+            <span class="badge badge-public">Public</span>
+            <span class="node-tag">← /bookings</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ONBOARDING ── -->
+    <div class="section-block sec-onboarding">
+      <div class="section-header">
+        <div class="section-icon">🚀</div>
+        <div class="section-name">Onboarding</div>
+        <span class="section-count">1</span>
+        <span class="section-desc">Post-signup wizard</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Onboarding Wizard"
+          data-path="/onboarding"
+          data-desc="6-step wizard: Welcome → AI Triage → AI Setup → Channels → Team → Launch"
+          data-links="Links to: /dashboard, /dashboard/leads. Triggers: seed-workspace, schedule-drip, apply-config">
+          <div class="node-path">/onboarding</div>
+          <div class="node-name">Onboarding Wizard</div>
+          <div class="node-desc">6-step flow: Welcome → AI Triage (WOW moment SVG ring) → AI Setup (agency config) → Connect Channels (WhatsApp/SMTP/widget) → Team invite → Launch (confetti). Seeds workspace on completion.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">Step 1: Welcome</span>
+            <span class="node-tag">Step 2: AI Triage</span>
+            <span class="node-tag">Step 3: AI Setup</span>
+            <span class="node-tag">Step 4: Channels</span>
+            <span class="node-tag">Step 5: Team</span>
+            <span class="node-tag">Step 6: Launch</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CORE CRM ── -->
+    <div class="section-block sec-crm">
+      <div class="section-header">
+        <div class="section-icon">🎯</div>
+        <div class="section-name">Core CRM</div>
+        <span class="section-count">6</span>
+        <span class="section-desc">Leads · Bookings · Quotations · Clients · Queries · Finance</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Main Dashboard"
+          data-path="/dashboard"
+          data-desc="KPIs, revenue chart, conversion funnel, AI copilot floating button"
+          data-links="Hub for all sections. Links to all dashboard sub-pages.">
+          <div class="node-path">/dashboard</div>
+          <div class="node-name">Main Dashboard</div>
+          <div class="node-desc">KPIs, revenue chart, conversion funnel, agent leaderboard, AI copilot floating button. Central hub.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">AI Copilot</span>
+            <span class="node-tag">KPI cards</span>
+            <span class="node-tag">→ all sections</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Leads CRM"
+          data-path="/dashboard/leads"
+          data-desc="HOT/WARM/COLD buckets, AI scoring (4-tab), CSV import, bulk actions"
+          data-links="Links to: /quotations (create quote). Links from: /queries, /integrations. Feeds: /reports, /intel">
+          <div class="node-path">/dashboard/leads</div>
+          <div class="node-name">Leads CRM</div>
+          <div class="node-desc">HOT/WARM/COLD kanban buckets, AI lead scoring (LLM + heuristic), CSV bulk import, product tour wired, EmptyState component.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /quotations</span>
+            <span class="node-tag">→ /clients</span>
+            <span class="node-tag">← /queries</span>
+            <span class="node-tag">AI scoring</span>
+            <span class="node-tag">CSV import</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Quotations"
+          data-path="/dashboard/quotations"
+          data-desc="Quote builder, PDF download (WeasyPrint), send to client, Razorpay deposit link"
+          data-links="Links from: /leads. Links to: /bookings (convert). Uses: /itineraries pricing">
+          <div class="node-path">/dashboard/quotations</div>
+          <div class="node-name">Quotations</div>
+          <div class="node-desc">Quote builder with PDF generation (WeasyPrint server-side), send-to-client email, Razorpay 25% deposit payment link. Convert quote → booking.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /leads</span>
+            <span class="node-tag">→ /bookings</span>
+            <span class="node-tag">PDF export</span>
+            <span class="node-tag">Razorpay</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Bookings"
+          data-path="/dashboard/bookings"
+          data-desc="Booking management, confirmation, invoice generation, live trip tracker"
+          data-links="Links from: /quotations. Links to: /documents (invoice), /portal/[id] (customer view), /finance">
+          <div class="node-path">/dashboard/bookings</div>
+          <div class="node-name">Bookings</div>
+          <div class="node-desc">Confirm bookings, generate invoices (WeasyPrint), live trip tracker, send invoice via email, share customer portal link.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /quotations</span>
+            <span class="node-tag">→ /documents</span>
+            <span class="node-tag">→ /portal/[id]</span>
+            <span class="node-tag">→ /finance</span>
+            <span class="node-tag">Trip tracker</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Clients"
+          data-path="/dashboard/clients"
+          data-desc="Contact/client database, booking history, EmptyState wired"
+          data-links="Links from: /leads (convert). Related: /bookings, /comms">
+          <div class="node-path">/dashboard/clients</div>
+          <div class="node-name">Clients</div>
+          <div class="node-desc">Contact and client database with booking history, EmptyState component wired. Populated from lead conversions.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /leads</span>
+            <span class="node-tag">← /bookings</span>
+            <span class="node-tag">→ /comms</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Query Inbox"
+          data-path="/dashboard/queries"
+          data-desc="AI triage inbox — WhatsApp/email/web widget leads arrive here"
+          data-links="Receives from: /integrations (WhatsApp, Facebook), /widget. Sends to: /leads">
+          <div class="node-path">/dashboard/queries</div>
+          <div class="node-name">Query Inbox</div>
+          <div class="node-desc">AI triage inbox for inbound WhatsApp, email, Facebook DM, and website widget leads. Auto-scores and routes to CRM.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /integrations</span>
+            <span class="node-tag">← /widget</span>
+            <span class="node-tag">→ /leads</span>
+            <span class="node-tag">AI triage</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── OPERATIONS ── -->
+    <div class="section-block sec-ops">
+      <div class="section-header">
+        <div class="section-icon">⚙️</div>
+        <div class="section-name">Operations</div>
+        <span class="section-count">7</span>
+        <span class="section-desc">Itineraries · Vendors · Documents · Finance · Comms · Calendar</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Itinerary Builder"
+          data-path="/dashboard/itineraries"
+          data-desc="AI itinerary builder with rate card lookup, content blocks, product tour"
+          data-links="Links to: /vendors (rate lookup), /content (images). Feeds into: /quotations">
+          <div class="node-path">/dashboard/itineraries</div>
+          <div class="node-name">Itinerary Builder</div>
+          <div class="node-desc">AI-powered itinerary builder with vendor rate card lookup, rate-locked badges, content block editor, Pexels image picker, product tour wired.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /vendors</span>
+            <span class="node-tag">→ /content</span>
+            <span class="node-tag">→ /quotations</span>
+            <span class="node-tag">AI builder</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Vendors"
+          data-path="/dashboard/vendors"
+          data-desc="Vendor/supplier CRM, DMC Rate Marketplace, CSV import, 'Publish as DMC' toggle"
+          data-links="Links from: /itineraries (rate lookup). Marketplace: cross-tenant public rates">
+          <div class="node-path">/dashboard/vendors</div>
+          <div class="node-name">Vendors &amp; Marketplace</div>
+          <div class="node-desc">Vendor CRM with rate cards, DMC Rate Marketplace (cross-tenant public rates), CSV/Excel bulk import, snap rates into own library, 'Publish as DMC' toggle.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /itineraries</span>
+            <span class="node-tag">DMC marketplace</span>
+            <span class="node-tag">CSV import</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Documents"
+          data-path="/dashboard/documents"
+          data-desc="Invoice/voucher/confirmation generator (WeasyPrint PDF)"
+          data-links="Links from: /bookings (invoice), /quotations (PDF). Sends via: Resend email">
+          <div class="node-path">/dashboard/documents</div>
+          <div class="node-name">Documents Hub</div>
+          <div class="node-desc">Invoice, voucher, and booking confirmation generator. WeasyPrint server-side PDF. Email via Resend. 12 template types.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /bookings</span>
+            <span class="node-tag">← /quotations</span>
+            <span class="node-tag">PDF gen</span>
+            <span class="node-tag">Email send</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Finance"
+          data-path="/dashboard/finance"
+          data-desc="P&L overview, expenses tracking, financial reporting"
+          data-links="Data from: /bookings (revenue), /quotations (pipeline)">
+          <div class="node-path">/dashboard/finance</div>
+          <div class="node-name">Finance</div>
+          <div class="node-desc">P&amp;L overview, expense tracking, revenue pipeline from bookings, financial KPIs. Multi-currency via CurrencyProvider.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /bookings</span>
+            <span class="node-tag">← /quotations</span>
+            <span class="node-tag">Multi-currency</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Communications"
+          data-path="/dashboard/comms"
+          data-desc="12-template communication library, WhatsApp + email sending"
+          data-links="Uses: /clients (recipients), /bookings (context). Sends via: Meta WA API, Resend">
+          <div class="node-path">/dashboard/comms</div>
+          <div class="node-name">Communications</div>
+          <div class="node-desc">12-template communication library for WhatsApp and email. Templates: welcome, itinerary, confirmation, follow-up, reminders, and more.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /clients</span>
+            <span class="node-tag">← /bookings</span>
+            <span class="node-tag">WhatsApp API</span>
+            <span class="node-tag">Resend</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Calendar"
+          data-path="/dashboard/calendar"
+          data-desc="Calendar + reminders, iCal subscribe, WhatsApp reminder toggle"
+          data-links="Linked from: /bookings (reminder triggers). iCal feed: /api/v1/calendar/ics-feed">
+          <div class="node-path">/dashboard/calendar</div>
+          <div class="node-name">Calendar &amp; Reminders</div>
+          <div class="node-desc">Reminders with WhatsApp toggle, iCal subscribe URL, real API with AbortController. Live .ics feed endpoint.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /bookings</span>
+            <span class="node-tag">iCal feed</span>
+            <span class="node-tag">WhatsApp</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Holidays"
+          data-path="/dashboard/holidays"
+          data-desc="Holiday management and package builder"
+          data-links="Related: /itineraries, /vendors">
+          <div class="node-path">/dashboard/holidays</div>
+          <div class="node-name">Holidays</div>
+          <div class="node-desc">Holiday package management and builder. Links to itinerary and vendor tools.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /itineraries</span>
+            <span class="node-tag">→ /vendors</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INTELLIGENCE ── -->
+    <div class="section-block sec-intel">
+      <div class="section-header">
+        <div class="section-icon">🧠</div>
+        <div class="section-name">Intelligence</div>
+        <span class="section-count">4</span>
+        <span class="section-desc">Intel Hub · Intentra · KB · Visas</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Intelligence Hub"
+          data-path="/dashboard/intel"
+          data-desc="Customer health scores, module health, Intelligence Sync + Aggregate APIs"
+          data-links="Aggregates data from: /leads, /bookings, /clients. Exports: Intelligence Sync API">
+          <div class="node-path">/dashboard/intel</div>
+          <div class="node-name">Intelligence Hub</div>
+          <div class="node-desc">Customer health scores, module health tracking, AI scoring aggregates, Intelligence Sync + Aggregate + Context Capture APIs. Smart Pricing benchmarks.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /leads</span>
+            <span class="node-tag">← /bookings</span>
+            <span class="node-tag">AI scoring</span>
+            <span class="node-tag">Sync API</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Intentra"
+          data-path="/dashboard/intentra"
+          data-desc="Social intent monitor — tracks buying signals across social platforms"
+          data-links="Related: /leads (social-sourced leads), /integrations">
+          <div class="node-path">/dashboard/intentra</div>
+          <div class="node-name">Intentra</div>
+          <div class="node-desc">Social intent monitoring for travel buying signals. Connected to Facebook/Instagram integrations.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /leads</span>
+            <span class="node-tag">← /integrations</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Knowledge Base"
+          data-path="/dashboard/kb"
+          data-desc="Product command centre and knowledge base for AI copilot context"
+          data-links="Used by: AI Copilot (paperclip context), /comms (template answers)">
+          <div class="node-path">/dashboard/kb</div>
+          <div class="node-name">Knowledge Base</div>
+          <div class="node-desc">Product command centre. Feeds context to NAMA Copilot (Paperclip context button). Stores agency SOPs, FAQs, pricing guidelines.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ AI Copilot</span>
+            <span class="node-tag">→ /comms</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Visa Intelligence"
+          data-path="/dashboard/visas"
+          data-desc="Visa requirements intelligence hub"
+          data-links="Related: /itineraries, /clients (nationalities)">
+          <div class="node-path">/dashboard/visas</div>
+          <div class="node-name">Visa Intelligence</div>
+          <div class="node-desc">Visa requirements lookup and intelligence hub. Linked to client nationality data and itinerary destinations.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /itineraries</span>
+            <span class="node-tag">← /clients</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS & ADMIN ── -->
+    <div class="section-block sec-settings">
+      <div class="section-header">
+        <div class="section-icon">⚙️</div>
+        <div class="section-name">Settings &amp; Admin</div>
+        <span class="section-count">5</span>
+        <span class="section-desc">Settings · Email · Org &amp; Control · Roles · Team</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Settings"
+          data-path="/dashboard/settings"
+          data-desc="Global settings: API keys, SMTP/IMAP config, subscription management"
+          data-links="Sub-route: /settings/email. Configures: /integrations (API keys)">
+          <div class="node-path">/dashboard/settings</div>
+          <div class="node-name">Settings</div>
+          <div class="node-desc">Global settings hub: API keys, SMTP/IMAP email config, subscription management, roles/team seeds. Role-based access controls.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /settings/email</span>
+            <span class="node-tag">API keys</span>
+            <span class="node-tag">Subscription</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Email Config"
+          data-path="/dashboard/settings/email"
+          data-desc="Per-tenant SMTP/IMAP configuration (Gmail/Outlook/Zoho presets), Fernet-encrypted passwords"
+          data-links="Sub-page of /settings. Enables: /comms email sending, /automations">
+          <div class="node-path">/dashboard/settings/email</div>
+          <div class="node-name">Email Config</div>
+          <div class="node-desc">Per-tenant SMTP/IMAP setup with Gmail/Outlook/Zoho presets. Fernet-encrypted password storage. Test SMTP/IMAP buttons with latency display.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /settings</span>
+            <span class="node-tag">→ /comms</span>
+            <span class="node-tag">SMTP/IMAP</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Org & Control Room"
+          data-path="/dashboard/org"
+          data-desc="5-tab control room: Founder Intelligence, Org Chart, Role Builder, Team Management, Subscription"
+          data-links="Manages: /roles, /team. Subscription billing. R0/R1/R2 access.">
+          <div class="node-path">/dashboard/org</div>
+          <div class="node-name">Org &amp; Control Room</div>
+          <div class="node-desc">5-tab control room: Founder Intelligence (KPIs + revenue leak), Org Chart (CSS flexbox tree), Role Builder (22 permissions), Team Management (invite/bulk actions), Subscription (usage + plan).</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth (R0/R1/R2)</span>
+            <span class="node-tag">→ /roles</span>
+            <span class="node-tag">→ /team</span>
+            <span class="node-tag">Org chart</span>
+            <span class="node-tag">New</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Role Builder"
+          data-path="/dashboard/roles"
+          data-desc="22-permission matrix across 6 roles, RBAC + ABAC, inline role creation"
+          data-links="Wired to: POST /api/v1/roles, PUT /api/v1/roles/{id}/permissions. Sub-panel in /org.">
+          <div class="node-path">/dashboard/roles</div>
+          <div class="node-name">Role Builder</div>
+          <div class="node-desc">22-permission toggle matrix across 6 roles (R0–R5), ABAC conditions (geography, hours, deal size), inline role creation. Wired to backend RBAC API.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth (R0/R1/R2)</span>
+            <span class="node-tag">← /org</span>
+            <span class="node-tag">RBAC</span>
+            <span class="node-tag">ABAC</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Team Management"
+          data-path="/dashboard/team"
+          data-desc="Team member list, inline invite, bulk actions, per-member menus"
+          data-links="Sub-panel also in /org Tab 4. Managed via: /roles">
+          <div class="node-path">/dashboard/team</div>
+          <div class="node-name">Team Management</div>
+          <div class="node-desc">Team member table with inline invite, bulk actions, per-member role assignment menus. Also accessible as Tab 4 in /org.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth (R0/R1/R2)</span>
+            <span class="node-tag">← /org</span>
+            <span class="node-tag">→ /roles</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GROWTH & MARKETING ── -->
+    <div class="section-block sec-growth">
+      <div class="section-header">
+        <div class="section-icon">📈</div>
+        <div class="section-name">Growth &amp; Marketing</div>
+        <span class="section-count">5</span>
+        <span class="section-desc">Content · Automations · Routines · Integrations · Widget</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Content Library"
+          data-path="/dashboard/content"
+          data-desc="Pexels image search, NAMA master destinations, AI Enhance, content blocks"
+          data-links="Used by: /itineraries (images + blocks), /comms (media)">
+          <div class="node-path">/dashboard/content</div>
+          <div class="node-name">Content Library</div>
+          <div class="node-desc">Pexels image search with quick-search chips, NAMA Master Library (10 shared destinations), AI Enhance button, destination editor, content block clipboard.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /itineraries</span>
+            <span class="node-tag">Pexels API</span>
+            <span class="node-tag">AI enhance</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Automations"
+          data-path="/dashboard/automations"
+          data-desc="Automated follow-up reminders: cold (3d), new (1d), stale qualified (7d)"
+          data-links="Triggers: Resend email digests per agent. Toggle + Run Now button.">
+          <div class="node-path">/dashboard/automations</div>
+          <div class="node-name">Automations</div>
+          <div class="node-desc">Automated follow-up reminder engine: cold leads (3d), new leads (1d), stale qualified (7d). Resend email digest per agent. Schedule toggle + manual run.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">← /leads</span>
+            <span class="node-tag">Resend email</span>
+            <span class="node-tag">Schedule</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="NAMA Routines"
+          data-path="/dashboard/routines"
+          data-desc="Automation engine with 9 step handlers: fetch_data, ai_summarise, send_email, send_whatsapp, ai_score_leads, update_records, generate_pdf, group_by, create_task"
+          data-links="Can trigger any module. Reads: /leads, /bookings. Sends via: Resend, Meta API">
+          <div class="node-path">/dashboard/routines</div>
+          <div class="node-name">NAMA Routines</div>
+          <div class="node-desc">Powerful automation engine with 9 live step handlers: fetch_data (real DB), ai_summarise (OpenRouter), send_email, send_whatsapp, ai_score_leads, update_records, generate_pdf, group_by, create_task. Shared context between steps.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">9 step handlers</span>
+            <span class="node-tag">OpenRouter</span>
+            <span class="node-tag">Meta WA</span>
+            <span class="node-tag">Resend</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Integrations"
+          data-path="/dashboard/integrations"
+          data-desc="WhatsApp Business API, Facebook Lead Ads, Instagram DMs, Zapier outbound webhooks"
+          data-links="Feeds: /queries (inbound leads). Webhooks: 8 outbound events. Widget config → /widget">
+          <div class="node-path">/dashboard/integrations</div>
+          <div class="node-name">Integrations</div>
+          <div class="node-desc">WhatsApp Business API setup, Facebook Lead Ads + Instagram DM webhooks (HMAC validated), Zapier outbound webhooks (8 events, HMAC-SHA256 signed), Social Media tab.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /queries</span>
+            <span class="node-tag">→ /widget</span>
+            <span class="node-tag">WhatsApp</span>
+            <span class="node-tag">Facebook</span>
+            <span class="node-tag">Zapier</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Website Widget"
+          data-path="/dashboard/widget"
+          data-desc="Lead capture widget config: color picker, embed code, test preview, token regeneration"
+          data-links="Generates: public/widget.js embed code. Leads sent to: /queries. Config from: /onboarding Step 4">
+          <div class="node-path">/dashboard/widget</div>
+          <div class="node-name">Website Widget</div>
+          <div class="node-desc">Self-contained IIFE widget config: color picker, copy embed code, live preview, token rotation. Generates &lt;script&gt; tag with data-token + data-color.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth</span>
+            <span class="node-tag">→ /queries</span>
+            <span class="node-tag">← /onboarding</span>
+            <span class="node-tag">Token auth</span>
+            <span class="node-tag">Rate limited</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REPORTING ── -->
+    <div class="section-block sec-reports">
+      <div class="section-header">
+        <div class="section-icon">📊</div>
+        <div class="section-name">Reporting</div>
+        <span class="section-count">1</span>
+        <span class="section-desc">Team performance analytics</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Reports"
+          data-path="/dashboard/reports"
+          data-desc="Team performance: leads/quotes/bookings/revenue/conversion per agent, crown on top performer"
+          data-links="Data from: /leads, /quotations, /bookings. Accessible: R0/R1/R2/R3">
+          <div class="node-path">/dashboard/reports</div>
+          <div class="node-name">Team Performance Reports</div>
+          <div class="node-desc">Per-agent analytics: leads count, quotes, bookings, revenue, conversion %. 4 summary KPI cards, sortable table, crown icon on top performer.</div>
+          <div class="node-footer">
+            <span class="badge badge-auth">Auth (R0–R3)</span>
+            <span class="node-tag">← /leads</span>
+            <span class="node-tag">← /bookings</span>
+            <span class="node-tag">← /quotations</span>
+            <span class="node-tag">Agent ranking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INFRASTRUCTURE (R0/R1) ── -->
+    <div class="section-block sec-infra">
+      <div class="section-header">
+        <div class="section-icon">🛡️</div>
+        <div class="section-name">Infrastructure</div>
+        <span class="section-count">4</span>
+        <span class="section-desc">Audit · Status · Sentinel · Investor — R0/R1 only</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="Audit Agent"
+          data-path="/dashboard/audit"
+          data-desc="16 automated health checks, health score, auto-refresh every 30s"
+          data-links="Monitors: all modules. R0/R1 page-level role guard.">
+          <div class="node-path">/dashboard/audit</div>
+          <div class="node-name">Audit Agent</div>
+          <div class="node-desc">16 automated health checks across all modules. Computed health score with visual indicator. Auto-refresh every 30s. Page-level R0/R1 role guard + redirect.</div>
+          <div class="node-footer">
+            <span class="badge badge-r0r1">R0/R1 Only</span>
+            <span class="node-tag">16 checks</span>
+            <span class="node-tag">Auto-refresh 30s</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="System Status"
+          data-path="/dashboard/status"
+          data-desc="System status and launch readiness checklist"
+          data-links="Monitors: backend health, env vars, migration status. R0/R1 access.">
+          <div class="node-path">/dashboard/status</div>
+          <div class="node-name">System Status</div>
+          <div class="node-desc">System status and launch readiness checklist. Backend health check, env var validation, migration status. R0/R1 page-level guard.</div>
+          <div class="node-footer">
+            <span class="badge badge-r0r1">R0/R1 Only</span>
+            <span class="node-tag">Health check</span>
+            <span class="node-tag">Launch readiness</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Infrastructure Sentinel"
+          data-path="/dashboard/sentinel"
+          data-desc="Monitors Vercel, Railway, Neon usage with animated bars (green→amber→red), alert history"
+          data-links="Calls: Vercel REST v2, Railway GraphQL, Neon REST v2. Sends: Resend email alerts. Auto-refresh 5min.">
+          <div class="node-path">/dashboard/sentinel</div>
+          <div class="node-name">Infrastructure Sentinel</div>
+          <div class="node-desc">Real-time monitoring of Vercel, Railway, and Neon DB usage. Animated usage bars (green→amber→red), configurable thresholds, Resend email alerts, FIFO 50-item alert history. Auto-refresh 5min.</div>
+          <div class="node-footer">
+            <span class="badge badge-r0r1">R0/R1 Only</span>
+            <span class="node-tag">Vercel</span>
+            <span class="node-tag">Railway</span>
+            <span class="node-tag">Neon DB</span>
+            <span class="node-tag">Alert emails</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Investor Dashboard"
+          data-path="/dashboard/investor"
+          data-desc="Investor-facing metrics and KPIs — R0 owner exclusive"
+          data-links="Aggregates: /finance, /reports, /leads data for investor view. R0 only.">
+          <div class="node-path">/dashboard/investor</div>
+          <div class="node-name">Investor Dashboard</div>
+          <div class="node-desc">Investor-facing metrics, KPIs, growth charts, and business health for founder/investor reporting. Page-level R0-only role guard with redirect.</div>
+          <div class="node-footer">
+            <span class="badge badge-r0">R0 Only</span>
+            <span class="node-tag">← /finance</span>
+            <span class="node-tag">← /reports</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INTERNAL ADMIN ── -->
+    <div class="section-block sec-admin">
+      <div class="section-header">
+        <div class="section-icon">🔐</div>
+        <div class="section-name">Internal Admin (NAMA Staff)</div>
+        <span class="section-count">2</span>
+        <span class="section-desc">Owner panel · Super-admin — NAMA internal only</span>
+      </div>
+      <div class="section-body">
+        <div class="page-node"
+          data-title="NAMA Owner Panel"
+          data-path="/owner"
+          data-desc="NAMA platform owner panel — R0 only"
+          data-links="Top-level route, not under /dashboard. R0 role guard.">
+          <div class="node-path">/owner</div>
+          <div class="node-name">NAMA Owner Panel</div>
+          <div class="node-desc">NAMA platform owner panel for managing the NAMA OS product itself. Top-level route, not nested under /dashboard. Page-level R0 role guard.</div>
+          <div class="node-footer">
+            <span class="badge badge-r0">R0 Only</span>
+            <span class="node-tag">Top-level route</span>
+            <span class="node-tag">Role guard</span>
+          </div>
+        </div>
+        <div class="page-node"
+          data-title="Super Admin"
+          data-path="/super-admin"
+          data-desc="NAMA internal super-admin panel — R_NAMA_STAFF only"
+          data-links="Top-level route. R_NAMA_STAFF role guard. Cross-tenant operations.">
+          <div class="node-path">/super-admin</div>
+          <div class="node-name">Super Admin</div>
+          <div class="node-desc">NAMA internal staff super-admin panel. Cross-tenant operations, platform management. R_NAMA_STAFF role guard. Top-level route not under /dashboard.</div>
+          <div class="node-footer">
+            <span class="badge badge-staff">R_NAMA_STAFF</span>
+            <span class="node-tag">Top-level route</span>
+            <span class="node-tag">Cross-tenant</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end tree-root -->
+
+  <!-- ════════════════════════════════════════
+       ROLE ACCESS MATRIX
+  ════════════════════════════════════════ -->
+  <div class="section-heading" style="margin-top:40px;">Role Access Matrix</div>
+  <div class="flow-section">
+    <div class="flow-title">Which roles can access which sections</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:11px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border-bright);">
+            <th style="text-align:left; padding:8px 12px; color:var(--text-muted); font-weight:600; width:200px;">Section / Page</th>
+            <th style="padding:8px 10px; color:#4ecca3; text-align:center;">R0<br><span style="font-size:9px; font-weight:400;">Owner</span></th>
+            <th style="padding:8px 10px; color:#60a5fa; text-align:center;">R1<br><span style="font-size:9px; font-weight:400;">Super-Admin</span></th>
+            <th style="padding:8px 10px; color:#a78bfa; text-align:center;">R2<br><span style="font-size:9px; font-weight:400;">Org-Admin</span></th>
+            <th style="padding:8px 10px; color:#fbbf24; text-align:center;">R3<br><span style="font-size:9px; font-weight:400;">Sales Mgr</span></th>
+            <th style="padding:8px 10px; color:#f87171; text-align:center;">R4<br><span style="font-size:9px; font-weight:400;">Ops Exec</span></th>
+            <th style="padding:8px 10px; color:#94a3b8; text-align:center;">R5<br><span style="font-size:9px; font-weight:400;">Finance</span></th>
+            <th style="padding:8px 10px; color:#c084fc; text-align:center;">Staff<br><span style="font-size:9px; font-weight:400;">NAMA</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">Public routes (/,/login,/register)</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">Core CRM (leads/bookings/etc.)</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">Finance</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">Org &amp; Control Room</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">Reports</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">Audit + Status + Sentinel</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">Investor Dashboard</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 12px; color:var(--text-secondary);">/owner</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+          </tr>
+          <tr>
+            <td style="padding:7px 12px; color:var(--text-secondary);">/super-admin</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#525e74;">–</td>
+            <td style="text-align:center; color:#22c55e;">✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px; font-size:10px; color:var(--text-muted);">
+      Note: Demo mode acts as R3_SALES_MANAGER — hides Investor, Audit Agent, System Status, and Sentinel from nav.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top:48px; padding-top:24px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div style="font-size:11px; color:var(--text-muted);">
+      <strong style="color:var(--text-secondary);">NAMA OS</strong> — Visual Sitemap v0.3.0
+      · Stack: Next.js 14 App Router · FastAPI (Railway) · Neon PostgreSQL · Vercel
+    </div>
+    <div style="font-size:11px; color:var(--text-muted);">
+      Generated 2026-04-20 · 43 routes · 10 sections
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ─── Tooltip on hover ───
+  const tooltip = document.getElementById('tooltip');
+  const ttTitle = document.getElementById('tt-title');
+  const ttPath = document.getElementById('tt-path');
+  const ttLinks = document.getElementById('tt-links');
+
+  document.querySelectorAll('.page-node').forEach(node => {
+    node.addEventListener('mouseenter', (e) => {
+      const title = node.dataset.title || '';
+      const path = node.dataset.path || '';
+      const desc = node.dataset.desc || '';
+      const links = node.dataset.links || '';
+
+      ttTitle.textContent = title;
+      ttPath.textContent = path;
+      ttLinks.innerHTML = (desc ? `<div style="margin-bottom:4px">${desc}</div>` : '') +
+        (links ? `<div style="margin-top:4px;color:#6366f1;">${links}</div>` : '');
+
+      tooltip.classList.add('visible');
+      positionTooltip(e);
+    });
+
+    node.addEventListener('mousemove', (e) => {
+      positionTooltip(e);
+    });
+
+    node.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  });
+
+  function positionTooltip(e) {
+    const margin = 14;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    let x = e.clientX + margin;
+    let y = e.clientY - th / 2;
+
+    if (x + tw > window.innerWidth - 10) x = e.clientX - tw - margin;
+    if (y < 10) y = 10;
+    if (y + th > window.innerHeight - 10) y = window.innerHeight - th - 10;
+
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  // ─── Click to highlight ───
+  document.querySelectorAll('.page-node').forEach(node => {
+    node.addEventListener('click', () => {
+      document.querySelectorAll('.page-node.active-node').forEach(n => n.classList.remove('active-node'));
+      node.classList.add('active-node');
+    });
+  });
+</script>
+</body>
+</html>

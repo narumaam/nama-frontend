@@ -318,6 +318,22 @@ app.include_router(calendar_reminders_router.router, prefix="/api/v1/calendar", 
 from app.api.v1 import sentinel as sentinel_router  # noqa: E402
 app.include_router(sentinel_router.router, prefix="/api/v1/sentinel", tags=["sentinel"])
 
+#   Subscription & Billing — plan management, proration, event log
+from app.api.v1 import billing as billing_api  # noqa: E402
+from app.api.v1 import admin_subscriptions as admin_subscriptions_router  # noqa: E402
+from app.models import billing as _billing_model  # noqa: F401
+app.include_router(billing_api.router,              prefix="/api/v1/billing",             tags=["billing"])
+app.include_router(admin_subscriptions_router.router, prefix="/api/v1/admin/subscriptions", tags=["admin-subscriptions"])
+
+#   Visa Intelligence — LLM-powered visa requirement checklists
+from app.api.v1 import visa as visa_router  # noqa: E402
+app.include_router(visa_router.router, prefix="/api/v1/visa", tags=["visa"])
+
+#   Holiday Packages — pre-packaged group tour products (M20)
+from app.api.v1 import holidays as holidays_router  # noqa: E402
+from app.models import holidays as _holidays_model  # noqa: F401
+app.include_router(holidays_router.router, prefix="/api/v1/holidays", tags=["holidays"])
+
 
 # ── Startup Event ─────────────────────────────────────────────────────────────
 @app.on_event("startup")

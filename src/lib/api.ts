@@ -552,16 +552,23 @@ export const clientsApi = {
 
 // Billing & Subscriptions
 export interface SubscriptionPlan {
-  id:            number
-  name:          string
-  slug:          string
-  price_monthly: number
-  price_yearly:  number
-  max_users:     number | null
-  max_leads:     number | null
-  features:      Record<string, boolean> | null
-  is_active:     boolean
-  sort_order:    number
+  id:                number
+  name:              string
+  slug:              string
+  price_monthly:     number
+  price_yearly:      number
+  price_monthly_usd: number | null
+  price_yearly_usd:  number | null
+  max_users:         number | null
+  max_leads:         number | null
+  features:          Record<string, boolean> | null
+  is_active:         boolean
+  sort_order:        number
+}
+
+export interface PlansResponse {
+  plans:             SubscriptionPlan[]
+  detected_currency: 'INR' | 'USD'
 }
 
 export interface TenantSubscription {
@@ -618,31 +625,35 @@ export interface AdminSubscriptionRow {
 }
 
 export interface PlanCreateData {
-  name:          string
-  slug:          string
-  price_monthly: number
-  price_yearly:  number
-  max_users?:    number | null
-  max_leads?:    number | null
-  features?:     Record<string, boolean> | null
-  is_active?:    boolean
-  sort_order?:   number
+  name:              string
+  slug:              string
+  price_monthly:     number
+  price_yearly:      number
+  price_monthly_usd?: number | null
+  price_yearly_usd?:  number | null
+  max_users?:        number | null
+  max_leads?:        number | null
+  features?:         Record<string, boolean> | null
+  is_active?:        boolean
+  sort_order?:       number
 }
 
 export interface PlanUpdateData {
-  name?:          string
-  price_monthly?: number
-  price_yearly?:  number
-  max_users?:     number | null
-  max_leads?:     number | null
-  features?:      Record<string, boolean> | null
-  is_active?:     boolean
-  sort_order?:    number
+  name?:              string
+  price_monthly?:     number
+  price_yearly?:      number
+  price_monthly_usd?: number | null
+  price_yearly_usd?:  number | null
+  max_users?:         number | null
+  max_leads?:         number | null
+  features?:          Record<string, boolean> | null
+  is_active?:         boolean
+  sort_order?:        number
 }
 
 export const billingApi = {
   getPlans: () =>
-    api.get<SubscriptionPlan[]>('/api/v1/billing/plans'),
+    api.get<PlansResponse>('/api/v1/billing/plans'),
 
   createPlan: (data: PlanCreateData) =>
     api.post<SubscriptionPlan>('/api/v1/billing/plans', data),

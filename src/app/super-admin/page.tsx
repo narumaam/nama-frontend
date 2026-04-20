@@ -15,7 +15,7 @@ import {
   Building2, Users, Activity, Loader, AlertTriangle, Plus, RefreshCw,
   Search, CheckCircle2, XCircle, ChevronDown, ChevronUp,
   Shield, Zap, MoreHorizontal, Eye, Pause, Trash2,
-  Globe, Key, BarChart2, ArrowLeft,
+  Globe, Key, BarChart2, ArrowLeft, CreditCard,
 } from 'lucide-react'
 
 interface PlatformStats {
@@ -424,11 +424,12 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Quick links */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Owner Dashboard',  icon: Shield,     href: '/owner',            color: '#14B8A6', desc: 'Platform revenue & health' },
-            { label: 'Module Status',    icon: BarChart2,  href: '/dashboard/status', color: '#3B82F6', desc: '19-module completion tracker' },
-            { label: 'Platform Reports', icon: XCircle,    href: '/dashboard/reports',color: '#8B5CF6', desc: 'Analytics & usage reports' },
+            { label: 'Owner Dashboard',       icon: Shield,      href: '/owner',                color: '#14B8A6', desc: 'Platform revenue & health' },
+            { label: 'Subscription Admin',     icon: CreditCard,  href: '/owner/subscriptions',  color: '#F97316', desc: 'Manage tenant plans & billing' },
+            { label: 'Module Status',          icon: BarChart2,   href: '/dashboard/status',     color: '#3B82F6', desc: '19-module completion tracker' },
+            { label: 'Platform Reports',       icon: XCircle,     href: '/dashboard/reports',    color: '#8B5CF6', desc: 'Analytics & usage reports' },
           ].map(a => (
             <Link key={a.label} href={a.href} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-md transition-all group">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `${a.color}15` }}>

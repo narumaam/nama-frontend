@@ -1187,29 +1187,140 @@ function TabTeam() {
 
 // ─── Tab: Subscription & Usage ────────────────────────────────────────────────
 
+// Fallback plan data used when API is unavailable
+const PLANS_FALLBACK = [
+  {
+    id: 1, slug: 'starter', name: 'Starter', price: '₹4,999', price_monthly: 4999, period: '/mo',
+    features: ['1 seat', '50 AI leads/mo', 'M1–M9 modules', 'Email support'],
+    highlight: false,
+  },
+  {
+    id: 2, slug: 'growth', name: 'Growth', price: '₹14,999', price_monthly: 14999, period: '/mo',
+    features: ['5 seats', '200 AI leads/mo', 'M1–M13 modules', 'Vendor registry', 'Priority support'],
+    highlight: false,
+  },
+  {
+    id: 3, slug: 'scale', name: 'Scale', price: '₹39,999', price_monthly: 39999, period: '/mo',
+    features: ['15 seats', 'Unlimited leads', 'All M1–M19 modules', 'White-label portal', 'BYOK recommended', 'Dedicated CSM'],
+    highlight: true,
+  },
+]
+
 function TabSubscription() {
   const maxCalls = MAX_CALLS
 
-  const PLANS = [
-    {
-      id: 'starter', name: 'Starter', price: '₹4,999', period: '/mo',
-      features: ['1 seat', '50 AI leads/mo', 'M1–M9 modules', 'Email support'],
-      current: false,
-      highlight: false,
-    },
-    {
-      id: 'growth', name: 'Growth', price: '₹14,999', period: '/mo',
-      features: ['5 seats', '200 AI leads/mo', 'M1–M13 modules', 'Vendor registry', 'Priority support'],
-      current: true,
-      highlight: false,
-    },
-    {
-      id: 'scale', name: 'Scale', price: '₹39,999', period: '/mo',
-      features: ['15 seats', 'Unlimited leads', 'All M1–M19 modules', 'White-label portal', 'BYOK recommended', 'Dedicated CSM'],
-      current: false,
-      highlight: true,
-    },
-  ]
+  const [plans, setPlans] = React.useState(PLANS_FALLBACK)
+  const [subscription, setSubscription] = React.useState<{
+    plan_id: number; plan_name: string; status: string; billing_cycle: string; current_period_end?: string | null
+  } | null>(null)
+  const [plansLoading, setPlansLoading] = React.useState(true)
+  const [pricingCurrency, setPricingCurrency] = React.useState<'INR' | 'USD'>('INR')
+
+  // Proration modal state
+  const [prorationTarget, setProrationTarget] = React.useState<{ planId: number; cycle: 'monthly' | 'yearly' } | null>(null)
+  const [proration, setProration] = React.useState<{
+    current_plan_name: string; new_plan_name: string; net_charge: number; credit: number; is_upgrade: boolean; days_remaining: number
+  } | null>(null)
+  const [prorationLoading, setProrationLoading] = React.useState(false)
+  const [planChanging, setPlanChanging] = React.useState(false)
+  const [planChangeSuccess, setPlanChangeSuccess] = React.useState(false)
+
+  React.useEffect(() => {
+    // Detect currency based on user location
+    import('@/lib/geo-currency').then(({ detectPricingCurrency }) => {
+      detectPricingCurrency().then(setPricingCurrency)
+    })
+  }, [])
+
+  React.useEffect(() => {
+    let cancelled = false
+    async function loadPlans() {
+      setPlansLoading(true)
+      try {
+        const { billingApi } = await import('@/lib/api')
+        const [plansResponse, sub] = await Promise.all([
+          billingApi.getPlans(),
+          billingApi.getSubscription(),
+        ])
+        // billingApi.getPlans() may return an array or a PlansResponse object
+        const apiPlans = Array.isArray(plansResponse)
+          ? plansResponse
+          : (plansResponse as { plans?: typeof PLANS_FALLBACK }).plans ?? plansResponse
+        if (cancelled) return
+        if (apiPlans && Array.isArray(apiPlans) && apiPlans.length > 0) {
+          setPlans(apiPlans.map((p: { id: number; slug: string; name: string; price_monthly: number; price_monthly_usd?: number | null; sort_order: number; features?: Record<string, boolean> | null }) => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.name,
+            price: '₹' + p.price_monthly.toLocaleString('en-IN'),
+            price_monthly: p.price_monthly,
+            price_monthly_usd: p.price_monthly_usd ?? null,
+            period: '/mo',
+            features: Object.entries(p.features ?? {}).filter(([, v]) => v).map(([k]) => k).slice(0, 6),
+            highlight: p.sort_order >= 3,
+          })))
+        }
+        if (sub) {
+          setSubscription({
+            plan_id: sub.plan_id,
+            plan_name: sub.plan?.name ?? 'Growth',
+            status: sub.status,
+            billing_cycle: sub.billing_cycle,
+            current_period_end: sub.current_period_end,
+          })
+        }
+      } catch {
+        // Keep fallback data
+      } finally {
+        if (!cancelled) setPlansLoading(false)
+      }
+    }
+    loadPlans()
+    return () => { cancelled = true }
+  }, [])
+
+  const currentPlanId = subscription?.plan_id ?? 2
+
+  async function openProration(planId: number, cycle: 'monthly' | 'yearly') {
+    setProrationTarget({ planId, cycle })
+    setProration(null)
+    setProrationLoading(true)
+    try {
+      const { billingApi } = await import('@/lib/api')
+      const preview = await billingApi.previewProration(planId, cycle)
+      setProration(preview)
+    } catch {
+      setProration({
+        current_plan_name: subscription?.plan_name ?? 'Growth',
+        new_plan_name: plans.find(p => p.id === planId)?.name ?? '',
+        net_charge: 0,
+        credit: 0,
+        is_upgrade: planId > currentPlanId,
+        days_remaining: 15,
+      })
+    } finally {
+      setProrationLoading(false)
+    }
+  }
+
+  async function confirmPlanChange() {
+    if (!prorationTarget) return
+    setPlanChanging(true)
+    try {
+      const { billingApi } = await import('@/lib/api')
+      await billingApi.changePlan(prorationTarget.planId, prorationTarget.cycle)
+      setPlanChangeSuccess(true)
+      setTimeout(() => {
+        setProrationTarget(null)
+        setProration(null)
+        setPlanChangeSuccess(false)
+      }, 2000)
+    } catch { /* no-op */ } finally {
+      setPlanChanging(false)
+    }
+  }
+
+  const PLANS = plans
 
   const USAGE_BARS = [
     { label: 'Seats', used: 4, total: 5, unit: 'seats', color: 'bg-teal-400' },
@@ -1217,8 +1328,84 @@ function TabSubscription() {
     { label: 'Storage', used: 2.1, total: 10, unit: 'GB', color: 'bg-violet-400' },
   ]
 
+  const currentPlan = plans.find(p => p.id === currentPlanId) ?? plans[1]
+  const statusColors: Record<string, string> = {
+    active: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    trial:  'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    cancelled: 'bg-red-500/20 text-red-300 border-red-500/30',
+  }
+  const statusLabel = subscription?.status ?? 'active'
+
   return (
     <div className="space-y-6">
+
+      {/* Proration confirmation modal */}
+      {prorationTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h2 className="font-black text-[#0F172A]">Confirm Plan Change</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {planChangeSuccess && (
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-bold">
+                  <CheckCircle size={14} /> Plan changed successfully!
+                </div>
+              )}
+              {prorationLoading ? (
+                <div className="flex items-center justify-center py-8 text-slate-400">
+                  <Loader2 size={20} className="animate-spin mr-2" /> Calculating proration…
+                </div>
+              ) : proration && (
+                <>
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Current plan</span>
+                      <span className="font-bold text-slate-700">{proration.current_plan_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">New plan</span>
+                      <span className="font-bold text-slate-700">{proration.new_plan_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Days remaining</span>
+                      <span className="font-bold text-slate-700">{proration.days_remaining}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Credit</span>
+                      <span className="font-bold text-emerald-600">₹{Math.abs(proration.credit).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="border-t border-slate-200 pt-2 flex justify-between">
+                      <span className="font-black text-[#0F172A]">{proration.is_upgrade ? 'Amount due now' : 'Refund credit'}</span>
+                      <span className={`font-black ${proration.is_upgrade ? 'text-[#14B8A6]' : 'text-emerald-600'}`}>
+                        ₹{Math.abs(proration.net_charge).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {proration.is_upgrade ? 'Upgrade takes effect immediately.' : 'Downgrade takes effect at next billing cycle.'}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="flex gap-3 px-6 pb-6">
+              <button
+                onClick={() => { setProrationTarget(null); setProration(null) }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-black border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmPlanChange}
+                disabled={planChanging || prorationLoading || planChangeSuccess}
+                className="flex-1 py-2.5 rounded-xl text-sm font-black bg-[#14B8A6] text-[#0F172A] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              >
+                {planChanging ? <><Loader2 size={14} className="animate-spin" /> Changing…</> : 'Confirm Change'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Current Plan Card */}
       <div className="bg-[#0F172A] rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1228,12 +1415,27 @@ function TabSubscription() {
           </div>
           <div>
             <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-0.5">Current Plan</div>
-            <div className="text-2xl font-black">Growth Plan</div>
-            <div className="text-xs text-white/50 mt-0.5">5 seats · 200 AI leads/mo · Renews May 16, 2026</div>
+            <div className="text-2xl font-black flex items-center gap-2">
+              {currentPlan?.name ?? 'Growth'} Plan
+              {plansLoading && <Loader2 size={14} className="animate-spin text-white/40" />}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${statusColors[statusLabel] ?? statusColors.active}`}>
+                {statusLabel}
+              </span>
+              {subscription?.current_period_end && (
+                <span className="text-xs text-white/50">
+                  Renews {new Date(subscription.current_period_end).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              )}
+              {!subscription?.current_period_end && (
+                <span className="text-xs text-white/50">5 seats · 200 AI leads/mo · Renews May 16, 2026</span>
+              )}
+            </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-black text-[#14B8A6]">₹14,999</div>
+          <div className="text-3xl font-black text-[#14B8A6]">{currentPlan?.price ?? '₹14,999'}</div>
           <div className="text-xs text-white/40">/month</div>
           <div className="flex items-center gap-2 mt-2 justify-end">
             <button className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
@@ -1280,50 +1482,65 @@ function TabSubscription() {
 
       {/* Plan Comparison */}
       <div>
-        <h3 className="font-black text-[#0F172A] mb-4">Plans</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-black text-[#0F172A]">Plans</h3>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2.5 py-1 rounded-full">
+            {pricingCurrency === 'USD' ? 'Prices in $ USD' : 'Prices in ₹ INR'}
+          </span>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PLANS.map(plan => (
-            <div key={plan.id} className={`relative rounded-2xl p-6 border-2 transition-all ${
-              plan.highlight
-                ? 'border-[#0F172A] bg-[#0F172A] text-white'
-                : plan.current
-                ? 'border-[#14B8A6] bg-teal-50/40'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-            }`}>
-              {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#14B8A6] text-[#0F172A] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                  Recommended
-                </div>
-              )}
-              {plan.current && (
-                <div className="absolute -top-3 right-4 bg-[#14B8A6] text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">
-                  Current
-                </div>
-              )}
-              <div className={`text-[10px] font-black uppercase tracking-widest mb-2 ${plan.highlight ? 'text-white/40' : 'text-slate-400'}`}>
-                {plan.name}
-              </div>
-              <div className={`text-3xl font-black mb-0.5 ${plan.highlight ? 'text-white' : 'text-[#0F172A]'}`}>
-                {plan.price}
-              </div>
-              <div className={`text-xs mb-4 ${plan.highlight ? 'text-white/40' : 'text-slate-400'}`}>{plan.period}</div>
-              <ul className="space-y-2 mb-5">
-                {plan.features.map(f => (
-                  <li key={f} className={`text-xs flex items-start gap-2 ${plan.highlight ? 'text-white/70' : 'text-slate-600'}`}>
-                    <CheckCircle size={11} className="mt-0.5 flex-shrink-0 text-[#14B8A6]" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button disabled={plan.current} className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                plan.highlight ? 'bg-[#14B8A6] text-[#0F172A] hover:opacity-90'
-                  : plan.current ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  : 'border-2 border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white'
+          {PLANS.map(plan => {
+            const isCurrent = plan.id === currentPlanId
+            const isUpgrade = plan.id > currentPlanId
+            return (
+              <div key={plan.id} className={`relative rounded-2xl p-6 border-2 transition-all ${
+                plan.highlight
+                  ? 'border-[#0F172A] bg-[#0F172A] text-white'
+                  : isCurrent
+                  ? 'border-[#14B8A6] bg-teal-50/40'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
               }`}>
-                {plan.current ? 'Current Plan' : 'Upgrade'}
-              </button>
-            </div>
-          ))}
+                {plan.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#14B8A6] text-[#0F172A] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                    Recommended
+                  </div>
+                )}
+                {isCurrent && (
+                  <div className="absolute -top-3 right-4 bg-[#14B8A6] text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">
+                    Current
+                  </div>
+                )}
+                <div className={`text-[10px] font-black uppercase tracking-widest mb-2 ${plan.highlight ? 'text-white/40' : 'text-slate-400'}`}>
+                  {plan.name}
+                </div>
+                <div className={`text-3xl font-black mb-0.5 ${plan.highlight ? 'text-white' : 'text-[#0F172A]'}`}>
+                  {pricingCurrency === 'USD' && (plan as { price_monthly_usd?: number | null }).price_monthly_usd != null
+                    ? `$${(plan as { price_monthly_usd: number }).price_monthly_usd.toLocaleString()}`
+                    : plan.price}
+                </div>
+                <div className={`text-xs mb-4 ${plan.highlight ? 'text-white/40' : 'text-slate-400'}`}>{plan.period}</div>
+                <ul className="space-y-2 mb-5">
+                  {plan.features.map(f => (
+                    <li key={f} className={`text-xs flex items-start gap-2 ${plan.highlight ? 'text-white/70' : 'text-slate-600'}`}>
+                      <CheckCircle size={11} className="mt-0.5 flex-shrink-0 text-[#14B8A6]" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  disabled={isCurrent}
+                  onClick={() => openProration(plan.id, subscription?.billing_cycle as 'monthly' | 'yearly' ?? 'monthly')}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                    plan.highlight ? 'bg-[#14B8A6] text-[#0F172A] hover:opacity-90'
+                      : isCurrent ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      : 'border-2 border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white'
+                  }`}
+                >
+                  {isCurrent ? 'Current Plan' : isUpgrade ? 'Upgrade' : 'Downgrade'}
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
 
