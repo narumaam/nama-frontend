@@ -693,7 +693,7 @@ export default function OwnerPlansPage() {
       ])
 
       // Sort by sort_order
-      const sorted = [...plansData].sort((a, b) => a.sort_order - b.sort_order)
+      const sorted = [...plansData.plans].sort((a, b) => a.sort_order - b.sort_order)
       setPlans(sorted.length ? sorted : SEED_PLANS)
 
       // Compute subscriber counts per plan
@@ -710,7 +710,7 @@ export default function OwnerPlansPage() {
         setSubCounts(SEED_SUB_COUNTS)
       }
 
-      setUseSeed(!plansData.length)
+      setUseSeed(!plansData.plans.length)
     } catch {
       setPlans(SEED_PLANS)
       setSubCounts(SEED_SUB_COUNTS)

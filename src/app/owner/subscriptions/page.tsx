@@ -340,7 +340,8 @@ export default function OwnerSubscriptionsPage() {
         const [s] = await Promise.all([summRes.json()])
         setSummary(s)
         setRows(rowsRes)
-        setPlans(plansData.length ? plansData : SEED_PLANS)
+        const plans = Array.isArray(plansData) ? plansData : plansData.plans
+        setPlans(plans.length ? plans : SEED_PLANS)
         setUseSeed(false)
       } else {
         throw new Error('backend-unreachable')

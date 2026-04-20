@@ -1245,10 +1245,10 @@ function TabSubscription() {
         // billingApi.getPlans() may return an array or a PlansResponse object
         const apiPlans = Array.isArray(plansResponse)
           ? plansResponse
-          : (plansResponse as { plans?: typeof PLANS_FALLBACK }).plans ?? plansResponse
+          : (plansResponse as unknown as { plans?: typeof PLANS_FALLBACK }).plans ?? plansResponse
         if (cancelled) return
         if (apiPlans && Array.isArray(apiPlans) && apiPlans.length > 0) {
-          setPlans(apiPlans.map((p: { id: number; slug: string; name: string; price_monthly: number; price_monthly_usd?: number | null; sort_order: number; features?: Record<string, boolean> | null }) => ({
+          setPlans((apiPlans as unknown as Array<{ id: number; slug: string; name: string; price_monthly: number; price_monthly_usd?: number | null; sort_order: number; features?: Record<string, boolean> | null }>).map((p) => ({
             id: p.id,
             slug: p.slug,
             name: p.name,
@@ -1514,8 +1514,8 @@ function TabSubscription() {
                   {plan.name}
                 </div>
                 <div className={`text-3xl font-black mb-0.5 ${plan.highlight ? 'text-white' : 'text-[#0F172A]'}`}>
-                  {pricingCurrency === 'USD' && (plan as { price_monthly_usd?: number | null }).price_monthly_usd != null
-                    ? `$${(plan as { price_monthly_usd: number }).price_monthly_usd.toLocaleString()}`
+                  {pricingCurrency === 'USD' && (plan as unknown as { price_monthly_usd?: number | null }).price_monthly_usd != null
+                    ? `$${(plan as unknown as { price_monthly_usd: number }).price_monthly_usd.toLocaleString()}`
                     : plan.price}
                 </div>
                 <div className={`text-xs mb-4 ${plan.highlight ? 'text-white/40' : 'text-slate-400'}`}>{plan.period}</div>

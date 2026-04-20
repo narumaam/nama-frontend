@@ -25,6 +25,18 @@
       "destination": "/api/v1/capture/:path*"
     },
     {
+      "source": "/api/v1/leads/:path*",
+      "destination": "https://intuitive-blessing-production-30de.up.railway.app/api/v1/leads/:path*"
+    },
+    {
+      "source": "/api/v1/bookings/:path*",
+      "destination": "https://intuitive-blessing-production-30de.up.railway.app/api/v1/bookings/:path*"
+    },
+    {
+      "source": "/api/v1/quotations",
+      "destination": "https://intuitive-blessing-production-30de.up.railway.app/api/v1/quotations"
+    },
+    {
       "source": "/api/v1/:path*",
       "destination": "https://intuitive-blessing-production-30de.up.railway.app/api/v1/:path*"
     },
