@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Map, Briefcase, MessageSquare,
   CreditCard, FileText, Settings, Zap, X, Bell,
-  LogOut, Store, FileQuestion, Menu,
+  LogOut, Store, FileQuestion, Menu, Mail,
   Inbox, GitBranch, BarChart2, Plug, Activity, Play, ArrowRight, Radar, FolderOpen, ShieldCheck, TrendingUp,
   UserCheck, Contact, Building2, Shield, Calendar, Globe, Stamp, Sun, Moon, FileSignature, BrainCircuit, Palmtree,
 } from 'lucide-react';
@@ -137,6 +137,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     },
     {
       name: 'Comms', href: '/dashboard/comms', icon: MessageSquare,
+      roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
+    },
+    {
+      name: 'Email Templates', href: '/dashboard/email-templates', icon: Mail,
       roles: ['R0_NAMA_OWNER','R1_SUPER_ADMIN','R2_ORG_ADMIN','R3_SALES_MANAGER','R4_OPS_EXECUTIVE'],
     },
     {

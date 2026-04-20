@@ -728,3 +728,51 @@ export const billingApi = {
       billing_cycle: billingCycle,
     }),
 }
+
+
+// ── Email Templates API (M21) ─────────────────────────────────────────────────
+export interface EmailTemplate {
+  id:         number
+  tenant_id:  number | null
+  name:       string
+  category:   string
+  subject:    string
+  html_body:  string
+  text_body?: string
+  variables:  string[]
+  is_system:  boolean
+  is_active:  boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface EmailTemplateCreate {
+  name:      string
+  category:  string
+  subject:   string
+  html_body: string
+  text_body?: string
+  variables?: string[]
+}
+
+export interface EmailTemplateSendRequest {
+  to:        string
+  variables: Record<string, string>
+  reply_to?: string
+}
+
+export const emailTemplatesApi = {
+  list: (category?: string, isSystem?: boolean) => {
+    const q = new URLSearchParams()
+    if (category)            q.set('category', category)
+    if (isSystem !== undefined) q.set('is_system', String(isSystem))
+    return api.get<EmailTemplate[]>(`/api/v1/email-templates/?${q}`)
+  },
+  get:    (id: number) => api.get<EmailTemplate>(`/api/v1/email-templates/${id}`),
+  create: (data: EmailTemplateCreate) => api.post<EmailTemplate>('/api/v1/email-templates/', data),
+  update: (id: number, data: Partial<EmailTemplateCreate>) => api.put<EmailTemplate>(`/api/v1/email-templates/${id}`, data),
+  delete: (id: number) => api.delete(`/api/v1/email-templates/${id}`),
+  clone:  (id: number) => api.post<EmailTemplate>(`/api/v1/email-templates/${id}/clone`, {}),
+  send:   (id: number, data: EmailTemplateSendRequest) => api.post<{ok: boolean; to: string; subject: string}>(`/api/v1/email-templates/${id}/send`, data),
+  seed:   () => api.post<{seeded: number}>('/api/v1/email-templates/seed', {}),
+}

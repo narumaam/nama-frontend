@@ -322,6 +322,11 @@ app.include_router(sentinel_router.router, prefix="/api/v1/sentinel", tags=["sen
 from app.api.v1 import intentra as intentra_router  # noqa: E402
 app.include_router(intentra_router.router, prefix="/api/v1/intentra", tags=["intentra"])
 
+#   Email Templates — M21 tenant + system template library
+from app.api.v1 import email_templates as email_templates_router  # noqa: E402
+from app.models import email_template as _email_template_model  # noqa: F401
+app.include_router(email_templates_router.router, prefix="/api/v1/email-templates", tags=["email-templates"])
+
 #   Subscription & Billing — plan management, proration, event log
 from app.api.v1 import billing as billing_api  # noqa: E402
 from app.api.v1 import admin_subscriptions as admin_subscriptions_router  # noqa: E402
