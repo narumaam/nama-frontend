@@ -80,18 +80,18 @@ if sentry_dsn:
 #   Use create_all() for fast iteration during development.
 #   For testing migrations: alembic upgrade head (or downgrade/upgrade)
 #
-import app.models.auth        # noqa: F401
-import app.models.leads       # noqa: F401  (M2 — CRM)
-import app.models.vendors     # noqa: F401  (M6 — Vendor/Supplier)
-import app.models.itineraries # noqa: F401  (M8 — Itinerary)
-import app.models.bookings    # noqa: F401  (M7 — Booking)
-import app.models.payments    # noqa: F401  (HS-3)
-import app.models.ai_usage    # noqa: F401  (HS-4)
-import app.models.webhooks    # noqa: F401  (M19 — Inbound webhooks)
-import app.models.content     # noqa: F401  (M12 — Content library)
-import app.models.corporate   # noqa: F401  (M10 — Corporate / B2B2C)
-import app.models.portals     # noqa: F401  (M13 — Client portals)
-import app.models.clients     # noqa: F401  (M14 — Client / Contact database)
+from app.models import auth as _auth_model        # noqa: F401
+from app.models import leads as _leads_model       # noqa: F401  (M2 — CRM)
+from app.models import vendors as _vendors_model     # noqa: F401  (M6 — Vendor/Supplier)
+from app.models import itineraries as _itineraries_model # noqa: F401  (M8 — Itinerary)
+from app.models import bookings as _bookings_model    # noqa: F401  (M7 — Booking)
+from app.models import payments as _payments_model    # noqa: F401  (HS-3)
+from app.models import ai_usage as _ai_usage_model    # noqa: F401  (HS-4)
+from app.models import webhooks as _webhooks_model    # noqa: F401  (M19 — Inbound webhooks)
+from app.models import content as _content_model     # noqa: F401  (M12 — Content library)
+from app.models import corporate as _corporate_model   # noqa: F401  (M10 — Corporate / B2B2C)
+from app.models import portals as _portals_model     # noqa: F401  (M13 — Client portals)
+from app.models import clients as _clients_model     # noqa: F401  (M14 — Client / Contact database)
 
 # Import router modules that define their own ORM models
 # (Automation, AutomationRun, TenantInvite, ByokApiKey)
@@ -303,7 +303,7 @@ app.include_router(lead_capture_router.router, prefix="/api/v1/capture",      ta
 
 #   Per-tenant SMTP/IMAP Email Config
 from app.api.v1 import email_config as email_config_router  # noqa: E402
-import app.models.email_config  # noqa: F401
+from app.models import email_config as _email_config_model  # noqa: F401
 app.include_router(email_config_router.router, prefix="/api/v1/email-config",  tags=["email-config"])
 
 #   Facebook Lead Ads + Instagram DM social webhooks
