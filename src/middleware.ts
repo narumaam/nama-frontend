@@ -98,7 +98,6 @@ export const config = {
   // Protect all dashboard sub-routes, Kinetic command center, and internal portals
   // Also match root (/) so demo.getnama.app hostname redirect fires on landing
   matcher: [
-    '/',
     '/dashboard',
     '/dashboard/:path*',
     '/kinetic',
