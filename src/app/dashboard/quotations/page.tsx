@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { leadsApi, itinerariesApi, quotationsApi, paymentsApi, Lead, ItineraryOut, Quotation } from '@/lib/api'
+import { clearDynamixQuotationDraft, loadDynamixQuotationDraft } from '@/lib/dynamix-handoff'
 import {
   FileText, Plus, Loader, AlertCircle, CheckCircle,
   Clock, Send, Download, Eye, X, ChevronRight, ChevronDown,
@@ -354,6 +355,22 @@ export default function QuotationsPage() {
   const [sendResult, setSendResult] = useState<{ ok: boolean; text: string } | null>(null)
 
   useEffect(() => { loadData() }, [])
+
+  useEffect(() => {
+    const draft = loadDynamixQuotationDraft()
+    if (!draft) return
+
+    setForm((prev) => ({
+      ...prev,
+      lead_name: draft.lead_name || prev.lead_name,
+      destination: draft.destination || prev.destination,
+      base_price: draft.base_price || prev.base_price,
+      margin_pct: draft.margin_pct || prev.margin_pct,
+      notes: draft.notes || prev.notes,
+    }))
+    setShowNew(true)
+    clearDynamixQuotationDraft()
+  }, [])
 
   // Fetch pricing benchmark when a row is expanded
   useEffect(() => {
