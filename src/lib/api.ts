@@ -451,10 +451,10 @@ export const quotationsApi = {
     if (params?.status) q.set('status', params.status)
     if (params?.page)   q.set('page',   String(params.page))
     if (params?.size)   q.set('size',   String(params.size))
-    return api.get<{ items: Quotation[]; total: number; page: number; size: number }>(`/api/v1/quotations/?${q}`)
+    return api.get<{ items: Quotation[]; total: number; page: number; size: number }>(`/api/v1/quotations?${q}`)
   },
   get: (id: number) => api.get<Quotation>(`/api/v1/quotations/${id}`),
-  create: (data: QuotationCreate) => api.post<Quotation>('/api/v1/quotations/', data),
+  create: (data: QuotationCreate) => api.post<Quotation>('/api/v1/quotations', data),
   update: (id: number, data: Partial<QuotationCreate> & { status?: string }) =>
     api.patch<Quotation>(`/api/v1/quotations/${id}`, data),
   send: (id: number) => api.post<Quotation>(`/api/v1/quotations/${id}/send`, {}),
