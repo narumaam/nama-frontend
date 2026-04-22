@@ -38,6 +38,14 @@ const PASSWORD_RULES = [
   { label: 'One special character', rule: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ]
 
+function buildOrgCode(companyName: string) {
+  const base = (companyName || 'NAMA')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 6) || 'NAMA'
+  return `${base}${Date.now().toString().slice(-6)}`
+}
+
 function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -161,9 +169,10 @@ function RegisterPage() {
       } else {
         // Step 1: register org → get tenant_id
         const orgRes = await authApi.registerOrg({
-          organization_name: form.companyName,
-          admin_email:       form.email,
-          admin_password:    form.password,
+          name:          form.companyName,
+          type:          'L3_TRAVEL_CO',
+          org_code:      buildOrgCode(form.companyName),
+          base_currency: 'INR',
         })
 
         // Step 2: register admin user under that tenant
@@ -172,7 +181,7 @@ function RegisterPage() {
           password:  form.password,
           full_name: form.fullName,
           role:      'R2_ORG_ADMIN',
-          tenant_id: orgRes.tenant_id,
+          tenant_id: orgRes.id,
         })
       }
 

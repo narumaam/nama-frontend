@@ -260,8 +260,8 @@ export const authApi = {
     }
     return res.json()
   },
-  registerOrg: (data: {organization_name: string; admin_email: string; admin_password: string}) =>
-    api.post<{tenant_id: number; access_token: string}>('/api/v1/tenants/register-org', data),
+  registerOrg: (data: {name: string; type: string; org_code: string; base_currency?: string}) =>
+    api.post<{id: number; name: string; type: string; org_code: string; base_currency: string; status: string}>('/api/v1/tenants/register-org', data),
   registerUser: (data: {email: string; password: string; full_name: string; role: string; tenant_id: number}) =>
     api.post<{access_token: string; user_id: number}>('/api/v1/register-user', data),
 }

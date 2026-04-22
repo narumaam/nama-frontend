@@ -37,13 +37,21 @@ if not SECRET_KEY:
 if not REFRESH_SECRET_KEY:
     REFRESH_SECRET_KEY = secrets.token_hex(32)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt", "pbkdf2_sha256"],
+    deprecated="auto",
+)
 
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    try:
+        return pwd_context.hash(plain, scheme="bcrypt")
+    except Exception:
+        # Fallback so registration still works if the bcrypt backend is unhealthy
+        # in a given deployment environment.
+        return pwd_context.hash(plain, scheme="pbkdf2_sha256")
 
 
 def verify_password(plain: str, hashed: str) -> bool:

@@ -17,6 +17,7 @@ Acceptance Gate (HS-1):
 from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
 
 from app.db.session import get_db
@@ -209,34 +210,49 @@ def register_user(
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
+    from app.models.auth import Tenant as TenantModel
+    tenant = db.query(TenantModel).filter(TenantModel.id == payload.tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+
     from app.models.auth import UserRole
     try:
         role_enum = UserRole(payload.role)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid role: {payload.role}")
 
-    new_user = User(
-        email=payload.email,
-        hashed_password=hash_password(payload.password),
-        full_name=payload.full_name,
-        tenant_id=payload.tenant_id,
-        role=role_enum,
-        is_active=True,
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        new_user = User(
+            email=payload.email,
+            hashed_password=hash_password(payload.password),
+            full_name=payload.full_name,
+            tenant_id=payload.tenant_id,
+            role=role_enum,
+            is_active=True,
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not create user account",
+        ) from exc
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="User registration failed",
+        ) from exc
 
     # Fire Day 0 drip email — best-effort, never blocks registration
     try:
         from app.api.v1.onboarding import _send_drip_email
-        tenant = db.query(User).filter(User.id == new_user.id).first()
         agency_name = "Your Agency"
         try:
-            from app.models.auth import Tenant as TenantModel
-            tenant_row = db.query(TenantModel).filter(TenantModel.id == new_user.tenant_id).first()
-            if tenant_row:
-                agency_name = tenant_row.name
+            if tenant:
+                agency_name = tenant.name
         except Exception:
             pass
         _send_drip_email(new_user.email, new_user.full_name or new_user.email, agency_name, day=0)
@@ -246,13 +262,13 @@ def register_user(
     access_token = create_access_token(
         user_id=new_user.id,
         tenant_id=new_user.tenant_id,
-        role=payload.role,
+        role=role_enum.value,
         email=new_user.email,
     )
     refresh_token = create_refresh_token(
         user_id=new_user.id,
         tenant_id=new_user.tenant_id,
-        role=payload.role,
+        role=role_enum.value,
         email=new_user.email,
     )
     _set_refresh_cookie(response, refresh_token)
@@ -261,7 +277,7 @@ def register_user(
         access_token=access_token,
         user_id=new_user.id,
         tenant_id=new_user.tenant_id,
-        role=payload.role,
+        role=role_enum.value,
         email=new_user.email,
     )
 
