@@ -678,7 +678,7 @@ export const documentsApi = {
 
 // Payments — Razorpay payment links
 export const paymentsApi = {
-  createLink: (data: { quotation_id: number; amount: number; description: string; currency?: string }) =>
+  createLink: (data: { quotation_id: number; amount: number; description: string; currency?: string; booking_id?: number; lead_id?: number }) =>
     api.post<{ payment_link_url: string; payment_link_id: string; demo?: boolean }>('/api/v1/payments/create-link', data),
 }
 

@@ -43,25 +43,29 @@ export default function DynamixApprovalPage() {
     setCreatingLink(true)
     setApprovalError('')
     try {
+      const bookingId = workflow.meta?.crm?.bookingId || bookingState?.id
+      const leadId = crm.leadId || handoff?.lead_id
       const amount = Number(String(advanceDue).replace(/[^0-9.]/g, '')) || Math.round((Number(String(workflow.selectedHoliday.price).replace(/[^0-9.]/g, '')) || 0) * 0.25)
       const data = await paymentsApi.createLink({
         quotation_id: Number(workflow.quote.quoteId),
         amount,
         description: `Deposit for ${workflow.selectedHoliday.title}`,
         currency: 'INR',
+        booking_id: bookingId ? Number(bookingId) : undefined,
+        lead_id: leadId ? Number(leadId) : undefined,
       })
 
       setPaymentState(data)
-      if (crm.leadId || handoff?.lead_id) {
+      if (leadId) {
         leadsApi
-          .update(Number(crm.leadId || handoff?.lead_id), {
+          .update(Number(leadId), {
             status: 'NEGOTIATING',
           })
           .catch(() => null)
         leadsApi
-          .addNote(Number(crm.leadId || handoff?.lead_id), {
+          .addNote(Number(leadId), {
             author: 'Dynamix',
-            content: `Payment link created for quotation #${workflow.quote.quoteId} for ${workflow.selectedHoliday.title}. Advance requested: ${amount} ${data.demo ? '(demo link)' : ''}`.trim(),
+            content: `Payment link created for quotation #${workflow.quote.quoteId}${bookingId ? ` and booking #${bookingId}` : ''} for ${workflow.selectedHoliday.title}. Advance requested: ${amount} ${data.demo ? '(demo link)' : ''}`.trim(),
           })
           .catch(() => null)
       }

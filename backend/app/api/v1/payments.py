@@ -11,6 +11,7 @@ HS-3 Acceptance Gates wired here:
 import os
 import json
 import requests as _requests
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -28,6 +29,58 @@ from app.core.payments import (
 from app.core.rls import tenant_query
 
 router = APIRouter()
+
+
+def _post_payment_success(db: Session, booking_id: int, tenant_id: int, provider_ref: Optional[str] = None) -> None:
+    """
+    Shared post-payment automation once a booking has been successfully paid.
+    Keeps this logic in one place so Stripe, Razorpay, and any future provider
+    can advance the same lifecycle.
+    """
+    from app.models.bookings import Booking as BookingModel
+    from app.models.leads import Lead
+    from app.schemas.bookings import BookingStatus
+    from app.schemas.leads import LeadStatus
+
+    booking = db.query(BookingModel).filter(
+        BookingModel.id == booking_id,
+        BookingModel.tenant_id == tenant_id,
+    ).first()
+    if not booking:
+        return
+
+    booking.status = BookingStatus.CONFIRMED.value
+
+    lead = db.query(Lead).filter(
+        Lead.id == booking.lead_id,
+        Lead.tenant_id == tenant_id,
+    ).first()
+    if lead:
+        lead.status = LeadStatus.WON.value
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        booking_ref = f"BK-{booking.id:05d}"
+        note = (
+            f"[NAMA NOTE] {now_str} | Payments Automation | "
+            f"Payment captured for {booking_ref}"
+            + (f" ({provider_ref})" if provider_ref else "")
+            + ". Booking confirmed and packet delivery triggered."
+        )
+        lead.notes = f"{(lead.notes or '').strip()}\n\n{note}".strip() if lead.notes else note
+        lead.won_at = lead.won_at or datetime.now(timezone.utc)
+        lead.updated_at = datetime.now(timezone.utc)
+
+    try:
+        from app.api.v1.documents import deliver_booking_packet
+        deliver_booking_packet(
+            db=db,
+            tenant_id=tenant_id,
+            booking_id=booking.id,
+            quotation_id=None,
+            email=getattr(lead, "email", None) if lead else None,
+            whatsapp=getattr(lead, "phone", None) if lead else None,
+        )
+    except Exception as exc:
+        print(f"[PAYMENTS AUTOMATION] packet delivery failed for booking {booking.id}: {exc}")
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -151,7 +204,6 @@ def _handle_stripe_event(event_db_id: int, payload: dict) -> None:
     db = sessionmaker(bind=engine)()
     try:
         from app.models.payments import WebhookEvent
-        from datetime import datetime, timezone
 
         event_type = payload.get("type", "")
         data = payload.get("data", {}).get("object", {})
@@ -178,6 +230,7 @@ def _handle_stripe_event(event_db_id: int, payload: dict) -> None:
                     description=f"Stripe payment confirmed: {provider_ref}",
                     reference=provider_ref,
                 ))
+                _post_payment_success(db, payment.booking_id, payment.tenant_id, provider_ref)
 
         elif event_type == "payment_intent.payment_failed":
             provider_ref = data.get("id")
@@ -265,14 +318,29 @@ def _handle_razorpay_event(event_db_id: int, payload: dict) -> None:
         event_type = payload.get("event", "")
         payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
         provider_ref = payment_data.get("id")
+        notes = payment_data.get("notes", {}) or {}
+        tenant_id_from_notes = notes.get("tenant_id")
+        booking_id_from_notes = notes.get("booking_id")
 
         payment = db.query(Payment).filter(Payment.provider_ref == provider_ref).first()
+        if not payment and booking_id_from_notes and tenant_id_from_notes:
+            payment = (
+                db.query(Payment)
+                .filter(
+                    Payment.booking_id == int(booking_id_from_notes),
+                    Payment.tenant_id == int(tenant_id_from_notes),
+                )
+                .order_by(Payment.created_at.desc())
+                .first()
+            )
+
         if payment:
             from app.models.bookings import Booking as BookingModel
             from app.schemas.bookings import BookingStatus
 
             if event_type == "payment.captured":
                 payment.status = PaymentStatus.COMPLETED
+                payment.provider_ref = provider_ref or payment.provider_ref
                 booking = db.query(BookingModel).filter(BookingModel.id == payment.booking_id).first()
                 if booking:
                     booking.status = BookingStatus.CONFIRMED.value
@@ -286,8 +354,10 @@ def _handle_razorpay_event(event_db_id: int, payload: dict) -> None:
                     description=f"Razorpay payment captured: {provider_ref}",
                     reference=provider_ref,
                 ))
+                _post_payment_success(db, payment.booking_id, payment.tenant_id, provider_ref)
             elif event_type == "payment.failed":
                 payment.status = PaymentStatus.FAILED
+                payment.provider_ref = provider_ref or payment.provider_ref
                 payment.failure_reason = payment_data.get("error_description", "Payment failed")
                 booking = db.query(BookingModel).filter(BookingModel.id == payment.booking_id).first()
                 if booking:
@@ -319,6 +389,8 @@ class CreatePaymentLinkRequest(BaseModel):
     amount: float         # in INR (will convert to paise)
     description: str
     currency: str = "INR"
+    booking_id: Optional[int] = None
+    lead_id: Optional[int] = None
 
 
 class PaymentLinkResponse(BaseModel):
@@ -364,12 +436,21 @@ def create_payment_link(
     if body.amount <= 0 or body.amount > float(quotation.total_price):
         raise HTTPException(status_code=400, detail="Requested payment amount is invalid")
 
+    booking_id = int(body.booking_id) if body.booking_id else None
+    lead_id = int(body.lead_id) if body.lead_id else quotation.lead_id
+
     payload = {
         "amount": int(min(body.amount, allowed_amount) * 100),   # paise
         "currency": body.currency,
         "description": body.description or f"Deposit for quotation #{quotation.id}",
         "callback_url": f"{_FRONTEND_URL}/dashboard/bookings",
         "callback_method": "get",
+        "notes": {
+            "tenant_id": str(tenant_id),
+            "quotation_id": str(body.quotation_id),
+            "lead_id": str(lead_id) if lead_id else "",
+            "booking_id": str(booking_id) if booking_id else "",
+        },
     }
     try:
         response = _requests.post(
@@ -380,6 +461,36 @@ def create_payment_link(
         )
         response.raise_for_status()
         data = response.json()
+        if booking_id:
+            payment = (
+                db.query(Payment)
+                .filter(
+                    Payment.booking_id == booking_id,
+                    Payment.tenant_id == tenant_id,
+                )
+                .order_by(Payment.created_at.desc())
+                .first()
+            )
+            if not payment:
+                payment = Payment(
+                    booking_id=booking_id,
+                    tenant_id=tenant_id,
+                    idempotency_key=f"rzp-link-{data['id']}",
+                    amount=min(body.amount, allowed_amount),
+                    currency=body.currency,
+                    provider=PaymentProvider.RAZORPAY,
+                    provider_ref=data["id"],
+                    status=PaymentStatus.PENDING,
+                )
+                db.add(payment)
+            else:
+                payment.amount = min(body.amount, allowed_amount)
+                payment.currency = body.currency
+                payment.provider = PaymentProvider.RAZORPAY
+                payment.provider_ref = data["id"]
+                payment.status = PaymentStatus.PENDING
+                payment.failure_reason = None
+            db.commit()
         return PaymentLinkResponse(
             payment_link_url=data["short_url"],
             payment_link_id=data["id"],

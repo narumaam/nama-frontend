@@ -1076,6 +1076,135 @@ def _send_whatsapp_packet_message(phone: str, client_name: str, booking_ref: str
         return {"success": False, "demo": False, "error": str(exc)}
 
 
+def deliver_booking_packet(
+    db: Session,
+    tenant_id: int,
+    booking_id: int,
+    quotation_id: Optional[int] = None,
+    email: Optional[str] = None,
+    whatsapp: Optional[str] = None,
+) -> dict:
+    booking, lead_name, destination, travel_dates, travelers = _fetch_booking_with_context(
+        db, booking_id, tenant_id
+    )
+    lead = db.query(Lead).filter(
+        Lead.id == booking.lead_id,
+        Lead.tenant_id == tenant_id,
+    ).first()
+
+    target_email = email or getattr(lead, "email", None)
+    target_whatsapp = whatsapp or getattr(lead, "phone", None) or getattr(lead, "sender_id", None)
+
+    invoice_html = _build_invoice_html(booking, lead_name, destination, travel_dates, travelers)
+    invoice_pdf = _generate_pdf_bytes(invoice_html)
+
+    from app.core.pdf_engine import generate_pdf as _generate_doc_pdf, DocumentType as _DT
+
+    booking_ref = f"BK-{booking.id:05d}"
+    ctx = {
+        "agency_name": "NAMA Travel",
+        "agency_email": "accounts@namatravel.com",
+        "currency": getattr(booking, "currency", "INR") or "INR",
+        "booking_ref": booking_ref,
+        "client_name": lead_name,
+        "destination": destination,
+        "travel_dates": travel_dates or "As arranged",
+        "pax": travelers or 1,
+        "hotel": getattr(booking, "hotel_name", "") or "",
+        "room_type": getattr(booking, "room_type", "Standard") or "Standard",
+        "meal_plan": getattr(booking, "meal_plan", "Bed & Breakfast") or "Bed & Breakfast",
+        "nights": getattr(booking, "nights", "—") or "—",
+        "total": float(getattr(booking, "total_price", 0) or 0),
+        "amount_paid": float(getattr(booking, "amount_paid", 0) or 0),
+        "balance_due": float(getattr(booking, "balance_due", 0) or 0),
+        "doc_date": datetime.now(timezone.utc).strftime("%d %b %Y"),
+        "inclusions": getattr(booking, "inclusions", "As per signed quotation.") or "As per signed quotation.",
+        "vendor_confirmation": getattr(booking, "vendor_confirmation_no", "PENDING") or "PENDING",
+    }
+    confirmation_pdf = _generate_doc_pdf(_DT.BOOKING_CONFIRMATION, {
+        **ctx,
+        "doc_number": f"BC-{booking.id:05d}",
+        "payment_due_date": ctx["doc_date"],
+    })
+    voucher_pdf = _generate_doc_pdf(_DT.VOUCHER, {
+        **ctx,
+        "doc_number": f"VCH-{booking.id:05d}",
+        "services": "Airport transfers, daily breakfast, guided city tour on Day 3. See full itinerary.",
+    })
+
+    if invoice_pdf is None or confirmation_pdf is None or voucher_pdf is None:
+        raise HTTPException(status_code=503, detail="Booking packet could not be generated.")
+
+    email_result = {"success": False, "demo": False, "error": "No email address available"}
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    if target_email:
+        if resend_api_key:
+            try:
+                import resend  # type: ignore
+                resend.api_key = resend_api_key
+                response = resend.Emails.send({
+                    "from": os.getenv("RESEND_FROM_EMAIL", "NAMA OS <quotes@namaos.com>"),
+                    "to": [target_email],
+                    "subject": f"Your booking documents are ready — {destination} ({booking_ref})",
+                    "html": f"""
+                    <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:620px;margin:0 auto">
+                      <div style="background:#0f172a;padding:24px 32px;border-radius:12px 12px 0 0">
+                        <div style="color:#14B8A6;font-weight:900;font-size:18px;letter-spacing:-0.5px">NAMA OS</div>
+                        <div style="color:#94a3b8;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Travel Intelligence Platform</div>
+                      </div>
+                      <div style="background:#f8fafc;padding:32px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0">
+                        <p style="margin:0 0 16px">Dear {html.escape(lead_name)},</p>
+                        <p style="margin:0 0 16px">Your live booking packet for <strong>{html.escape(destination or 'your trip')}</strong> is ready.</p>
+                        <p style="margin:0 0 16px">We’ve attached your invoice, booking confirmation, and voucher so your trip handoff stays seamless.</p>
+                        <p style="margin:0;font-size:13px;color:#475569">Booking ref: <strong>{booking_ref}</strong></p>
+                      </div>
+                    </div>""",
+                    "attachments": [
+                        {"filename": f"invoice-INV-{tenant_id:04d}-{booking.id:06d}.pdf", "content": base64.b64encode(invoice_pdf).decode("utf-8")},
+                        {"filename": f"booking-confirmation-{booking.id}.pdf", "content": base64.b64encode(confirmation_pdf).decode("utf-8")},
+                        {"filename": f"voucher-{booking.id}.pdf", "content": base64.b64encode(voucher_pdf).decode("utf-8")},
+                    ],
+                })
+                email_result = {
+                    "success": True,
+                    "demo": False,
+                    "message_id": response.get("id") if isinstance(response, dict) else getattr(response, "id", None),
+                }
+            except Exception as exc:
+                logger.exception("Booking packet email failed for booking %s", booking.id)
+                email_result = {"success": False, "demo": False, "error": str(exc)}
+        else:
+            email_result = {"success": True, "demo": True, "message_id": "demo_email_packet"}
+
+    whatsapp_result = _send_whatsapp_packet_message(target_whatsapp, lead_name, booking_ref, destination)
+
+    if lead:
+        existing = (lead.notes or "").strip()
+        note = (
+            f"[NAMA NOTE] {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} | Dynamix Automation | "
+            f"Booking packet delivery attempted for {booking_ref}. "
+            f"Email={'sent' if email_result.get('success') else 'not sent'}; "
+            f"WhatsApp={'sent' if whatsapp_result.get('success') else 'not sent'}."
+        )
+        lead.notes = f"{existing}\n\n{note}".strip() if existing else note
+        lead.updated_at = datetime.now(timezone.utc)
+        db.commit()
+
+    return {
+        "success": bool(email_result.get("success") or whatsapp_result.get("success")),
+        "booking_id": booking.id,
+        "quotation_id": quotation_id,
+        "delivery": {
+            "email": email_result,
+            "whatsapp": whatsapp_result,
+        },
+        "contacts": {
+            "email": target_email,
+            "whatsapp": target_whatsapp,
+        },
+    }
+
+
 @router.post(
     "/booking-packet",
     summary="Prepare the real booking document packet for a booking",
@@ -1186,125 +1315,14 @@ def send_booking_packet(
     Generates the live invoice, booking confirmation, and voucher, then attempts
     outbound delivery using the lead's email and WhatsApp number.
     """
-    booking, lead_name, destination, travel_dates, travelers = _fetch_booking_with_context(
-        db, body.booking_id, tenant_id
+    return deliver_booking_packet(
+        db=db,
+        tenant_id=tenant_id,
+        booking_id=body.booking_id,
+        quotation_id=body.quotation_id,
+        email=body.email,
+        whatsapp=body.whatsapp,
     )
-    lead = db.query(Lead).filter(
-        Lead.id == booking.lead_id,
-        Lead.tenant_id == tenant_id,
-    ).first()
-
-    target_email = body.email or getattr(lead, "email", None)
-    target_whatsapp = body.whatsapp or getattr(lead, "phone", None) or getattr(lead, "sender_id", None)
-
-    invoice_html = _build_invoice_html(booking, lead_name, destination, travel_dates, travelers)
-    invoice_pdf = _generate_pdf_bytes(invoice_html)
-
-    from app.core.pdf_engine import generate_pdf as _generate_doc_pdf, DocumentType as _DT
-
-    booking_ref = f"BK-{booking.id:05d}"
-    ctx = {
-        "agency_name": "NAMA Travel",
-        "agency_email": "accounts@namatravel.com",
-        "currency": getattr(booking, "currency", "INR") or "INR",
-        "booking_ref": booking_ref,
-        "client_name": lead_name,
-        "destination": destination,
-        "travel_dates": travel_dates or "As arranged",
-        "pax": travelers or 1,
-        "hotel": getattr(booking, "hotel_name", "") or "",
-        "room_type": getattr(booking, "room_type", "Standard") or "Standard",
-        "meal_plan": getattr(booking, "meal_plan", "Bed & Breakfast") or "Bed & Breakfast",
-        "nights": getattr(booking, "nights", "—") or "—",
-        "total": float(getattr(booking, "total_price", 0) or 0),
-        "amount_paid": float(getattr(booking, "amount_paid", 0) or 0),
-        "balance_due": float(getattr(booking, "balance_due", 0) or 0),
-        "doc_date": datetime.now(timezone.utc).strftime("%d %b %Y"),
-        "inclusions": getattr(booking, "inclusions", "As per signed quotation.") or "As per signed quotation.",
-        "vendor_confirmation": getattr(booking, "vendor_confirmation_no", "PENDING") or "PENDING",
-    }
-    confirmation_pdf = _generate_doc_pdf(_DT.BOOKING_CONFIRMATION, {
-        **ctx,
-        "doc_number": f"BC-{booking.id:05d}",
-        "payment_due_date": ctx["doc_date"],
-    })
-    voucher_pdf = _generate_doc_pdf(_DT.VOUCHER, {
-        **ctx,
-        "doc_number": f"VCH-{booking.id:05d}",
-        "services": "Airport transfers, daily breakfast, guided city tour on Day 3. See full itinerary.",
-    })
-
-    if invoice_pdf is None or confirmation_pdf is None or voucher_pdf is None:
-        raise HTTPException(status_code=503, detail="Booking packet could not be generated.")
-
-    email_result = {"success": False, "demo": False, "error": "No email address available"}
-    resend_api_key = os.getenv("RESEND_API_KEY")
-    if target_email:
-        if resend_api_key:
-            try:
-                import resend  # type: ignore
-                resend.api_key = resend_api_key
-                response = resend.Emails.send({
-                    "from": os.getenv("RESEND_FROM_EMAIL", "NAMA OS <quotes@namaos.com>"),
-                    "to": [target_email],
-                    "subject": f"Your booking documents are ready — {destination} ({booking_ref})",
-                    "html": f"""
-                    <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:620px;margin:0 auto">
-                      <div style="background:#0f172a;padding:24px 32px;border-radius:12px 12px 0 0">
-                        <div style="color:#14B8A6;font-weight:900;font-size:18px;letter-spacing:-0.5px">NAMA OS</div>
-                        <div style="color:#94a3b8;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Travel Intelligence Platform</div>
-                      </div>
-                      <div style="background:#f8fafc;padding:32px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0">
-                        <p style="margin:0 0 16px">Dear {html.escape(lead_name)},</p>
-                        <p style="margin:0 0 16px">Your live booking packet for <strong>{html.escape(destination or 'your trip')}</strong> is ready.</p>
-                        <p style="margin:0 0 16px">We’ve attached your invoice, booking confirmation, and voucher so your trip handoff stays seamless.</p>
-                        <p style="margin:0;font-size:13px;color:#475569">Booking ref: <strong>{booking_ref}</strong></p>
-                      </div>
-                    </div>""",
-                    "attachments": [
-                        {"filename": f"invoice-INV-{tenant_id:04d}-{booking.id:06d}.pdf", "content": base64.b64encode(invoice_pdf).decode("utf-8")},
-                        {"filename": f"booking-confirmation-{booking.id}.pdf", "content": base64.b64encode(confirmation_pdf).decode("utf-8")},
-                        {"filename": f"voucher-{booking.id}.pdf", "content": base64.b64encode(voucher_pdf).decode("utf-8")},
-                    ],
-                })
-                email_result = {
-                    "success": True,
-                    "demo": False,
-                    "message_id": response.get("id") if isinstance(response, dict) else getattr(response, "id", None),
-                }
-            except Exception as exc:
-                logger.exception("Booking packet email failed for booking %s", booking.id)
-                email_result = {"success": False, "demo": False, "error": str(exc)}
-        else:
-            email_result = {"success": True, "demo": True, "message_id": "demo_email_packet"}
-
-    whatsapp_result = _send_whatsapp_packet_message(target_whatsapp, lead_name, booking_ref, destination)
-
-    if lead:
-        existing = (lead.notes or "").strip()
-        note = (
-            f"[NAMA NOTE] {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} | Dynamix Automation | "
-            f"Booking packet delivery attempted for {booking_ref}. "
-            f"Email={'sent' if email_result.get('success') else 'not sent'}; "
-            f"WhatsApp={'sent' if whatsapp_result.get('success') else 'not sent'}."
-        )
-        lead.notes = f"{existing}\n\n{note}".strip() if existing else note
-        lead.updated_at = datetime.now(timezone.utc)
-        db.commit()
-
-    return {
-        "success": bool(email_result.get("success") or whatsapp_result.get("success")),
-        "booking_id": booking.id,
-        "quotation_id": body.quotation_id,
-        "delivery": {
-            "email": email_result,
-            "whatsapp": whatsapp_result,
-        },
-        "contacts": {
-            "email": target_email,
-            "whatsapp": target_whatsapp,
-        },
-    }
 
 
 @router.post(
