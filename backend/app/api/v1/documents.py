@@ -1,7 +1,9 @@
 import base64
+import html
 import io
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -17,6 +19,8 @@ from app.api.v1.deps import get_current_user, require_tenant, RoleChecker
 from app.api.v1.quotations import Quotation, QuotationStatus, _get_or_404
 from app.models.auth import UserRole
 from app.models.bookings import Booking
+from app.models.content import MediaAsset as MediaAssetModel
+from app.models.itineraries import Itinerary
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -45,33 +49,133 @@ class SendQuotationRequest(BaseModel):
 
 # ── HTML template ──────────────────────────────────────────────────────────────
 
-def _build_quotation_html(q: Quotation) -> str:
-    base_price  = float(q.base_price)
-    margin_pct  = float(q.margin_pct)
+def _build_quotation_html(
+    q: Quotation,
+    itinerary: Optional[Itinerary] = None,
+    media_assets: Optional[list[MediaAssetModel]] = None,
+) -> str:
+    base_price = float(q.base_price)
+    margin_pct = float(q.margin_pct)
     total_price = float(q.total_price)
-    margin_amt  = total_price - base_price
-    tax_rate    = 0.05  # 5% GST on margin (display only)
-    tax_amt     = round(margin_amt * tax_rate, 2)
+    margin_amt = total_price - base_price
+    tax_rate = 0.05
+    tax_amt = round(margin_amt * tax_rate, 2)
 
     def fmt(amount: float) -> str:
         return f"{q.currency} {amount:,.2f}"
 
+    def esc(value: Optional[str]) -> str:
+        return html.escape(value or "")
+
+    def slug_bits(value: Optional[str]) -> set[str]:
+        cleaned = re.sub(r"[^a-z0-9]+", " ", (value or "").lower())
+        return {bit for bit in cleaned.split() if len(bit) > 2}
+
     created_str = q.created_at.strftime("%d %B %Y")
-    ref         = f"NAMA-{q.id:06d}"
-    valid_days  = 7
-    valid_str   = (
+    ref = f"NAMA-{q.id:06d}"
+    valid_days = 7
+    valid_str = (
         q.valid_until.strftime("%d %B %Y")
         if q.valid_until
         else "7 days from issue date"
     )
     notes_block = ""
     if q.notes:
-        escaped = q.notes.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        escaped = esc(q.notes)
         notes_block = f"""
         <div class="notes">
           <strong>Notes &amp; Inclusions:</strong><br>
           {escaped.replace(chr(10), "<br>")}
         </div>"""
+
+    itinerary_days = itinerary.days_json if itinerary and isinstance(itinerary.days_json, list) else []
+    destination_tokens = slug_bits(q.destination) | slug_bits(itinerary.destination if itinerary else None)
+    media_assets = media_assets or []
+    hero_images: list[str] = []
+
+    def add_hero(url: Optional[str]) -> None:
+        if url and url not in hero_images:
+            hero_images.append(url)
+
+    day_cards = []
+    for day_index, day in enumerate(itinerary_days, start=1):
+        if not isinstance(day, dict):
+            continue
+        title = day.get("title") or day.get("heading") or f"Day {day_index}"
+        summary = day.get("summary") or day.get("description") or day.get("theme") or ""
+        overnight = day.get("overnight") or day.get("hotel") or day.get("stay") or ""
+        image_url = day.get("imageUrl") or day.get("image_url") or day.get("heroImage") or day.get("photo")
+        add_hero(image_url)
+
+        activities = []
+        if isinstance(day.get("activities"), list):
+            activities = [item for item in day.get("activities") if isinstance(item, dict)]
+
+        activity_items = []
+        for activity in activities[:4]:
+            act_title = esc(activity.get("title") or activity.get("name") or "Planned experience")
+            act_desc = esc(activity.get("description") or activity.get("summary") or "")
+            meta_parts = []
+            if activity.get("time"):
+                meta_parts.append(esc(str(activity.get("time"))))
+            if activity.get("duration"):
+                meta_parts.append(esc(str(activity.get("duration"))))
+            if activity.get("category"):
+                meta_parts.append(esc(str(activity.get("category"))))
+            meta_html = " · ".join(meta_parts)
+            activity_items.append(
+                f"""
+                <div class="activity">
+                  <div class="activity-name">{act_title}</div>
+                  {'<div class="activity-meta">' + meta_html + '</div>' if meta_html else ''}
+                  {'<div class="activity-desc">' + act_desc + '</div>' if act_desc else ''}
+                </div>"""
+            )
+
+        day_cards.append(
+            f"""
+            <div class="day-card">
+              <div class="day-chip">Day {day_index}</div>
+              <div class="day-content">
+                <div class="day-title">{esc(str(title))}</div>
+                {'<div class="day-summary">' + esc(str(summary)) + '</div>' if summary else ''}
+                {'<div class="day-stay">Overnight: ' + esc(str(overnight)) + '</div>' if overnight else ''}
+                <div class="activity-list">{''.join(activity_items) if activity_items else '<div class="activity-empty">Curated routing, stays, and transfers will be confirmed at booking.</div>'}</div>
+              </div>
+            </div>"""
+        )
+
+    matched_assets = []
+    for asset in media_assets:
+        if str(getattr(asset, "asset_type", "")).upper().endswith("IMAGE") is False:
+            continue
+        title_bits = slug_bits(asset.title)
+        tag_bits = {str(tag).lower() for tag in (asset.tags or [])}
+        if not destination_tokens or destination_tokens.intersection(title_bits | tag_bits):
+            matched_assets.append(asset)
+
+    for asset in matched_assets[:4]:
+        add_hero(asset.url)
+
+    if not hero_images:
+        for asset in media_assets[:3]:
+            if str(getattr(asset, "asset_type", "")).upper().endswith("IMAGE"):
+                add_hero(asset.url)
+
+    hero_gallery = "".join(
+        f'<div class="hero-image"><img src="{esc(url)}" alt="{esc(q.destination)}"/></div>'
+        for url in hero_images[:3]
+    )
+    highlights = [
+        ("Destination", q.destination),
+        ("Trip length", f"{itinerary.duration_days} days" if itinerary and itinerary.duration_days else "Custom duration"),
+        ("Style", itinerary.travel_style if itinerary and itinerary.travel_style else "Tailor-made holiday"),
+        ("Travellers", f"{itinerary.traveler_count} pax" if itinerary and itinerary.traveler_count else "On request"),
+    ]
+    highlights_html = "".join(
+        f'<div class="highlight"><div class="highlight-label">{esc(label)}</div><div class="highlight-value">{esc(value)}</div></div>'
+        for label, value in highlights
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -83,18 +187,18 @@ def _build_quotation_html(q: Quotation) -> str:
     body {{
       font-family: 'Helvetica Neue', Arial, sans-serif;
       color: #1e293b;
-      padding: 48px;
-      font-size: 13px;
-      line-height: 1.5;
+      padding: 40px;
+      font-size: 12px;
+      line-height: 1.55;
+      background: #ffffff;
     }}
-    /* Header */
     .header {{
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       border-bottom: 3px solid #14B8A6;
-      padding-bottom: 20px;
-      margin-bottom: 28px;
+      padding-bottom: 18px;
+      margin-bottom: 24px;
     }}
     .brand-name {{
       font-size: 22px;
@@ -121,13 +225,12 @@ def _build_quotation_html(q: Quotation) -> str:
       color: #0f172a;
       margin-bottom: 2px;
     }}
-    /* Client block */
     .client-block {{
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 24px;
+      padding: 18px 22px;
+      margin-bottom: 20px;
     }}
     .client-block .label {{
       font-size: 10px;
@@ -148,12 +251,11 @@ def _build_quotation_html(q: Quotation) -> str:
       font-weight: 600;
       margin-top: 2px;
     }}
-    /* Totals hero */
     .price-hero {{
       background: #0f172a;
       border-radius: 16px;
-      padding: 28px 32px;
-      margin-bottom: 28px;
+      padding: 24px 28px;
+      margin-bottom: 22px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -167,7 +269,7 @@ def _build_quotation_html(q: Quotation) -> str:
       margin-bottom: 6px;
     }}
     .price-hero .pvalue {{
-      font-size: 34px;
+      font-size: 32px;
       font-weight: 900;
       color: #14B8A6;
     }}
@@ -179,7 +281,50 @@ def _build_quotation_html(q: Quotation) -> str:
       padding: 5px 14px;
       border-radius: 20px;
     }}
-    /* Itinerary table */
+    .hero-gallery {{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }}
+    .hero-image {{
+      height: 150px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+      border: 1px solid #e2e8f0;
+    }}
+    .hero-image img {{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }}
+    .highlights {{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }}
+    .highlight {{
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 14px;
+    }}
+    .highlight-label {{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }}
+    .highlight-value {{
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+    }}
     .section-title {{
       font-size: 11px;
       font-weight: 800;
@@ -188,30 +333,91 @@ def _build_quotation_html(q: Quotation) -> str:
       color: #94a3b8;
       margin-bottom: 10px;
     }}
-    table.items {{
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 24px;
+    .itinerary-grid {{
+      display: grid;
+      gap: 14px;
+      margin-bottom: 22px;
     }}
-    table.items th {{
-      background: #f1f5f9;
-      text-align: left;
-      padding: 10px 12px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: #64748b;
+    .day-card {{
+      display: flex;
+      gap: 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #ffffff;
+      page-break-inside: avoid;
     }}
-    table.items td {{
-      padding: 10px 12px;
-      border-bottom: 1px solid #f1f5f9;
+    .day-chip {{
+      min-width: 88px;
+      background: #0f172a;
+      color: #14B8A6;
+      font-weight: 900;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 12px;
+    }}
+    .day-content {{
+      padding: 16px 16px 14px 0;
+      flex: 1;
+    }}
+    .day-title {{
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }}
+    .day-summary {{
       font-size: 12px;
+      color: #475569;
+      margin-bottom: 8px;
     }}
-    table.items tr:last-child td {{
-      border-bottom: none;
+    .day-stay {{
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f766e;
+      background: #ccfbf1;
+      border-radius: 999px;
+      padding: 6px 10px;
+      margin-bottom: 10px;
     }}
-    /* Pricing breakdown */
+    .activity-list {{
+      display: grid;
+      gap: 8px;
+    }}
+    .activity {{
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }}
+    .activity-name {{
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+    }}
+    .activity-meta {{
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #14B8A6;
+      margin-top: 3px;
+    }}
+    .activity-desc, .activity-empty {{
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 5px;
+    }}
+    .itinerary-empty {{
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 14px;
+      padding: 18px;
+      color: #475569;
+      margin-bottom: 22px;
+    }}
     .pricing-box {{
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -234,7 +440,6 @@ def _build_quotation_html(q: Quotation) -> str:
       font-weight: 900;
       color: #0f172a;
     }}
-    /* Notes */
     .notes {{
       background: #fefce8;
       border: 1px solid #fde68a;
@@ -244,7 +449,6 @@ def _build_quotation_html(q: Quotation) -> str:
       font-size: 12px;
       color: #78350f;
     }}
-    /* Terms */
     .terms {{
       border: 1px solid #e2e8f0;
       border-radius: 12px;
@@ -260,7 +464,6 @@ def _build_quotation_html(q: Quotation) -> str:
     .terms li {{
       margin-bottom: 4px;
     }}
-    /* Footer */
     .footer {{
       border-top: 1px solid #e2e8f0;
       padding-top: 16px;
@@ -271,7 +474,6 @@ def _build_quotation_html(q: Quotation) -> str:
   </style>
 </head>
 <body>
-  <!-- Header -->
   <div class="header">
     <div>
       <div class="brand-name">NAMA OS</div>
@@ -284,44 +486,26 @@ def _build_quotation_html(q: Quotation) -> str:
     </div>
   </div>
 
-  <!-- Client -->
   <div class="client-block">
     <div class="label">Prepared For</div>
-    <div class="name">{q.lead_name}</div>
-    <div class="dest">{q.destination}</div>
+    <div class="name">{esc(q.lead_name)}</div>
+    <div class="dest">{esc(q.destination)}</div>
   </div>
 
-  <!-- Total hero -->
   <div class="price-hero">
     <div>
       <div class="plabel">Total Package Value</div>
       <div class="pvalue">{fmt(total_price)}</div>
     </div>
-    <div class="pstatus">{q.status}</div>
+    <div class="pstatus">{esc(str(q.status))}</div>
   </div>
 
-  <!-- Itinerary summary -->
-  <div class="section-title">Itinerary Summary</div>
-  <table class="items">
-    <thead>
-      <tr>
-        <th style="width:10%">Day</th>
-        <th style="width:50%">Description</th>
-        <th style="width:25%">Category</th>
-        <th style="width:15%;text-align:right">Cost</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1–N</td>
-        <td>{q.destination} — Full Package</td>
-        <td>Travel &amp; Accommodation</td>
-        <td style="text-align:right">{fmt(base_price)}</td>
-      </tr>
-    </tbody>
-  </table>
+  {'<div class="hero-gallery">' + hero_gallery + '</div>' if hero_gallery else ''}
+  <div class="highlights">{highlights_html}</div>
 
-  <!-- Pricing breakdown -->
+  <div class="section-title">Day-wise Itinerary</div>
+  {('<div class="itinerary-grid">' + ''.join(day_cards) + '</div>') if day_cards else f'<div class="itinerary-empty">{esc(q.destination)} package plan will be customised with your final routing, stays, and experiences.</div>'}
+
   <div class="section-title">Pricing Breakdown</div>
   <div class="pricing-box">
     <div class="pricing-row"><span>Subtotal (base cost)</span><span>{fmt(base_price)}</span></div>
@@ -332,20 +516,18 @@ def _build_quotation_html(q: Quotation) -> str:
 
   {notes_block}
 
-  <!-- Terms -->
   <div class="terms">
     <strong>Terms &amp; Conditions</strong>
     <ul>
       <li>This quotation is valid for {valid_days} days from the date of issue.</li>
       <li>Prices are subject to availability at the time of booking confirmation.</li>
       <li>A 30% advance deposit is required to confirm the booking.</li>
-      <li>Cancellation policy applies as per supplier terms — details available on request.</li>
+      <li>Cancellation policy applies as per supplier terms; details are available on request.</li>
       <li>International travel requires a valid passport with minimum 6 months validity.</li>
-      <li>Visa requirements are the responsibility of the traveller; assistance available.</li>
+      <li>Visa requirements remain the responsibility of the traveller, with assistance available from NAMA.</li>
     </ul>
   </div>
 
-  <!-- Footer -->
   <div class="footer">
     NAMA OS · getnama.app · Powered by AI Travel Intelligence<br>
     Generated {datetime.now(timezone.utc).strftime('%d %b %Y %H:%M UTC')}
@@ -422,8 +604,17 @@ def download_quotation_pdf(
     Generates a professional PDF for the given quotation and returns it as a
     binary download. Uses WeasyPrint server-side (no browser print dialog).
     """
-    q         = _get_or_404(db, body.quotation_id, tenant_id)
-    html      = _build_quotation_html(q)
+    q = _get_or_404(db, body.quotation_id, tenant_id)
+    itinerary = None
+    if q.itinerary_id:
+        itinerary = db.query(Itinerary).filter(
+            Itinerary.id == q.itinerary_id,
+            Itinerary.tenant_id == tenant_id,
+        ).first()
+    media_assets = db.query(MediaAssetModel).filter(
+        MediaAssetModel.tenant_id == tenant_id
+    ).all()
+    html = _build_quotation_html(q, itinerary=itinerary, media_assets=media_assets)
     pdf_bytes = _generate_pdf_bytes(html)
 
     return Response(
@@ -458,8 +649,17 @@ def send_quotation_email(
             "error": "Email not configured — PDF download available",
         }
 
-    q         = _get_or_404(db, body.quotation_id, tenant_id)
-    html      = _build_quotation_html(q)
+    q = _get_or_404(db, body.quotation_id, tenant_id)
+    itinerary = None
+    if q.itinerary_id:
+        itinerary = db.query(Itinerary).filter(
+            Itinerary.id == q.itinerary_id,
+            Itinerary.tenant_id == tenant_id,
+        ).first()
+    media_assets = db.query(MediaAssetModel).filter(
+        MediaAssetModel.tenant_id == tenant_id
+    ).all()
+    html = _build_quotation_html(q, itinerary=itinerary, media_assets=media_assets)
     pdf_bytes = _generate_pdf_bytes(html)
     pdf_b64   = base64.b64encode(pdf_bytes).decode("utf-8")
 
