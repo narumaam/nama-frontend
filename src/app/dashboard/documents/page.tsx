@@ -6,7 +6,7 @@ import DynamixHandoffBanner from '@/components/dynamix-handoff-banner'
 import { documentsApi } from '@/lib/api';
 import {
   FileText, Receipt, Ticket, CheckSquare, Download, MessageCircle,
-  Copy, Eye, Plus, Search, Filter,
+  Copy, Eye, Plus, Search, Filter, Send,
   Calendar, DollarSign,
   Plane, Hotel, Shield, X, Check, Upload, Zap,
   FileCheck, FileBadge, FileSpreadsheet, LayoutGrid
@@ -890,6 +890,7 @@ export default function DocumentsPage() {
   const [downloadingConfirmation, setDownloadingConfirmation] = useState(false);
   const [downloadingVoucher, setDownloadingVoucher] = useState(false);
   const [preparingPacket, setPreparingPacket] = useState(false);
+  const [sendingPacket, setSendingPacket] = useState(false);
   const [realDocError, setRealDocError] = useState('');
 
   const bookingId = Number(searchParams.get('bookingId') || 0) || null;
@@ -966,6 +967,22 @@ export default function DocumentsPage() {
       setRealDocError(error instanceof Error ? error.message : 'Booking packet could not be prepared yet.');
     } finally {
       setPreparingPacket(false);
+    }
+  }
+
+  async function sendPacketToClient() {
+    if (!bookingId) return;
+    setSendingPacket(true);
+    setRealDocError('');
+    try {
+      const result = await documentsApi.sendBookingPacket(bookingId, quotationId || undefined);
+      if (!result.success) {
+        throw new Error('Booking packet could not be delivered.');
+      }
+    } catch (error) {
+      setRealDocError(error instanceof Error ? error.message : 'Booking packet could not be delivered yet.');
+    } finally {
+      setSendingPacket(false);
     }
   }
 
@@ -1070,6 +1087,14 @@ export default function DocumentsPage() {
                 >
                   <FileText size={15} />
                   {preparingPacket ? 'Preparing full packet…' : 'Prepare full booking packet'}
+                </button>
+                <button
+                  onClick={sendPacketToClient}
+                  disabled={sendingPacket}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10 text-sm font-semibold text-violet-700 dark:text-violet-200 hover:bg-violet-100 dark:hover:bg-violet-500/20 transition-colors disabled:opacity-60"
+                >
+                  <Send size={15} />
+                  {sendingPacket ? 'Sending to client…' : 'Send packet to client'}
                 </button>
                 <button
                   onClick={() => setActiveDoc('voucher')}

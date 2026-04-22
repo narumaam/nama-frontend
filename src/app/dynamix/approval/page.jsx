@@ -21,6 +21,7 @@ export default function DynamixApprovalPage() {
   const [creatingBooking, setCreatingBooking] = useState(false)
   const [preparingDocs, setPreparingDocs] = useState(false)
   const [preparingPacket, setPreparingPacket] = useState(false)
+  const [sendingPacket, setSendingPacket] = useState(false)
   const aiPlaybook = getAiPlaybook(workflow.aiFlow.categorySlug)
   const approvalTone = workflow.aiFlow.enabled
     ? aiPlaybook.approvalTone
@@ -235,6 +236,38 @@ export default function DynamixApprovalPage() {
     }
   }
 
+  async function sendBookingPacket() {
+    const bookingId = workflow.meta?.crm?.bookingId || bookingState?.id
+    const quotationId = crm.quotationId || handoff?.quotation_id
+    const leadId = crm.leadId || handoff?.lead_id
+    if (!bookingId) {
+      setApprovalError('Create the booking first so NAMA can deliver the live packet to the client.')
+      return
+    }
+
+    setSendingPacket(true)
+    setApprovalError('')
+    try {
+      const result = await documentsApi.sendBookingPacket(Number(bookingId), quotationId ? Number(quotationId) : undefined)
+      if (!result.success) {
+        throw new Error('Booking packet could not be delivered.')
+      }
+      if (leadId) {
+        leadsApi
+          .addNote(Number(leadId), {
+            author: 'Dynamix',
+            content: `Booking packet sent for booking #${bookingId}. Email delivery: ${result.delivery.email.success ? 'sent' : 'not sent'}; WhatsApp delivery: ${result.delivery.whatsapp.success ? 'sent' : 'not sent'}.`,
+          })
+          .catch(() => null)
+      }
+      router.push(`/dashboard/comms${leadId ? `?leadId=${leadId}` : ''}`)
+    } catch (err) {
+      setApprovalError(err instanceof Error ? err.message : 'Booking packet could not be delivered.')
+    } finally {
+      setSendingPacket(false)
+    }
+  }
+
   return (
     <main className="max-w-7xl mx-auto px-6 py-8">
       <section className="grid lg:grid-cols-[1fr_380px] gap-6">
@@ -376,6 +409,13 @@ export default function DynamixApprovalPage() {
               className="px-5 py-3 rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 dynamix-text font-semibold disabled:opacity-60"
             >
               {preparingPacket ? 'Preparing booking packet…' : 'Prepare finance + document packet'}
+            </button>
+            <button
+              onClick={sendBookingPacket}
+              disabled={sendingPacket}
+              className="px-5 py-3 rounded-2xl border border-violet-400/20 bg-violet-500/10 hover:bg-violet-500/20 dynamix-text font-semibold disabled:opacity-60"
+            >
+              {sendingPacket ? 'Sending packet…' : 'Send packet to client'}
             </button>
             <button
               onClick={createPaymentLink}

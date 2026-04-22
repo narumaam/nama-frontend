@@ -6,6 +6,7 @@ import os
 import re
 from datetime import datetime, timezone
 from typing import Optional
+import httpx
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
@@ -21,6 +22,7 @@ from app.models.auth import UserRole
 from app.models.bookings import Booking
 from app.models.content import MediaAsset as MediaAssetModel
 from app.models.itineraries import Itinerary
+from app.models.leads import Lead
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -50,6 +52,13 @@ class SendQuotationRequest(BaseModel):
 class BookingPacketRequest(BaseModel):
     booking_id: int
     quotation_id: Optional[int] = None
+
+
+class SendBookingPacketRequest(BaseModel):
+    booking_id: int
+    quotation_id: Optional[int] = None
+    email: Optional[str] = None
+    whatsapp: Optional[str] = None
 
 
 # ── HTML template ──────────────────────────────────────────────────────────────
@@ -1006,6 +1015,67 @@ def _fetch_booking_with_context(db: Session, booking_id: int, tenant_id: int):
     return booking, lead_name, destination, travel_dates, travelers
 
 
+def _normalize_phone(phone: Optional[str]) -> str:
+    return "".join(ch for ch in (phone or "") if ch.isdigit())
+
+
+def _send_whatsapp_packet_message(phone: str, client_name: str, booking_ref: str, destination: str) -> dict:
+    token = os.getenv("WHATSAPP_TOKEN", "")
+    phone_id = os.getenv("WHATSAPP_PHONE_ID", "")
+    normalized = _normalize_phone(phone)
+    if not normalized:
+        return {"success": False, "demo": True, "error": "No WhatsApp number available"}
+    if not token or not phone_id:
+        logger.info("WhatsApp packet send skipped — demo mode | to=%s", normalized)
+        return {"success": True, "demo": True, "message_id": "demo_whatsapp_packet"}
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": normalized,
+        "type": "template",
+        "template": {
+            "name": "booking_confirmed",
+            "language": {"code": "en"},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [
+                        {"type": "text", "text": client_name.split(" ")[0] if client_name else "Traveller"},
+                        {"type": "text", "text": destination or "your trip"},
+                        {"type": "text", "text": datetime.now(timezone.utc).strftime("%d %b %Y")},
+                        {"type": "text", "text": booking_ref},
+                    ],
+                }
+            ],
+        },
+    }
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"https://graph.facebook.com/v19.0/{phone_id}/messages",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            data = response.json()
+            if response.status_code == 200:
+                return {
+                    "success": True,
+                    "demo": False,
+                    "message_id": data.get("messages", [{}])[0].get("id"),
+                }
+            return {
+                "success": False,
+                "demo": False,
+                "error": data.get("error", {}).get("message", "WhatsApp send failed"),
+            }
+    except Exception as exc:
+        logger.exception("WhatsApp packet send failed for %s", normalized)
+        return {"success": False, "demo": False, "error": str(exc)}
+
+
 @router.post(
     "/booking-packet",
     summary="Prepare the real booking document packet for a booking",
@@ -1098,6 +1168,141 @@ def prepare_booking_packet(
             "finance_url": f"/dashboard/finance?bookingId={booking.id}"
             + (f"&quotationId={body.quotation_id}" if body.quotation_id else "")
             + (f"&destination={destination}" if destination else ""),
+        },
+    }
+
+
+@router.post(
+    "/send-booking-packet",
+    summary="Send the live booking packet to the client via email and WhatsApp",
+)
+def send_booking_packet(
+    body: SendBookingPacketRequest,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_any_staff),
+):
+    """
+    Generates the live invoice, booking confirmation, and voucher, then attempts
+    outbound delivery using the lead's email and WhatsApp number.
+    """
+    booking, lead_name, destination, travel_dates, travelers = _fetch_booking_with_context(
+        db, body.booking_id, tenant_id
+    )
+    lead = db.query(Lead).filter(
+        Lead.id == booking.lead_id,
+        Lead.tenant_id == tenant_id,
+    ).first()
+
+    target_email = body.email or getattr(lead, "email", None)
+    target_whatsapp = body.whatsapp or getattr(lead, "phone", None) or getattr(lead, "sender_id", None)
+
+    invoice_html = _build_invoice_html(booking, lead_name, destination, travel_dates, travelers)
+    invoice_pdf = _generate_pdf_bytes(invoice_html)
+
+    from app.core.pdf_engine import generate_pdf as _generate_doc_pdf, DocumentType as _DT
+
+    booking_ref = f"BK-{booking.id:05d}"
+    ctx = {
+        "agency_name": "NAMA Travel",
+        "agency_email": "accounts@namatravel.com",
+        "currency": getattr(booking, "currency", "INR") or "INR",
+        "booking_ref": booking_ref,
+        "client_name": lead_name,
+        "destination": destination,
+        "travel_dates": travel_dates or "As arranged",
+        "pax": travelers or 1,
+        "hotel": getattr(booking, "hotel_name", "") or "",
+        "room_type": getattr(booking, "room_type", "Standard") or "Standard",
+        "meal_plan": getattr(booking, "meal_plan", "Bed & Breakfast") or "Bed & Breakfast",
+        "nights": getattr(booking, "nights", "—") or "—",
+        "total": float(getattr(booking, "total_price", 0) or 0),
+        "amount_paid": float(getattr(booking, "amount_paid", 0) or 0),
+        "balance_due": float(getattr(booking, "balance_due", 0) or 0),
+        "doc_date": datetime.now(timezone.utc).strftime("%d %b %Y"),
+        "inclusions": getattr(booking, "inclusions", "As per signed quotation.") or "As per signed quotation.",
+        "vendor_confirmation": getattr(booking, "vendor_confirmation_no", "PENDING") or "PENDING",
+    }
+    confirmation_pdf = _generate_doc_pdf(_DT.BOOKING_CONFIRMATION, {
+        **ctx,
+        "doc_number": f"BC-{booking.id:05d}",
+        "payment_due_date": ctx["doc_date"],
+    })
+    voucher_pdf = _generate_doc_pdf(_DT.VOUCHER, {
+        **ctx,
+        "doc_number": f"VCH-{booking.id:05d}",
+        "services": "Airport transfers, daily breakfast, guided city tour on Day 3. See full itinerary.",
+    })
+
+    if invoice_pdf is None or confirmation_pdf is None or voucher_pdf is None:
+        raise HTTPException(status_code=503, detail="Booking packet could not be generated.")
+
+    email_result = {"success": False, "demo": False, "error": "No email address available"}
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    if target_email:
+        if resend_api_key:
+            try:
+                import resend  # type: ignore
+                resend.api_key = resend_api_key
+                response = resend.Emails.send({
+                    "from": os.getenv("RESEND_FROM_EMAIL", "NAMA OS <quotes@namaos.com>"),
+                    "to": [target_email],
+                    "subject": f"Your booking documents are ready — {destination} ({booking_ref})",
+                    "html": f"""
+                    <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:620px;margin:0 auto">
+                      <div style="background:#0f172a;padding:24px 32px;border-radius:12px 12px 0 0">
+                        <div style="color:#14B8A6;font-weight:900;font-size:18px;letter-spacing:-0.5px">NAMA OS</div>
+                        <div style="color:#94a3b8;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Travel Intelligence Platform</div>
+                      </div>
+                      <div style="background:#f8fafc;padding:32px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0">
+                        <p style="margin:0 0 16px">Dear {html.escape(lead_name)},</p>
+                        <p style="margin:0 0 16px">Your live booking packet for <strong>{html.escape(destination or 'your trip')}</strong> is ready.</p>
+                        <p style="margin:0 0 16px">We’ve attached your invoice, booking confirmation, and voucher so your trip handoff stays seamless.</p>
+                        <p style="margin:0;font-size:13px;color:#475569">Booking ref: <strong>{booking_ref}</strong></p>
+                      </div>
+                    </div>""",
+                    "attachments": [
+                        {"filename": f"invoice-INV-{tenant_id:04d}-{booking.id:06d}.pdf", "content": base64.b64encode(invoice_pdf).decode("utf-8")},
+                        {"filename": f"booking-confirmation-{booking.id}.pdf", "content": base64.b64encode(confirmation_pdf).decode("utf-8")},
+                        {"filename": f"voucher-{booking.id}.pdf", "content": base64.b64encode(voucher_pdf).decode("utf-8")},
+                    ],
+                })
+                email_result = {
+                    "success": True,
+                    "demo": False,
+                    "message_id": response.get("id") if isinstance(response, dict) else getattr(response, "id", None),
+                }
+            except Exception as exc:
+                logger.exception("Booking packet email failed for booking %s", booking.id)
+                email_result = {"success": False, "demo": False, "error": str(exc)}
+        else:
+            email_result = {"success": True, "demo": True, "message_id": "demo_email_packet"}
+
+    whatsapp_result = _send_whatsapp_packet_message(target_whatsapp, lead_name, booking_ref, destination)
+
+    if lead:
+        existing = (lead.notes or "").strip()
+        note = (
+            f"[NAMA NOTE] {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} | Dynamix Automation | "
+            f"Booking packet delivery attempted for {booking_ref}. "
+            f"Email={'sent' if email_result.get('success') else 'not sent'}; "
+            f"WhatsApp={'sent' if whatsapp_result.get('success') else 'not sent'}."
+        )
+        lead.notes = f"{existing}\n\n{note}".strip() if existing else note
+        lead.updated_at = datetime.now(timezone.utc)
+        db.commit()
+
+    return {
+        "success": bool(email_result.get("success") or whatsapp_result.get("success")),
+        "booking_id": booking.id,
+        "quotation_id": body.quotation_id,
+        "delivery": {
+            "email": email_result,
+            "whatsapp": whatsapp_result,
+        },
+        "contacts": {
+            "email": target_email,
+            "whatsapp": target_whatsapp,
         },
     }
 

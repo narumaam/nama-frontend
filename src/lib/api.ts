@@ -655,6 +655,25 @@ export const documentsApi = {
       booking_id: bookingId,
       quotation_id: quotationId,
     }),
+  sendBookingPacket: (bookingId: number, quotationId?: number, email?: string, whatsapp?: string) =>
+    api.post<{
+      success: boolean
+      booking_id: number
+      quotation_id?: number | null
+      delivery: {
+        email: { success: boolean; demo?: boolean; error?: string; message_id?: string }
+        whatsapp: { success: boolean; demo?: boolean; error?: string; message_id?: string }
+      }
+      contacts: {
+        email?: string | null
+        whatsapp?: string | null
+      }
+    }>('/api/v1/documents/send-booking-packet', {
+      booking_id: bookingId,
+      quotation_id: quotationId,
+      email,
+      whatsapp,
+    }),
 }
 
 // Payments — Razorpay payment links
