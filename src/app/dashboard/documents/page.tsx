@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DynamixHandoffBanner from '@/components/dynamix-handoff-banner'
+import { documentsApi } from '@/lib/api';
 import {
   FileText, Receipt, Ticket, CheckSquare, Download, MessageCircle,
   Copy, Eye, Plus, Search, Filter,
@@ -878,11 +880,43 @@ const TABS: { key: TabType; label: string }[] = [
 ];
 
 export default function DocumentsPage() {
+  const searchParams = useSearchParams();
   const [activeDoc, setActiveDoc] = useState<DocType | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
+  const [downloadingRealDoc, setDownloadingRealDoc] = useState(false);
+  const [realDocError, setRealDocError] = useState('');
+
+  const bookingId = Number(searchParams.get('bookingId') || 0) || null;
+  const quotationId = Number(searchParams.get('quotationId') || 0) || null;
+  const destination = searchParams.get('destination') || 'Dynamix holiday';
+
+  async function downloadLiveInvoice() {
+    if (!bookingId) return;
+    setDownloadingRealDoc(true);
+    setRealDocError('');
+    try {
+      const response = await documentsApi.invoicePdf(bookingId);
+      if (!response.ok) {
+        throw new Error(`Invoice download failed (${response.status})`);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nama-booking-${bookingId}-invoice.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setRealDocError(error instanceof Error ? error.message : 'Invoice could not be generated for this booking yet.');
+    } finally {
+      setDownloadingRealDoc(false);
+    }
+  }
 
   const kpis = [
     { label: 'Total Documents', value: SEED_DOCS.length, icon: FileText, color: 'text-[#14B8A6]', bg: 'bg-[#14B8A6]/10 dark:bg-[#14B8A6]/10' },
@@ -935,6 +969,46 @@ export default function DocumentsPage() {
         </div>
 
         <DynamixHandoffBanner moduleLabel="Documents" />
+
+        {bookingId ? (
+          <div className="bg-white dark:bg-[#0F1B35] border border-[#14B8A6]/20 rounded-2xl p-5">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#14B8A6]">Live Booking Context</p>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2">
+                  Booking #{bookingId} is ready for real document generation
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-3xl">
+                  Dynamix has handed {destination} into the live booking lifecycle. Use the real booking ID for invoice generation here, then move into vouchers and confirmations without recreating the trip.
+                </p>
+                <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Booking #{bookingId}</span>
+                  {quotationId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Quotation #{quotationId}</span> : null}
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={downloadLiveInvoice}
+                  disabled={downloadingRealDoc}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#14B8A6] hover:bg-[#0d9488] text-white text-sm font-semibold transition-colors disabled:opacity-60"
+                >
+                  <Download size={15} />
+                  {downloadingRealDoc ? 'Preparing invoice…' : 'Download live invoice'}
+                </button>
+                <button
+                  onClick={() => setActiveDoc('voucher')}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#14B8A6]/40 transition-colors"
+                >
+                  <Ticket size={15} />
+                  Prepare voucher
+                </button>
+              </div>
+            </div>
+            {realDocError ? (
+              <p className="text-sm text-red-500 dark:text-red-400 mt-4">{realDocError}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* KPI Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

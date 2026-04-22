@@ -58,19 +58,19 @@ export default function DynamixAiComposerPage() {
     <main className="max-w-7xl mx-auto px-6 py-8">
       <section className="grid xl:grid-cols-[1.04fr_0.96fr] gap-6">
         <div className="glass rounded-[28px] p-8">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">AI Flow · Screen 3</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">AI Flow · Screen 3</p>
           <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mt-3">AI composes the holiday modules.</h1>
-          <p className="text-zinc-400 mt-4 leading-7 max-w-3xl">
+          <p className="dynamix-muted mt-4 leading-7 max-w-3xl">
             This is where a category-first system becomes truly flexible: AI arranges modules, not just inventory. The agent keeps control, but starts from a smarter commercial build.
           </p>
           <div className="space-y-4 mt-6">
             {composerData.modules.map((module) => (
-              <div key={module.label} className="rounded-[24px] border border-white/8 bg-white/5 p-5 flex items-start justify-between gap-4">
+              <div key={module.label} className="rounded-[24px] border dynamix-card-soft p-5 flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold">{module.label}</h2>
-                  <p className="text-sm text-zinc-400 mt-2">{module.summary}</p>
+                  <p className="text-sm dynamix-muted mt-2">{module.summary}</p>
                 </div>
-                <span className={`px-3 py-2 rounded-full text-[11px] uppercase tracking-[0.14em] ${module.status === 'Selected' ? 'bg-red-600/15 border border-red-600/30 text-white' : 'bg-white/5 border border-white/8 text-zinc-400'}`}>
+                <span className={`px-3 py-2 rounded-full text-[11px] uppercase tracking-[0.14em] ${module.status === 'Selected' ? 'bg-red-600/15 border border-red-600/30 text-white' : 'dynamix-chip'}`}>
                   {module.status}
                 </span>
               </div>
@@ -80,24 +80,24 @@ export default function DynamixAiComposerPage() {
 
         <div className="grid gap-5">
           <div className="glass rounded-[28px] p-6">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Pricing intelligence</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Pricing intelligence</p>
             <h2 className="text-2xl font-display font-semibold tracking-tight mt-2">{composerData.itineraryMode}</h2>
-            <p className="text-sm text-zinc-300 mt-4">{composerData.pricingAdvice}</p>
+            <p className="text-sm dynamix-muted mt-4">{composerData.pricingAdvice}</p>
           </div>
           <div className="glass rounded-[28px] p-6">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Sales narrative</p>
-            <p className="text-sm text-zinc-300 mt-4">{composerData.salesNarrative}</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Sales narrative</p>
+            <p className="text-sm dynamix-muted mt-4">{composerData.salesNarrative}</p>
           </div>
           <div className="glass rounded-[28px] p-6 bg-[linear-gradient(180deg,rgba(229,9,20,0.10),rgba(255,255,255,0.02))] border border-red-600/20">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">What next</p>
-            <p className="text-sm text-zinc-300 mt-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">What next</p>
+            <p className="text-sm dynamix-muted mt-4">
               From here, Dynamix can hand the agent into the existing builder, but with a pre-shaped itinerary, margin-safe story, and better upsell order already decided by AI.
             </p>
             <div className="grid gap-3 mt-5">
               <Link href="/dynamix/builder" onClick={handoffToBuilder} className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-semibold">
                 Hand off to builder
               </Link>
-              <Link href="/dynamix" className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium">
+              <Link href="/dynamix" className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border dynamix-card-soft dynamix-text font-medium">
                 Back to Dynamix entry
               </Link>
             </div>

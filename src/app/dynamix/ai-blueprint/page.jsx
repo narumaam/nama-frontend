@@ -65,9 +65,9 @@ export default function DynamixAiBlueprintPage() {
     <main className="max-w-7xl mx-auto px-6 py-8">
       <section className="grid lg:grid-cols-[1.05fr_0.95fr] gap-6">
         <div className="glass rounded-[28px] p-8 bg-[radial-gradient(circle_at_top_right,rgba(229,9,20,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))]">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">AI Flow · Screen 2</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">AI Flow · Screen 2</p>
           <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mt-3">AI builds the holiday blueprint.</h1>
-          <p className="text-zinc-400 mt-4 max-w-3xl leading-7">
+          <p className="dynamix-muted mt-4 max-w-3xl leading-7">
             Instead of making the agent choose dozens of components first, Dynamix can use AI to define the right holiday architecture: category, destination fit, commercial tone, and closing strategy.
           </p>
           <div className="grid md:grid-cols-3 gap-4 mt-6">
@@ -76,8 +76,8 @@ export default function DynamixAiBlueprintPage() {
               ['Ideal destination', blueprintData.idealDestination || aiBlueprint.idealDestination],
               ['Confidence', blueprintData.confidence || aiBlueprint.confidence],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-white/8 bg-white/5 p-4">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mb-2">{label}</p>
+              <div key={label} className="rounded-2xl border dynamix-card-soft p-4">
+                <p className="text-[10px] uppercase tracking-[0.16em] dynamix-subtle font-mono mb-2">{label}</p>
                 <p className="text-lg font-semibold">{value}</p>
               </div>
             ))}
@@ -86,15 +86,15 @@ export default function DynamixAiBlueprintPage() {
 
         <div className="grid gap-5">
           <div className="glass rounded-[28px] p-6">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Why AI chose this</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Why AI chose this</p>
             <div className="space-y-3 mt-4">
               {(blueprintData.reasons || aiBlueprint.reasons).map((item) => (
-                <div key={item} className="rounded-2xl border border-white/8 bg-white/5 p-4 text-sm text-zinc-300">{item}</div>
+                <div key={item} className="rounded-2xl border dynamix-card-soft p-4 text-sm dynamix-muted">{item}</div>
               ))}
             </div>
           </div>
           <div className="glass rounded-[28px] p-6">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Commercial signals</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Commercial signals</p>
             <div className="space-y-3 mt-4">
               {(blueprintData.commercialSignals || aiBlueprint.commercialSignals).map((item) => (
                 <div key={item} className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-zinc-200">{item}</div>

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import DynamixHandoffBanner from "@/components/dynamix-handoff-banner";
 import {
   TrendingUp,
@@ -20,7 +22,7 @@ import {
   Search,
   Filter,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, financeApi } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -316,11 +318,18 @@ function marginColor(margin: number): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function FinancePage() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"overview" | "quotations" | "invoices" | "payments">("overview");
   const [quotations, setQuotations] = useState<Quotation[]>(SEED_QUOTATIONS);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | "ALL">("ALL");
   const [expandedQuote, setExpandedQuote] = useState<string | null>(null);
+  const [bookingProfit, setBookingProfit] = useState<any | null>(null);
+  const [financeContextError, setFinanceContextError] = useState("");
+
+  const bookingId = Number(searchParams.get("bookingId") || 0) || null;
+  const quotationId = Number(searchParams.get("quotationId") || 0) || null;
+  const destination = searchParams.get("destination") || "Dynamix holiday";
 
   useEffect(() => {
     async function fetchData() {
@@ -357,6 +366,38 @@ export default function FinancePage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (quotationId) {
+      setActiveTab("quotations");
+      setExpandedQuote(`Q-${quotationId}`);
+      return;
+    }
+    if (bookingId) {
+      setActiveTab("invoices");
+    }
+  }, [bookingId, quotationId]);
+
+  useEffect(() => {
+    if (!bookingId) return;
+    let cancelled = false;
+    financeApi
+      .profit(bookingId)
+      .then((profit) => {
+        if (!cancelled) {
+          setBookingProfit(profit);
+          setFinanceContextError("");
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setFinanceContextError(error instanceof Error ? error.message : "Live profitability is not available for this booking yet.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingId]);
+
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q) => {
       const matchesSearch =
@@ -390,6 +431,50 @@ export default function FinancePage() {
         </div>
 
         <DynamixHandoffBanner moduleLabel="Finance" />
+
+        {(bookingId || quotationId) ? (
+          <div className="mb-8 rounded-2xl border border-[#14B8A6]/20 bg-white dark:bg-[#0F1B35] p-5">
+            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#14B8A6]">Live Finance Context</p>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2">
+                  {destination} is linked to the real commercial lifecycle
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-3xl">
+                  Finance is now opening against the actual Dynamix handoff. You can review quotation context, booking profitability, and then move forward into documents without recreating the trip.
+                </p>
+                <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  {quotationId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Quotation #{quotationId}</span> : null}
+                  {bookingId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Booking #{bookingId}</span> : null}
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3 min-w-[280px]">
+                <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Booking margin</p>
+                  <p className="text-xl font-bold text-slate-800 dark:text-slate-100 mt-2">
+                    {bookingProfit?.margin_pct != null ? `${Number(bookingProfit.margin_pct).toFixed(1)}%` : "Syncing…"}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {bookingProfit?.profit != null ? formatINRFull(Number(bookingProfit.profit)) : "Waiting for live profit data"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Next operational step</p>
+                  <Link
+                    href={bookingId ? `/dashboard/documents?bookingId=${bookingId}${quotationId ? `&quotationId=${quotationId}` : ""}&destination=${encodeURIComponent(destination)}` : "/dashboard/documents"}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#14B8A6] mt-2"
+                  >
+                    Open documents for this booking
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+            {financeContextError ? (
+              <p className="text-sm text-amber-600 dark:text-amber-400 mt-4">{financeContextError}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Tabs */}
         <div className="border-b border-slate-200 dark:border-white/10 mb-8">

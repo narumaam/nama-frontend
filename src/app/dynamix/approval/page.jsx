@@ -144,9 +144,9 @@ export default function DynamixApprovalPage() {
       <section className="grid lg:grid-cols-[1fr_380px] gap-6">
         <div className="grid gap-6">
           <section className="glass rounded-[28px] p-8 bg-[radial-gradient(circle_at_top_right,rgba(229,9,20,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))]">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Step 5 · Client Approval</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Step 5 · Client Approval</p>
             <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mt-3">{workflow.selectedHoliday.title}</h1>
-            <p className="text-zinc-400 mt-4 max-w-3xl">{approvalTone}</p>
+            <p className="dynamix-muted mt-4 max-w-3xl">{approvalTone}</p>
 
             <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-7">
               {[
@@ -155,9 +155,9 @@ export default function DynamixApprovalPage() {
                 ['Quotation reference', workflow.quote.quoteId || 'Create from send step', ShieldCheck],
                 ['Advance due', advanceDue, CreditCard],
               ].map(([label, value, Icon]) => (
-                <div key={label} className="rounded-[24px] border border-white/8 bg-black/20 p-5">
+                <div key={label} className="rounded-[24px] border dynamix-card-strong p-5">
                   <Icon className="w-5 h-5 text-red-300" />
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mt-4">{label}</p>
+                  <p className="text-[10px] uppercase tracking-[0.16em] dynamix-subtle font-mono mt-4">{label}</p>
                   <p className="text-base font-semibold mt-2">{value}</p>
                 </div>
               ))}
@@ -167,10 +167,10 @@ export default function DynamixApprovalPage() {
           <section className="glass rounded-[28px] p-8">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Client-facing trip flow</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Client-facing trip flow</p>
                 <h2 className="text-2xl font-display font-semibold tracking-tight mt-2">What the client is approving</h2>
               </div>
-              <p className="text-sm text-zinc-400">The itinerary should feel curated, not overloaded.</p>
+              <p className="text-sm dynamix-muted">The itinerary should feel curated, not overloaded.</p>
             </div>
 
             <div className="space-y-4 mt-6">
@@ -179,13 +179,13 @@ export default function DynamixApprovalPage() {
                 { day: 'D2', title: 'Core sightseeing', summary: 'One strong day that makes the destination feel real.' },
                 { day: 'D3', title: 'Flexible signature day', summary: 'A curated day that carries the strongest emotional value.' },
               ]).map((item) => (
-                <div key={`${item.day}-${item.title}`} className="grid grid-cols-[48px_1fr] gap-4 rounded-2xl border border-white/8 bg-white/5 p-4">
+                <div key={`${item.day}-${item.title}`} className="grid grid-cols-[48px_1fr] gap-4 rounded-2xl border dynamix-card-soft p-4">
                   <div className="w-12 h-12 rounded-2xl bg-red-600/15 border border-red-600/20 flex items-center justify-center text-xs font-mono">
                     {item.day}
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold">{item.title}</h3>
-                    <p className="text-sm text-zinc-400 mt-2 leading-6">{item.summary}</p>
+                    <p className="text-sm dynamix-muted mt-2 leading-6">{item.summary}</p>
                   </div>
                 </div>
               ))}
@@ -193,14 +193,14 @@ export default function DynamixApprovalPage() {
           </section>
 
           <section className="glass rounded-[28px] p-8">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Real NAMA follow-through</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Real NAMA follow-through</p>
             <div className="grid md:grid-cols-3 gap-4 mt-5">
               {[
                 'Payment link creation stays in the existing NAMA payment flow.',
                 'Once confirmed, use Bookings for confirmation status, cancellations, and ops.',
                 'Invoices, vouchers, and document delivery stay in Finance and Documents.',
               ].map((item) => (
-                <div key={item} className="rounded-2xl border border-white/8 bg-white/5 p-4 text-sm text-zinc-300 leading-6">
+                <div key={item} className="rounded-2xl border dynamix-card-soft p-4 text-sm dynamix-muted leading-6">
                   {item}
                 </div>
               ))}
@@ -209,7 +209,7 @@ export default function DynamixApprovalPage() {
         </div>
 
         <aside className="glass rounded-[28px] p-8 h-fit">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Approval + payment</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Approval + payment</p>
           <div className="space-y-3 mt-5">
             {[
               ['Holiday price', workflow.selectedHoliday.price],
@@ -218,7 +218,7 @@ export default function DynamixApprovalPage() {
               ['Quote reference', workflow.quote.quoteId || 'Create quotation first'],
             ].map(([label, value], idx) => (
               <div key={label} className={`flex items-center justify-between gap-3 py-3 ${idx < 3 ? 'border-b border-white/8' : ''}`}>
-                <span className="text-zinc-400 text-sm">{label}</span>
+                <span className="dynamix-muted text-sm">{label}</span>
                 <strong className={`${idx === 1 ? 'text-lg' : 'text-sm'} font-semibold text-right`}>{value}</strong>
               </div>
             ))}
@@ -241,14 +241,14 @@ export default function DynamixApprovalPage() {
           {bookingState ? (
             <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 mt-4">
               <h3 className="font-semibold text-sm mb-2">Booking created in NAMA</h3>
-              <p className="text-sm text-zinc-300">Booking ID: {bookingState.id}</p>
+              <p className="text-sm dynamix-muted">Booking ID: {bookingState.id}</p>
             </div>
           ) : null}
 
           {approvalError ? (
             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 mt-4">
               <h3 className="font-semibold text-sm mb-2">Approval check</h3>
-              <p className="text-sm text-zinc-300">{approvalError}</p>
+              <p className="text-sm dynamix-muted">{approvalError}</p>
             </div>
           ) : null}
 
