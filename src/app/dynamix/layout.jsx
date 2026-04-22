@@ -28,7 +28,7 @@ export default function DynamixLayout({ children }) {
             </div>
             <div>
               <p className="font-display font-semibold text-sm tracking-tight">NAMA DYNAMIX</p>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Hidden route preview</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Dynamix Holidays</p>
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-5 text-sm text-zinc-400">
