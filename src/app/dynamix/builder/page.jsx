@@ -55,13 +55,42 @@ const travellerMoments = [
     initials: 'RM',
     name: 'Rhea Malhotra',
     detail: 'Cruise + city combo with parents',
+    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=80',
     quote: 'The trip felt premium but never confusing. The Night Safari and Sentosa planning were spot on.',
   },
   {
     initials: 'AK',
     name: 'Arjun Khanna',
     detail: 'Family holiday from Chennai',
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80',
     quote: 'We loved that the plan had structure without feeling rigid. The free day was genuinely useful.',
+  },
+]
+
+const reviewCards = [
+  {
+    initials: 'SR',
+    name: 'Sana Rahman',
+    detail: 'Reviewed on · 22 Apr 2026',
+    image: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=320&q=80',
+    quote:
+      'The Singapore itinerary looked polished from the first draft. We could add activities without breaking the trip flow, and the team kept the plan very easy to follow for the whole family.',
+  },
+  {
+    initials: 'KV',
+    name: 'Kavya Verma',
+    detail: 'Cruise + Sentosa holiday',
+    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80',
+    quote:
+      'We especially loved how flexible the itinerary was. The add-activity flow made the whole planning process feel far less stressful.',
+  },
+  {
+    initials: 'DS',
+    name: 'Dev Shah',
+    detail: 'Family getaway from Bengaluru',
+    image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=320&q=80',
+    quote:
+      'The route was clear, the sightseeing days were balanced, and the team gave us enough breathing room to customize without losing structure.',
   },
 ]
 
@@ -101,6 +130,11 @@ function buildRouteItems(destination, selectedPackageTitle) {
     destination,
     `Departure from ${destination}`,
   ]
+}
+
+function scrollToSection(sectionId) {
+  if (typeof document === 'undefined') return
+  document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 export default function DynamixBuilderPage() {
@@ -232,9 +266,15 @@ export default function DynamixBuilderPage() {
           {workflow.query.duration || '6 nights'} to {selectedPackage.title}
         </h1>
         <div className="mt-5 border-b border-white/8 flex items-center gap-8 overflow-x-auto">
-          {['Your Trip', 'Inclusions', 'Reviews'].map((tab, index) => (
+          {[
+            ['Your Trip', 'trip-top'],
+            ['Inclusions', 'inclusions'],
+            ['Reviews', 'reviews'],
+          ].map(([tab, sectionId], index) => (
             <button
               key={tab}
+              type="button"
+              onClick={() => scrollToSection(sectionId)}
               className={`inline-flex items-center gap-2 py-3 text-sm whitespace-nowrap ${index === 0 ? 'text-white border-b-2 border-red-600' : 'text-zinc-400'}`}
             >
               {tab}
@@ -245,11 +285,17 @@ export default function DynamixBuilderPage() {
 
       <section className="grid lg:grid-cols-[1fr_360px] gap-8 mt-6">
         <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr_0.9fr] gap-3">
+          <div id="trip-top" className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr_0.9fr] gap-3">
             <div
               className="h-[340px] md:h-[360px] border border-white/8 rounded-[20px] relative overflow-hidden bg-cover bg-center"
-              style={{ backgroundImage: `linear-gradient(155deg,rgba(12,18,30,0.2),rgba(12,18,30,0.4)),url(${singaporeMedia.main})` }}
+              style={{ backgroundImage: 'linear-gradient(155deg,rgba(12,18,30,0.2),rgba(12,18,30,0.4))' }}
             >
+              <img
+                src={singaporeMedia.main}
+                alt="Singapore skyline"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(155deg,rgba(12,18,30,0.15),rgba(12,18,30,0.38))]" />
               <div className="absolute inset-x-0 bottom-0 p-5 flex items-center gap-2">
                 <span className="w-8 h-8 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
                   <ChevronLeft className="w-4 h-4" />
@@ -260,18 +306,18 @@ export default function DynamixBuilderPage() {
               </div>
             </div>
             <div className="grid grid-rows-2 gap-3">
-              <div
-                className="h-[168px] md:h-[174px] border border-white/8 rounded-[20px] bg-cover bg-center"
-                style={{ backgroundImage: `linear-gradient(145deg,rgba(14,165,233,0.2),rgba(29,78,216,0.35)),url(${singaporeMedia.cruise})` }}
-              />
-              <div
-                className="h-[168px] md:h-[174px] border border-white/8 rounded-[20px] bg-cover bg-center"
-                style={{ backgroundImage: `linear-gradient(145deg,rgba(245,158,11,0.2),rgba(220,38,38,0.35)),url(${singaporeMedia.universal})` }}
-              />
+              <div className="h-[168px] md:h-[174px] border border-white/8 rounded-[20px] relative overflow-hidden">
+                <img src={singaporeMedia.cruise} alt="Singapore cruise" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(14,165,233,0.18),rgba(29,78,216,0.3))]" />
+              </div>
+              <div className="h-[168px] md:h-[174px] border border-white/8 rounded-[20px] relative overflow-hidden">
+                <img src={singaporeMedia.universal} alt="Singapore attractions" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(245,158,11,0.18),rgba(220,38,38,0.3))]" />
+              </div>
             </div>
             <div
               className="h-[340px] md:h-[360px] border border-white/8 rounded-[20px] relative overflow-hidden bg-cover bg-center"
-              style={{ backgroundImage: `linear-gradient(145deg,rgba(15,23,42,0.55),rgba(71,85,105,0.35)),url(${singaporeMedia.videoPoster})` }}
+              style={{ backgroundImage: 'linear-gradient(145deg,rgba(15,23,42,0.55),rgba(71,85,105,0.35))' }}
             >
               <video
                 className="absolute inset-0 h-full w-full object-cover"
@@ -280,6 +326,7 @@ export default function DynamixBuilderPage() {
                 loop
                 playsInline
                 poster={singaporeMedia.videoPoster}
+                controls
               >
                 <source src="https://cdn.coverr.co/videos/coverr-singapore-skyline-1561881475775?download=1080p" type="video/mp4" />
               </video>
@@ -312,6 +359,33 @@ export default function DynamixBuilderPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div>
+            <div id="inclusions" className="scroll-mt-28" />
+            <h3 className="font-display text-xl font-semibold">Inclusions and Exclusions</h3>
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-5">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Inclusions</p>
+                <div className="grid gap-3 mt-4">
+                  {(destinationDetails.inclusions || []).map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-200">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-5">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Exclusions</p>
+                <div className="grid gap-3 mt-4">
+                  {(destinationDetails.exclusions || []).map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-200">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -477,9 +551,11 @@ export default function DynamixBuilderPage() {
               {travellerMoments.map((moment) => (
                 <div key={moment.name} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-red-600/20 border border-red-500/20 flex items-center justify-center font-semibold text-sm">
-                      {moment.initials}
-                    </div>
+                    <img
+                      src={moment.image}
+                      alt={moment.name}
+                      className="w-11 h-11 rounded-full object-cover border border-white/10"
+                    />
                     <div>
                       <p className="font-semibold text-sm">{moment.name}</p>
                       <p className="text-xs text-zinc-500">{moment.detail}</p>
@@ -489,27 +565,31 @@ export default function DynamixBuilderPage() {
                 </div>
               ))}
             </div>
+            <p className="text-sm text-zinc-400 mt-4 font-medium">191+ more traveller moments</p>
           </div>
 
-          <div>
+          <div id="reviews" className="scroll-mt-28">
             <h3 className="font-display text-xl font-semibold">NAMA Reviews</h3>
-            <div className="mt-4 glass rounded-[22px] p-5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-red-600/25 flex items-center justify-center font-semibold">SR</div>
-                <div>
-                  <p className="font-semibold text-sm">Sana Rahman</p>
-                  <p className="text-xs text-zinc-500">Reviewed on · 22 Apr 2026</p>
+            <div className="grid gap-4 mt-4">
+              {reviewCards.map((review) => (
+                <div key={review.name} className="glass rounded-[22px] p-5">
+                  <div className="flex items-center gap-3">
+                    <img src={review.image} alt={review.name} className="w-11 h-11 rounded-full object-cover border border-white/10" />
+                    <div>
+                      <p className="font-semibold text-sm">{review.name}</p>
+                      <p className="text-xs text-zinc-500">{review.detail}</p>
+                    </div>
+                    <div className="ml-auto flex gap-0.5 text-amber-400">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <Star key={index} className="w-4 h-4 fill-current" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-zinc-300 mt-4 leading-6">“{review.quote}”</p>
                 </div>
-                <div className="ml-auto flex gap-0.5 text-amber-400">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} className="w-4 h-4 fill-current" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-sm text-zinc-300 mt-4 leading-6">
-                “The Singapore itinerary looked polished from the first draft. We could add activities without breaking the trip flow, and the team kept the plan very easy to follow for the whole family.”
-              </p>
+              ))}
             </div>
+            <p className="text-sm text-zinc-400 mt-4 font-medium">191+ more</p>
           </div>
         </div>
 
@@ -519,7 +599,7 @@ export default function DynamixBuilderPage() {
               Edit Travel Details
             </button>
             <Link href="/dynamix/send" className="mt-2 w-full inline-flex items-center justify-center px-5 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-base font-semibold">
-              Unlock your itinerary
+              Quote / Publish
             </Link>
           </div>
 
