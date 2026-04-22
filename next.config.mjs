@@ -23,8 +23,11 @@ const nextConfig = {
   // Railway / AWS backend (e.g. https://stunning-joy.up.railway.app).
   // ---------------------------------------------------------------------------
   async rewrites() {
+    const envBackendUrl = process.env.NEXT_PUBLIC_API_URL;
     const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      !envBackendUrl || envBackendUrl.includes('stunning-joy.up.railway.app')
+        ? 'https://intuitive-blessing-production-30de.up.railway.app'
+        : envBackendUrl;
     return [
       {
         source: '/api/:path*',
