@@ -53,6 +53,61 @@ const JWT_ALGORITHM = 'HS256';
 /** Environment variable holding the shared secret (must match backend SECRET_KEY) */
 const JWT_SECRET_ENV = 'NAMA_JWT_SECRET';
 
+function buildCsp({
+  frameAncestors,
+  allowCdnjsScripts = false,
+  allowGoogleAuth = false,
+}: {
+  frameAncestors: string;
+  allowCdnjsScripts?: boolean;
+  allowGoogleAuth?: boolean;
+}) {
+  const scriptSources = [
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    'https://vercel.live',
+  ];
+
+  const imgSources = ["'self'", 'data:', 'blob:', 'https:', 'http:'];
+  const connectSources = [
+    "'self'",
+    'https://*.getnama.app',
+    'https://*.up.railway.app',
+    'https://*.vercel.app',
+    'wss:',
+  ];
+  const frameSources = ["'self'"];
+
+  if (allowCdnjsScripts) {
+    scriptSources.push('https://cdnjs.cloudflare.com');
+  }
+
+  if (allowGoogleAuth) {
+    scriptSources.push('https://accounts.google.com', 'https://apis.google.com');
+    connectSources.push(
+      'https://accounts.google.com',
+      'https://oauth2.googleapis.com',
+      'https://www.googleapis.com'
+    );
+    frameSources.push('https://accounts.google.com');
+    imgSources.push('https://*.googleusercontent.com', 'https://lh3.googleusercontent.com');
+  }
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSources.join(' ')}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    `img-src ${imgSources.join(' ')}`,
+    "font-src 'self' https://fonts.gstatic.com",
+    `connect-src ${connectSources.join(' ')}`,
+    `frame-src ${frameSources.join(' ')}`,
+    `frame-ancestors ${frameAncestors}`,
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
+}
+
 // ─── Public Routes (no auth required) ────────────────────────────────────────
 
 const PUBLIC_PREFIXES = [
@@ -73,6 +128,25 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+function applySecurityHeaders(request: NextRequest, response: NextResponse): NextResponse {
+  const isGlobe = request.nextUrl.pathname === '/globe.html';
+  const isGoogleAuthPage =
+    request.nextUrl.pathname === '/login' ||
+    request.nextUrl.pathname === '/register';
+
+  response.headers.set('X-Frame-Options', isGlobe ? 'SAMEORIGIN' : 'DENY');
+  response.headers.set(
+    'Content-Security-Policy',
+    buildCsp({
+      frameAncestors: isGlobe ? "'self'" : "'none'",
+      allowCdnjsScripts: isGlobe,
+      allowGoogleAuth: isGoogleAuthPage,
+    })
+  );
+
+  return response;
+}
+
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
 interface NamaClaims extends JWTPayload {
@@ -89,7 +163,7 @@ export async function middleware(request: NextRequest) {
 
   // 1. Allow public routes through without any auth check
   if (isPublicRoute(pathname)) {
-    return NextResponse.next();
+    return applySecurityHeaders(request, NextResponse.next());
   }
 
   // 2. Also allow static files and images
@@ -98,7 +172,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/static/') ||
     pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|ttf|css|js|map)$/)
   ) {
-    return NextResponse.next();
+    return applySecurityHeaders(request, NextResponse.next());
   }
 
   // 3. Extract the JWT from the cookie (primary) or Authorization header (fallback)
@@ -148,7 +222,7 @@ export async function middleware(request: NextRequest) {
 
     // 6. Forward verified claims as headers for downstream consumption
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-id', String(claims.sub));
+    requestHeaders.set('x-user-id', String((claims as NamaClaims & { user_id?: number }).user_id || claims.sub));
     requestHeaders.set('x-tenant-id', String(claims.tenant_id));
     requestHeaders.set('x-user-role', claims.role);
     if (claims.email) {
@@ -159,11 +233,11 @@ export async function middleware(request: NextRequest) {
     // to upstream proxies (the verified claims are now in x-* headers)
     requestHeaders.delete('authorization');
 
-    return NextResponse.next({
+    return applySecurityHeaders(request, NextResponse.next({
       request: {
         headers: requestHeaders,
       },
-    });
+    }));
   } catch (error: unknown) {
     // Differentiate error types for better debugging / client messages
     const err = error as Error;
@@ -192,10 +266,10 @@ function unauthorizedResponse(
 ): NextResponse {
   // For API routes, return JSON
   if (request.nextUrl.pathname.startsWith('/api/')) {
-    return NextResponse.json(
+    return applySecurityHeaders(request, NextResponse.json(
       { error: 'unauthorized', message },
       { status },
-    );
+    ));
   }
 
   // For page routes, redirect to login with a return URL
@@ -203,7 +277,7 @@ function unauthorizedResponse(
   loginUrl.pathname = '/login';
   loginUrl.searchParams.set('returnTo', request.nextUrl.pathname);
   loginUrl.searchParams.set('reason', 'session_expired');
-  return NextResponse.redirect(loginUrl);
+  return applySecurityHeaders(request, NextResponse.redirect(loginUrl));
 }
 
 // ─── Matcher ─────────────────────────────────────────────────────────────────

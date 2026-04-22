@@ -27,14 +27,70 @@ export const destinationCatalog = {
     heroLabel: 'Island reset',
     heroSummary:
       'Seminyak, Ubud, and island-day combinations shaped for fast selling, strong visuals, and easy client understanding.',
+    heroMedia: [
+      {
+        eyebrow: 'Stay lens',
+        title: 'Villa-led relaxation',
+        summary: 'Private pool villas, sunset-facing spaces, and softer pacing that keeps the trip feeling elevated.',
+      },
+      {
+        eyebrow: 'Experience lens',
+        title: 'Culture + coast',
+        summary: 'Build around Ubud, beach clubs, and one signature island day instead of overloading every day.',
+      },
+    ],
     tripHighlights: ['Villa-ready stays', 'Beach + nature mix', 'Easy upsell moments'],
     trustNotes: ['Flexible hotel combinations', 'Strong visual sellability', 'Good for couples and families'],
+    commercialNotes: [
+      'Best sold as a 2-stay holiday with one flexible day left for add-ons.',
+      'Works well for honeymoon, celebration, and premium leisure briefs.',
+      'Land-only variants protect conversion if airfare resistance starts early.',
+    ],
     inclusions: [
       'Airport transfers',
       'Daily breakfast',
       'Core sightseeing',
       'On-ground support',
       'Optional premium add-ons',
+    ],
+    exclusions: [
+      'International airfare if land-only plan is chosen',
+      'Visa, travel insurance, and personal spends',
+      'Peak-date surcharge if supplier rates change',
+    ],
+    activityLibrary: [
+      {
+        slug: 'bali-beach-club',
+        title: 'Beach club afternoon',
+        timing: 'Afternoon',
+        price: 'Rs 6,500 per person',
+        summary: 'A relaxed afternoon with a premium beach-club setting and easy upsell optics.',
+        tags: ['Upsell', 'Leisure'],
+      },
+      {
+        slug: 'bali-float-breakfast',
+        title: 'Floating breakfast',
+        timing: 'Morning',
+        price: 'Rs 4,200 per person',
+        summary: 'Great for honeymoon or celebration positioning with strong visual value.',
+        tags: ['Couple', 'Celebration'],
+      },
+      {
+        slug: 'bali-spa-couple',
+        title: 'Couple spa ritual',
+        timing: 'Evening',
+        price: 'Rs 5,800 per person',
+        summary: 'A margin-safe premium add-on that keeps the day light and still feels indulgent.',
+        tags: ['Premium', 'Relaxed'],
+      },
+      {
+        slug: 'bali-cooking-class',
+        title: 'Balinese cooking class',
+        timing: 'Morning',
+        price: 'Rs 3,600 per person',
+        summary: 'Useful for culture-leaning travellers who want a participative local experience.',
+        tags: ['Culture', 'Family'],
+      },
     ],
     packages: [
       {
@@ -91,14 +147,70 @@ export const destinationCatalog = {
     heroLabel: 'City + desert',
     heroSummary:
       'Downtown, marina, and desert-led combinations designed for quick confirmation, premium positioning, and strong family appeal.',
+    heroMedia: [
+      {
+        eyebrow: 'City lens',
+        title: 'Downtown optics',
+        summary: 'Lead with skyline, retail, and evening experiences so the trip feels premium without feeling tiring.',
+      },
+      {
+        eyebrow: 'Experience lens',
+        title: 'Desert + marina',
+        summary: 'Anchor the plan around one signature desert or cruise experience and leave room for retail flexibility.',
+      },
+    ],
     tripHighlights: ['Fast close potential', 'Premium hotel optics', 'Great for guaranteed confirmations'],
     trustNotes: ['Easy to position by budget', 'Strong family demand', 'High upgrade headroom'],
+    commercialNotes: [
+      'Best for agents who need a quick, clearly priced package with visible upgrade room.',
+      'Evening-led experiences usually close better than heavy daytime outdoor plans.',
+      'Can split neatly into family-safe and premium variants without rebuilding the whole package.',
+    ],
     inclusions: [
       'Airport transfers',
       'Breakfast',
       'City highlights',
       'Support for visa-era planning',
       'Optional desert and cruise add-ons',
+    ],
+    exclusions: [
+      'Visa and insurance unless separately bundled',
+      'Tourism dirham or hotel taxes where applicable',
+      'Peak-event date surcharges and optional premium seating',
+    ],
+    activityLibrary: [
+      {
+        slug: 'dubai-desert-safari',
+        title: 'Premium desert safari',
+        timing: 'Evening',
+        price: 'Rs 7,200 per person',
+        summary: 'High-conversion signature add-on with dinner and entertainment optics.',
+        tags: ['Signature', 'Popular'],
+      },
+      {
+        slug: 'dubai-marina-cruise',
+        title: 'Marina dinner cruise',
+        timing: 'Evening',
+        price: 'Rs 5,900 per person',
+        summary: 'An easy upsell that adds premium feel without complicating logistics.',
+        tags: ['Upsell', 'Couple'],
+      },
+      {
+        slug: 'dubai-aquarium',
+        title: 'Aquarium and underwater zoo',
+        timing: 'Afternoon',
+        price: 'Rs 4,100 per person',
+        summary: 'Family-safe indoor experience that works well in hotter travel windows.',
+        tags: ['Family', 'Indoor'],
+      },
+      {
+        slug: 'dubai-frame',
+        title: 'Dubai Frame visit',
+        timing: 'Morning',
+        price: 'Rs 2,400 per person',
+        summary: 'Light-touch add-on for clients who want another landmark without overloading the day.',
+        tags: ['City', 'Flexible'],
+      },
     ],
     packages: [
       {
@@ -131,14 +243,62 @@ export const destinationCatalog = {
     heroLabel: 'Classic city',
     heroSummary:
       'Central London combinations meant for first-time Europe travellers who want clarity, comfort, and easy city-led sightseeing.',
+    heroMedia: [
+      {
+        eyebrow: 'City lens',
+        title: 'Landmark-first pace',
+        summary: 'Keep movement simple, use one central stay, and make every day feel legible for the client.',
+      },
+      {
+        eyebrow: 'Experience lens',
+        title: 'Classic + premium evenings',
+        summary: 'Blend essentials with one paid theatre or river experience for a stronger perceived package value.',
+      },
+    ],
     tripHighlights: ['First-time friendly', 'Strong city landmarks', 'Premium upsell room'],
     trustNotes: ['Simple city format', 'Predictable sightseeing value', 'Good for premium client briefs'],
+    commercialNotes: [
+      'Works best as a clean city stay rather than an overpacked multi-city Europe plan.',
+      'Premium evening experiences create a stronger close than adding too many museums.',
+      'First-time travellers respond well to central-stay clarity and airport-transfer certainty.',
+    ],
     inclusions: [
       'Airport transfers',
       'Breakfast',
       'Central-city exploration',
       'Optional premium experiences',
       'Trip support',
+    ],
+    exclusions: [
+      'UK visa and insurance unless separately packaged',
+      'Premium attraction passes and West End upgrades',
+      'Personal spends, intercity rail, and event-date surcharges',
+    ],
+    activityLibrary: [
+      {
+        slug: 'london-river-cruise',
+        title: 'Thames evening cruise',
+        timing: 'Evening',
+        price: 'Rs 6,800 per person',
+        summary: 'A strong premium add-on that adds wow value without changing hotel logistics.',
+        tags: ['Premium', 'Evening'],
+      },
+      {
+        slug: 'london-west-end',
+        title: 'West End theatre night',
+        timing: 'Night',
+        price: 'Rs 8,900 per person',
+        summary: 'Good for higher-budget travellers wanting one marquee city experience.',
+        tags: ['Premium', 'Culture'],
+      },
+      {
+        slug: 'london-harry-potter',
+        title: 'Studio tour excursion',
+        timing: 'Full day',
+        price: 'Rs 7,500 per person',
+        summary: 'A family-leaning add-on that can become the emotional anchor of the trip.',
+        tags: ['Family', 'Popular'],
+      },
     ],
     packages: [
       {
@@ -171,14 +331,62 @@ export const destinationCatalog = {
     heroLabel: 'Beach resort',
     heroSummary:
       'Romantic and family resort-led structures built for easy storytelling, strong resort appeal, and higher-value leisure positioning.',
+    heroMedia: [
+      {
+        eyebrow: 'Resort lens',
+        title: 'Slow luxury rhythm',
+        summary: 'The strongest plans feel spacious, with resort time carrying more emotional weight than constant movement.',
+      },
+      {
+        eyebrow: 'Experience lens',
+        title: 'Lagoon and leisure',
+        summary: 'Use catamaran, lagoon, and spa-led moments as selective upgrades instead of overbuilding excursions.',
+      },
+    ],
     tripHighlights: ['Resort-first experience', 'Great couple appeal', 'High visual conversion value'],
     trustNotes: ['Clean leisure format', 'Strong occasion travel fit', 'Simple resort-led selling'],
+    commercialNotes: [
+      'Great for anniversaries, honeymoon, and premium beach-holiday positioning.',
+      'Resort differentiation matters more than piling on multiple day tours.',
+      'One signature lagoon or catamaran day is usually enough to lift perceived value.',
+    ],
     inclusions: [
       'Airport transfers',
       'Breakfast and resort stay',
       'Island highlights',
       'Support during travel',
       'Optional catamaran or spa add-ons',
+    ],
+    exclusions: [
+      'International airfare where not explicitly packaged',
+      'Travel insurance, optional watersports, and spa spends',
+      'Peak festive supplements and room-category upgrades',
+    ],
+    activityLibrary: [
+      {
+        slug: 'mauritius-catamaran',
+        title: 'Catamaran lagoon day',
+        timing: 'Full day',
+        price: 'Rs 8,200 per person',
+        summary: 'A premium signature day that instantly lifts the package story.',
+        tags: ['Signature', 'Premium'],
+      },
+      {
+        slug: 'mauritius-spa',
+        title: 'Resort spa ritual',
+        timing: 'Evening',
+        price: 'Rs 5,700 per person',
+        summary: 'Useful for celebration stays and higher-margin resort-led selling.',
+        tags: ['Relaxed', 'Celebration'],
+      },
+      {
+        slug: 'mauritius-south-tour',
+        title: 'South island discovery',
+        timing: 'Daytime',
+        price: 'Rs 4,900 per person',
+        summary: 'Adds a sightseeing layer for travellers who want a little more movement than pure resort time.',
+        tags: ['Explore', 'Flexible'],
+      },
     ],
     packages: [
       {
@@ -402,4 +610,10 @@ export function getBuilderItinerary(destination = 'Bali') {
   }
 
   return itineraryMap[destination] || builderItinerary
+}
+
+export function getActivityLibrary(destination = 'Bali') {
+  const normalizedDestination = normalizeDestinationName(destination)
+  if (!normalizedDestination) return []
+  return destinationCatalog[normalizedDestination].activityLibrary || []
 }

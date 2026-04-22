@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.api.v1.deps import require_tenant, get_token_claims
+from app.api.v1.quotations import Quotation, QuotationStatus
 from app.models.payments import Payment, PaymentStatus, PaymentProvider, LedgerEntry
 from app.core.payments import (
     verify_stripe_signature,
@@ -344,10 +345,29 @@ def create_payment_link(
             demo=True,
         )
 
+    quotation = (
+        db.query(Quotation)
+        .filter(
+            Quotation.id == body.quotation_id,
+            Quotation.tenant_id == tenant_id,
+            Quotation.is_deleted.is_(False),
+        )
+        .first()
+    )
+    if not quotation:
+        raise HTTPException(status_code=404, detail="Quotation not found")
+
+    if quotation.status not in (QuotationStatus.DRAFT, QuotationStatus.SENT, QuotationStatus.ACCEPTED):
+        raise HTTPException(status_code=400, detail="Quotation is not in a payable state")
+
+    allowed_amount = max(float(quotation.total_price) * 0.25, 1)
+    if body.amount <= 0 or body.amount > float(quotation.total_price):
+        raise HTTPException(status_code=400, detail="Requested payment amount is invalid")
+
     payload = {
-        "amount": int(body.amount * 100),   # paise
+        "amount": int(min(body.amount, allowed_amount) * 100),   # paise
         "currency": body.currency,
-        "description": body.description,
+        "description": body.description or f"Deposit for quotation #{quotation.id}",
         "callback_url": f"{_FRONTEND_URL}/dashboard/bookings",
         "callback_method": "get",
     }

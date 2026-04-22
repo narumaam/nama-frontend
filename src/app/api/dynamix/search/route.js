@@ -25,6 +25,13 @@ export async function POST(request) {
     )
   }
 
+  if (!session.isDemo && !session.agentEmail) {
+    return NextResponse.json(
+      { ok: false, error: 'Authenticated Dynamix session is missing agent identity.' },
+      { status: 401 }
+    )
+  }
+
   const createdSearch = await createTripSearch(body, session)
 
   return NextResponse.json({

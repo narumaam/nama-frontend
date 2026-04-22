@@ -37,15 +37,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const res = await authApi.login(email, password)
     const userData = { userId: res.user_id, tenantId: res.tenant_id, role: res.role, email: res.email }
-    localStorage.setItem('nama_token', res.access_token)
-    localStorage.setItem('nama_user', JSON.stringify(userData))
     // Set HttpOnly cookie server-side — cannot use document.cookie for HttpOnly
     // The server response carries Set-Cookie with HttpOnly; Secure; SameSite=Strict
-    await fetch('/api/auth/set-cookie', {
+    const cookieResponse = await fetch('/api/auth/set-cookie', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: res.access_token }),
     })
+    if (!cookieResponse.ok) {
+      throw new Error('Secure session setup failed. Please try again.')
+    }
+    localStorage.setItem('nama_token', res.access_token)
+    localStorage.setItem('nama_user', JSON.stringify(userData))
     setUser({ token: res.access_token, ...userData })
   }
 

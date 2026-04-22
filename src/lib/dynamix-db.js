@@ -134,12 +134,29 @@ export async function createTripSearch(workflow, session = {}) {
   }
 }
 
-export async function createHolidayMatchesForSearch(searchId, destination = 'Bali') {
+export async function createHolidayMatchesForSearch(searchId, destination = 'Bali', session = {}) {
   if (!hasDatabase() || !searchId) {
     return dynamixResults.map((item) => ({
       id: null,
       ...item,
     }))
+  }
+
+  if (!session?.isDemo) {
+    const ownerCheck = await query(
+      `
+        select id
+        from dynamix_trip_searches
+        where id = $1
+          and agent_email = $2
+        limit 1
+      `,
+      [searchId, session?.agentEmail || null]
+    )
+
+    if (!ownerCheck.rows.length) {
+      return []
+    }
   }
 
   const existing = await query(

@@ -10,7 +10,40 @@ function getToken(): string | null {
   return localStorage.getItem('nama_token')
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+let refreshPromise: Promise<string | null> | null = null
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${BASE}/api/v1/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      if (!data?.access_token) return null
+      localStorage.setItem('nama_token', data.access_token)
+      localStorage.setItem('nama_user', JSON.stringify({
+        userId: data.user_id,
+        tenantId: data.tenant_id,
+        role: data.role,
+        email: data.email,
+      }))
+      return data.access_token as string
+    } catch {
+      return null
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
+}
+
+async function request<T>(path: string, options: RequestInit = {}, allowRefresh = true): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -18,12 +51,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers })
+  const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' })
 
   // 401 → token expired/invalid → force logout and redirect to login with banner
   // Skip the redirect when in demo mode — demo users have no real JWT so 401s are
   // expected from Railway; the page will fall back to seed data via .catch().
   if (res.status === 401) {
+    if (allowRefresh && typeof window !== 'undefined') {
+      const nextToken = await refreshAccessToken()
+      if (nextToken) {
+        return request<T>(path, options, false)
+      }
+    }
     if (typeof window !== 'undefined') {
       const isDemo = document.cookie.split(';').some((c) => c.trim().startsWith('nama_demo=1'))
       if (!isDemo) {
@@ -213,6 +252,7 @@ export const authApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
+      credentials: 'include',
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Login failed' }))

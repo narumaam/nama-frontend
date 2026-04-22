@@ -85,15 +85,18 @@ function LoginPageInner() {
       localStorage.setItem('nama_session_role', session.role)
       localStorage.setItem('nama_session_tenant', session.tenant_name)
       if (session.access_token) {
+        const cookieResponse = await fetch('/api/auth/set-cookie', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: session.access_token }),
+        })
+        if (!cookieResponse.ok) {
+          throw new Error('Secure session setup failed.')
+        }
         localStorage.setItem('nama_token', session.access_token)
         localStorage.setItem('nama_user', JSON.stringify({
           userId: session.user_id, tenantId: session.tenant_id,
           role: session.role, email: session.email,
         }))
-        await fetch('/api/auth/set-cookie', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: session.access_token }),
-        }).catch(() => {})
       }
       setSuccess(true)
       setTimeout(() => router.push('/dashboard'), 600)
