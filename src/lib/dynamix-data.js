@@ -415,6 +415,102 @@ export const destinationCatalog = {
       },
     ],
   },
+  Singapore: {
+    heroLabel: 'City + cruise',
+    heroSummary:
+      'Cruise, skyline, attractions, and city-smooth logistics shaped for family travel, first-time Asia trips, and high-clarity selling.',
+    heroMedia: [
+      {
+        eyebrow: 'City lens',
+        title: 'Marina Bay energy',
+        summary: 'The strongest itineraries balance iconic skyline moments, light evening experiences, and smooth city movement.',
+      },
+      {
+        eyebrow: 'Trip lens',
+        title: 'Cruise + city combo',
+        summary: 'Combining a short Singapore cruise with city highlights gives the holiday stronger value perception without feeling overpacked.',
+      },
+    ],
+    tripHighlights: ['Cruise + city twin-stay story', 'Family-safe attractions', 'Easy premium upgrades'],
+    trustNotes: ['Very strong for first-time Singapore travellers', 'Works well for families and mixed-age groups', 'Easy to explain and easy to close'],
+    commercialNotes: [
+      'Cruise-plus-city is easier to position than a pure city stay when the traveller wants more holiday feel.',
+      'Night attractions, Sentosa, and Gardens by the Bay add visual value without creating heavy logistics.',
+      'A leisure day plus optional add-ons helps keep the package customizable and margin-safe.',
+    ],
+    inclusions: [
+      'Airport transfers',
+      'Cruise stay and city stay',
+      'Shared attraction transfers where applicable',
+      'Core city experiences',
+      'On-trip support',
+    ],
+    exclusions: [
+      'Airfare unless bundled in the selected package',
+      'Visa, travel insurance, and personal expenses',
+      'Optional attraction upgrades and peak-date surcharges',
+    ],
+    activityLibrary: [
+      {
+        slug: 'singapore-river-cruise',
+        title: 'Singapore river cruise',
+        timing: 'Evening',
+        price: 'Rs 3,800 per person',
+        summary: 'Adds a relaxed skyline experience and works especially well for first-time city visitors.',
+        tags: ['City classic', 'Evening'],
+      },
+      {
+        slug: 'singapore-sea-aquarium',
+        title: 'S.E.A. Aquarium visit',
+        timing: 'Afternoon',
+        price: 'Rs 4,900 per person',
+        summary: 'A family-safe add-on that is easy to place alongside Sentosa experiences.',
+        tags: ['Family', 'Indoor'],
+      },
+      {
+        slug: 'singapore-jewel-changi',
+        title: 'Jewel Changi experience',
+        timing: 'Morning',
+        price: 'Rs 2,600 per person',
+        summary: 'A light but memorable city add-on that improves the arrival or departure-day story.',
+        tags: ['Flexible', 'Photo moment'],
+      },
+      {
+        slug: 'singapore-skypark',
+        title: 'Observation deck evening',
+        timing: 'Night',
+        price: 'Rs 5,700 per person',
+        summary: 'A premium skyline add-on that upgrades the trip story without making the day heavier.',
+        tags: ['Premium', 'Skyline'],
+      },
+    ],
+    packages: [
+      {
+        slug: 'singapore-cruise-city',
+        title: 'Singapore Cruise and City',
+        summary:
+          'A 6-night holiday combining a short Singapore cruise with a city stay, marquee attractions, and easy shared-transfer logistics for a clean family-friendly close.',
+        price: 'Rs 86,500 per person',
+        badges: ['Best match', 'Cruise + city', 'Family-safe'],
+      },
+      {
+        slug: 'singapore-sentosa-family',
+        title: 'Singapore Sentosa Family',
+        summary:
+          'A family-led city plan with Sentosa, Universal Studios, skyline moments, and pacing that works well with one leisure day.',
+        price: 'Rs 79,000 per person',
+        badges: ['Family-safe', 'Full package', 'Easy pacing'],
+      },
+      {
+        slug: 'singapore-premium-skyline',
+        title: 'Singapore Premium Skyline',
+        summary:
+          'A more elevated city itinerary with stronger hotel optics, skyline experiences, and higher-margin add-on room.',
+        price: 'Rs 97,500 per person',
+        badges: ['Premium', 'Higher margin', 'City classic'],
+      },
+    ],
+  },
 }
 
 export const dynamixResults = destinationCatalog.Bali.packages
@@ -605,6 +701,43 @@ export function getBuilderItinerary(destination = 'Bali') {
         day: 'D4',
         title: 'Signature lagoon experience',
         summary: 'A high-intent island day that increases trip value perception and strengthens conversion.',
+      },
+    ],
+    Singapore: [
+      {
+        day: 'D1',
+        title: 'Arrival in Singapore and cruise boarding',
+        summary: 'Arrive in Singapore, complete transfers smoothly, and begin the holiday with an easy check-in and first-evening unwind.',
+      },
+      {
+        day: 'D2',
+        title: 'Cruise leisure day',
+        summary: 'Keep the day open for deck leisure, onboard entertainment, and a lighter luxury rhythm before the city stay begins.',
+      },
+      {
+        day: 'D3',
+        title: 'Transfer to Singapore city and Night Safari',
+        summary: 'Move into the city stay cleanly and use the evening for a signature Singapore wildlife experience.',
+      },
+      {
+        day: 'D4',
+        title: 'City tour and Gardens by the Bay',
+        summary: 'A clear landmark day that helps first-time travellers feel they have truly done Singapore well.',
+      },
+      {
+        day: 'D5',
+        title: 'Universal Studios Singapore',
+        summary: 'The strongest family anchor day and one of the easiest conversion moments in a Singapore package.',
+      },
+      {
+        day: 'D6',
+        title: 'Leisure morning and Sentosa evening',
+        summary: 'Hold part of the day flexible, then close with a high-visual Sentosa experience and evening show.',
+      },
+      {
+        day: 'D7',
+        title: 'Leisure window and departure',
+        summary: 'Leave space for light shopping or one optional activity before the airport transfer and flight home.',
       },
     ],
   }
