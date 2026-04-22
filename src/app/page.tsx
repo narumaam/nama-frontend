@@ -665,7 +665,7 @@ export default function LandingPage() {
         <div className="w-full" style={{ marginTop: '-24px' }}>
           <div className="h-[420px] md:h-[680px]">
             <iframe
-              src="/globe.html"
+              src="/globe.html?v=2"
               className="w-full h-full border-0"
               title="NAMA Global Network"
               loading="lazy"
