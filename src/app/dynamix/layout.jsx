@@ -19,7 +19,7 @@ export default function DynamixLayout({ children }) {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-[#0a0c10] text-white">
+    <div className="dynamix-shell min-h-screen bg-[#0a0c10] text-white">
       <header className="sticky top-0 z-30 border-b border-white/8 bg-[#0a0c10]/90 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
