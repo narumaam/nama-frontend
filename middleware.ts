@@ -62,6 +62,7 @@ const PUBLIC_PREFIXES = [
   '/_next/',         // Next.js static assets & HMR
   '/favicon',
   '/api/auth/',      // auth endpoints (login, register, refresh)
+  '/api/v1/health',  // public health probe used by landing/register/demo surfaces
   '/api/health',     // health check
 ];
 
