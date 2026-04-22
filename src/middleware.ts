@@ -1,10 +1,27 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-function buildCsp(frameAncestors: string) {
+function buildCsp({
+  frameAncestors,
+  allowCdnjsScripts = false,
+}: {
+  frameAncestors: string;
+  allowCdnjsScripts?: boolean;
+}) {
+  const scriptSources = [
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    'https://vercel.live',
+  ];
+
+  if (allowCdnjsScripts) {
+    scriptSources.push('https://cdnjs.cloudflare.com');
+  }
+
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
+    `script-src ${scriptSources.join(' ')}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' https://fonts.gstatic.com",
@@ -25,7 +42,10 @@ export function middleware(request: NextRequest) {
   );
   response.headers.set(
     'Content-Security-Policy',
-    buildCsp(isGlobe ? "'self'" : "'none'")
+    buildCsp({
+      frameAncestors: isGlobe ? "'self'" : "'none'",
+      allowCdnjsScripts: isGlobe,
+    })
   );
 
   return response;
