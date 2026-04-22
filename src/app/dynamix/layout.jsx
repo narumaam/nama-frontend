@@ -9,7 +9,11 @@ export default function DynamixLayout({ children }) {
 
   useEffect(() => {
     const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('nama_token')
-    if (!hasToken) {
+    const isDemoMode =
+      typeof document !== 'undefined' &&
+      document.cookie.split(';').some((item) => item.trim().startsWith('nama_demo=1'))
+
+    if (!hasToken && !isDemoMode) {
       router.replace('/login')
     }
   }, [router])
