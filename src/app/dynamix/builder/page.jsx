@@ -297,171 +297,214 @@ export default function DynamixBuilderPage() {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Itinerary</p>
-            <h2 className="text-3xl font-display font-semibold tracking-tight mt-2">Customize the day-wise trip flow</h2>
+            <h2 className="text-3xl font-display font-semibold tracking-tight mt-2">Build the trip day by day</h2>
             <p className="text-sm text-zinc-400 mt-2 leading-6">
-              Keep the drag and drop structure, then layer optional activities the way an agent would co-build a custom holiday with the traveller.
+              Reworked into a more traveller-friendly custom-tour layout: clear day cards, visible inclusions, and activity add-ons inside the itinerary itself.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {itineraryItems.map((item, index) => (
-              <button
-                key={`${item.day}-${item.title}`}
-                type="button"
-                onClick={() => setActiveDayIndex(index)}
-                className={`px-4 py-2 rounded-full border text-sm transition ${
-                  index === activeDayIndex
-                    ? 'border-red-600/30 bg-red-600/10 text-white'
-                    : 'border-white/8 bg-white/5 text-zinc-300 hover:bg-white/8'
-                }`}
-              >
-                {item.day}
-              </button>
-            ))}
           </div>
         </div>
 
-        <div className="space-y-4 mt-6">
-          {itineraryItems.map((item, index) => (
-            <div
-              key={`${item.title}-${index}`}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={(event) => {
-                event.preventDefault()
-                if (dropIndex !== index) setDropIndex(index)
-              }}
-              onDrop={() => handleDrop(index)}
-              onDragEnd={handleDragEnd}
-              className={`rounded-[26px] border p-5 transition-colors ${
-                dropIndex === index ? 'border-red-500/60 bg-red-500/10' : 'bg-white/5 border-white/8'
-              } ${draggedIndex === index ? 'opacity-70' : ''}`}
-            >
-              <div className="grid lg:grid-cols-[52px_1fr_auto] gap-4 items-start">
-                <button
-                  type="button"
-                  onClick={() => setActiveDayIndex(index)}
-                  className={`w-12 h-12 rounded-2xl text-xs font-mono flex items-center justify-center ${
-                    index === activeDayIndex ? 'bg-red-600 text-white' : 'bg-red-600/20 text-white'
-                  }`}
-                >
-                  {item.day}
-                </button>
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="text-xl font-semibold">{item.title}</h3>
+        <div className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6 mt-6">
+          <aside className="space-y-4 xl:sticky xl:top-24 h-fit">
+            <div className="rounded-[26px] border border-white/8 bg-white/5 p-5">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Trip flow</p>
+              <div className="grid gap-3 mt-4">
+                {itineraryItems.map((item, index) => (
+                  <button
+                    key={`${item.day}-${item.title}`}
+                    type="button"
+                    onClick={() => setActiveDayIndex(index)}
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      index === activeDayIndex
+                        ? 'border-red-600/30 bg-red-600/10'
+                        : 'border-white/8 bg-black/20 hover:bg-white/8'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">{item.day}</p>
+                        <h3 className="text-base font-semibold mt-2">{item.title}</h3>
+                      </div>
+                      <span className="text-xs text-zinc-400 whitespace-nowrap">
+                        {(item.activities || []).length} add-on{(item.activities || []).length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-400 mt-3 leading-6 line-clamp-3">{item.summary}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {activeDay ? (
+              <div className="rounded-[26px] border border-emerald-500/20 bg-emerald-500/10 p-5">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Active day</p>
+                <h3 className="text-xl font-display font-semibold mt-2">{activeDay.day} · {activeDay.title}</h3>
+                <p className="text-sm text-zinc-300 mt-3 leading-6">
+                  Pick optional experiences for this day, or drag the whole day up or down to reshape the trip order.
+                </p>
+              </div>
+            ) : null}
+          </aside>
+
+          <div className="space-y-5">
+            {itineraryItems.map((item, index) => (
+              <article
+                key={`${item.title}-${index}`}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  if (dropIndex !== index) setDropIndex(index)
+                }}
+                onDrop={() => handleDrop(index)}
+                onDragEnd={handleDragEnd}
+                className={`rounded-[28px] border overflow-hidden transition-colors ${
+                  dropIndex === index ? 'border-red-500/60 bg-red-500/10' : 'border-white/8 bg-white/5'
+                } ${draggedIndex === index ? 'opacity-70' : ''}`}
+              >
+                <div className="grid lg:grid-cols-[84px_1fr_auto] gap-0">
+                  <div className="bg-black/20 border-r border-white/8 p-5 flex lg:flex-col items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => setActiveDayIndex(index)}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-white/10 bg-black/20 text-xs uppercase tracking-[0.12em] text-zinc-300"
+                      className={`w-12 h-12 rounded-2xl text-xs font-mono flex items-center justify-center ${
+                        index === activeDayIndex ? 'bg-red-600 text-white' : 'bg-red-600/20 text-white'
+                      }`}
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add activity
+                      {item.day}
                     </button>
+                    <span className="text-zinc-500 cursor-grab active:cursor-grabbing" aria-hidden="true">
+                      <GripVertical className="w-5 h-5" />
+                    </span>
                   </div>
-                  <p className="text-zinc-400 text-sm leading-6 mt-3">{item.summary}</p>
-                  {(item.activities || []).length ? (
-                    <div className="flex flex-wrap gap-3 mt-4">
-                      {item.activities.map((activity) => (
-                        <div key={activity.slug} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm">
-                          <div className="flex items-start gap-3">
-                            <div>
-                              <p className="font-semibold text-white">{activity.title}</p>
-                              <p className="text-zinc-400 text-xs mt-1">{activity.timing} · {activity.price}</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeActivity(index, activity.slug)}
-                              className="text-zinc-500 hover:text-white"
-                              aria-label={`Remove ${activity.title}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
+
+                  <div className="p-5 md:p-6">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div>
+                        <h3 className="text-2xl font-display font-semibold tracking-tight">{item.title}</h3>
+                        <p className="text-zinc-400 text-sm leading-6 mt-3">{item.summary}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveDayIndex(index)}
+                        className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl border border-white/10 bg-black/20 text-sm text-zinc-200 hover:bg-black/30"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add activity
+                      </button>
+                    </div>
+
+                    <div className="grid sm:grid-cols-3 gap-3 mt-5">
+                      {[
+                        ['Stay', index === 0 ? 'Arrival and check-in ready' : 'Fits current route pacing'],
+                        ['Transfers', 'Can stay bundled in current package'],
+                        ['Flex', (item.activities || []).length ? `${(item.activities || []).length} optional add-ons selected` : 'No optional add-ons yet'],
+                      ].map(([label, value]) => (
+                        <div key={`${item.day}-${label}`} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">{label}</p>
+                          <p className="text-sm text-zinc-200 mt-2 leading-6">{value}</p>
                         </div>
                       ))}
                     </div>
-                  ) : null}
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-zinc-500 cursor-grab active:cursor-grabbing" aria-hidden="true">
-                    <GripVertical className="w-5 h-5" />
-                  </span>
-                  <div className="grid gap-2">
-                    <button
-                      type="button"
-                      onClick={() => moveItem(index, index - 1)}
-                      disabled={index === 0}
-                      className="p-2 rounded-xl border border-white/10 bg-white/5 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label={`Move ${item.title} up`}
-                    >
-                      <MoveUp className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveItem(index, index + 1)}
-                      disabled={index === itineraryItems.length - 1}
-                      className="p-2 rounded-xl border border-white/10 bg-white/5 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label={`Move ${item.title} down`}
-                    >
-                      <MoveDown className="w-4 h-4" />
-                    </button>
+
+                    {(item.activities || []).length ? (
+                      <div className="mt-5">
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mb-3">Added activities</p>
+                        <div className="grid gap-3">
+                          {item.activities.map((activity) => (
+                            <div key={activity.slug} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4 text-sm">
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <p className="font-semibold text-white">{activity.title}</p>
+                                  <p className="text-zinc-400 text-xs mt-1">{activity.timing} · {activity.price}</p>
+                                  <p className="text-zinc-300 mt-3 leading-6">{activity.summary}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeActivity(index, activity.slug)}
+                                  className="text-zinc-500 hover:text-white"
+                                  aria-label={`Remove ${activity.title}`}
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {index === activeDayIndex ? (
+                      <div className="mt-5 rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5">
+                        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Add activity</p>
+                            <h4 className="text-xl font-display font-semibold mt-2">Customize {item.day}</h4>
+                            <p className="text-sm text-zinc-400 mt-2 leading-6">
+                              Add only what improves the trip story or conversion comfort, keeping the holiday clean and easy to understand.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => moveItem(index, index - 1)}
+                              disabled={index === 0}
+                              className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                              aria-label={`Move ${item.title} up`}
+                            >
+                              <MoveUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveItem(index, index + 1)}
+                              disabled={index === itineraryItems.length - 1}
+                              className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                              aria-label={`Move ${item.title} down`}
+                            >
+                              <MoveDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4 mt-5">
+                          {activityLibrary.map((activity) => {
+                            const alreadyAdded = (item.activities || []).some((entry) => entry.slug === activity.slug)
+                            return (
+                              <div key={activity.slug} className="rounded-[22px] border border-white/8 bg-white/5 p-4">
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                  {(activity.tags || []).map((tag) => (
+                                    <span key={tag} className="px-2.5 py-1 rounded-full border border-white/8 bg-black/20 text-[10px] uppercase tracking-[0.12em] text-zinc-400">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                                <h5 className="text-base font-semibold">{activity.title}</h5>
+                                <p className="text-sm text-zinc-400 mt-2 leading-6">{activity.summary}</p>
+                                <div className="flex items-center justify-between gap-3 mt-4 text-sm">
+                                  <span className="text-zinc-300">{activity.timing}</span>
+                                  <strong>{activity.price}</strong>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => addActivityToDay(activity, index)}
+                                  disabled={alreadyAdded}
+                                  className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  {alreadyAdded ? 'Already added' : `Add to ${item.day}`}
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {activeDay ? (
-          <div className="mt-8 rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Add activity</p>
-                <h3 className="text-2xl font-display font-semibold tracking-tight mt-2">
-                  Layer optional experiences into {activeDay.day}
-                </h3>
-                <p className="text-sm text-zinc-400 mt-2 leading-6">
-                  Inspired by the smoother custom-tour pattern: pick the day first, then add only the experiences that improve the story, close rate, or value perception.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-zinc-200">
-                Active day: <strong>{activeDay.title}</strong>
-              </div>
-            </div>
-
-            <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
-              {activityLibrary.map((activity) => {
-                const alreadyAdded = (activeDay.activities || []).some((entry) => entry.slug === activity.slug)
-                return (
-                  <div key={activity.slug} className="rounded-[24px] border border-white/8 bg-white/5 p-5">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {(activity.tags || []).map((tag) => (
-                        <span key={tag} className="px-3 py-1.5 rounded-full border border-white/8 bg-black/20 text-[10px] uppercase tracking-[0.12em] text-zinc-400">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <h4 className="text-lg font-semibold">{activity.title}</h4>
-                    <p className="text-sm text-zinc-400 mt-2 leading-6">{activity.summary}</p>
-                    <div className="flex items-center justify-between gap-3 mt-5 text-sm">
-                      <span className="text-zinc-300">{activity.timing}</span>
-                      <strong>{activity.price}</strong>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addActivityToDay(activity, activeDayIndex)}
-                      disabled={alreadyAdded}
-                      className="mt-5 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Plus className="w-4 h-4" />
-                      {alreadyAdded ? 'Already added' : `Add to ${activeDay.day}`}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+              </article>
+            ))}
           </div>
-        ) : null}
+        </div>
       </section>
 
       <section className="grid lg:grid-cols-2 gap-6 mt-6">
