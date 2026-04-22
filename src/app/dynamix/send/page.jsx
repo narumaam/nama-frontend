@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { CheckCircle2, Mail, MessageCircle, Sparkles } from 'lucide-react'
 
-import { quotationsApi } from '@/lib/api'
+import { itinerariesApi, leadsApi, quotationsApi } from '@/lib/api'
 import { dynamixAi } from '@/lib/dynamix-data'
 import { getAiPlaybook } from '@/lib/dynamix-ai-data'
 import { saveDynamixQuotationDraft } from '@/lib/dynamix-handoff'
@@ -44,6 +44,40 @@ export default function DynamixSendPage() {
     if (selectedChannels.length === 2) return 'Email + WhatsApp'
     return selectedChannels[0] === 'email' ? 'Email only' : 'WhatsApp only'
   }, [selectedChannels])
+
+  function parseDurationDays() {
+    const duration = String(workflow.query.duration || '')
+    const numeric = Number(duration.match(/\d+/)?.[0] || 0)
+    if (numeric > 0) return numeric
+
+    const start = workflow.query.startDate ? new Date(workflow.query.startDate) : null
+    const end = workflow.query.endDate ? new Date(workflow.query.endDate) : null
+    if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+      return Math.max(diff, 1)
+    }
+    return 5
+  }
+
+  function parseTravelerCount() {
+    const pax = String(workflow.query.pax || '')
+    const matches = pax.match(/\d+/g) || []
+    const total = matches.reduce((sum, value) => sum + Number(value || 0), 0)
+    return total || 2
+  }
+
+  function persistMeta(nextMeta) {
+    const nextState = {
+      ...workflow,
+      meta: {
+        ...workflow.meta,
+        ...nextMeta,
+      },
+    }
+    setWorkflow(nextState)
+    saveWorkflow(nextState)
+    return nextState
+  }
 
   function persistQuote(nextQuote) {
     const nextState = {
@@ -84,6 +118,7 @@ export default function DynamixSendPage() {
   }
 
   function saveHandoffDraft() {
+    const crm = workflow.meta?.crm || {}
     saveDynamixQuotationDraft({
       lead_name: workflow.quote.customerEmail?.split('@')[0] || workflow.query.travelerType || 'Dynamix Client',
       destination: workflow.selectedHoliday.title,
@@ -94,7 +129,69 @@ export default function DynamixSendPage() {
       customer_whatsapp: workflow.quote.customerWhatsapp,
       selected_channels: selectedChannels,
       holiday_title: workflow.selectedHoliday.title,
+      lead_id: crm.leadId,
+      itinerary_id: crm.itineraryId,
+      quotation_id: crm.quotationId,
+      booking_id: crm.bookingId,
+      total_price: crm.totalPrice,
+      currency: crm.currency || 'INR',
+      travel_dates: workflow.query.startDate && workflow.query.endDate
+        ? `${workflow.query.startDate} to ${workflow.query.endDate}`
+        : undefined,
+      duration_days: parseDurationDays(),
+      travelers_count: parseTravelerCount(),
     })
+  }
+
+  async function ensureLifecycleRecords(basePrice) {
+    const existingCrm = workflow.meta?.crm || {}
+    if (existingCrm.leadId && existingCrm.itineraryId) return existingCrm
+
+    const leadName = workflow.quote.customerEmail?.split('@')[0] || workflow.query.travelerType || 'Dynamix Client'
+    const senderId = workflow.quote.customerEmail || workflow.quote.customerWhatsapp || `dynamix-${Date.now()}`
+
+    const lead = await leadsApi.create({
+      sender_id: senderId,
+      source: 'DIRECT',
+      raw_message: `Dynamix handoff for ${workflow.selectedHoliday.title}`,
+      destination: workflow.query.destination || workflow.selectedHoliday.title,
+      duration_days: parseDurationDays(),
+      travelers_count: parseTravelerCount(),
+      travel_dates: workflow.query.startDate && workflow.query.endDate
+        ? `${workflow.query.startDate} to ${workflow.query.endDate}`
+        : workflow.query.startDate || undefined,
+      budget_per_person: basePrice || undefined,
+      currency: 'INR',
+      travel_style: workflow.query.packageType || 'Standard',
+      preferences: [workflow.query.travelerType, workflow.aiFlow.categoryTitle].filter(Boolean),
+      triage_confidence: 1,
+      suggested_reply: workflow.quote.message || undefined,
+      full_name: leadName,
+      email: workflow.quote.customerEmail || undefined,
+      phone: workflow.quote.customerWhatsapp || undefined,
+    })
+
+    const itinerary = await itinerariesApi.generate({
+      lead_id: lead.id,
+      destination: workflow.query.destination || workflow.selectedHoliday.title,
+      duration_days: parseDurationDays(),
+      traveler_count: parseTravelerCount(),
+      travel_dates: workflow.query.startDate && workflow.query.endDate
+        ? `${workflow.query.startDate} to ${workflow.query.endDate}`
+        : undefined,
+      preferences: [workflow.query.packageType, workflow.query.travelerType].filter(Boolean),
+      style: workflow.query.packageType || 'Standard',
+      budget_range: basePrice ? `Approx INR ${basePrice} per person` : undefined,
+    })
+
+    const crm = {
+      ...existingCrm,
+      leadId: lead.id,
+      itineraryId: itinerary.id,
+      currency: itinerary.currency || 'INR',
+    }
+    persistMeta({ crm })
+    return crm
   }
 
   async function createQuotation() {
@@ -103,13 +200,38 @@ export default function DynamixSendPage() {
     try {
       const basePrice = Number(String(workflow.selectedHoliday.price).replace(/[^0-9.]/g, '')) || 0
       const rawMarkup = Number(String(workflow.quote.markup || '').replace(/[^0-9.]/g, '')) || 20
+      const crm = await ensureLifecycleRecords(basePrice)
       const quotation = await quotationsApi.create({
         lead_name: workflow.quote.customerEmail?.split('@')[0] || workflow.query.travelerType || 'Dynamix Client',
         destination: workflow.selectedHoliday.title,
         base_price: basePrice,
         margin_pct: Math.min(rawMarkup > 100 ? 20 : rawMarkup || 20, 100),
         currency: 'INR',
+        lead_id: crm.leadId,
+        itinerary_id: crm.itineraryId,
         notes: workflow.quote.message || undefined,
+      })
+
+      saveDynamixQuotationDraft({
+        lead_name: workflow.quote.customerEmail?.split('@')[0] || workflow.query.travelerType || 'Dynamix Client',
+        destination: workflow.selectedHoliday.title,
+        base_price: String(basePrice),
+        margin_pct: String(Math.min(rawMarkup > 100 ? 20 : rawMarkup || 20, 100)),
+        notes: workflow.quote.message,
+        customer_email: workflow.quote.customerEmail,
+        customer_whatsapp: workflow.quote.customerWhatsapp,
+        selected_channels: selectedChannels,
+        holiday_title: workflow.selectedHoliday.title,
+        lead_id: crm.leadId,
+        itinerary_id: crm.itineraryId,
+        quotation_id: quotation.id,
+        total_price: quotation.total_price,
+        currency: quotation.currency,
+        travel_dates: workflow.query.startDate && workflow.query.endDate
+          ? `${workflow.query.startDate} to ${workflow.query.endDate}`
+          : undefined,
+        duration_days: parseDurationDays(),
+        travelers_count: parseTravelerCount(),
       })
 
       const nextState = {
@@ -120,12 +242,23 @@ export default function DynamixSendPage() {
           quoteId: String(quotation.id),
           sentAt: new Date().toISOString(),
         },
+        meta: {
+          ...workflow.meta,
+          crm: {
+            ...(crm || {}),
+            quotationId: quotation.id,
+            totalPrice: quotation.total_price,
+            currency: quotation.currency,
+          },
+        },
       }
 
       setWorkflow(nextState)
       saveWorkflow(nextState)
       setSentState({
         quoteId: quotation.id,
+        leadId: crm.leadId,
+        itineraryId: crm.itineraryId,
         channels: selectedChannels,
         sentAt: nextState.quote.sentAt,
       })

@@ -24,9 +24,10 @@ from typing import Optional, List
 from app.db.session import get_db
 from app.api.v1.deps import require_tenant, get_token_claims, RoleChecker
 from app.models.auth import UserRole
-from app.schemas.leads import LeadOut, LeadUpdate, LeadListOut
+from app.schemas.leads import LeadOut, LeadUpdate, LeadListOut, LeadCreate
 from app.core.leads import get_leads, get_lead, update_lead, assign_lead
 from app.core.redis_cache import distributed_cache
+from app.models.leads import Lead as LeadModel, LeadStatus, LeadSource
 
 router = APIRouter()
 
@@ -61,6 +62,46 @@ def list_leads(
     # Step 3: Cache the result with 10-second TTL
     distributed_cache.set(cache_key, result, ttl_seconds=10)
     return result
+
+
+@router.post(
+    "/",
+    response_model=LeadOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a lead for the current tenant",
+)
+def create_lead(
+    payload: LeadCreate,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_any_agent_role),
+):
+    lead = LeadModel(
+        tenant_id=tenant_id,
+        sender_id=payload.sender_id,
+        source=payload.source,
+        full_name=payload.full_name,
+        email=payload.email,
+        phone=payload.phone,
+        raw_message=payload.raw_message,
+        destination=payload.destination,
+        duration_days=payload.duration_days,
+        travelers_count=payload.travelers_count,
+        travel_dates=payload.travel_dates,
+        budget_per_person=payload.budget_per_person,
+        currency=payload.currency,
+        travel_style=payload.travel_style,
+        preferences=payload.preferences,
+        triage_confidence=payload.triage_confidence,
+        triage_result=payload.triage_result,
+        suggested_reply=payload.suggested_reply,
+        status=LeadStatus.NEW,
+    )
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+    distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+    return lead
 
 
 @router.get("/{lead_id}", response_model=LeadOut, summary="Get a single lead")

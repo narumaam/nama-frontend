@@ -5,22 +5,27 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BadgeCheck, CalendarDays, CreditCard, ExternalLink, ShieldCheck } from 'lucide-react'
 
-import { paymentsApi } from '@/lib/api'
+import { bookingsApi, paymentsApi } from '@/lib/api'
 import { getAiPlaybook } from '@/lib/dynamix-ai-data'
+import { loadDynamixQuotationDraft, saveDynamixQuotationDraft } from '@/lib/dynamix-handoff'
 import { defaultWorkflow, loadWorkflow, saveWorkflow } from '@/lib/dynamix-workflow'
 
 export default function DynamixApprovalPage() {
   const router = useRouter()
   const [workflow, setWorkflow] = useState(() => loadWorkflow() || defaultWorkflow)
   const [paymentState, setPaymentState] = useState(null)
+  const [bookingState, setBookingState] = useState(null)
   const [approvalError, setApprovalError] = useState('')
   const [creatingLink, setCreatingLink] = useState(false)
+  const [creatingBooking, setCreatingBooking] = useState(false)
   const aiPlaybook = getAiPlaybook(workflow.aiFlow.categorySlug)
   const approvalTone = workflow.aiFlow.enabled
     ? aiPlaybook.approvalTone
     : 'This is the clean client-facing quote handoff. It should help the client understand what they are getting and what to do next without showing internal NAMA mechanics.'
   const advanceDue = workflow.aiFlow.enabled ? aiPlaybook.approvalAdvance : 'Rs 35,000'
   const itineraryItems = workflow.itinerary?.items || []
+  const handoff = loadDynamixQuotationDraft()
+  const crm = workflow.meta?.crm || {}
 
   const shareMode = useMemo(() => {
     const channels = workflow.quote.selectedChannels || []
@@ -56,6 +61,66 @@ export default function DynamixApprovalPage() {
       setApprovalError(err instanceof Error ? err.message : 'Payment link could not be created.')
     } finally {
       setCreatingLink(false)
+    }
+  }
+
+  async function createBooking() {
+    const leadId = crm.leadId || handoff?.lead_id
+    const itineraryId = crm.itineraryId || handoff?.itinerary_id
+    const totalPrice = crm.totalPrice || handoff?.total_price || Number(String(workflow.selectedHoliday.price).replace(/[^0-9.]/g, '')) || 0
+
+    if (!leadId || !itineraryId) {
+      setApprovalError('Create the live quotation first so Dynamix can attach a CRM lead and itinerary before booking.')
+      return
+    }
+
+    setCreatingBooking(true)
+    setApprovalError('')
+    try {
+      const booking = await bookingsApi.create({
+        lead_id: Number(leadId),
+        itinerary_id: Number(itineraryId),
+        total_price: Number(totalPrice),
+        currency: crm.currency || handoff?.currency || 'INR',
+        idempotency_key: typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `dynamix-${Date.now()}`,
+      })
+
+      setBookingState(booking)
+      const nextState = {
+        ...workflow,
+        meta: {
+          ...workflow.meta,
+          crm: {
+            ...crm,
+            leadId: Number(leadId),
+            itineraryId: Number(itineraryId),
+            quotationId: crm.quotationId || handoff?.quotation_id,
+            bookingId: booking.id,
+            totalPrice: Number(totalPrice),
+            currency: crm.currency || handoff?.currency || 'INR',
+          },
+        },
+      }
+      setWorkflow(nextState)
+      saveWorkflow(nextState)
+
+      if (handoff) {
+        saveDynamixQuotationDraft({
+          ...handoff,
+          lead_id: Number(leadId),
+          itinerary_id: Number(itineraryId),
+          quotation_id: crm.quotationId || handoff?.quotation_id,
+          booking_id: booking.id,
+          total_price: Number(totalPrice),
+          currency: crm.currency || handoff?.currency || 'INR',
+        })
+      }
+    } catch (err) {
+      setApprovalError(err instanceof Error ? err.message : 'Booking could not be created.')
+    } finally {
+      setCreatingBooking(false)
     }
   }
 
@@ -158,6 +223,13 @@ export default function DynamixApprovalPage() {
             </div>
           ) : null}
 
+          {bookingState ? (
+            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 mt-4">
+              <h3 className="font-semibold text-sm mb-2">Booking created in NAMA</h3>
+              <p className="text-sm text-zinc-300">Booking ID: {bookingState.id}</p>
+            </div>
+          ) : null}
+
           {approvalError ? (
             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 mt-4">
               <h3 className="font-semibold text-sm mb-2">Approval check</h3>
@@ -166,6 +238,13 @@ export default function DynamixApprovalPage() {
           ) : null}
 
           <div className="grid gap-3 mt-6">
+            <button
+              onClick={createBooking}
+              disabled={creatingBooking}
+              className="px-5 py-3 rounded-2xl bg-white text-black hover:bg-zinc-200 font-semibold disabled:opacity-60"
+            >
+              {creatingBooking ? 'Creating booking…' : 'Create booking in NAMA'}
+            </button>
             <button
               onClick={createPaymentLink}
               disabled={!workflow.quote.quoteId || creatingLink}

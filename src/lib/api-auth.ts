@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
 // ─── API Key auth (machine-to-machine) ───────────────────────────────────────
 
@@ -86,7 +87,21 @@ function isValidJwtShape(token: string): boolean {
   return parts.length === 3 && parts.every(p => p.length > 0);
 }
 
-export function requireSession(request: NextRequest): NextResponse | null {
+async function hasValidJwtSignature(token: string): Promise<boolean> {
+  const secret = process.env.NAMA_JWT_SECRET;
+  if (!secret) return false;
+
+  try {
+    await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function requireSession(request: NextRequest): Promise<NextResponse | null> {
   const authCookie = request.cookies.get('nama_auth')?.value;
   const demoCookie = request.cookies.get('nama_demo')?.value;
 
@@ -96,6 +111,14 @@ export function requireSession(request: NextRequest): NextResponse | null {
   if (!authCookie || !isValidJwtShape(authCookie)) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized — valid session required' },
+      { status: 401 }
+    );
+  }
+
+  const signatureOk = await hasValidJwtSignature(authCookie);
+  if (!signatureOk) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized — session verification failed' },
       { status: 401 }
     );
   }

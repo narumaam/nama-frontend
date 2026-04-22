@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const COOKIE_NAME = 'nama_auth';
@@ -25,6 +26,20 @@ function isValidJwtShape(token: string): boolean {
   if (token.length < 50) return false;
   const parts = token.split('.');
   return parts.length === 3 && parts.every(p => p.length > 0);
+}
+
+async function verifyJwtSignature(token: string): Promise<boolean> {
+  const secret = process.env.NAMA_JWT_SECRET;
+  if (!secret) return false;
+
+  try {
+    await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -38,6 +53,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Invalid or missing token' },
         { status: 400 }
+      );
+    }
+
+    const tokenVerified = await verifyJwtSignature(body.token);
+    if (!tokenVerified) {
+      return NextResponse.json(
+        { success: false, error: 'Token signature verification failed' },
+        { status: 401 }
       );
     }
 

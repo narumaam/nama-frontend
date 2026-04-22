@@ -151,6 +151,14 @@ export interface Booking {
   created_at: string
 }
 
+export interface BookingCreateRequest {
+  itinerary_id: number
+  lead_id: number
+  total_price: number
+  currency?: string
+  idempotency_key: string
+}
+
 export interface LedgerEntry {
   id: number
   entry_type: string
@@ -341,7 +349,7 @@ export const itinerariesApi = {
 export const bookingsApi = {
   list: () => api.get<Booking[]>('/api/v1/bookings/'),
   get: (id: number) => api.get<Booking>(`/api/v1/bookings/${id}`),
-  create: (data: {itinerary_id: number; lead_id: number}) =>
+  create: (data: BookingCreateRequest) =>
     api.post<Booking>('/api/v1/bookings/', data),
   confirm: (id: number) => api.post(`/api/v1/bookings/${id}/confirm`, {}),
   cancel: (id: number) => api.post(`/api/v1/bookings/${id}/cancel`, {}),

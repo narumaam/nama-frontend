@@ -35,7 +35,7 @@ interface ContextCapture {
 export async function POST(request: NextRequest) {
   const rateLimitError = await rateLimit(request, RATE_LIMITS.context);
   if (rateLimitError) return rateLimitError;
-  const authError = requireSession(request);
+  const authError = await requireSession(request);
   if (authError) return authError;
 
   try {

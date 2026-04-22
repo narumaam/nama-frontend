@@ -34,6 +34,9 @@ class LeadCreate(BaseModel):
     """Used internally when triage agent creates a lead from a raw query."""
     sender_id:         str
     source:            LeadSource      = LeadSource.WHATSAPP
+    full_name:         Optional[str]   = None
+    email:             Optional[str]   = None
+    phone:             Optional[str]   = None
     raw_message:       Optional[str]   = None
     destination:       Optional[str]   = None
     duration_days:     Optional[int]   = None

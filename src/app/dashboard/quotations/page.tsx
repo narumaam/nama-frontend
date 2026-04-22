@@ -362,6 +362,8 @@ export default function QuotationsPage() {
 
     setForm((prev) => ({
       ...prev,
+      lead_id: draft.lead_id ? String(draft.lead_id) : prev.lead_id,
+      itinerary_id: draft.itinerary_id ? String(draft.itinerary_id) : prev.itinerary_id,
       lead_name: draft.lead_name || prev.lead_name,
       destination: draft.destination || prev.destination,
       base_price: draft.base_price || prev.base_price,
