@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { dynamixResults } from '@/lib/dynamix-data'
@@ -12,9 +12,19 @@ export default function DynamixLandingPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const confirmationsRef = useRef(null)
   const carouselRef = useRef(null)
+  const autoScrollRef = useRef(null)
 
   const packages = useMemo(() => dynamixResults, [])
   const activePackage = packages[currentIndex] || packages[0]
+  const [tripForm, setTripForm] = useState(() => ({
+    destination: workflow.query.destination || 'Bali',
+    startDate: workflow.query.startDate || '12 Jun 2026',
+    endDate: workflow.query.endDate || '18 Jun 2026',
+    adults: 2,
+    children: 0,
+    childAge: '7',
+    packageType: workflow.query.packageType || 'Full package',
+  }))
 
   const categoryOptions = [
     'Reset Retreat',
@@ -28,6 +38,20 @@ export default function DynamixLandingPage() {
     'AI suggests module mix',
     'AI protects pricing story',
   ]
+
+  useEffect(() => {
+    autoScrollRef.current = window.setInterval(() => {
+      setCurrentIndex((prev) => {
+        const next = prev === packages.length - 1 ? 0 : prev + 1
+        scrollCarousel(next)
+        return next
+      })
+    }, 3500)
+
+    return () => {
+      if (autoScrollRef.current) window.clearInterval(autoScrollRef.current)
+    }
+  }, [packages.length])
 
   function scrollToConfirmations() {
     confirmationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -60,6 +84,15 @@ export default function DynamixLandingPage() {
   function selectGuaranteedPackage(item) {
     const nextState = {
       ...workflow,
+      query: {
+        ...workflow.query,
+        destination: tripForm.destination,
+        startDate: tripForm.startDate,
+        endDate: tripForm.endDate,
+        pax: `${tripForm.adults} adults${tripForm.children ? `, ${tripForm.children} child` : ''}`,
+        travelerType: tripForm.children ? 'Family' : workflow.query.travelerType,
+        packageType: tripForm.packageType,
+      },
       selectedHoliday: {
         id: item.id || null,
         slug: item.slug,
@@ -76,8 +109,31 @@ export default function DynamixLandingPage() {
     saveWorkflow(nextState)
   }
 
+  function updateTripField(key, value) {
+    const nextTrip = {
+      ...tripForm,
+      [key]: value,
+    }
+    setTripForm(nextTrip)
+
+    const nextState = {
+      ...workflow,
+      query: {
+        ...workflow.query,
+        destination: nextTrip.destination,
+        startDate: nextTrip.startDate,
+        endDate: nextTrip.endDate,
+        pax: `${nextTrip.adults} adults${nextTrip.children ? `, ${nextTrip.children} child` : ''}`,
+        travelerType: nextTrip.children ? 'Family' : workflow.query.travelerType,
+        packageType: nextTrip.packageType,
+      },
+    }
+    setWorkflow(nextState)
+    saveWorkflow(nextState)
+  }
+
   const optionCardClass =
-    'glass rounded-[28px] p-8 border border-white/8 min-h-[420px] flex flex-col'
+    'glass rounded-[28px] p-8 border border-white/8 min-h-[520px] flex flex-col'
 
   function setCategoryFlow(slug) {
     const nextState = {
@@ -86,6 +142,15 @@ export default function DynamixLandingPage() {
         ...workflow.aiFlow,
         enabled: true,
         categoryTitle: slug,
+      },
+      query: {
+        ...workflow.query,
+        destination: tripForm.destination,
+        startDate: tripForm.startDate,
+        endDate: tripForm.endDate,
+        pax: `${tripForm.adults} adults${tripForm.children ? `, ${tripForm.children} child` : ''}`,
+        travelerType: slug === 'Family Memory Maker' || tripForm.children ? 'Family' : 'Couple',
+        packageType: tripForm.packageType,
       },
     }
     setWorkflow(nextState)
@@ -110,6 +175,81 @@ export default function DynamixLandingPage() {
         </div>
       </section>
 
+      <section className="glass rounded-[28px] p-6 mt-6">
+        <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 font-mono">Trip brief</p>
+            <h2 className="text-2xl font-display font-semibold tracking-tight mt-2">Define the essentials once.</h2>
+            <p className="text-zinc-400 mt-2 text-sm leading-6">
+              These trip inputs power both Category First Dynamix and Guaranteed Confirmations, so the agent does not have to repeat destination, travel dates, pax, or child age later.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-white/8 bg-white/5 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
+            Shared across both paths
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 xl:grid-cols-6 gap-4 mt-6">
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Destination</span>
+            <input
+              value={tripForm.destination}
+              onChange={(event) => updateTripField('destination', event.target.value)}
+              className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+            />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Start date</span>
+            <input
+              value={tripForm.startDate}
+              onChange={(event) => updateTripField('startDate', event.target.value)}
+              className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+            />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">End date</span>
+            <input
+              value={tripForm.endDate}
+              onChange={(event) => updateTripField('endDate', event.target.value)}
+              className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+            />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Adults</span>
+            <select
+              value={tripForm.adults}
+              onChange={(event) => updateTripField('adults', Number(event.target.value))}
+              className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+            >
+              {[1, 2, 3, 4, 5, 6].map((value) => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Children</span>
+            <select
+              value={tripForm.children}
+              onChange={(event) => updateTripField('children', Number(event.target.value))}
+              className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+            >
+              {[0, 1, 2, 3].map((value) => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Child age</span>
+            <input
+              value={tripForm.children ? tripForm.childAge : 'N/A'}
+              disabled={!tripForm.children}
+              onChange={(event) => updateTripField('childAge', event.target.value)}
+              className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white disabled:opacity-40"
+            />
+          </label>
+        </div>
+      </section>
+
       <section className="grid lg:grid-cols-2 gap-6 mt-6">
         <article className={optionCardClass}>
           <div className="flex items-center justify-between gap-4">
@@ -120,7 +260,7 @@ export default function DynamixLandingPage() {
           </div>
           <h2 className="text-3xl font-display font-semibold tracking-tight mt-5">Category First Dynamix</h2>
           <p className="text-zinc-400 mt-3 leading-7">
-            Let Dynamix start from the category, not the city. This path is best when the agent wants AI help deciding what type of holiday should be sold before getting into the detailed build.
+            Let Dynamix start from the category, not the city. This path is for actually shaping the package inside this panel before the agent moves deeper into the build.
           </p>
 
           <div className="grid gap-4 mt-6">
@@ -148,7 +288,23 @@ export default function DynamixLandingPage() {
             </div>
 
             <div>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mb-3">What AI will configure</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mb-3">Package shape</p>
+              <div className="grid md:grid-cols-2 gap-3">
+                {[
+                  `Destination: ${tripForm.destination}`,
+                  `Dates: ${tripForm.startDate} to ${tripForm.endDate}`,
+                  `Travellers: ${tripForm.adults} adults${tripForm.children ? `, ${tripForm.children} child (${tripForm.childAge}y)` : ''}`,
+                  `Build style: ${tripForm.packageType}`,
+                ].map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mb-3">What AI will configure next</p>
               <div className="space-y-3">
                 {composerModes.map((item) => (
                   <div key={item} className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-zinc-300">
@@ -178,13 +334,13 @@ export default function DynamixLandingPage() {
           </div>
           <h2 className="text-3xl font-display font-semibold tracking-tight mt-5">Guaranteed Confirmations</h2>
           <p className="text-zinc-400 mt-3 leading-7">
-            Use this when the agent already wants speed and confidence. Jump straight to ready-to-sell packages that can move quickly without going through the extra matching step first.
+            Use this when the agent already wants speed and confidence. The packages below now use the same destination, date, pax, and child-age trip brief defined above.
           </p>
           <div className="space-y-3 mt-6">
             {[
-              'Ready-to-sell packages with clear pricing',
-              'Best for quick quote turnaround and simple briefs',
-              'One click takes the agent straight to available confirmed options below',
+              `Ready-to-sell options for ${tripForm.destination}`,
+              `Built for ${tripForm.adults} adults${tripForm.children ? ` and ${tripForm.children} child` : ''}`,
+              'One click jumps straight to the auto-scrolling confirmed stock below',
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-zinc-300">
                 {item}
@@ -212,7 +368,7 @@ export default function DynamixLandingPage() {
               <span className="text-red-500"> without the extra step.</span>
             </h2>
             <p className="text-zinc-400 mt-4 leading-7">
-              When the agent wants quick turnaround, they should be able to pick a package right here and move straight into the builder and send flow.
+              These packages should keep moving on their own, while still allowing the agent to pause on the one that best fits the current trip brief.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -262,6 +418,14 @@ export default function DynamixLandingPage() {
                 </div>
                 <h3 className="text-3xl font-display font-semibold tracking-tight">{item.title}</h3>
                 <p className="text-zinc-400 mt-4 leading-7 min-h-[112px]">{item.summary}</p>
+                <div className="grid grid-cols-2 gap-3 mt-5">
+                  <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
+                    {tripForm.startDate} → {tripForm.endDate}
+                  </div>
+                  <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
+                    {tripForm.adults} adults{tripForm.children ? `, ${tripForm.children} child` : ''}
+                  </div>
+                </div>
                 <div className="mt-6">
                   <div className="text-zinc-500 text-[11px] uppercase tracking-[0.18em] font-mono">Price</div>
                   <div className="text-3xl font-display font-bold tracking-tight mt-2">{item.price}</div>
