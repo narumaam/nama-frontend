@@ -889,10 +889,12 @@ export default function DocumentsPage() {
   const [downloadingRealDoc, setDownloadingRealDoc] = useState(false);
   const [downloadingConfirmation, setDownloadingConfirmation] = useState(false);
   const [downloadingVoucher, setDownloadingVoucher] = useState(false);
+  const [preparingPacket, setPreparingPacket] = useState(false);
   const [realDocError, setRealDocError] = useState('');
 
   const bookingId = Number(searchParams.get('bookingId') || 0) || null;
   const quotationId = Number(searchParams.get('quotationId') || 0) || null;
+  const leadId = Number(searchParams.get('leadId') || 0) || null;
   const destination = searchParams.get('destination') || 'Dynamix holiday';
 
   async function downloadLiveInvoice() {
@@ -948,6 +950,22 @@ export default function DocumentsPage() {
     } finally {
       if (kind === 'confirmation') setDownloadingConfirmation(false);
       if (kind === 'voucher') setDownloadingVoucher(false);
+    }
+  }
+
+  async function prepareFullPacket() {
+    if (!bookingId) return;
+    setPreparingPacket(true);
+    setRealDocError('');
+    try {
+      const packet = await documentsApi.prepareBookingPacket(bookingId, quotationId || undefined);
+      if (!packet.success) {
+        throw new Error('Booking packet could not be prepared.');
+      }
+    } catch (error) {
+      setRealDocError(error instanceof Error ? error.message : 'Booking packet could not be prepared yet.');
+    } finally {
+      setPreparingPacket(false);
     }
   }
 
@@ -1017,6 +1035,7 @@ export default function DocumentsPage() {
                 <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-500 dark:text-slate-400">
                   <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Booking #{bookingId}</span>
                   {quotationId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Quotation #{quotationId}</span> : null}
+                  {leadId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Lead #{leadId}</span> : null}
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 xl:grid-cols-2 gap-3">
@@ -1043,6 +1062,14 @@ export default function DocumentsPage() {
                 >
                   <Ticket size={15} />
                   {downloadingVoucher ? 'Preparing voucher…' : 'Download voucher'}
+                </button>
+                <button
+                  onClick={prepareFullPacket}
+                  disabled={preparingPacket}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-sm font-semibold text-[#0f766e] dark:text-[#5eead4] hover:bg-[#14B8A6]/20 transition-colors disabled:opacity-60"
+                >
+                  <FileText size={15} />
+                  {preparingPacket ? 'Preparing full packet…' : 'Prepare full booking packet'}
                 </button>
                 <button
                   onClick={() => setActiveDoc('voucher')}

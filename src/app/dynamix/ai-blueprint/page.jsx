@@ -97,7 +97,7 @@ export default function DynamixAiBlueprintPage() {
             <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Commercial signals</p>
             <div className="space-y-3 mt-4">
               {(blueprintData.commercialSignals || aiBlueprint.commercialSignals).map((item) => (
-                <div key={item} className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-zinc-200">{item}</div>
+                <div key={item} className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm dynamix-text">{item}</div>
               ))}
             </div>
           </div>

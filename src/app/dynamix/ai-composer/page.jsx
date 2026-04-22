@@ -70,7 +70,7 @@ export default function DynamixAiComposerPage() {
                   <h2 className="text-lg font-semibold">{module.label}</h2>
                   <p className="text-sm dynamix-muted mt-2">{module.summary}</p>
                 </div>
-                <span className={`px-3 py-2 rounded-full text-[11px] uppercase tracking-[0.14em] ${module.status === 'Selected' ? 'bg-red-600/15 border border-red-600/30 text-white' : 'dynamix-chip'}`}>
+                <span className={`px-3 py-2 rounded-full text-[11px] uppercase tracking-[0.14em] ${module.status === 'Selected' ? 'bg-red-600/15 border border-red-600/30 dynamix-text' : 'dynamix-chip'}`}>
                   {module.status}
                 </span>
               </div>
@@ -88,7 +88,7 @@ export default function DynamixAiComposerPage() {
             <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">Sales narrative</p>
             <p className="text-sm dynamix-muted mt-4">{composerData.salesNarrative}</p>
           </div>
-          <div className="glass rounded-[28px] p-6 bg-[linear-gradient(180deg,rgba(229,9,20,0.10),rgba(255,255,255,0.02))] border border-red-600/20">
+          <div className="glass rounded-[28px] p-6 dynamix-accent-panel border border-red-600/20">
             <p className="text-[11px] uppercase tracking-[0.18em] dynamix-subtle font-mono">What next</p>
             <p className="text-sm dynamix-muted mt-4">
               From here, Dynamix can hand the agent into the existing builder, but with a pre-shaped itinerary, margin-safe story, and better upsell order already decided by AI.
@@ -97,7 +97,7 @@ export default function DynamixAiComposerPage() {
               <Link href="/dynamix/builder" onClick={handoffToBuilder} className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-semibold">
                 Hand off to builder
               </Link>
-              <Link href="/dynamix" className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border dynamix-card-soft dynamix-text font-medium">
+              <Link href="/dynamix" className="inline-flex items-center justify-center px-5 py-3 rounded-2xl dynamix-button-secondary font-medium">
                 Back to Dynamix entry
               </Link>
             </div>

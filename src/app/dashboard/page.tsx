@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Users,
   Map,
@@ -222,6 +223,11 @@ function ActivityIcon({ type }: { type: string }) {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
+  const leadId = Number(searchParams.get("leadId") || 0) || null;
+  const bookingId = Number(searchParams.get("bookingId") || 0) || null;
+  const quotationId = Number(searchParams.get("quotationId") || 0) || null;
+  const destination = searchParams.get("destination") || "Dynamix holiday";
   const [kpi, setKpi] = useState(SEED_KPI);
   const [alertsSpinning, setAlertsSpinning] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
@@ -340,6 +346,25 @@ export default function DashboardPage() {
           Live
         </span>
       </div>
+
+      {(leadId || bookingId || quotationId) ? (
+        <div className="rounded-2xl border border-[#14B8A6]/20 bg-white dark:bg-[#0F1B35] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#14B8A6]">Dynamix lifecycle</p>
+          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2">
+            {destination} is now flowing through the live NAMA dashboard
+          </h2>
+          <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-500 dark:text-slate-400">
+            {leadId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Lead #{leadId}</span> : null}
+            {quotationId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Quotation #{quotationId}</span> : null}
+            {bookingId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Booking #{bookingId}</span> : null}
+          </div>
+          <div className="flex flex-wrap gap-4 mt-4">
+            {leadId ? <Link href={`/dashboard/leads?leadId=${leadId}&destination=${encodeURIComponent(destination)}`} className="text-sm font-semibold text-[#14B8A6]">Open lead</Link> : null}
+            {quotationId ? <Link href={`/dashboard/finance?quotationId=${quotationId}${bookingId ? `&bookingId=${bookingId}` : ""}${leadId ? `&leadId=${leadId}` : ""}&destination=${encodeURIComponent(destination)}`} className="text-sm font-semibold text-[#14B8A6]">Open finance</Link> : null}
+            {bookingId ? <Link href={`/dashboard/documents?bookingId=${bookingId}${quotationId ? `&quotationId=${quotationId}` : ""}${leadId ? `&leadId=${leadId}` : ""}&destination=${encodeURIComponent(destination)}`} className="text-sm font-semibold text-[#14B8A6]">Open documents</Link> : null}
+          </div>
+        </div>
+      ) : null}
 
       {/* ── KPI Row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

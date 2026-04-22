@@ -635,6 +635,26 @@ export const documentsApi = {
       method: 'GET',
       credentials: 'include',
     }),
+  prepareBookingPacket: (bookingId: number, quotationId?: number) =>
+    api.post<{
+      success: boolean
+      booking_id: number
+      quotation_id?: number | null
+      lead_name: string
+      destination: string
+      documents: {
+        invoice: { ready: boolean; filename: string }
+        confirmation: { ready: boolean; filename: string }
+        voucher: { ready: boolean; filename: string }
+      }
+      ops_handoff: {
+        documents_url: string
+        finance_url: string
+      }
+    }>('/api/v1/documents/booking-packet', {
+      booking_id: bookingId,
+      quotation_id: quotationId,
+    }),
 }
 
 // Payments — Razorpay payment links

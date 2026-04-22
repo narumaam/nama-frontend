@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   Plus,
@@ -455,6 +456,9 @@ function LeadSlideOver({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
+  const searchParams = useSearchParams();
+  const highlightedLeadId = Number(searchParams.get("leadId") || 0) || null;
+  const destinationContext = searchParams.get("destination") || "";
   const [leads, setLeads] = useState<SeedLead[]>(SEED_LEADS);
   const [view, setView] = useState<"list" | "pipeline">("list");
   const [search, setSearch] = useState("");
@@ -492,6 +496,12 @@ export default function LeadsPage() {
       });
   }, []);
 
+  useEffect(() => {
+    if (!highlightedLeadId) return;
+    const match = leads.find((lead) => lead.id === highlightedLeadId);
+    if (match) setSelectedLead(match);
+  }, [highlightedLeadId, leads]);
+
   const filtered = useMemo(() => {
     return leads.filter((l) => {
       const matchSearch =
@@ -524,6 +534,18 @@ export default function LeadsPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0A0F1E] p-6" data-tour="leads-page">
       <DynamixHandoffBanner moduleLabel="Leads" />
+
+      {highlightedLeadId ? (
+        <div className="rounded-2xl border border-[#14B8A6]/20 bg-white dark:bg-[#0F1B35] p-5 mt-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#14B8A6]">Live CRM context</p>
+          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2">
+            Dynamix has handed lead #{highlightedLeadId} into the CRM
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            Use this page for follow-ups, ownership, and timeline notes{destinationContext ? ` for ${destinationContext}` : ""}.
+          </p>
+        </div>
+      ) : null}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 mt-6">

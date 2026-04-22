@@ -47,7 +47,7 @@ export default function DynamixAiCategoriesPage() {
               <Link key={item.slug} href={`/dynamix/ai-blueprint?category=${item.slug}`} onClick={() => saveCategory(item)} className="rounded-[24px] border dynamix-card-soft p-5 hover:opacity-95 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <h2 className="text-xl font-display font-semibold">{item.title}</h2>
-                  <span className="px-3 py-2 rounded-full bg-red-600/10 border border-red-600/20 text-[10px] uppercase tracking-[0.16em] text-red-200">AI Fit</span>
+                  <span className="px-3 py-2 rounded-full bg-red-600/10 border border-red-600/20 text-[10px] uppercase tracking-[0.16em] dynamix-accent-text">AI Fit</span>
                 </div>
                 <p className="text-sm dynamix-muted mt-3">{item.signal}</p>
                 <div className="flex flex-wrap gap-2 mt-4">

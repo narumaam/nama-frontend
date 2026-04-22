@@ -20,6 +20,7 @@ export default function DynamixApprovalPage() {
   const [creatingLink, setCreatingLink] = useState(false)
   const [creatingBooking, setCreatingBooking] = useState(false)
   const [preparingDocs, setPreparingDocs] = useState(false)
+  const [preparingPacket, setPreparingPacket] = useState(false)
   const aiPlaybook = getAiPlaybook(workflow.aiFlow.categorySlug)
   const approvalTone = workflow.aiFlow.enabled
     ? aiPlaybook.approvalTone
@@ -51,6 +52,11 @@ export default function DynamixApprovalPage() {
 
       setPaymentState(data)
       if (crm.leadId || handoff?.lead_id) {
+        leadsApi
+          .update(Number(crm.leadId || handoff?.lead_id), {
+            status: 'NEGOTIATING',
+          })
+          .catch(() => null)
         leadsApi
           .addNote(Number(crm.leadId || handoff?.lead_id), {
             author: 'Dynamix',
@@ -129,13 +135,19 @@ export default function DynamixApprovalPage() {
       }
 
       leadsApi
+        .update(Number(leadId), {
+          status: 'WON',
+        })
+        .catch(() => null)
+
+      leadsApi
         .addNote(Number(leadId), {
           author: 'Dynamix',
           content: `Booking #${booking.id} created from Dynamix for ${workflow.selectedHoliday.title}. Total price: ${crm.currency || handoff?.currency || 'INR'} ${Number(totalPrice)}.`,
         })
         .catch(() => null)
 
-      router.push(`/dashboard/documents?bookingId=${booking.id}${crm.quotationId || handoff?.quotation_id ? `&quotationId=${crm.quotationId || handoff?.quotation_id}` : ''}&destination=${encodeURIComponent(workflow.query.destination || workflow.selectedHoliday.destination || workflow.selectedHoliday.title)}`)
+      router.push(`/dashboard/documents?bookingId=${booking.id}${crm.quotationId || handoff?.quotation_id ? `&quotationId=${crm.quotationId || handoff?.quotation_id}` : ''}&leadId=${Number(leadId)}&destination=${encodeURIComponent(workflow.query.destination || workflow.selectedHoliday.destination || workflow.selectedHoliday.title)}`)
     } catch (err) {
       setApprovalError(err instanceof Error ? err.message : 'Booking could not be created.')
     } finally {
@@ -169,6 +181,11 @@ export default function DynamixApprovalPage() {
 
       if (crm.leadId || handoff?.lead_id) {
         leadsApi
+          .update(Number(crm.leadId || handoff?.lead_id), {
+            status: 'WON',
+          })
+          .catch(() => null)
+        leadsApi
           .addNote(Number(crm.leadId || handoff?.lead_id), {
             author: 'Dynamix',
             content: `Booking documents prepared for booking #${bookingId}. Confirmation and voucher are ready for review in Documents.`,
@@ -176,11 +193,45 @@ export default function DynamixApprovalPage() {
           .catch(() => null)
       }
 
-      router.push(`/dashboard/documents?bookingId=${bookingId}${crm.quotationId || handoff?.quotation_id ? `&quotationId=${crm.quotationId || handoff?.quotation_id}` : ''}&destination=${encodeURIComponent(workflow.query.destination || workflow.selectedHoliday.destination || workflow.selectedHoliday.title)}`)
+      router.push(`/dashboard/documents?bookingId=${bookingId}${crm.quotationId || handoff?.quotation_id ? `&quotationId=${crm.quotationId || handoff?.quotation_id}` : ''}${crm.leadId || handoff?.lead_id ? `&leadId=${crm.leadId || handoff?.lead_id}` : ''}&destination=${encodeURIComponent(workflow.query.destination || workflow.selectedHoliday.destination || workflow.selectedHoliday.title)}`)
     } catch (err) {
       setApprovalError(err instanceof Error ? err.message : 'Booking documents could not be prepared.')
     } finally {
       setPreparingDocs(false)
+    }
+  }
+
+  async function prepareBookingPacket() {
+    const bookingId = workflow.meta?.crm?.bookingId || bookingState?.id
+    const quotationId = crm.quotationId || handoff?.quotation_id
+    const leadId = crm.leadId || handoff?.lead_id
+    if (!bookingId) {
+      setApprovalError('Create the booking first so NAMA can assemble the live finance and document packet.')
+      return
+    }
+
+    setPreparingPacket(true)
+    setApprovalError('')
+    try {
+      await documentsApi.prepareBookingPacket(Number(bookingId), quotationId ? Number(quotationId) : undefined)
+      setDocState({
+        confirmationReady: true,
+        voucherReady: true,
+        invoiceReady: true,
+      })
+      if (leadId) {
+        leadsApi
+          .addNote(Number(leadId), {
+            author: 'Dynamix',
+            content: `Booking packet prepared for booking #${bookingId}. Invoice, confirmation, and voucher are ready across Documents and Finance.`,
+          })
+          .catch(() => null)
+      }
+      router.push(`/dashboard/finance?bookingId=${bookingId}${quotationId ? `&quotationId=${quotationId}` : ''}${leadId ? `&leadId=${leadId}` : ''}&destination=${encodeURIComponent(workflow.query.destination || workflow.selectedHoliday.destination || workflow.selectedHoliday.title)}`)
+    } catch (err) {
+      setApprovalError(err instanceof Error ? err.message : 'Booking packet could not be prepared.')
+    } finally {
+      setPreparingPacket(false)
     }
   }
 
@@ -264,20 +315,20 @@ export default function DynamixApprovalPage() {
             ].map(([label, value], idx) => (
               <div key={label} className={`flex items-center justify-between gap-3 py-3 ${idx < 3 ? 'border-b border-white/8' : ''}`}>
                 <span className="dynamix-muted text-sm">{label}</span>
-                <strong className={`${idx === 1 ? 'text-lg' : 'text-sm'} font-semibold text-right`}>{value}</strong>
+                <strong className={`${idx === 1 ? 'text-lg' : 'text-sm'} font-semibold text-right dynamix-text`}>{value}</strong>
               </div>
             ))}
           </div>
 
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 mt-6">
             <h3 className="font-semibold text-sm mb-2">What happens after approval</h3>
-            <p className="text-sm text-zinc-300">Create the payment link here, then continue the operational lifecycle in Quotations, Bookings, Finance, and Documents.</p>
+            <p className="text-sm dynamix-muted">Create the payment link here, then continue the operational lifecycle in Quotations, Bookings, Finance, and Documents.</p>
           </div>
 
           {paymentState ? (
             <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-4 mt-4">
               <h3 className="font-semibold text-sm mb-2">Payment link ready</h3>
-              <a href={paymentState.payment_link_url} target="_blank" rel="noreferrer" className="text-sm text-white underline break-all">
+              <a href={paymentState.payment_link_url} target="_blank" rel="noreferrer" className="text-sm dynamix-text underline break-all">
                 {paymentState.payment_link_url}
               </a>
             </div>
@@ -320,6 +371,13 @@ export default function DynamixApprovalPage() {
               {preparingDocs ? 'Preparing documents…' : 'Prepare confirmation + voucher'}
             </button>
             <button
+              onClick={prepareBookingPacket}
+              disabled={preparingPacket}
+              className="px-5 py-3 rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 dynamix-text font-semibold disabled:opacity-60"
+            >
+              {preparingPacket ? 'Preparing booking packet…' : 'Prepare finance + document packet'}
+            </button>
+            <button
               onClick={createPaymentLink}
               disabled={!workflow.quote.quoteId || creatingLink}
               className="px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-semibold disabled:opacity-60"
@@ -328,31 +386,31 @@ export default function DynamixApprovalPage() {
             </button>
             <button
               onClick={() => router.push(`/dashboard/quotations${workflow.meta?.crm?.quotationId ? `?quotationId=${workflow.meta.crm.quotationId}` : ''}`)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl dynamix-button-secondary font-medium"
             >
               Open Quotations <ExternalLink className="w-4 h-4" />
             </button>
             <button
               onClick={() => router.push(`/dashboard/bookings${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}`)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl dynamix-button-secondary font-medium"
             >
               Open Bookings <ExternalLink className="w-4 h-4" />
             </button>
             <button
               onClick={() => router.push(`/dashboard/finance${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}${workflow.meta?.crm?.quotationId ? `${workflow.meta?.crm?.bookingId ? '&' : '?'}quotationId=${workflow.meta.crm.quotationId}` : ''}${workflow.query.destination ? `${(workflow.meta?.crm?.bookingId || workflow.meta?.crm?.quotationId) ? '&' : '?'}destination=${encodeURIComponent(workflow.query.destination)}` : ''}`)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl dynamix-button-secondary font-medium"
             >
               Open Finance <ExternalLink className="w-4 h-4" />
             </button>
             <button
               onClick={() => router.push(`/dashboard/documents${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}${workflow.meta?.crm?.quotationId ? `${workflow.meta?.crm?.bookingId ? '&' : '?'}quotationId=${workflow.meta.crm.quotationId}` : ''}${workflow.query.destination ? `${(workflow.meta?.crm?.bookingId || workflow.meta?.crm?.quotationId) ? '&' : '?'}destination=${encodeURIComponent(workflow.query.destination)}` : ''}`)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl dynamix-button-secondary font-medium"
             >
               Open Documents <ExternalLink className="w-4 h-4" />
             </button>
             <button
               onClick={() => router.push(`/dashboard/comms${workflow.meta?.crm?.leadId ? `?leadId=${workflow.meta.crm.leadId}` : ''}`)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl dynamix-button-secondary font-medium"
             >
               Open Comms <ExternalLink className="w-4 h-4" />
             </button>

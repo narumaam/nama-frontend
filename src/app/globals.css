@@ -154,6 +154,29 @@ body {
   color: var(--dynamix-chip-text);
 }
 
+.dynamix-shell .dynamix-accent-panel {
+  background: linear-gradient(180deg, rgba(20, 184, 166, 0.12), rgba(255, 255, 255, 0.02));
+  border-color: rgba(20, 184, 166, 0.24);
+}
+
+.dynamix-shell .dynamix-accent-text {
+  color: #5eead4;
+}
+
+.dynamix-shell .dynamix-button-secondary {
+  background-color: var(--dynamix-card-soft);
+  border: 1px solid var(--dynamix-border);
+  color: var(--dynamix-text);
+}
+
+.dynamix-shell[data-dynamix-theme='light'] .dynamix-accent-text {
+  color: #0f766e;
+}
+
+.dynamix-shell[data-dynamix-theme='light'] .dynamix-accent-panel {
+  background: linear-gradient(180deg, rgba(20, 184, 166, 0.09), rgba(255, 255, 255, 0.88));
+}
+
 .dynamix-shell[data-dynamix-theme='light'] .text-white {
   color: var(--dynamix-text) !important;
 }

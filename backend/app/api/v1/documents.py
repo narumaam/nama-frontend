@@ -47,6 +47,11 @@ class SendQuotationRequest(BaseModel):
     message: Optional[str] = None
 
 
+class BookingPacketRequest(BaseModel):
+    booking_id: int
+    quotation_id: Optional[int] = None
+
+
 # ── HTML template ──────────────────────────────────────────────────────────────
 
 def _build_quotation_html(
@@ -999,6 +1004,102 @@ def _fetch_booking_with_context(db: Session, booking_id: int, tenant_id: int):
         pass
 
     return booking, lead_name, destination, travel_dates, travelers
+
+
+@router.post(
+    "/booking-packet",
+    summary="Prepare the real booking document packet for a booking",
+)
+def prepare_booking_packet(
+    body: BookingPacketRequest,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    _: dict = Depends(_any_staff),
+):
+    """
+    Preflight the real operational document packet for a booking.
+    Generates invoice, booking confirmation, and voucher PDFs server-side and
+    returns status metadata so the frontend can hand off into Documents/Finance
+    without relying on seed/manual UI states.
+    """
+    booking, lead_name, destination, travel_dates, travelers = _fetch_booking_with_context(
+        db, body.booking_id, tenant_id
+    )
+
+    invoice_html = _build_invoice_html(booking, lead_name, destination, travel_dates, travelers)
+    invoice_pdf = _generate_pdf_bytes(invoice_html)
+
+    from app.core.pdf_engine import generate_pdf as _generate_doc_pdf, DocumentType as _DT
+
+    ctx = {
+        "agency_name": "NAMA Travel",
+        "agency_email": "accounts@namatravel.com",
+        "currency": getattr(booking, "currency", "INR") or "INR",
+        "booking_ref": f"BK-{booking.id:05d}",
+        "client_name": lead_name,
+        "destination": destination,
+        "travel_dates": travel_dates or "As arranged",
+        "pax": travelers or 1,
+        "hotel": getattr(booking, "hotel_name", "") or "",
+        "room_type": getattr(booking, "room_type", "Standard") or "Standard",
+        "meal_plan": getattr(booking, "meal_plan", "Bed & Breakfast") or "Bed & Breakfast",
+        "nights": getattr(booking, "nights", "—") or "—",
+        "total": float(getattr(booking, "total_price", 0) or 0),
+        "amount_paid": float(getattr(booking, "amount_paid", 0) or 0),
+        "balance_due": float(getattr(booking, "balance_due", 0) or 0),
+        "doc_date": datetime.now(timezone.utc).strftime("%d %b %Y"),
+        "inclusions": getattr(booking, "inclusions", "As per signed quotation.") or "As per signed quotation.",
+        "vendor_confirmation": getattr(booking, "vendor_confirmation_no", "PENDING") or "PENDING",
+    }
+    confirmation_ctx = {
+        **ctx,
+        "doc_number": f"BC-{booking.id:05d}",
+        "payment_due_date": ctx["doc_date"],
+    }
+    voucher_ctx = {
+        **ctx,
+        "doc_number": f"VCH-{booking.id:05d}",
+        "services": "Airport transfers, daily breakfast, guided city tour on Day 3. See full itinerary.",
+    }
+
+    confirmation_pdf = _generate_doc_pdf(_DT.BOOKING_CONFIRMATION, confirmation_ctx)
+    voucher_pdf = _generate_doc_pdf(_DT.VOUCHER, voucher_ctx)
+
+    if invoice_pdf is None or confirmation_pdf is None or voucher_pdf is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Booking packet could not be generated because PDF rendering is unavailable.",
+        )
+
+    return {
+        "success": True,
+        "booking_id": booking.id,
+        "quotation_id": body.quotation_id,
+        "lead_name": lead_name,
+        "destination": destination,
+        "documents": {
+            "invoice": {
+                "ready": True,
+                "filename": f"invoice-INV-{tenant_id:04d}-{booking.id:06d}.pdf",
+            },
+            "confirmation": {
+                "ready": True,
+                "filename": f"booking-confirmation-{booking.id}.pdf",
+            },
+            "voucher": {
+                "ready": True,
+                "filename": f"voucher-{booking.id}.pdf",
+            },
+        },
+        "ops_handoff": {
+            "documents_url": f"/dashboard/documents?bookingId={booking.id}"
+            + (f"&quotationId={body.quotation_id}" if body.quotation_id else "")
+            + (f"&destination={destination}" if destination else ""),
+            "finance_url": f"/dashboard/finance?bookingId={booking.id}"
+            + (f"&quotationId={body.quotation_id}" if body.quotation_id else "")
+            + (f"&destination={destination}" if destination else ""),
+        },
+    }
 
 
 @router.post(

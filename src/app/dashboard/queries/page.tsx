@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { queriesApi } from '@/lib/api'
 import DynamixHandoffBanner from '@/components/dynamix-handoff-banner'
 import {
@@ -95,6 +96,9 @@ function confidenceBar(c: number) {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function QueriesPage() {
+  const searchParams = useSearchParams()
+  const leadId = Number(searchParams.get('leadId') || 0) || null
+  const destination = searchParams.get('destination') || 'Dynamix holiday'
   const [rawMessage, setRawMessage] = useState('')
   const [source,     setSource]     = useState('WHATSAPP')
   const [loading,    setLoading]    = useState(false)
@@ -218,6 +222,18 @@ export default function QueriesPage() {
     <div className="space-y-6">
 
       <DynamixHandoffBanner moduleLabel="Query Triage" />
+
+      {leadId ? (
+        <div className="rounded-2xl border border-[#14B8A6]/20 bg-white p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#14B8A6]">Call centre context</p>
+          <h2 className="text-lg font-black text-[#0F172A] mt-2">
+            Lead #{leadId} is active for {destination}
+          </h2>
+          <p className="text-sm text-slate-500 mt-2">
+            Use triage here for fresh inbound messages, follow-up drafts, and quick reply prep without losing the live CRM linkage.
+          </p>
+        </div>
+      ) : null}
 
       {/* ── Page header ──────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
