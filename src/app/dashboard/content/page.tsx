@@ -28,7 +28,7 @@ import {
   Library, Camera, ClipboardList, Bold, Italic,
   Tag, ExternalLink,
 } from 'lucide-react'
-import { contentApi, Destination, ContentAsset, ContentBlock, api } from '@/lib/api'
+import { contentApi, Destination, ContentAsset, ContentBlock, PexelsVideoResult, api } from '@/lib/api'
 
 // ── Seed data ──────────────────────────────────────────────────────────────────
 const SEED_DESTINATIONS: Destination[] = [
@@ -114,7 +114,7 @@ const BLOCK_TYPE_COLOR: Record<string, string> = {
   TEASER:    'bg-purple-50 text-purple-700',
 }
 
-type Tab = 'destinations' | 'find-images' | 'master-library' | 'assets' | 'blocks'
+type Tab = 'destinations' | 'find-images' | 'find-videos' | 'master-library' | 'assets' | 'blocks'
 type AddForm = {
   name?: string; title?: string; url?: string; country?: string; description?: string
   category?: string; asset_type?: string; content?: string; block_type?: string
@@ -300,6 +300,120 @@ function ImageSearchTab({ assets, onAddToLibrary }: { assets: ContentAsset[]; on
                   {saved && (
                     <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Saved</span>
                   )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VideoSearchTab({ onAddToLibrary }: { onAddToLibrary: (asset: ContentAsset) => void }) {
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [videos, setVideos] = useState<PexelsVideoResult[]>([])
+  const [searched, setSearched] = useState(false)
+  const [savedIds, setSavedIds] = useState<Set<number>>(new Set())
+  const [savingId, setSavingId] = useState<number | null>(null)
+
+  const doSearch = async (q: string) => {
+    if (!q.trim()) return
+    setSearching(true)
+    setSearched(true)
+    try {
+      const res = await contentApi.videoSearch(q, 12)
+      setVideos(res.videos ?? [])
+    } catch {
+      setVideos([])
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const saveVideo = async (video: PexelsVideoResult) => {
+    const file = video.video_files.find((item) => item.file_type === 'video/mp4') || video.video_files[0]
+    if (!file) return
+    setSavingId(video.id)
+    try {
+      onAddToLibrary({
+        url: file.link,
+        title: `${query || 'Travel'} video by ${video.user_name}`,
+        asset_type: 'VIDEO',
+        tags: [query.toLowerCase(), `poster:${video.image}`, `credit:${video.user_name}`],
+      })
+      setSavedIds((prev) => new Set(prev).add(video.id))
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 flex items-center bg-slate-100 rounded-xl px-4 py-3 gap-3">
+          <Camera size={16} className="text-slate-400 shrink-0" />
+          <input
+            type="text"
+            placeholder="Search destination videos..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && doSearch(query)}
+            className="flex-1 bg-transparent border-none outline-none text-sm placeholder-slate-400 text-slate-700 font-medium"
+          />
+        </div>
+        <button
+          onClick={() => doSearch(query)}
+          disabled={!query.trim() || searching}
+          className="flex items-center gap-2 bg-[#0F172A] text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50"
+        >
+          {searching ? <Loader size={14} className="animate-spin" /> : <Search size={14} />}
+          Search Videos
+        </button>
+      </div>
+
+      {!searched && (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <Camera size={36} className="mb-4 text-slate-300" />
+          <p className="font-semibold text-slate-500">Find destination reels, skyline clips, and mood videos</p>
+          <p className="text-sm mt-1">Use these in quotations, portals, and Dynamix pages</p>
+        </div>
+      )}
+
+      {searching && (
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl overflow-hidden bg-slate-100 animate-pulse h-64" />
+          ))}
+        </div>
+      )}
+
+      {!searching && searched && videos.length > 0 && (
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {videos.map(video => {
+            const file = video.video_files.find((item) => item.file_type === 'video/mp4') || video.video_files[0]
+            return (
+              <div key={video.id} className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 hover:shadow-md transition-all">
+                <div className="relative h-48 bg-slate-200">
+                  {file ? (
+                    <video src={file.link} poster={video.image} className="w-full h-full object-cover" muted loop playsInline />
+                  ) : null}
+                  <span className="absolute top-3 right-3 text-[10px] font-black px-2 py-1 rounded-full bg-black/60 text-white">
+                    {video.duration}s
+                  </span>
+                </div>
+                <div className="p-4">
+                  <p className="font-bold text-sm text-[#0F172A] truncate">{query || 'Travel video'}</p>
+                  <p className="text-xs text-slate-500 mt-1">by {video.user_name || 'Pexels creator'}</p>
+                  <button
+                    onClick={() => saveVideo(video)}
+                    disabled={savedIds.has(video.id) || savingId === video.id}
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-[#14B8A6]/10 text-[#0f766e] py-2.5 rounded-xl text-xs font-bold hover:bg-[#14B8A6]/20 transition-colors disabled:opacity-50"
+                  >
+                    {savingId === video.id ? <Loader size={12} className="animate-spin" /> : <Plus size={12} />}
+                    {savedIds.has(video.id) ? 'Saved to library' : 'Save video asset'}
+                  </button>
                 </div>
               </div>
             )
@@ -798,9 +912,9 @@ export default function ContentPage() {
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Content Library</h1>
+          <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Creative Studio</h1>
           <p className="text-slate-500 font-medium mt-1 text-sm">
-            M12 — Destinations, media assets, and AI-generated marketing copy
+            M12 — Destination narratives, premium media assets, and AI-ready visual blocks
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -820,11 +934,11 @@ export default function ContentPage() {
 
       {/* ── KPI strip ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
+          {[
           { label: 'Destinations',    value: destinations.length, icon: MapPin,    color: 'text-teal-600',   bg: 'bg-teal-50'   },
           { label: 'Media Assets',    value: assets.length,       icon: Image,     color: 'text-blue-600',   bg: 'bg-blue-50'   },
+          { label: 'Video Assets',    value: assets.filter(a => (a.asset_type || a.type) === 'VIDEO').length, icon: Camera, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50' },
           { label: 'Content Blocks',  value: blocks.length,       icon: FileText,  color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'AI Descriptions', value: 12,                  icon: Sparkles,  color: 'text-amber-600',  bg: 'bg-amber-50'  },
         ].map(k => (
           <div key={k.label} className="bg-white rounded-2xl border border-slate-100 p-5">
             <div className={`w-9 h-9 ${k.bg} rounded-xl flex items-center justify-center mb-3`}>
@@ -844,6 +958,7 @@ export default function ContentPage() {
             {[
               { id: 'destinations',  label: '🗺️ Destinations' },
               { id: 'find-images',   label: '📷 Find Images' },
+              { id: 'find-videos',   label: '🎬 Find Videos' },
               { id: 'master-library',label: '📚 Master Library' },
               { id: 'assets',        label: '🖼️ Assets' },
               { id: 'blocks',        label: '📝 Blocks' },
@@ -967,6 +1082,12 @@ export default function ContentPage() {
             />
           )}
 
+          {activeTab === 'find-videos' && (
+            <VideoSearchTab
+              onAddToLibrary={asset => setAssets(p => [{ ...asset, id: Date.now() }, ...p])}
+            />
+          )}
+
           {/* MASTER LIBRARY (Enhancement 3) */}
           {activeTab === 'master-library' && (
             <MasterLibraryTab
@@ -984,6 +1105,15 @@ export default function ContentPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={asset.url} alt={asset.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     )}
+                    {asset.url && (asset.asset_type === 'VIDEO' || asset.type === 'VIDEO') && (
+                      <video
+                        src={asset.url}
+                        poster={asset.tags?.find(tag => tag.startsWith('poster:'))?.replace('poster:', '')}
+                        className="w-full h-full object-cover"
+                        muted
+                        playsInline
+                      />
+                    )}
                     <div className="absolute top-2 right-2">
                       <span className="text-[10px] font-black bg-black/50 text-white px-2 py-0.5 rounded-full">
                         {asset.asset_type || asset.type}
@@ -994,7 +1124,7 @@ export default function ContentPage() {
                     <div className="font-bold text-sm text-[#0F172A] mb-1.5 truncate">{asset.title}</div>
                     {asset.tags && asset.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {asset.tags.slice(0, 3).map(tag => (
+                        {asset.tags.filter(tag => !tag.startsWith('poster:')).slice(0, 3).map(tag => (
                           <span key={tag} className="text-[10px] font-semibold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
                             #{tag}
                           </span>
@@ -1168,7 +1298,7 @@ export default function ContentPage() {
                   <div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Type</label>
                     <select value={form.asset_type ?? 'IMAGE'} onChange={e => setForm(f => ({ ...f, asset_type: e.target.value }))} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:border-[#14B8A6] outline-none">
-                      {['IMAGE','VIDEO','PDF','DOCUMENT'].map(t => <option key={t}>{t}</option>)}
+                      {['IMAGE','VIDEO','DOCUMENT'].map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
                 </>

@@ -7,6 +7,7 @@ from app.schemas.content import (
     Destination, DestinationCreate, DestinationWithOwnership,
     ContentBlock, ContentBlockCreate, ContentBlockWithOwnership,
     ImageSearchResponse, PexelsPhoto, ImageSaveRequest,
+    VideoSearchResponse, PexelsVideo,
 )
 from app.models.content import MediaAsset as MediaAssetModel
 from app.models.content import Destination as DestinationModel
@@ -212,6 +213,7 @@ def list_content_blocks(
 
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 PEXELS_BASE_URL = "https://api.pexels.com/v1/search"
+PEXELS_VIDEO_URL = "https://api.pexels.com/videos/search"
 
 
 @router.get("/image-search", response_model=ImageSearchResponse)
@@ -298,6 +300,102 @@ def save_image_from_search(
     db.commit()
     db.refresh(db_asset)
     return db_asset
+
+
+_VIDEO_FALLBACKS: List[PexelsVideo] = [
+    PexelsVideo(
+        id=1,
+        image="https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200",
+        duration=22,
+        user_name="Coverr",
+        user_url="https://coverr.co",
+        video_files=[{
+            "quality": "hd",
+            "file_type": "video/mp4",
+            "width": 1920,
+            "height": 1080,
+            "link": "https://cdn.coverr.co/videos/coverr-singapore-skyline-1561881475775?download=1080p",
+        }],
+    ),
+    PexelsVideo(
+        id=2,
+        image="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200",
+        duration=18,
+        user_name="Coverr",
+        user_url="https://coverr.co",
+        video_files=[{
+            "quality": "hd",
+            "file_type": "video/mp4",
+            "width": 1920,
+            "height": 1080,
+            "link": "https://cdn.coverr.co/videos/coverr-aerial-view-of-dubai-1561721974915?download=1080p",
+        }],
+    ),
+]
+
+
+@router.get("/video-search", response_model=VideoSearchResponse)
+def video_search(
+    q: str = Query(..., description="Search term, e.g. 'singapore skyline'"),
+    per_page: int = Query(12, ge=1, le=20, description="Number of results (max 20)"),
+    current_user = Depends(get_current_user),
+):
+    """
+    Search for travel videos via the Pexels Videos API.
+    Falls back to curated travel video assets when PEXELS_API_KEY is not set.
+    """
+    cache_key = f"pexels-video:{q}:{per_page}"
+    cached = distributed_cache.get(cache_key)
+    if cached is not None:
+      return cached
+
+    if not PEXELS_API_KEY:
+        response = {"videos": [v.model_dump() for v in _VIDEO_FALLBACKS[:per_page]]}
+        distributed_cache.set(cache_key, response, ttl_seconds=3600)
+        return response
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.get(
+                PEXELS_VIDEO_URL,
+                params={"query": q, "per_page": per_page},
+                headers={"Authorization": PEXELS_API_KEY},
+            )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:
+        log.warning("Pexels video API error (%s) — falling back to curated videos", exc)
+        response = {"videos": [v.model_dump() for v in _VIDEO_FALLBACKS[:per_page]]}
+        distributed_cache.set(cache_key, response, ttl_seconds=3600)
+        return response
+
+    videos = []
+    for video in data.get("videos", []):
+        files = [
+            {
+                "quality": item.get("quality"),
+                "file_type": item.get("file_type"),
+                "width": item.get("width"),
+                "height": item.get("height"),
+                "link": item.get("link"),
+            }
+            for item in video.get("video_files", [])
+            if item.get("link")
+        ]
+        if not files:
+            continue
+        videos.append({
+            "id": video["id"],
+            "image": video.get("image", ""),
+            "duration": video.get("duration", 0),
+            "user_name": video.get("user", {}).get("name", ""),
+            "user_url": video.get("user", {}).get("url", ""),
+            "video_files": files,
+        })
+
+    response = {"videos": videos}
+    distributed_cache.set(cache_key, response, ttl_seconds=3600)
+    return response
 
 
 # ── NAMA Master Library Seed ──────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react'
-import { leadsApi, itinerariesApi, quotationsApi, paymentsApi, Lead, ItineraryOut, Quotation } from '@/lib/api'
+import React, { useState, useEffect, useMemo } from 'react'
+import { leadsApi, itinerariesApi, quotationsApi, paymentsApi, contentApi, Lead, ItineraryOut, Quotation, ContentAsset } from '@/lib/api'
 import DynamixHandoffBanner from '@/components/dynamix-handoff-banner'
 import { clearDynamixQuotationDraft, loadDynamixQuotationDraft } from '@/lib/dynamix-handoff'
 import {
@@ -11,6 +11,28 @@ import {
   Minus, BarChart3, Info, Zap, Copy, CreditCard, Search,
   Navigation, User,
 } from 'lucide-react'
+
+type QuoteItineraryBlock = {
+  id?: string
+  type?: string
+  title: string
+  subtitle?: string
+  description?: string
+  imageUrl?: string
+  location?: string
+  timeFrom?: string
+  timeTo?: string
+  price_gross?: number
+  currency?: string
+  status?: string
+}
+
+type QuoteItineraryDay = {
+  day_number?: number
+  title: string
+  narrative?: string
+  blocks?: QuoteItineraryBlock[]
+}
 
 // ── Status styles ────────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<string, string> = {
@@ -126,6 +148,32 @@ function marginColor(pct: number): string {
   return 'text-red-500 dark:text-red-400'
 }
 
+function destinationKey(value?: string) {
+  return (value || '').toLowerCase().trim()
+}
+
+function normalizeQuoteDays(itinerary?: ItineraryOut | null): QuoteItineraryDay[] {
+  const raw = (itinerary?.days_json || itinerary?.days || []) as QuoteItineraryDay[]
+  return raw.map((day, idx) => ({
+    day_number: day.day_number ?? idx + 1,
+    title: day.title || `Day ${idx + 1}`,
+    narrative: day.narrative || '',
+    blocks: (day.blocks || []).map((block, blockIndex) => ({
+      ...block,
+      id: block.id || `${idx + 1}-${blockIndex + 1}`,
+      imageUrl: block.imageUrl,
+    })),
+  }))
+}
+
+function buildMediaMatches(destination: string, assets: ContentAsset[]) {
+  const key = destinationKey(destination)
+  return assets.filter((asset) => {
+    const haystack = `${asset.title || ''} ${(asset.tags || []).join(' ')}`.toLowerCase()
+    return key && haystack.includes(key)
+  }).slice(0, 6)
+}
+
 // ── Payment Link Modal ────────────────────────────────────────────────────────
 function PaymentLinkModal({ quotation, onClose }: { quotation: Quotation; onClose: () => void }) {
   const defaultDeposit = Math.round(quotation.total_price * 0.25)
@@ -223,24 +271,112 @@ function PaymentLinkModal({ quotation, onClose }: { quotation: Quotation; onClos
 }
 
 // ── Expandable Row Detail ─────────────────────────────────────────────────────
-function ExpandedRow({ q, onSend, onDownloadPdf, onPayment, onWhatsApp, pdfLoading }: {
+function ExpandedRow({ q, onSend, onDownloadPdf, onPayment, onWhatsApp, pdfLoading, itinerary, mediaAssets }: {
   q: Quotation
   onSend: () => void
   onDownloadPdf: () => void
   onPayment: () => void
   onWhatsApp: () => void
   pdfLoading: boolean
+  itinerary?: ItineraryOut | null
+  mediaAssets: ContentAsset[]
 }) {
   const lineItems = SEED_LINE_ITEMS[q.id] ?? []
   const hasItems = lineItems.length > 0
+  const itineraryDays = useMemo(() => normalizeQuoteDays(itinerary), [itinerary])
+  const heroImages = useMemo(() => {
+    const fromItinerary = itineraryDays
+      .flatMap((day) => day.blocks || [])
+      .map((block) => block.imageUrl)
+      .filter(Boolean) as string[]
+    const fromStudio = buildMediaMatches(q.destination, mediaAssets).map((asset) => asset.url)
+    return Array.from(new Set([...fromItinerary, ...fromStudio])).slice(0, 4)
+  }, [itineraryDays, mediaAssets, q.destination])
+  const visualMatches = useMemo(() => buildMediaMatches(q.destination, mediaAssets), [mediaAssets, q.destination])
 
   return (
     <tr className="bg-[#F8FAFC] dark:bg-[#0A0F1E]">
       <td colSpan={8} className="px-6 py-5 border-b border-slate-100 dark:border-white/5">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-5">
           {/* Line items */}
-          <div className="md:col-span-2">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Line Items</div>
+          <div className="space-y-5">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Quotation Storyboard</div>
+              {heroImages.length > 0 ? (
+                <div className="grid sm:grid-cols-4 gap-3">
+                  {heroImages.map((image, index) => (
+                    <div key={`${image}-${index}`} className="rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 h-32">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={image} alt={`${q.destination} visual ${index + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/3 rounded-2xl px-4 py-6 text-center">
+                  No media linked yet — add visuals in Creative Studio to enrich this quotation.
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Day-wise Itinerary</div>
+              {itineraryDays.length > 0 ? (
+                <div className="space-y-4">
+                  {itineraryDays.map((day) => (
+                    <div key={`${q.id}-day-${day.day_number}`} className="rounded-2xl border border-slate-100 dark:border-white/5 bg-white dark:bg-white/3 p-4">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-[#14B8A6]">Day {day.day_number}</p>
+                          <h4 className="font-bold text-slate-900 dark:text-slate-100 mt-1">{day.title}</h4>
+                        </div>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">{(day.blocks || []).length} touchpoints</span>
+                      </div>
+                      {day.narrative ? (
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{day.narrative}</p>
+                      ) : null}
+                      <div className="grid gap-3 mt-4">
+                        {(day.blocks || []).map((block) => (
+                          <div key={block.id} className="grid md:grid-cols-[110px_1fr] gap-3 rounded-xl border border-slate-100 dark:border-white/5 bg-[#F8FAFC] dark:bg-[#0A0F1E]/60 p-3">
+                            <div className="rounded-xl overflow-hidden bg-slate-200 dark:bg-white/5 h-24">
+                              {block.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={block.imageUrl} alt={block.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-slate-400">No Image</div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-semibold text-slate-800 dark:text-slate-200">{block.title}</p>
+                                  {block.subtitle ? <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{block.subtitle}</p> : null}
+                                </div>
+                                <span className="text-[10px] font-black uppercase px-2 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                  {block.type || 'BLOCK'}
+                                </span>
+                              </div>
+                              {block.description ? <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{block.description}</p> : null}
+                              <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-slate-400 dark:text-slate-500">
+                                {block.location ? <span>{block.location}</span> : null}
+                                {block.timeFrom || block.timeTo ? <span>{block.timeFrom || '—'}{block.timeTo ? ` - ${block.timeTo}` : ''}</span> : null}
+                                {block.price_gross ? <span>{block.currency || 'INR'} {Number(block.price_gross).toLocaleString('en-IN')}</span> : null}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/3 rounded-2xl px-4 py-6 text-center">
+                  No day-wise itinerary linked yet — attach an itinerary to make this quotation visually complete.
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Commercial Breakdown</div>
             {hasItems ? (
               <div className="border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden">
                 <table className="w-full text-xs">
@@ -288,10 +424,12 @@ function ExpandedRow({ q, onSend, onDownloadPdf, onPayment, onWhatsApp, pdfLoadi
               </div>
             )}
           </div>
+          </div>
 
           {/* Actions panel */}
-          <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Actions</div>
+          <div className="space-y-5">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Actions</div>
             <div className="flex flex-col gap-2">
               <button onClick={onSend}
                 className="flex items-center gap-2 px-4 py-2.5 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 dark:bg-[#14B8A6]/10 dark:hover:bg-[#14B8A6]/20 text-[#0f766e] dark:text-[#14B8A6] rounded-xl font-bold text-xs transition-colors">
@@ -312,6 +450,7 @@ function ExpandedRow({ q, onSend, onDownloadPdf, onPayment, onWhatsApp, pdfLoadi
                 <Share2 size={13} /> Share on WhatsApp
               </button>
             </div>
+            </div>
 
             {/* Quick stats */}
             {q.notes && (
@@ -319,6 +458,32 @@ function ExpandedRow({ q, onSend, onDownloadPdf, onPayment, onWhatsApp, pdfLoadi
                 <span className="font-bold">Note: </span>{q.notes}
               </div>
             )}
+
+            <div className="rounded-2xl border border-slate-100 dark:border-white/5 bg-white dark:bg-white/3 p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Creative Studio Matches</div>
+              {visualMatches.length > 0 ? (
+                <div className="space-y-3">
+                  {visualMatches.slice(0, 4).map((asset) => (
+                    <div key={`asset-${asset.id}-${asset.url}`} className="grid grid-cols-[72px_1fr] gap-3 items-center">
+                      <div className="h-16 rounded-xl overflow-hidden bg-slate-200 dark:bg-white/5">
+                        {String(asset.asset_type || asset.type).toUpperCase() === 'VIDEO' ? (
+                          <video src={asset.url} poster={asset.tags?.find((tag) => String(tag).startsWith('poster:'))?.replace('poster:', '')} className="w-full h-full object-cover" muted />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={asset.url} alt={asset.title || q.destination} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{asset.title || q.destination}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500">{asset.asset_type || asset.type || 'IMAGE'}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 dark:text-slate-500">No matching destination assets yet. Add them in Creative Studio to make this quotation more premium.</p>
+              )}
+            </div>
           </div>
         </div>
       </td>
@@ -331,6 +496,7 @@ export default function QuotationsPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
   const [itineraries, setItineraries] = useState<ItineraryOut[]>([])
+  const [assets, setAssets] = useState<ContentAsset[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
@@ -396,16 +562,21 @@ export default function QuotationsPage() {
   const loadData = async () => {
     setLoading(true); setError(null)
     try {
-      const [quotsData, leadsData, itinData] = await Promise.all([
+      const [quotsData, leadsData, itinData, assetsData] = await Promise.all([
         quotationsApi.list({ size: 100 }).catch(() => ({ items: [] as Quotation[], total: 0, page: 1, size: 100 })),
         leadsApi.list({ size: 50 }).catch(() => ({ items: [] })),
         itinerariesApi.list().catch(() => []),
+        contentApi.assets().catch(() => []),
       ])
       const quots = quotsData.items || []
       setQuotations(quots.length > 0 ? quots : SEED_QUOTATIONS)
       setLeads(leadsData.items || [])
       setItineraries(Array.isArray(itinData) ? itinData : [])
-    } catch { setQuotations(SEED_QUOTATIONS) }
+      setAssets(Array.isArray(assetsData) && assetsData.length > 0 ? assetsData : [])
+    } catch {
+      setQuotations(SEED_QUOTATIONS)
+      setAssets([])
+    }
     finally { setLoading(false) }
   }
 
@@ -605,6 +776,7 @@ export default function QuotationsPage() {
                 {filtered.map(q => {
                   const isExpanded = expandedId === q.id
                   const lead = leads.find(l => l.id === q.lead_id)
+                  const itinerary = itineraries.find(i => i.id === q.itinerary_id) || null
                   const origin = (lead as unknown as Record<string, string>)?.origin || 'India'
                   const dest   = q.destination || 'TBD'
                   return (
@@ -706,6 +878,8 @@ export default function QuotationsPage() {
                           onPayment={() => setPaymentModal({ quotation: q })}
                           onWhatsApp={() => handleShareQuoteWhatsApp(q)}
                           pdfLoading={pdfLoading}
+                          itinerary={itinerary}
+                          mediaAssets={assets}
                         />
                       )}
                     </React.Fragment>

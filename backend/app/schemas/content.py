@@ -92,3 +92,21 @@ class ImageSaveRequest(BaseModel):
     title: str
     photographer: str
     tags: List[str] = []
+
+class PexelsVideoFile(BaseModel):
+    quality: Optional[str] = None
+    file_type: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    link: str
+
+class PexelsVideo(BaseModel):
+    id: int
+    image: str
+    duration: int
+    user_name: str
+    user_url: str
+    video_files: List[PexelsVideoFile]
+
+class VideoSearchResponse(BaseModel):
+    videos: List[PexelsVideo]

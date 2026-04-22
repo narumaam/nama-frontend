@@ -507,6 +507,32 @@ export interface ContentAsset {
   title?: string
 }
 
+export interface PexelsPhotoResult {
+  id: number
+  url_medium: string
+  url_large: string
+  photographer: string
+  photographer_url: string
+  alt: string
+}
+
+export interface PexelsVideoFileResult {
+  quality?: string
+  file_type?: string
+  width?: number
+  height?: number
+  link: string
+}
+
+export interface PexelsVideoResult {
+  id: number
+  image: string
+  duration: number
+  user_name: string
+  user_url: string
+  video_files: PexelsVideoFileResult[]
+}
+
 export interface ContentBlock {
   id?: number
   title: string
@@ -525,6 +551,12 @@ export const contentApi = {
   createDestination: (data: Destination) => api.post<Destination>('/api/v1/content/destinations', data),
   createAsset: (data: ContentAsset) => api.post<ContentAsset>('/api/v1/content/assets', data),
   createBlock: (data: ContentBlock) => api.post<ContentBlock>('/api/v1/content/blocks', data),
+  imageSearch: (query: string, perPage = 15) =>
+    api.get<{ photos: PexelsPhotoResult[] }>(`/api/v1/content/image-search?q=${encodeURIComponent(query)}&per_page=${perPage}`),
+  videoSearch: (query: string, perPage = 12) =>
+    api.get<{ videos: PexelsVideoResult[] }>(`/api/v1/content/video-search?q=${encodeURIComponent(query)}&per_page=${perPage}`),
+  saveSearchAsset: (data: { url: string; title: string; photographer: string; tags?: string[] }) =>
+    api.post<ContentAsset>('/api/v1/content/image-search/save', data),
 }
 
 // RBAC Roles (Phase 2)
