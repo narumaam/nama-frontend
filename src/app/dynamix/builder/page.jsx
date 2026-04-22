@@ -134,7 +134,11 @@ function buildRouteItems(destination, selectedPackageTitle) {
 
 function scrollToSection(sectionId) {
   if (typeof document === 'undefined') return
-  document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const target = document.getElementById(sectionId)
+  if (!target) return
+  const offset = 110
+  const top = target.getBoundingClientRect().top + window.scrollY - offset
+  window.scrollTo({ top, behavior: 'smooth' })
 }
 
 export default function DynamixBuilderPage() {
@@ -362,8 +366,7 @@ export default function DynamixBuilderPage() {
             </div>
           </div>
 
-          <div>
-            <div id="inclusions" className="scroll-mt-28" />
+          <div id="inclusions">
             <h3 className="font-display text-xl font-semibold">Inclusions and Exclusions</h3>
             <div className="grid md:grid-cols-2 gap-4 mt-4">
               <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-5">
@@ -568,7 +571,7 @@ export default function DynamixBuilderPage() {
             <p className="text-sm text-zinc-400 mt-4 font-medium">191+ more traveller moments</p>
           </div>
 
-          <div id="reviews" className="scroll-mt-28">
+          <div id="reviews">
             <h3 className="font-display text-xl font-semibold">NAMA Reviews</h3>
             <div className="grid gap-4 mt-4">
               {reviewCards.map((review) => (
@@ -614,7 +617,7 @@ export default function DynamixBuilderPage() {
               </div>
             </div>
             <p className="text-xs text-zinc-500 mt-3 leading-5">
-              Or call us on <a href="tel:+919360991166" className="text-red-400 hover:text-red-300 font-medium">+91 93609 91166</a> for help.
+              Or call us on <a href="tel:+919158932320" className="text-red-400 hover:text-red-300 font-medium">+91 91589 32320</a> for help.
             </p>
           </div>
 
