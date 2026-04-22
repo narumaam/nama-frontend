@@ -17,6 +17,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { leadsApi, Lead } from "@/lib/api";
+import DynamixHandoffBanner from "@/components/dynamix-handoff-banner";
 
 // ── Extended seed type ──────────────────────────────────────────────────────
 interface SeedLead extends Lead {
@@ -522,8 +523,10 @@ export default function LeadsPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0A0F1E] p-6" data-tour="leads-page">
+      <DynamixHandoffBanner moduleLabel="Leads" />
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 mt-6">
         <div>
           <h1 className="text-2xl font-bold text-[#1B2E5E] dark:text-white">Leads</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">

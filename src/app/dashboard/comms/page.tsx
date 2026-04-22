@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import DynamixHandoffBanner from "@/components/dynamix-handoff-banner";
 import {
   MessageSquare, Mail, Copy, Check, Loader, AlertCircle,
   Plus, Search, Send, Clock, ChevronDown, Zap,
@@ -611,6 +612,8 @@ export default function CommsPage() {
             </div>
           ))}
         </div>
+
+        <DynamixHandoffBanner moduleLabel="Communications" />
 
         {error && (
           <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/40 rounded-2xl p-4 text-red-700 dark:text-red-400 mb-4">

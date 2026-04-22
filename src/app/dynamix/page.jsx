@@ -27,7 +27,7 @@ function TripFields({ tripForm, updateTripField }) {
         <input
           value={tripForm.destination}
           onChange={(event) => updateTripField('destination', event.target.value)}
-          className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+          className="dynamix-input px-4 py-3.5 rounded-2xl border text-sm"
         />
       </label>
       <label className="grid gap-2">
@@ -35,7 +35,7 @@ function TripFields({ tripForm, updateTripField }) {
         <select
           value={tripForm.duration}
           onChange={(event) => updateTripField('duration', event.target.value)}
-          className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+          className="dynamix-input px-4 py-3.5 rounded-2xl border text-sm"
         >
           {['3 nights / 4 days', '4 nights / 5 days', '5 nights / 6 days', '6 nights / 7 days', '7 nights / 8 days'].map(
             (value) => (
@@ -51,7 +51,7 @@ function TripFields({ tripForm, updateTripField }) {
         <select
           value={tripForm.adults}
           onChange={(event) => updateTripField('adults', Number(event.target.value))}
-          className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+          className="dynamix-input px-4 py-3.5 rounded-2xl border text-sm"
         >
           {[1, 2, 3, 4, 5, 6].map((value) => (
             <option key={value} value={value}>
@@ -66,7 +66,7 @@ function TripFields({ tripForm, updateTripField }) {
           type="date"
           value={tripForm.startDate}
           onChange={(event) => updateTripField('startDate', event.target.value)}
-          className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+          className="dynamix-input px-4 py-3.5 rounded-2xl border text-sm"
         />
       </label>
       <label className="grid gap-2">
@@ -75,7 +75,7 @@ function TripFields({ tripForm, updateTripField }) {
           type="date"
           value={tripForm.endDate}
           onChange={(event) => updateTripField('endDate', event.target.value)}
-          className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+          className="dynamix-input px-4 py-3.5 rounded-2xl border text-sm"
         />
       </label>
       <label className="grid gap-2">
@@ -83,7 +83,7 @@ function TripFields({ tripForm, updateTripField }) {
         <select
           value={tripForm.children}
           onChange={(event) => updateTripField('children', Number(event.target.value))}
-          className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+          className="dynamix-input px-4 py-3.5 rounded-2xl border text-sm"
         >
           {[0, 1, 2, 3].map((value) => (
             <option key={value} value={value}>
@@ -98,7 +98,7 @@ function TripFields({ tripForm, updateTripField }) {
           value={tripForm.children ? tripForm.childAge : 'No child selected'}
           disabled={!tripForm.children}
           onChange={(event) => updateTripField('childAge', event.target.value)}
-          className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm text-white disabled:opacity-40"
+          className="dynamix-input px-4 py-3.5 rounded-2xl border text-sm disabled:opacity-40"
         />
       </label>
     </div>

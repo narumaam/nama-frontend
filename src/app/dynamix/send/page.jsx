@@ -212,6 +212,15 @@ export default function DynamixSendPage() {
         notes: workflow.quote.message || undefined,
       })
 
+      if (crm.leadId) {
+        leadsApi
+          .addNote(crm.leadId, {
+            author: 'Dynamix',
+            content: `Dynamix quotation created for ${workflow.selectedHoliday.title}. Quote #${quotation.id} at ${quotation.currency} ${quotation.total_price}. Channels: ${selectedChannels.join(', ') || 'not selected'}.`,
+          })
+          .catch(() => null)
+      }
+
       saveDynamixQuotationDraft({
         lead_name: workflow.quote.customerEmail?.split('@')[0] || workflow.query.travelerType || 'Dynamix Client',
         destination: workflow.selectedHoliday.title,
@@ -319,7 +328,7 @@ export default function DynamixSendPage() {
               <input
                 value={workflow.quote.customerEmail}
                 onChange={(event) => updateQuote('customerEmail', event.target.value)}
-                className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+                className="dynamix-input px-4 py-4 rounded-2xl border text-sm"
                 placeholder="client@example.com"
               />
             </label>
@@ -328,7 +337,7 @@ export default function DynamixSendPage() {
               <input
                 value={workflow.quote.customerWhatsapp}
                 onChange={(event) => updateQuote('customerWhatsapp', event.target.value)}
-                className="px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+                className="dynamix-input px-4 py-4 rounded-2xl border text-sm"
                 placeholder="+91 98xxx xxxxx"
               />
             </label>
@@ -362,7 +371,7 @@ export default function DynamixSendPage() {
               <textarea
                 value={workflow.quote.message}
                 onChange={(event) => updateQuote('message', event.target.value)}
-                className="min-h-36 px-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-white"
+                className="dynamix-input min-h-36 px-4 py-4 rounded-2xl border text-sm"
               />
             </label>
           </div>
@@ -419,6 +428,32 @@ export default function DynamixSendPage() {
               >
                 Open Quotations with Dynamix draft
               </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => router.push(`/dashboard/leads${workflow.meta?.crm?.leadId ? `?leadId=${workflow.meta.crm.leadId}` : ''}`)}
+                  className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+                >
+                  Open Leads
+                </button>
+                <button
+                  onClick={() => router.push(`/dashboard/queries${workflow.meta?.crm?.leadId ? `?leadId=${workflow.meta.crm.leadId}` : ''}`)}
+                  className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+                >
+                  Open Queries
+                </button>
+                <button
+                  onClick={() => router.push(`/dashboard/comms${workflow.meta?.crm?.leadId ? `?leadId=${workflow.meta.crm.leadId}` : ''}`)}
+                  className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+                >
+                  Open Comms
+                </button>
+                <button
+                  onClick={() => router.push(`/dashboard/documents${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}`)}
+                  className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+                >
+                  Open Documents
+                </button>
+              </div>
               {sentState ? (
                 <Link href="/dynamix/approval" className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium">
                   Continue to approval

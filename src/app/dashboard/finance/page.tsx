@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import DynamixHandoffBanner from "@/components/dynamix-handoff-banner";
 import {
   TrendingUp,
   Clock,
@@ -387,6 +388,8 @@ export default function FinancePage() {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Finance & Quotations</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Revenue tracking, quotes, invoices, and payments</p>
         </div>
+
+        <DynamixHandoffBanner moduleLabel="Finance" />
 
         {/* Tabs */}
         <div className="border-b border-slate-200 dark:border-white/10 mb-8">

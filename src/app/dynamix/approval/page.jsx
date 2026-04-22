@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BadgeCheck, CalendarDays, CreditCard, ExternalLink, ShieldCheck } from 'lucide-react'
 
-import { bookingsApi, paymentsApi } from '@/lib/api'
+import { bookingsApi, leadsApi, paymentsApi } from '@/lib/api'
 import { getAiPlaybook } from '@/lib/dynamix-ai-data'
 import { loadDynamixQuotationDraft, saveDynamixQuotationDraft } from '@/lib/dynamix-handoff'
 import { defaultWorkflow, loadWorkflow, saveWorkflow } from '@/lib/dynamix-workflow'
@@ -48,6 +48,14 @@ export default function DynamixApprovalPage() {
       })
 
       setPaymentState(data)
+      if (crm.leadId || handoff?.lead_id) {
+        leadsApi
+          .addNote(Number(crm.leadId || handoff?.lead_id), {
+            author: 'Dynamix',
+            content: `Payment link created for quotation #${workflow.quote.quoteId} for ${workflow.selectedHoliday.title}. Advance requested: ${amount} ${data.demo ? '(demo link)' : ''}`.trim(),
+          })
+          .catch(() => null)
+      }
       const nextState = {
         ...workflow,
         quote: {
@@ -117,6 +125,13 @@ export default function DynamixApprovalPage() {
           currency: crm.currency || handoff?.currency || 'INR',
         })
       }
+
+      leadsApi
+        .addNote(Number(leadId), {
+          author: 'Dynamix',
+          content: `Booking #${booking.id} created from Dynamix for ${workflow.selectedHoliday.title}. Total price: ${crm.currency || handoff?.currency || 'INR'} ${Number(totalPrice)}.`,
+        })
+        .catch(() => null)
     } catch (err) {
       setApprovalError(err instanceof Error ? err.message : 'Booking could not be created.')
     } finally {
@@ -253,22 +268,34 @@ export default function DynamixApprovalPage() {
               {creatingLink ? 'Creating payment link…' : 'Create payment link'}
             </button>
             <button
-              onClick={() => router.push('/dashboard/quotations')}
+              onClick={() => router.push(`/dashboard/quotations${workflow.meta?.crm?.quotationId ? `?quotationId=${workflow.meta.crm.quotationId}` : ''}`)}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
             >
               Open Quotations <ExternalLink className="w-4 h-4" />
             </button>
             <button
-              onClick={() => router.push('/dashboard/bookings')}
+              onClick={() => router.push(`/dashboard/bookings${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}`)}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
             >
               Open Bookings <ExternalLink className="w-4 h-4" />
             </button>
             <button
-              onClick={() => router.push('/dashboard/finance')}
+              onClick={() => router.push(`/dashboard/finance${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}`)}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
             >
               Open Finance <ExternalLink className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => router.push(`/dashboard/documents${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}`)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+            >
+              Open Documents <ExternalLink className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => router.push(`/dashboard/comms${workflow.meta?.crm?.leadId ? `?leadId=${workflow.meta.crm.leadId}` : ''}`)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
+            >
+              Open Comms <ExternalLink className="w-4 h-4" />
             </button>
           </div>
         </aside>

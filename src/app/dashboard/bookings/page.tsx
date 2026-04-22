@@ -23,6 +23,7 @@ import {
   Phone, Plane, Hotel, Car, Activity, LayoutGrid, Download, Mail,
 } from "lucide-react";
 import { bookingsApi, documentsApi, Booking } from "@/lib/api";
+import DynamixHandoffBanner from "@/components/dynamix-handoff-banner";
 import EmptyState from "@/components/EmptyState";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -658,6 +659,8 @@ export default function BookingsPage() {
           </button>
         </div>
       </div>
+
+      <DynamixHandoffBanner moduleLabel="Bookings" />
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

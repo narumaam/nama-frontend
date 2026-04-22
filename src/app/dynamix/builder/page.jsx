@@ -22,13 +22,13 @@ import {
 import { defaultWorkflow, loadWorkflow, normalizeItineraryItems, saveWorkflow } from '@/lib/dynamix-workflow'
 
 const singaporeMedia = {
-  main: 'https://source.unsplash.com/1600x1200/?singapore,marina-bay',
-  cruise: 'https://source.unsplash.com/1200x900/?singapore,cruise',
-  universal: 'https://source.unsplash.com/1200x900/?singapore,universal-studios',
-  travellerOne: 'https://source.unsplash.com/1200x900/?singapore,chinatown',
-  travellerTwo: 'https://source.unsplash.com/1200x900/?singapore,night',
-  travellerThree: 'https://source.unsplash.com/1200x900/?singapore,gardens-by-the-bay',
-  videoPoster: 'https://source.unsplash.com/1600x1200/?singapore,skyline,night',
+  main: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1600&q=80',
+  cruise: 'https://images.unsplash.com/photo-1508964942454-1a56651d54ac?auto=format&fit=crop&w=1200&q=80',
+  universal: 'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=1200&q=80',
+  travellerOne: 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=1200&q=80',
+  travellerTwo: 'https://images.unsplash.com/photo-1526481280695-3c4691f7f7d4?auto=format&fit=crop&w=1200&q=80',
+  travellerThree: 'https://images.unsplash.com/photo-1508061253366-f7da158b6d46?auto=format&fit=crop&w=1200&q=80',
+  videoPoster: 'https://images.unsplash.com/photo-1496939376851-89342e90adcd?auto=format&fit=crop&w=1600&q=80',
 }
 
 const whyNama = [
@@ -47,6 +47,21 @@ const whyNama = [
   {
     title: '24×7 Human Support',
     detail: 'On-trip help when it matters. Real people, quick escalation, and clear support during the holiday.',
+  },
+]
+
+const travellerMoments = [
+  {
+    initials: 'RM',
+    name: 'Rhea Malhotra',
+    detail: 'Cruise + city combo with parents',
+    quote: 'The trip felt premium but never confusing. The Night Safari and Sentosa planning were spot on.',
+  },
+  {
+    initials: 'AK',
+    name: 'Arjun Khanna',
+    detail: 'Family holiday from Chennai',
+    quote: 'We loved that the plan had structure without feeling rigid. The free day was genuinely useful.',
   },
 ]
 
@@ -458,15 +473,31 @@ export default function DynamixBuilderPage() {
                 />
               </div>
             </div>
+            <div className="grid md:grid-cols-2 gap-3 mt-4">
+              {travellerMoments.map((moment) => (
+                <div key={moment.name} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-red-600/20 border border-red-500/20 flex items-center justify-center font-semibold text-sm">
+                      {moment.initials}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{moment.name}</p>
+                      <p className="text-xs text-zinc-500">{moment.detail}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-zinc-300 mt-4 leading-6">“{moment.quote}”</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>
             <h3 className="font-display text-xl font-semibold">NAMA Reviews</h3>
             <div className="mt-4 glass rounded-[22px] p-5">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-red-600/25 flex items-center justify-center font-semibold">NT</div>
+                <div className="w-11 h-11 rounded-full bg-red-600/25 flex items-center justify-center font-semibold">SR</div>
                 <div>
-                  <p className="font-semibold text-sm">Nivedita Thomas</p>
+                  <p className="font-semibold text-sm">Sana Rahman</p>
                   <p className="text-xs text-zinc-500">Reviewed on · 22 Apr 2026</p>
                 </div>
                 <div className="ml-auto flex gap-0.5 text-amber-400">
@@ -476,7 +507,7 @@ export default function DynamixBuilderPage() {
                 </div>
               </div>
               <p className="text-sm text-zinc-300 mt-4 leading-6">
-                “The Singapore plan felt clear from day one. The cruise-city combination was easy for our family to understand, and the NAMA team helped us shape the leisure days without making the itinerary feel crowded.”
+                “The Singapore itinerary looked polished from the first draft. We could add activities without breaking the trip flow, and the team kept the plan very easy to follow for the whole family.”
               </p>
             </div>
           </div>

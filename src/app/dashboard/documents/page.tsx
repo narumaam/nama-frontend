@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import DynamixHandoffBanner from '@/components/dynamix-handoff-banner'
 import {
   FileText, Receipt, Ticket, CheckSquare, Download, MessageCircle,
   Copy, Eye, Plus, Search, Filter,
@@ -932,6 +933,8 @@ export default function DocumentsPage() {
             <Upload size={15} /> Upload
           </button>
         </div>
+
+        <DynamixHandoffBanner moduleLabel="Documents" />
 
         {/* KPI Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -50,7 +50,7 @@ export default function DynamixResultsPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             {Object.values(workflow.query).slice(0, 5).map((value) => (
-              <span key={value} className="px-3 py-2 rounded-full border border-white/8 bg-white/5 text-[11px] uppercase tracking-[0.14em] text-zinc-400">{value}</span>
+              <span key={value} className="dynamix-chip px-3 py-2 rounded-full border text-[11px] uppercase tracking-[0.14em]">{value}</span>
             ))}
           </div>
         </div>
@@ -62,7 +62,7 @@ export default function DynamixResultsPage() {
           <h2 className="text-2xl font-display font-semibold tracking-tight mt-2">Refine matches</h2>
           <div className="flex flex-wrap gap-3 mt-6">
             {[workflow.query.packageType, workflow.query.travelerType, '₹50K to ₹1.5L'].map((item, idx) => (
-              <span key={item} className={`px-4 py-2 rounded-full text-sm border ${idx === 0 ? 'bg-red-600/15 border-red-600/30 text-white' : 'bg-white/5 border-white/8 text-zinc-400'}`}>{item}</span>
+              <span key={item} className={`px-4 py-2 rounded-full text-sm border ${idx === 0 ? 'bg-red-600/15 border-red-600/30 text-white' : 'dynamix-chip'}`}>{item}</span>
             ))}
           </div>
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 mt-6">
@@ -77,7 +77,7 @@ export default function DynamixResultsPage() {
               <div>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {item.badges.map((badge) => (
-                    <span key={badge} className="px-3 py-2 rounded-full border border-white/8 bg-white/5 text-[11px] uppercase tracking-[0.12em] text-zinc-400">{badge}</span>
+                    <span key={badge} className="dynamix-chip px-3 py-2 rounded-full border text-[11px] uppercase tracking-[0.12em]">{badge}</span>
                   ))}
                 </div>
                 <h3 className="text-2xl font-display font-semibold tracking-tight">{item.title}</h3>

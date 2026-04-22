@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { leadsApi, itinerariesApi, quotationsApi, paymentsApi, Lead, ItineraryOut, Quotation } from '@/lib/api'
+import DynamixHandoffBanner from '@/components/dynamix-handoff-banner'
 import { clearDynamixQuotationDraft, loadDynamixQuotationDraft } from '@/lib/dynamix-handoff'
 import {
   FileText, Plus, Loader, AlertCircle, CheckCircle,
@@ -510,6 +511,8 @@ export default function QuotationsPage() {
           <Plus size={16} /> New Quotation
         </button>
       </div>
+
+      <DynamixHandoffBanner moduleLabel="Quotations" />
 
       {/* ── KPI Strip ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

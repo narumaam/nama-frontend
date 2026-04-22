@@ -278,6 +278,8 @@ export const leadsApi = {
   get: (id: number) => api.get<Lead>(`/api/v1/leads/${id}`),
   create: (data: Partial<Lead>) => api.post<Lead>('/api/v1/leads/', data),
   update: (id: number, data: Partial<Lead>) => api.patch<Lead>(`/api/v1/leads/${id}`, data),
+  addNote: (id: number, data: { content: string; author?: string }) =>
+    api.post(`/api/v1/leads/${id}/notes`, data),
   assign: (leadId: number, userId: number) =>
     api.post<Lead>(`/api/v1/leads/${leadId}/assign?user_id=${userId}`, {}),
   delete: (id: number) => api.delete<void>(`/api/v1/leads/${id}`),

@@ -16,6 +16,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { queriesApi } from '@/lib/api'
+import DynamixHandoffBanner from '@/components/dynamix-handoff-banner'
 import {
   Sparkles, Loader, AlertCircle, MessageSquare, Send,
   TrendingUp, Clock, Users, Zap, CheckCircle2,
@@ -215,6 +216,8 @@ export default function QueriesPage() {
 
   return (
     <div className="space-y-6">
+
+      <DynamixHandoffBanner moduleLabel="Query Triage" />
 
       {/* ── Page header ──────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
