@@ -66,9 +66,8 @@ function LoginPageInner() {
 
   const handleGoogleLogin = async (credential: string) => {
     setError(''); setLoading(true)
-    const API = process.env.NEXT_PUBLIC_API_URL ?? ''
     try {
-      const resp = await fetch(`${API}/api/v1/auth/google/login`, {
+      const resp = await fetch('/api/v1/auth/google/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_token: credential }),
       })

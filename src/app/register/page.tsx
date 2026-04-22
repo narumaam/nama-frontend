@@ -115,9 +115,8 @@ function RegisterPage() {
   async function enterWithGoogle(idToken: string) {
     setError('')
     setLoading(true)
-    const API = process.env.NEXT_PUBLIC_API_URL ?? ''
     try {
-      const resp = await fetch(`${API}/api/v1/auth/google/register`, {
+      const resp = await fetch('/api/v1/auth/google/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_token: idToken, tenant_name: form.companyName.trim() }),
