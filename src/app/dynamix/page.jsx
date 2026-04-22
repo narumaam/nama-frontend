@@ -11,20 +11,50 @@ export default function DynamixLandingPage() {
   const [workflow, setWorkflow] = useState(() => loadWorkflow() || defaultWorkflow)
   const [currentIndex, setCurrentIndex] = useState(0)
   const confirmationsRef = useRef(null)
+  const carouselRef = useRef(null)
 
   const packages = useMemo(() => dynamixResults, [])
   const activePackage = packages[currentIndex] || packages[0]
+
+  const categoryOptions = [
+    'Reset Retreat',
+    'Family Memory Maker',
+    'Celebration Escape',
+    'Flexi Land Hack',
+  ]
+
+  const composerModes = [
+    'AI builds destination fit',
+    'AI suggests module mix',
+    'AI protects pricing story',
+  ]
 
   function scrollToConfirmations() {
     confirmationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   function showPrev() {
-    setCurrentIndex((prev) => (prev === 0 ? packages.length - 1 : prev - 1))
+    setCurrentIndex((prev) => {
+      const next = prev === 0 ? packages.length - 1 : prev - 1
+      scrollCarousel(next)
+      return next
+    })
   }
 
   function showNext() {
-    setCurrentIndex((prev) => (prev === packages.length - 1 ? 0 : prev + 1))
+    setCurrentIndex((prev) => {
+      const next = prev === packages.length - 1 ? 0 : prev + 1
+      scrollCarousel(next)
+      return next
+    })
+  }
+
+  function scrollCarousel(index) {
+    const container = carouselRef.current
+    if (!container) return
+    const card = container.querySelector(`[data-package-index="${index}"]`)
+    if (!card) return
+    card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
   }
 
   function selectGuaranteedPackage(item) {
@@ -49,6 +79,19 @@ export default function DynamixLandingPage() {
   const optionCardClass =
     'glass rounded-[28px] p-8 border border-white/8 min-h-[420px] flex flex-col'
 
+  function setCategoryFlow(slug) {
+    const nextState = {
+      ...workflow,
+      aiFlow: {
+        ...workflow.aiFlow,
+        enabled: true,
+        categoryTitle: slug,
+      },
+    }
+    setWorkflow(nextState)
+    saveWorkflow(nextState)
+  }
+
   return (
     <main className="max-w-7xl mx-auto px-6 py-8">
       <section className="glass rounded-[30px] p-8 md:p-10 bg-[radial-gradient(circle_at_top_right,rgba(229,9,20,0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
@@ -69,37 +112,69 @@ export default function DynamixLandingPage() {
 
       <section className="grid lg:grid-cols-2 gap-6 mt-6">
         <article className={optionCardClass}>
-          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-white/8 bg-white/5 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
-            Option A
+          <div className="flex items-center justify-between gap-4">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-[11px] uppercase tracking-[0.16em] text-emerald-200">
+              AI-led builder
+            </div>
+            <span className="text-[11px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Configure here</span>
           </div>
           <h2 className="text-3xl font-display font-semibold tracking-tight mt-5">Category First Dynamix</h2>
           <p className="text-zinc-400 mt-3 leading-7">
             Let Dynamix start from the category, not the city. This path is best when the agent wants AI help deciding what type of holiday should be sold before getting into the detailed build.
           </p>
-          <div className="space-y-3 mt-6">
-            {[
-              'Starts from holiday intent and traveller context',
-              'AI shapes destination fit, sell story, and package structure',
-              'Best when the agent wants help choosing what to build',
-            ].map((item) => (
-              <div key={item} className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-zinc-300">
-                {item}
+
+          <div className="grid gap-4 mt-6">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mb-3">Choose category</p>
+              <div className="flex flex-wrap gap-3">
+                {categoryOptions.map((item) => {
+                  const isActive = workflow.aiFlow.categoryTitle === item
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setCategoryFlow(item)}
+                      className={`px-4 py-3 rounded-2xl border text-sm transition ${
+                        isActive
+                          ? 'border-red-600/30 bg-red-600/10 text-white'
+                          : 'border-white/8 bg-white/5 text-zinc-300 hover:bg-white/8'
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  )
+                })}
               </div>
-            ))}
+            </div>
+
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-mono mb-3">What AI will configure</p>
+              <div className="space-y-3">
+                {composerModes.map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+
           <div className="mt-auto pt-6">
             <Link
               href="/dynamix/ai-categories"
               className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-semibold"
             >
-              Open category-first flow
+              Continue with AI build
             </Link>
           </div>
         </article>
 
         <article className={optionCardClass}>
-          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-white/8 bg-white/5 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
-            Option B
+          <div className="flex items-center justify-between gap-4">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-amber-500/20 bg-amber-500/10 text-[11px] uppercase tracking-[0.16em] text-amber-200">
+              Fast-track sell
+            </div>
+            <span className="text-[11px] uppercase tracking-[0.16em] text-zinc-500 font-mono">Scroll to confirmed stock</span>
           </div>
           <h2 className="text-3xl font-display font-semibold tracking-tight mt-5">Guaranteed Confirmations</h2>
           <p className="text-zinc-400 mt-3 leading-7">
@@ -122,7 +197,7 @@ export default function DynamixLandingPage() {
               onClick={scrollToConfirmations}
               className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium"
             >
-              View guaranteed packages
+              Open guaranteed confirmations
             </button>
           </div>
         </article>
@@ -157,6 +232,58 @@ export default function DynamixLandingPage() {
             >
               <ChevronRight className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <div
+            ref={carouselRef}
+            className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {packages.map((item, index) => (
+              <article
+                key={item.slug}
+                data-package-index={index}
+                className={`snap-start shrink-0 w-[330px] md:w-[380px] rounded-[28px] border p-7 transition ${
+                  index === currentIndex
+                    ? 'border-red-600/30 bg-red-600/10 shadow-[0_0_0_1px_rgba(220,38,38,0.12)]'
+                    : 'border-white/8 bg-white/5'
+                }`}
+              >
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {item.badges.map((badge) => (
+                    <span
+                      key={badge}
+                      className="px-3 py-2 rounded-full border border-white/8 bg-black/20 text-[11px] uppercase tracking-[0.12em] text-zinc-400"
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+                <h3 className="text-3xl font-display font-semibold tracking-tight">{item.title}</h3>
+                <p className="text-zinc-400 mt-4 leading-7 min-h-[112px]">{item.summary}</p>
+                <div className="mt-6">
+                  <div className="text-zinc-500 text-[11px] uppercase tracking-[0.18em] font-mono">Price</div>
+                  <div className="text-3xl font-display font-bold tracking-tight mt-2">{item.price}</div>
+                </div>
+                <div className="flex flex-wrap gap-3 mt-8">
+                  <Link
+                    href="/dynamix/builder"
+                    onClick={() => selectGuaranteedPackage(item)}
+                    className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-semibold"
+                  >
+                    Use this package
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentIndex(index)}
+                    className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium hover:bg-white/10"
+                  >
+                    Focus card
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
 
@@ -200,7 +327,10 @@ export default function DynamixLandingPage() {
               <button
                 key={item.slug}
                 type="button"
-                onClick={() => setCurrentIndex(index)}
+                onClick={() => {
+                  setCurrentIndex(index)
+                  scrollCarousel(index)
+                }}
                 className={`text-left rounded-[24px] border p-5 transition ${
                   index === currentIndex
                     ? 'border-red-600/30 bg-red-600/10 shadow-[0_0_0_1px_rgba(220,38,38,0.12)]'
