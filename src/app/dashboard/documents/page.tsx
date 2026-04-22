@@ -887,6 +887,8 @@ export default function DocumentsPage() {
   const [dateFilter, setDateFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
   const [downloadingRealDoc, setDownloadingRealDoc] = useState(false);
+  const [downloadingConfirmation, setDownloadingConfirmation] = useState(false);
+  const [downloadingVoucher, setDownloadingVoucher] = useState(false);
   const [realDocError, setRealDocError] = useState('');
 
   const bookingId = Number(searchParams.get('bookingId') || 0) || null;
@@ -915,6 +917,37 @@ export default function DocumentsPage() {
       setRealDocError(error instanceof Error ? error.message : 'Invoice could not be generated for this booking yet.');
     } finally {
       setDownloadingRealDoc(false);
+    }
+  }
+
+  async function downloadBookingDocument(kind: 'confirmation' | 'voucher') {
+    if (!bookingId) return;
+    if (kind === 'confirmation') setDownloadingConfirmation(true);
+    if (kind === 'voucher') setDownloadingVoucher(true);
+    setRealDocError('');
+    try {
+      const response = kind === 'confirmation'
+        ? await documentsApi.bookingConfirmationPdf(bookingId)
+        : await documentsApi.voucherPdf(bookingId);
+      if (!response.ok) {
+        throw new Error(`${kind === 'confirmation' ? 'Confirmation' : 'Voucher'} download failed (${response.status})`);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = kind === 'confirmation'
+        ? `nama-booking-${bookingId}-confirmation.pdf`
+        : `nama-booking-${bookingId}-voucher.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setRealDocError(error instanceof Error ? error.message : `${kind} could not be generated for this booking yet.`);
+    } finally {
+      if (kind === 'confirmation') setDownloadingConfirmation(false);
+      if (kind === 'voucher') setDownloadingVoucher(false);
     }
   }
 
@@ -986,7 +1019,7 @@ export default function DocumentsPage() {
                   {quotationId ? <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">Quotation #{quotationId}</span> : null}
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-2 gap-3">
                 <button
                   onClick={downloadLiveInvoice}
                   disabled={downloadingRealDoc}
@@ -996,11 +1029,27 @@ export default function DocumentsPage() {
                   {downloadingRealDoc ? 'Preparing invoice…' : 'Download live invoice'}
                 </button>
                 <button
-                  onClick={() => setActiveDoc('voucher')}
+                  onClick={() => downloadBookingDocument('confirmation')}
+                  disabled={downloadingConfirmation}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#14B8A6]/40 transition-colors"
+                >
+                  <FileCheck size={15} />
+                  {downloadingConfirmation ? 'Preparing confirmation…' : 'Download confirmation'}
+                </button>
+                <button
+                  onClick={() => downloadBookingDocument('voucher')}
+                  disabled={downloadingVoucher}
                   className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#14B8A6]/40 transition-colors"
                 >
                   <Ticket size={15} />
-                  Prepare voucher
+                  {downloadingVoucher ? 'Preparing voucher…' : 'Download voucher'}
+                </button>
+                <button
+                  onClick={() => setActiveDoc('voucher')}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#14B8A6]/40 transition-colors"
+                >
+                  <Hotel size={15} />
+                  Open voucher editor
                 </button>
               </div>
             </div>

@@ -593,6 +593,16 @@ export const documentsApi = {
       '/api/v1/documents/send-invoice',
       { booking_id: bookingId, email }
     ),
+  bookingConfirmationPdf: async (bookingId: number): Promise<Response> =>
+    fetch(`/api/v1/bookings/${bookingId}/confirmation/pdf`, {
+      method: 'GET',
+      credentials: 'include',
+    }),
+  voucherPdf: async (bookingId: number): Promise<Response> =>
+    fetch(`/api/v1/bookings/${bookingId}/voucher/pdf`, {
+      method: 'GET',
+      credentials: 'include',
+    }),
 }
 
 // Payments — Razorpay payment links

@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BadgeCheck, CalendarDays, CreditCard, ExternalLink, ShieldCheck } from 'lucide-react'
 
-import { bookingsApi, leadsApi, paymentsApi } from '@/lib/api'
+import { bookingsApi, documentsApi, leadsApi, paymentsApi } from '@/lib/api'
 import { getAiPlaybook } from '@/lib/dynamix-ai-data'
 import { loadDynamixQuotationDraft, saveDynamixQuotationDraft } from '@/lib/dynamix-handoff'
 import { defaultWorkflow, loadWorkflow, saveWorkflow } from '@/lib/dynamix-workflow'
@@ -16,8 +16,10 @@ export default function DynamixApprovalPage() {
   const [paymentState, setPaymentState] = useState(null)
   const [bookingState, setBookingState] = useState(null)
   const [approvalError, setApprovalError] = useState('')
+  const [docState, setDocState] = useState(null)
   const [creatingLink, setCreatingLink] = useState(false)
   const [creatingBooking, setCreatingBooking] = useState(false)
+  const [preparingDocs, setPreparingDocs] = useState(false)
   const aiPlaybook = getAiPlaybook(workflow.aiFlow.categorySlug)
   const approvalTone = workflow.aiFlow.enabled
     ? aiPlaybook.approvalTone
@@ -132,10 +134,53 @@ export default function DynamixApprovalPage() {
           content: `Booking #${booking.id} created from Dynamix for ${workflow.selectedHoliday.title}. Total price: ${crm.currency || handoff?.currency || 'INR'} ${Number(totalPrice)}.`,
         })
         .catch(() => null)
+
+      router.push(`/dashboard/documents?bookingId=${booking.id}${crm.quotationId || handoff?.quotation_id ? `&quotationId=${crm.quotationId || handoff?.quotation_id}` : ''}&destination=${encodeURIComponent(workflow.query.destination || workflow.selectedHoliday.destination || workflow.selectedHoliday.title)}`)
     } catch (err) {
       setApprovalError(err instanceof Error ? err.message : 'Booking could not be created.')
     } finally {
       setCreatingBooking(false)
+    }
+  }
+
+  async function prepareBookingDocuments() {
+    const bookingId = workflow.meta?.crm?.bookingId || bookingState?.id
+    if (!bookingId) {
+      setApprovalError('Create the booking first so NAMA can generate the real confirmation and voucher documents.')
+      return
+    }
+
+    setPreparingDocs(true)
+    setApprovalError('')
+    try {
+      const [confirmation, voucher] = await Promise.all([
+        documentsApi.bookingConfirmationPdf(Number(bookingId)),
+        documentsApi.voucherPdf(Number(bookingId)),
+      ])
+
+      if (!confirmation.ok || !voucher.ok) {
+        throw new Error('Document bundle could not be prepared yet.')
+      }
+
+      setDocState({
+        confirmationReady: true,
+        voucherReady: true,
+      })
+
+      if (crm.leadId || handoff?.lead_id) {
+        leadsApi
+          .addNote(Number(crm.leadId || handoff?.lead_id), {
+            author: 'Dynamix',
+            content: `Booking documents prepared for booking #${bookingId}. Confirmation and voucher are ready for review in Documents.`,
+          })
+          .catch(() => null)
+      }
+
+      router.push(`/dashboard/documents?bookingId=${bookingId}${crm.quotationId || handoff?.quotation_id ? `&quotationId=${crm.quotationId || handoff?.quotation_id}` : ''}&destination=${encodeURIComponent(workflow.query.destination || workflow.selectedHoliday.destination || workflow.selectedHoliday.title)}`)
+    } catch (err) {
+      setApprovalError(err instanceof Error ? err.message : 'Booking documents could not be prepared.')
+    } finally {
+      setPreparingDocs(false)
     }
   }
 
@@ -245,6 +290,13 @@ export default function DynamixApprovalPage() {
             </div>
           ) : null}
 
+          {docState ? (
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 mt-4">
+              <h3 className="font-semibold text-sm mb-2">Document bundle ready</h3>
+              <p className="text-sm dynamix-muted">Confirmation and voucher endpoints are ready for this booking in Documents.</p>
+            </div>
+          ) : null}
+
           {approvalError ? (
             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 mt-4">
               <h3 className="font-semibold text-sm mb-2">Approval check</h3>
@@ -258,7 +310,14 @@ export default function DynamixApprovalPage() {
               disabled={creatingBooking}
               className="px-5 py-3 rounded-2xl bg-white text-black hover:bg-zinc-200 font-semibold disabled:opacity-60"
             >
-              {creatingBooking ? 'Creating booking…' : 'Create booking in NAMA'}
+              {creatingBooking ? 'Creating booking…' : 'Create booking and open Documents'}
+            </button>
+            <button
+              onClick={prepareBookingDocuments}
+              disabled={preparingDocs}
+              className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold disabled:opacity-60"
+            >
+              {preparingDocs ? 'Preparing documents…' : 'Prepare confirmation + voucher'}
             </button>
             <button
               onClick={createPaymentLink}
@@ -280,13 +339,13 @@ export default function DynamixApprovalPage() {
               Open Bookings <ExternalLink className="w-4 h-4" />
             </button>
             <button
-              onClick={() => router.push(`/dashboard/finance${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}`)}
+              onClick={() => router.push(`/dashboard/finance${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}${workflow.meta?.crm?.quotationId ? `${workflow.meta?.crm?.bookingId ? '&' : '?'}quotationId=${workflow.meta.crm.quotationId}` : ''}${workflow.query.destination ? `${(workflow.meta?.crm?.bookingId || workflow.meta?.crm?.quotationId) ? '&' : '?'}destination=${encodeURIComponent(workflow.query.destination)}` : ''}`)}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
             >
               Open Finance <ExternalLink className="w-4 h-4" />
             </button>
             <button
-              onClick={() => router.push(`/dashboard/documents${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}`)}
+              onClick={() => router.push(`/dashboard/documents${workflow.meta?.crm?.bookingId ? `?bookingId=${workflow.meta.crm.bookingId}` : ''}${workflow.meta?.crm?.quotationId ? `${workflow.meta?.crm?.bookingId ? '&' : '?'}quotationId=${workflow.meta.crm.quotationId}` : ''}${workflow.query.destination ? `${(workflow.meta?.crm?.bookingId || workflow.meta?.crm?.quotationId) ? '&' : '?'}destination=${encodeURIComponent(workflow.query.destination)}` : ''}`)}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-white font-medium"
             >
               Open Documents <ExternalLink className="w-4 h-4" />
