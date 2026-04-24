@@ -131,7 +131,7 @@ export default function TermsPage() {
 
           {/* ── Terms of Service ── */}
           <DocSection id="tos" title="Terms of Service" effectiveDate="April 17, 2026" sections={[
-            { title: '1. Acceptance of Terms', content: <p>By accessing or using NAMA AI ("NAMA", "Platform", "Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the platform.</p> },
+            { title: '1. Acceptance of Terms', content: <p>By accessing or using NAMA AI (&ldquo;NAMA&rdquo;, &ldquo;Platform&rdquo;, &ldquo;Service&rdquo;), you agree to be bound by these Terms of Service. If you do not agree, do not use the platform.</p> },
             { title: '2. Legal Entity', content: <>
               <p>NAMA AI is owned and operated by:</p>
               <div className="mt-2 p-4 rounded-lg border border-white/10 bg-white/3">

@@ -19,10 +19,10 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Plug, CheckCircle, AlertCircle, Clock, ArrowRight,
+  Plug, CheckCircle, AlertCircle, Clock,
   Zap, Shield, RefreshCw, ExternalLink, X, Copy,
-  Eye, EyeOff, Plus, Trash2, Globe, Key, Loader2, Send,
-  Share2, Users,
+  Eye, EyeOff, Plus, Trash2, Globe, Loader2, Send,
+  Share2,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────

@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import {
   Building2, Users, TrendingUp, Activity, AlertTriangle,
-  CheckCircle, Clock, Zap, BarChart3, Globe, Shield,
-  RefreshCw, ChevronDown, ChevronUp, Eye, XCircle,
-  Plane, Send, UserCheck, Mail,
+  CheckCircle, Clock, BarChart3, Globe, Shield,
+  RefreshCw, ChevronDown, ChevronUp, XCircle,
+  Plane, Send, Mail,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 

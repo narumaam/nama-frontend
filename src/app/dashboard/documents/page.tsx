@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import {
-  FileText, Receipt, Ticket, CheckSquare, Download, MessageCircle,
+  FileText, Receipt, Download, MessageCircle,
   Copy, Eye, Plus, Search, Filter,
-  Calendar, DollarSign,
+  Calendar,
   Plane, Hotel, Shield, X, Check, Upload, Zap,
   FileCheck, FileBadge, FileSpreadsheet, LayoutGrid
 } from 'lucide-react';

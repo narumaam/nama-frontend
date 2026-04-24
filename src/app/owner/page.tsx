@@ -131,11 +131,6 @@ export default function OwnerDashboard() {
   const isDemo = typeof document !== 'undefined' &&
     document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
   const isAuthorized = !isDemo && auth.user?.role === 'R0_NAMA_OWNER'
-  useEffect(() => {
-    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
-  }, [auth.isLoading, isAuthorized, router])
-  if (auth.isLoading) return null
-  if (!isAuthorized) return null
 
   const [stats,       setStats]       = useState<PlatformStats | null>(null)
   const [tenants,     setTenants]     = useState<Tenant[]>([])
@@ -164,12 +159,18 @@ export default function OwnerDashboard() {
     } catch { /* fall through to seed data */ }
     setStats(DEMO_STATS)
     setTenants(DEMO_TENANTS)
-    if (!stats) setError('backend-unreachable')
+    setError((prev) => prev ?? 'backend-unreachable')
     setLastRefresh(new Date())
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
+  }, [auth.isLoading, isAuthorized, router])
+
   useEffect(() => { load() }, [load])
+
+  if (auth.isLoading) return null
+  if (!isAuthorized) return null
 
   const kpis = stats ? [
     { label: 'Total Tenants', value: stats.total_tenants, delta: '+8%',  up: true, icon: Building2, color: 'text-blue-600',    bg: 'bg-blue-50',    spark: [28,31,35,38,42,44,stats.total_tenants], sc: '#3B82F6' },

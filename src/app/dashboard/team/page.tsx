@@ -85,6 +85,14 @@ interface RoleCard {
   permissions: RolePermissions;
 }
 
+interface TeamResponse {
+  members: TeamMember[];
+}
+
+interface RolesResponse {
+  roles: RoleCard[];
+}
+
 // ── Seed Data ────────────────────────────────────────────────────────────────
 
 const SEED_MEMBERS: TeamMember[] = [
@@ -320,14 +328,14 @@ export default function TeamPage() {
     const fetchData = async () => {
       try {
         const [teamRes, rolesRes] = await Promise.allSettled([
-          (api as any).get("/api/v1/team"),
-          (api as any).get("/api/v1/roles"),
+          api.get<TeamResponse>("/api/v1/team"),
+          api.get<RolesResponse>("/api/v1/roles"),
         ]);
-        if (teamRes.status === "fulfilled" && (teamRes.value as any)?.members) {
-          setMembers((teamRes.value as any).members);
+        if (teamRes.status === "fulfilled" && teamRes.value.members) {
+          setMembers(teamRes.value.members);
         }
-        if (rolesRes.status === "fulfilled" && (rolesRes.value as any)?.roles) {
-          setRoles((rolesRes.value as any).roles);
+        if (rolesRes.status === "fulfilled" && rolesRes.value.roles) {
+          setRoles(rolesRes.value.roles);
         }
       } catch {
         // use seed data
@@ -363,7 +371,7 @@ export default function TeamPage() {
   const handleSavePermissions = async () => {
     setSavingPerms(true);
     try {
-      await (api as any).put(`/api/v1/roles/${selectedRole}/permissions`, {
+      await api.put(`/api/v1/roles/${selectedRole}/permissions`, {
         permissions: activeRole?.permissions,
       });
     } catch {
@@ -379,7 +387,7 @@ export default function TeamPage() {
     if (!inviteEmail) return;
     setInviteSending(true);
     try {
-      await (api as any).post("/api/v1/team/invite", {
+      await api.post("/api/v1/team/invite", {
         email: inviteEmail,
         role: inviteRole,
         message: inviteMessage,

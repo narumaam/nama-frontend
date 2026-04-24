@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import {
-  Zap, Play, Pause, Plus, Clock, Calendar, MousePointer2,
+  Zap, Play, Pause, Plus, Clock, MousePointer2,
   CheckCircle2, XCircle, Loader2, ChevronRight, ChevronDown,
   Trash2, Edit3, History, X, ArrowRight, Sparkles, RefreshCw,
-  Bell, Mail, MessageCircle, BarChart3, FileText, Users, Star,
+  Star,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -255,10 +255,9 @@ interface CreateModalProps {
   onClose: () => void;
   onSave: (data: Partial<Routine>) => void;
   initial?: Partial<Routine>;
-  templates: Template[];
 }
 
-function CreateModal({ onClose, onSave, initial, templates }: CreateModalProps) {
+function CreateModal({ onClose, onSave, initial }: CreateModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -459,10 +458,10 @@ function CreateModal({ onClose, onSave, initial, templates }: CreateModalProps) 
                     value={prompt}
                     onChange={e => setPrompt(e.target.value)}
                     rows={5}
-                    placeholder="Describe in plain language what this routine should do. For example: 'Check all leads created in the last 24 hours. For any lead with status QUALIFIED, send a personalised WhatsApp message to the assigned agent and email a summary to the owner.'"
+                    placeholder="Describe in plain language what this routine should do. For example: &apos;Check all leads created in the last 24 hours. For any lead with status QUALIFIED, send a personalised WhatsApp message to the assigned agent and email a summary to the owner.&apos;"
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none text-sm resize-none leading-relaxed"
                   />
-                  <p className="text-slate-500 text-xs">NAMA's AI will parse this into a step-by-step action plan.</p>
+                  <p className="text-slate-500 text-xs">NAMA&apos;s AI will parse this into a step-by-step action plan.</p>
                 </div>
               </div>
             </div>
@@ -916,7 +915,7 @@ export default function RoutinesPage() {
             <Zap className="w-6 h-6 text-emerald-400" /> Routines
           </h1>
           <p className="text-slate-400 mt-1 text-sm">
-            Automated workflows that run on your schedule — powered by NAMA's AI, no external tools needed.
+            Automated workflows that run on your schedule — powered by NAMA&apos;s AI, no external tools needed.
           </p>
         </div>
         <button
@@ -1023,7 +1022,6 @@ export default function RoutinesPage() {
           onClose={() => { setShowCreate(false); setEditRoutine(null); setTemplateToUse(null); }}
           onSave={handleSave}
           initial={editRoutine ?? templateInitial}
-          templates={templates}
         />
       )}
       {historyRoutine && (

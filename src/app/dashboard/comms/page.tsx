@@ -11,7 +11,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, Mail, Copy, Check, Loader, AlertCircle,
   Plus, Search, Send, Clock, ChevronDown, Zap,
-  BarChart2, Phone, RefreshCw, Smile, Briefcase,
+  Phone, RefreshCw, Smile, Briefcase,
   AlertTriangle, Star, History, X, Wifi, WifiOff,
   ChevronRight, Edit2, FileText, Users, TrendingUp,
 } from "lucide-react";
@@ -93,17 +93,17 @@ const FOLLOW_UP_TEMPLATES: FollowUpTemplate[] = [
   },
   {
     id: "nl-2", category: "NEW_LEAD", label: "24h No-Response Nudge", timing: "24h after first message", emoji: "🔔", channel: "both",
-    whatsapp: (n, d, a) => `Hi ${n}! 🌟 Just checking in — I sent you a message yesterday about your ${d} trip.\n\nI've been looking at some amazing options for you and don't want you to miss out on the best availability. Would you have 5 minutes to connect today? 📞`,
+    whatsapp: (...[n, d]) => `Hi ${n}! 🌟 Just checking in — I sent you a message yesterday about your ${d} trip.\n\nI've been looking at some amazing options for you and don't want you to miss out on the best availability. Would you have 5 minutes to connect today? 📞`,
     email: (n, d, a) => `Subject: Following up — ${d} Trip Ideas Ready for You\n\nHi ${n},\n\nI wanted to follow up on your ${d} enquiry. I've been curating some wonderful options that I think you'll love!\n\nAre you available for a quick call this week? I can walk you through the top 3 itineraries I've shortlisted.\n\nBest,\n${a} | NAMA Travel`,
   },
   {
     id: "q-1", category: "QUOTE", label: "Quote Sent — 2h Follow-up", timing: "2h after sending quote", emoji: "📋", channel: "both",
-    whatsapp: (n, d, a) => `Hi ${n}! 😊 Just wanted to check — did you get a chance to look at the ${d} proposal I shared?\n\nHappy to walk you through it or answer any questions. We can also customise the itinerary to fit your preferences perfectly! 🗺️`,
+    whatsapp: (...[n, d]) => `Hi ${n}! 😊 Just wanted to check — did you get a chance to look at the ${d} proposal I shared?\n\nHappy to walk you through it or answer any questions. We can also customise the itinerary to fit your preferences perfectly! 🗺️`,
     email: (n, d, a) => `Subject: Your ${d} Proposal — Any Questions?\n\nHi ${n},\n\nI hope you've had a chance to review the ${d} itinerary I sent over. I've put together something I think you'll really enjoy!\n\nIf you have any questions — about the hotels, activities, or pricing — I'm here to help. We can also tweak anything to better match your vision.\n\nLooking forward to hearing your thoughts!\n\nBest,\n${a}`,
   },
   {
     id: "q-2", category: "QUOTE", label: "Quote — 48h Urgency", timing: "48h after sending quote", emoji: "⏰", channel: "both",
-    whatsapp: (n, d, a) => `Hi ${n}! Hope all's well 🙏 A quick heads-up — the rates on your ${d} package are valid until this Friday, after which hotel availability may change.\n\nWould you like to secure a 24-hour hold while you decide? No payment needed yet — just keeps the best rooms reserved for you! 🏨`,
+    whatsapp: (...[n, d]) => `Hi ${n}! Hope all's well 🙏 A quick heads-up — the rates on your ${d} package are valid until this Friday, after which hotel availability may change.\n\nWould you like to secure a 24-hour hold while you decide? No payment needed yet — just keeps the best rooms reserved for you! 🏨`,
     email: (n, d, a) => `Subject: ${d} Package — Rates Valid Until Friday\n\nDear ${n},\n\nI wanted to flag that the pricing on your ${d} itinerary is valid until this Friday. After that, hotel inventory and rates may change for your dates.\n\nIf you'd like, I can place a 24-hour hold on your preferred accommodations — this keeps everything reserved while you finalise your decision.\n\nShall I go ahead with the hold?\n\nBest,\n${a}`,
   },
   {
@@ -113,27 +113,27 @@ const FOLLOW_UP_TEMPLATES: FollowUpTemplate[] = [
   },
   {
     id: "b-1", category: "BOOKING", label: "Booking Confirmed 🎉", timing: "Immediately on booking", emoji: "🎉", channel: "both",
-    whatsapp: (n, d, a) => `${n}, your ${d} trip is CONFIRMED! 🎉🌍\n\nI'm so excited for you! Here's what happens next:\n✅ You'll receive your booking documents within 24 hours\n✅ I'll share a detailed pre-trip checklist\n✅ I'm available 24/7 for any questions\n\nThis is going to be an incredible trip! 🙌`,
+    whatsapp: (...[n, d]) => `${n}, your ${d} trip is CONFIRMED! 🎉🌍\n\nI'm so excited for you! Here's what happens next:\n✅ You'll receive your booking documents within 24 hours\n✅ I'll share a detailed pre-trip checklist\n✅ I'm available 24/7 for any questions\n\nThis is going to be an incredible trip! 🙌`,
     email: (n, d, a) => `Subject: ✅ Your ${d} Trip is Confirmed!\n\nDear ${n},\n\nFantastic news — your ${d} trip is officially confirmed! 🎉\n\nYou can expect:\n• Booking confirmation documents within 24 hours\n• A detailed pre-trip checklist\n• Hotel vouchers and e-tickets\n\nThank you for choosing NAMA Travel. This is going to be an unforgettable experience!\n\nWith excitement,\n${a}`,
   },
   {
     id: "b-2", category: "BOOKING", label: "Balance Payment Reminder", timing: "15 days before balance due", emoji: "💳", channel: "both",
-    whatsapp: (n, d, a) => `Hi ${n}! 👋 A gentle reminder — the balance payment for your ${d} trip is due in 15 days.\n\nYou can transfer to the account details I shared earlier. Once received, I'll send over all your travel documents! 🎒\n\nLet me know if you have any questions or need a payment link.`,
+    whatsapp: (...[n, d]) => `Hi ${n}! 👋 A gentle reminder — the balance payment for your ${d} trip is due in 15 days.\n\nYou can transfer to the account details I shared earlier. Once received, I'll send over all your travel documents! 🎒\n\nLet me know if you have any questions or need a payment link.`,
     email: (n, d, a) => `Subject: Balance Payment Due — ${d} Trip\n\nDear ${n},\n\nI hope you're getting excited for your upcoming ${d} trip!\n\nThis is a friendly reminder that the balance payment is due in 15 days. Once received, I'll dispatch all your travel documents, vouchers, and e-tickets.\n\nPlease let me know if you need any assistance with the payment process.\n\nBest regards,\n${a}`,
   },
   {
     id: "pt-1", category: "PRE_TRIP", label: "7-Day Departure Checklist", timing: "7 days before travel", emoji: "🎒", channel: "both",
-    whatsapp: (n, d, a) => `Hi ${n}! 🎒 Only 7 days to go until your ${d} adventure!\n\nQuick checklist:\n✅ Passport valid for 6+ months\n✅ Visa arranged\n✅ Travel insurance activated\n✅ Foreign currency exchanged\n✅ Emergency numbers saved\n\nI've got your back every step of the way! Have a question? Just ping me. 🌟`,
+    whatsapp: (...[n, d]) => `Hi ${n}! 🎒 Only 7 days to go until your ${d} adventure!\n\nQuick checklist:\n✅ Passport valid for 6+ months\n✅ Visa arranged\n✅ Travel insurance activated\n✅ Foreign currency exchanged\n✅ Emergency numbers saved\n\nI've got your back every step of the way! Have a question? Just ping me. 🌟`,
     email: (n, d, a) => `Subject: 7 Days to ${d} — Your Pre-Departure Checklist\n\nDear ${n},\n\nI can't believe it's almost time for your ${d} trip — how exciting!\n\nHere's your pre-departure checklist:\n□ Passport valid for 6+ months beyond travel date\n□ Visa arranged & printed\n□ Travel insurance policy downloaded\n□ Foreign currency exchanged\n□ Accommodation confirmations printed/saved\n□ Emergency contact numbers saved (${a}: available 24/7)\n\nHave a wonderful trip!\n\nBest,\n${a}`,
   },
   {
     id: "pt-2", category: "PRE_TRIP", label: "Day-Before Arrival", timing: "1 day before departure", emoji: "✈️", channel: "both",
-    whatsapp: (n, d, a) => `Hi ${n}! ✈️ Tomorrow is the big day!\n\nYour driver will be waiting at arrivals with a name board. Please save their number: [Driver's Number]\n\nHave a smooth flight and let me know the moment you land! I'll be thinking of you. 🌴`,
+    whatsapp: (...[n]) => `Hi ${n}! ✈️ Tomorrow is the big day!\n\nYour driver will be waiting at arrivals with a name board. Please save their number: [Driver's Number]\n\nHave a smooth flight and let me know the moment you land! I'll be thinking of you. 🌴`,
     email: (n, d, a) => `Subject: Tomorrow is the Day — ${d} Here You Come!\n\nDear ${n},\n\nHow exciting — you leave for ${d} tomorrow! 🎉\n\nA quick reminder: your airport transfer will be waiting at the arrivals exit. Please reach out to me the moment you land so I know you've arrived safely.\n\nHave an incredible journey!\n\n${a}`,
   },
   {
     id: "post-1", category: "POST_TRIP", label: "Welcome Back + Review Ask", timing: "2 days after return", emoji: "⭐", channel: "both",
-    whatsapp: (n, d, a) => `Welcome back, ${n}! 🏠 Hope you had an amazing time in ${d}!\n\nI'd love to hear all about it — and if you're happy with how everything went, a quick Google review would mean the world to us 🙏\n\nAlso… shall we start planning the next adventure? 😄✈️`,
+    whatsapp: (...[n, d]) => `Welcome back, ${n}! 🏠 Hope you had an amazing time in ${d}!\n\nI'd love to hear all about it — and if you're happy with how everything went, a quick Google review would mean the world to us 🙏\n\nAlso… shall we start planning the next adventure? 😄✈️`,
     email: (n, d, a) => `Subject: Welcome Back from ${d}! How Was It?\n\nDear ${n},\n\nWelcome home from ${d}! I hope every moment was magical.\n\nIf you have a spare minute, I'd be so grateful for a Google review — it helps us continue helping travellers like yourself.\n\nAnd of course, when you're ready for the next adventure, I'm here! 😊\n\nWarm regards,\n${a}`,
   },
   {
@@ -143,7 +143,7 @@ const FOLLOW_UP_TEMPLATES: FollowUpTemplate[] = [
   },
   {
     id: "re-2", category: "REENGAGEMENT", label: "Seasonal Offer Alert", timing: "Seasonal campaign push", emoji: "🎯", channel: "both",
-    whatsapp: (n, d, a) => `Hi ${n}! 🎯 Quick one — we've just unlocked early-bird pricing for ${d} for the upcoming season. Rates are typically 20-30% lower when booked 90+ days out.\n\nWant me to hold a slot while you check your dates? 🗓️`,
+    whatsapp: (...[n, d]) => `Hi ${n}! 🎯 Quick one — we've just unlocked early-bird pricing for ${d} for the upcoming season. Rates are typically 20-30% lower when booked 90+ days out.\n\nWant me to hold a slot while you check your dates? 🗓️`,
     email: (n, d, a) => `Subject: Early-Bird Alert — ${d} Deals Just Opened\n\nHi ${n},\n\nExciting news — early-bird packages for ${d} are now available, typically 20-30% below peak rates.\n\nThese allocations fill quickly. Shall I reserve a slot for your preferred dates while you decide?\n\nBest,\n${a}`,
   },
 ];
@@ -187,7 +187,7 @@ function WhatsAppBusinessPanel() {
   const [selectedTemplate, setSelectedTemplate] = useState<WaTemplate | null>(null);
   const [phone, setPhone] = useState("");
   const [params, setParams] = useState<string[]>([]);
-  const [freeText, setFreeText] = useState("");
+  const [freeText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ success: boolean; message_id?: string; demo?: boolean; error?: string } | null>(null);
   const [sentLog, setSentLog] = useState<SentLogEntry[]>([]);
@@ -454,7 +454,7 @@ export default function CommsPage() {
   // Select first template on load
   useEffect(() => {
     if (!selectedTpl && FOLLOW_UP_TEMPLATES.length > 0) setSelectedTpl(FOLLOW_UP_TEMPLATES[0]);
-  }, []);
+  }, [selectedTpl]);
 
   const filteredLeads = leads.filter((l) =>
     !leadSearch || (l.full_name || "").toLowerCase().includes(leadSearch.toLowerCase()) ||

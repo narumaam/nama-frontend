@@ -17,10 +17,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { vendorsApi, Vendor, api } from '@/lib/api'
 import {
-  Search, Star, MapPin, Phone, Mail, Shield, CheckCircle,
-  Filter, Building2, X, Plus, MessageCircle, Copy, Check,
-  TrendingUp, Award, Globe, Tag, ChevronRight, Loader,
-  Users, DollarSign, Clock, ExternalLink, Sparkles, Heart,
+  Search, Star, MapPin, Mail, Shield, CheckCircle,
+  Building2, X, Plus, MessageCircle, Copy, Check,
+  Award, Globe, Tag, Loader,
+  DollarSign, Clock, ExternalLink, Sparkles,
   Plane, Car, Utensils, Ship, Zap, Info, ChevronDown, RefreshCw,
 } from 'lucide-react'
 
@@ -918,7 +918,7 @@ export default function VendorsPage() {
       <div className="flex justify-between items-end flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight text-[#0F172A]">Vendor Marketplace</h1>
-          <p className="text-slate-500 mt-2 font-medium">NAMA's curated network of verified travel partners — hotels, guides, activities and more.</p>
+          <p className="text-slate-500 mt-2 font-medium">NAMA&apos;s curated network of verified travel partners — hotels, guides, activities and more.</p>
         </div>
         {activeTab === 'network' && (
           <button

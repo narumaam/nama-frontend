@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 export const dynamic = 'force-dynamic'
 
@@ -58,12 +57,18 @@ function RegisterPage() {
   const [loading,     setLoading]     = useState(false)
   const [success,     setSuccess]     = useState(false)
   const [focusPw,     setFocusPw]     = useState(false)
-  const [googleToken, setGoogleToken] = useState<string | null>(null)
   const [googleEmail, setGoogleEmail] = useState('')
   const [backendDown, setBackendDown] = useState(false)
 
   // Invite state
-  const [inviteData, setInviteData] = useState<{email: string; company_name: string} | null>(null)
+  const [inviteData, setInviteData] = useState<{
+    email: string
+    role: string
+    tenant_id: number
+    token?: string
+    message?: string
+    company_name?: string
+  } | null>(null)
   const [validatingInvite, setValidatingInvite] = useState(!!inviteToken)
 
   React.useEffect(() => {
@@ -71,9 +76,9 @@ function RegisterPage() {
       authApi.validateInvite(inviteToken)
         .then(res => {
           setInviteData(res)
-          setForm(f => ({ ...f, email: res.email, companyName: res.company_name }))
+          setForm(f => ({ ...f, email: res.email, companyName: res.company_name ?? f.companyName }))
         })
-        .catch(err => {
+        .catch(() => {
           setError('This invitation link is invalid or has expired.')
         })
         .finally(() => setValidatingInvite(false))
@@ -152,11 +157,13 @@ function RegisterPage() {
     setLoading(true)
     try {
       if (inviteToken) {
-        // Register with Invite
-        await authApi.registerWithInvite({
-          token: inviteToken,
-          full_name: form.fullName,
+        if (!inviteData) throw new Error('Invite details could not be loaded.')
+        await authApi.registerUser({
+          email: form.email,
           password: form.password,
+          full_name: form.fullName,
+          role: inviteData.role,
+          tenant_id: inviteData.tenant_id,
         })
       } else {
         // Step 1: register org → get tenant_id
@@ -341,7 +348,6 @@ function RegisterPage() {
                 <GoogleLogin
                   onSuccess={(cred) => {
                     if (cred.credential) {
-                      setGoogleToken(cred.credential)
                       try {
                         const p = JSON.parse(atob(cred.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))
                         if (p.name && !form.fullName) setForm(f => ({ ...f, fullName: p.name as string }))
@@ -519,7 +525,6 @@ function RegisterPage() {
                 <GoogleLogin
                   onSuccess={(cred) => {
                     if (cred.credential) {
-                      setGoogleToken(cred.credential)
                       try {
                         const p = JSON.parse(atob(cred.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))
                         if (p.name && !form.fullName) setForm(f => ({ ...f, fullName: p.name as string }))
@@ -555,7 +560,7 @@ function RegisterPage() {
                   </div>
                 </div>
                 <span className="text-xs text-slate-500 font-medium leading-relaxed">
-                  I agree to NAMA's{' '}
+                  I agree to NAMA&apos;s{' '}
                   <Link href="/terms" className="text-[#14B8A6] font-bold hover:underline">Terms of Service</Link>
                   {' '}and{' '}
                   <Link href="/privacy" className="text-[#14B8A6] font-bold hover:underline">Privacy Policy</Link>.

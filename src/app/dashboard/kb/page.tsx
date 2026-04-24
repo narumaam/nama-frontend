@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 /**
@@ -13,10 +12,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   Brain, Package, Users, Activity, CheckCircle, AlertTriangle,
-  XCircle, RefreshCw, ExternalLink, Copy, Clock, TrendingUp,
+  XCircle, RefreshCw, Clock, TrendingUp,
   Server, Database, Cloud, Key, GitBranch, Zap, Globe,
   Mail, MessageSquare, CreditCard, ShieldCheck, ChevronDown,
-  ChevronUp, ArrowUpRight, Loader2, Info,
+  ChevronUp, Loader2,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -387,7 +386,7 @@ function ProductTab() {
 // ─── Tab: Customers ─────────────────────────────────────────────────────────────
 
 function CustomersTab() {
-  const [customers, setCustomers] = useState<Customer[]>(SEED_CUSTOMERS)
+  const [customers] = useState<Customer[]>(SEED_CUSTOMERS)
   const [loading, setLoading] = useState(false)
   const [liveData, setLiveData] = useState(false)
 
@@ -582,12 +581,12 @@ function HealthTab() {
             latencyMs,
             detail: ep.detail ?? `HTTP ${res.status} · ${latencyMs}ms`,
           } as HealthItem
-        } catch (e: any) {
+        } catch (e: unknown) {
           return {
             ...ep,
             status: 'error',
             latencyMs: Date.now() - t0,
-            detail: e?.message?.includes('timeout') ? 'Timeout after 6s' : 'Network error',
+            detail: e instanceof Error && e.message.includes('timeout') ? 'Timeout after 6s' : 'Network error',
           } as HealthItem
         }
       })
@@ -595,9 +594,9 @@ function HealthTab() {
     setEndpoints(results)
     setLastChecked(new Date())
     setChecking(false)
-  }, [])
+  }, [endpoints])
 
-  useEffect(() => { checkEndpoints() }, [])
+  useEffect(() => { void checkEndpoints() }, [checkEndpoints])
 
   const okCount   = endpoints.filter(e => e.status === 'ok').length
   const errCount  = endpoints.filter(e => e.status === 'error').length

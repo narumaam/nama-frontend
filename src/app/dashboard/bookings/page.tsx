@@ -16,11 +16,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Briefcase, CheckCircle, XCircle, Loader, AlertCircle,
+  Briefcase, CheckCircle, Loader, AlertCircle,
   Search, Calendar, DollarSign, Users, TrendingDown,
   ArrowRight, Clock, X, ChevronRight, MapPin, RefreshCw,
   FileText, CreditCard, Zap, Check, Navigation, MessageCircle,
-  Phone, Plane, Hotel, Car, Activity, LayoutGrid, Download, Mail,
+  Plane, Hotel, Car, Activity, LayoutGrid, Download, Mail,
 } from "lucide-react";
 import { bookingsApi, documentsApi, Booking } from "@/lib/api";
 import EmptyState from "@/components/EmptyState";
@@ -555,7 +555,7 @@ export default function BookingsPage() {
     try {
       await bookingsApi.confirm(id);
       setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "CONFIRMED", payment_status: "PAID" } : b));
-    } catch (e: any) { setError(e.message); }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Something went wrong"); }
     finally { setConfirmingId(null); }
   };
 
@@ -564,7 +564,7 @@ export default function BookingsPage() {
     try {
       await bookingsApi.cancel(id);
       setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "CANCELLED", payment_status: "REFUNDED" } : b));
-    } catch (e: any) { setError(e.message); }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Something went wrong"); }
     finally { setCancellingId(null); }
   };
 
@@ -583,8 +583,8 @@ export default function BookingsPage() {
       } else {
         setError("Invoice generation failed. Please try again.");
       }
-    } catch (e: any) {
-      setError(e.message || "Invoice download failed.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Invoice download failed.");
     } finally {
       setInvoiceDownloading(null);
     }
@@ -603,8 +603,8 @@ export default function BookingsPage() {
     try {
       const result = await documentsApi.sendInvoice(sendInvoiceBooking.id, sendInvoiceEmail);
       setSendInvoiceResult(result);
-    } catch (e: any) {
-      setSendInvoiceResult({ success: false, error: e.message });
+    } catch (e: unknown) {
+      setSendInvoiceResult({ success: false, error: e instanceof Error ? e.message : "Failed to send invoice." });
     } finally {
       setSendInvoiceSending(false);
     }

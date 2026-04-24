@@ -74,11 +74,6 @@ export default function SuperAdminDashboard() {
   const isDemo = typeof document !== 'undefined' &&
     document.cookie.split(';').some(c => c.trim() === 'nama_demo=1')
   const isAuthorized = !isDemo && !!auth.user && ALLOWED.includes(auth.user.role)
-  useEffect(() => {
-    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
-  }, [auth.isLoading, isAuthorized, router])
-  if (auth.isLoading) return null
-  if (!isAuthorized) return null
 
   const [stats,       setStats]       = useState<PlatformStats | null>(null)
   const [tenants,     setTenants]     = useState<Tenant[]>([])
@@ -114,7 +109,14 @@ export default function SuperAdminDashboard() {
     setError('seed')
   }, [])
 
+  useEffect(() => {
+    if (!auth.isLoading && !isAuthorized) router.replace('/dashboard')
+  }, [auth.isLoading, isAuthorized, router])
+
   useEffect(() => { load() }, [load])
+
+  if (auth.isLoading) return null
+  if (!isAuthorized) return null
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()

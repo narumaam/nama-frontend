@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { TrendingUp, Building2, DollarSign, BarChart3, RefreshCw, ArrowUpRight, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -37,12 +37,7 @@ export default function InvestorDashboard() {
     }
   }, [auth.isLoading, isAuthorized, router]);
 
-  // Fetch data only when authorized
-  useEffect(() => {
-    if (isAuthorized) fetchData();
-  }, [range, isAuthorized]);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const today = new Date();
@@ -67,7 +62,12 @@ export default function InvestorDashboard() {
       setDemoData(from, today);
     }
     setLoading(false);
-  }
+  }, [range]);
+
+  // Fetch data only when authorized
+  useEffect(() => {
+    if (isAuthorized) void fetchData();
+  }, [isAuthorized, fetchData]);
 
   function setDemoData(from: Date, to: Date) {
     setSummary({

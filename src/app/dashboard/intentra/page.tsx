@@ -176,8 +176,6 @@ export default function IntentraPage() {
   const [destInput, setDestInput]       = useState('')
   const [refreshing, setRefreshing]     = useState(false)
   const [toast, setToast]               = useState<{ msg: string; type: 'success' | 'info' } | null>(null)
-  const [liveData, setLiveData]         = useState(false)
-
   // Load signals from backend; gracefully falls back to seed data
   useEffect(() => {
     let cancelled = false
@@ -203,7 +201,6 @@ export default function IntentraPage() {
               saved: false, responded: false, leadConverted: false,
             }))
             setSignals(mapped)
-            setLiveData(true)
           }
         }
       } catch { /* silently fall back to seed data */ }
@@ -340,7 +337,6 @@ export default function IntentraPage() {
             saved: false, responded: false, leadConverted: false,
           }))
           setSignals(mapped)
-          setLiveData(true)
           showToast(`${data.length} intent signals loaded`, 'info')
         } else {
           showToast('No new signals found', 'info')

@@ -216,6 +216,8 @@ export const authApi = {
     api.post<{tenant_id: number; access_token: string}>('/api/v1/tenants/register-org', data),
   registerUser: (data: {email: string; password: string; full_name: string; role: string; tenant_id: number}) =>
     api.post<{access_token: string; user_id: number}>('/api/v1/register-user', data),
+  validateInvite: (token: string) =>
+    api.get<{email: string; role: string; tenant_id: number; token?: string; message?: string; company_name?: string}>(`/api/v1/settings/team/invite/accept/${token}`),
 }
 
 // Leads
@@ -552,6 +554,13 @@ export const paymentsApi = {
 }
 
 // Clients (M14) — contact database + bulk import
+export interface ClientRecord {
+  id: number
+  [key: string]: unknown
+}
+
+export type ClientPayload = Record<string, unknown>
+
 export const clientsApi = {
   list: (params?: { search?: string; status?: string; page?: number; size?: number }) => {
     const q = new URLSearchParams()
@@ -559,11 +568,11 @@ export const clientsApi = {
     if (params?.status) q.set('status', params.status)
     if (params?.page)   q.set('page',   String(params.page))
     if (params?.size)   q.set('size',   String(params.size))
-    return api.get<{ clients: any[]; total: number; page: number; size: number }>(`/api/v1/clients/?${q}`)
+    return api.get<{ clients: ClientRecord[]; total: number; page: number; size: number }>(`/api/v1/clients/?${q}`)
   },
-  get: (id: number) => api.get<any>(`/api/v1/clients/${id}`),
-  create: (data: any) => api.post<any>('/api/v1/clients/', data),
-  update: (id: number, data: any) => api.patch<any>(`/api/v1/clients/${id}`, data),
+  get: (id: number) => api.get<ClientRecord>(`/api/v1/clients/${id}`),
+  create: (data: ClientPayload) => api.post<ClientRecord>('/api/v1/clients/', data),
+  update: (id: number, data: ClientPayload) => api.patch<ClientRecord>(`/api/v1/clients/${id}`, data),
   importContacts: async (file: File) => {
     const form = new FormData()
     form.append('file', file)

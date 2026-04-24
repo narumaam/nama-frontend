@@ -10,9 +10,9 @@
 import React, { useState, useEffect, useCallback } from "react"
 import {
   Mail, Plus, Copy, Check, Send, Edit2, Trash2, X, Eye,
-  ChevronDown, Search, RefreshCw, Zap, Star, BookOpen,
-  FileText, CreditCard, Plane, Gift, MessageSquare, Users,
-  ArrowRight, Download, AlertCircle, Loader2,
+  Search, RefreshCw, Zap, Star, BookOpen,
+  FileText, CreditCard, Plane, Gift, MessageSquare,
+  Download, AlertCircle, Loader2,
 } from "lucide-react"
 import { emailTemplatesApi, EmailTemplate } from "@/lib/api"
 

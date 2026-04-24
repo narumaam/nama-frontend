@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import {
-  CreditCard, Key, CheckCircle, Zap, Building2, Users,
-  BarChart3, Star, AlertCircle, Loader, Eye, EyeOff,
+  CreditCard, Key, CheckCircle, AlertCircle, Loader, Eye, EyeOff,
   Trash2, Plus, ExternalLink, Shield, TrendingDown,
-  User, Bell, Palette, DollarSign, Lock, ClipboardList,
-  Mail, Phone, Edit3, Save, X, RefreshCw, Copy, Check,
-  UserPlus, RotateCcw, ChevronDown, Globe, Upload,
+  User, Users, Bell, Palette, DollarSign, Lock, ClipboardList, Star,
+  Mail, Phone, Edit3, Save, X, UserPlus, Globe, Upload,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -764,7 +762,7 @@ export default function SettingsPage() {
               <p className="text-xs font-bold text-teal-800 mb-1">How markups work</p>
               <p className="text-xs text-teal-700">
                 When you create a quotation, NAMA automatically adds the applicable markup to the base vendor cost.
-                The markup is shown transparently in the quote breakdown unless you enable "hide markup" in Quote Settings.
+                The markup is shown transparently in the quote breakdown unless you enable &quot;hide markup&quot; in Quote Settings.
                 GST is calculated on the post-markup price.
               </p>
             </div>

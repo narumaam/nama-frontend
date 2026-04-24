@@ -11,12 +11,12 @@
  * orange (#F97316) accent, monospace fonts, CRT-style glows.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
-  Zap, Activity, Terminal, ShieldCheck, Globe, ChevronLeft,
-  Cpu, RefreshCw, AlertTriangle, CheckCircle2, Clock, TrendingUp,
-  MessageSquare, Map, Users, CreditCard, Server, Wifi, WifiOff,
+  Zap, Activity, Terminal, Globe, ChevronLeft,
+  Cpu, AlertTriangle, CheckCircle2, Clock, TrendingUp,
+  Map, Users, CreditCard, Wifi, WifiOff,
   ArrowUpRight, ArrowDownRight, Eye,
 } from 'lucide-react'
 

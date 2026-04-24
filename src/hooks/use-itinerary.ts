@@ -11,7 +11,7 @@ export type TravelBlock = {
   price: string;
   description: string;
   tags?: string[];
-  icon: any;
+  icon: string;
   color: string;
   image?: string;
 };

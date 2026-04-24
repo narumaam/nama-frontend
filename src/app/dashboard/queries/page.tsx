@@ -19,7 +19,7 @@ import { queriesApi } from '@/lib/api'
 import {
   Sparkles, Loader, AlertCircle, MessageSquare, Send,
   TrendingUp, Clock, Users, Zap, CheckCircle2,
-  ArrowRight, Copy, Check, RefreshCw, Inbox,
+  ArrowRight, Copy, Check, Inbox,
   Phone, Globe, Mail, X,
 } from 'lucide-react'
 

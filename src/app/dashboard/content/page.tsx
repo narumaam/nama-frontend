@@ -21,12 +21,12 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
-  MapPin, Image, FileText, Plus, Search, Filter,
+  MapPin, Image as ImageIcon, FileText, Plus, Search, Filter,
   Loader, AlertCircle, Sparkles, Globe, Mountain,
-  Waves, Building2, Trees, Star, Edit3, Trash2,
-  Copy, Check, X, RefreshCw, ChevronDown, Download,
+  Waves, Building2, Trees, Star, Edit3,
+  Copy, Check, X, RefreshCw, Download,
   Library, Camera, ClipboardList, Bold, Italic,
-  Tag, ExternalLink,
+  Tag,
 } from 'lucide-react'
 import { contentApi, Destination, ContentAsset, ContentBlock, api } from '@/lib/api'
 
@@ -122,7 +122,7 @@ type AddForm = {
 }
 
 // ── Enhancement 1: Image Search Tab ───────────────────────────────────────────
-function ImageSearchTab({ assets, onAddToLibrary }: { assets: ContentAsset[]; onAddToLibrary: (asset: ContentAsset) => void }) {
+function ImageSearchTab({ onAddToLibrary }: { onAddToLibrary: (asset: ContentAsset) => void }) {
   const [query, setQuery]                 = useState('')
   const [searching, setSearching]         = useState(false)
   const [photos, setPhotos]               = useState<PexelsPhoto[]>([])
@@ -251,7 +251,7 @@ function ImageSearchTab({ assets, onAddToLibrary }: { assets: ContentAsset[]; on
 
       {!searching && searched && photos.length === 0 && (
         <div className="text-center py-16 text-slate-400">
-          <Image size={28} className="mx-auto mb-3 text-slate-300" />
+          <ImageIcon size={28} aria-hidden="true" className="mx-auto mb-3 text-slate-300" />
           <p className="font-medium">No images found for that query</p>
         </div>
       )}
@@ -331,7 +331,9 @@ function MasterLibraryTab({ onUse }: { onUse: (dest: Destination) => void }) {
   const handleUse = async (dest: typeof MASTER_DESTINATIONS[number]) => {
     setUsing(dest.id!)
     try {
-      const { id: _id, is_own: _io, ...destData } = dest
+      const destData = { ...dest }
+      delete (destData as Partial<typeof dest>).id
+      delete (destData as Partial<typeof dest>).is_own
       await contentApi.createDestination(destData as Destination).catch(() => null)
       onUse(destData as Destination)
       setUsed(s => new Set(s).add(dest.id!))
@@ -822,7 +824,7 @@ export default function ContentPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Destinations',    value: destinations.length, icon: MapPin,    color: 'text-teal-600',   bg: 'bg-teal-50'   },
-          { label: 'Media Assets',    value: assets.length,       icon: Image,     color: 'text-blue-600',   bg: 'bg-blue-50'   },
+          { label: 'Media Assets',    value: assets.length,       icon: ImageIcon, color: 'text-blue-600',   bg: 'bg-blue-50'   },
           { label: 'Content Blocks',  value: blocks.length,       icon: FileText,  color: 'text-purple-600', bg: 'bg-purple-50' },
           { label: 'AI Descriptions', value: 12,                  icon: Sparkles,  color: 'text-amber-600',  bg: 'bg-amber-50'  },
         ].map(k => (
@@ -962,7 +964,6 @@ export default function ContentPage() {
           {/* FIND IMAGES (Enhancement 1) */}
           {activeTab === 'find-images' && (
             <ImageSearchTab
-              assets={assets}
               onAddToLibrary={asset => setAssets(p => [{ ...asset, id: Date.now() }, ...p])}
             />
           )}
@@ -1022,7 +1023,7 @@ export default function ContentPage() {
               ))}
               {filteredAssets.length === 0 && (
                 <div className="col-span-full text-center py-12 text-slate-400">
-                  <Image size={28} className="mx-auto mb-3 text-slate-300" />
+                  <ImageIcon size={28} aria-hidden="true" className="mx-auto mb-3 text-slate-300" />
                   <p className="font-medium">No media assets found</p>
                 </div>
               )}

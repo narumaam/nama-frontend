@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  Zap, X, Send, ChevronDown, Paperclip, RotateCcw, Copy, Check,
+  Zap, X, Send, Paperclip, RotateCcw, Copy, Check,
   Sparkles, MessageSquare, FileText, DollarSign, Users, Plane,
   ArrowUpRight, Bot, ShieldAlert, CheckCircle2, XCircle
 } from 'lucide-react';
@@ -180,14 +180,14 @@ export default function NamaCopilot() {
 
   // Update context when route changes
   useEffect(() => {
-    const module = moduleFromPath(pathname || '');
+    const currentModule = moduleFromPath(pathname || '');
     try {
       const leads = JSON.parse(localStorage.getItem('nama_recent_leads') || '[]');
       const itinerary = localStorage.getItem('nama_recent_itinerary');
       const vendor = localStorage.getItem('nama_recent_vendor');
-      setCtx({ module, recentLeads: leads.slice(0, 3), recentItinerary: itinerary, recentVendor: vendor });
+      setCtx({ module: currentModule, recentLeads: leads.slice(0, 3), recentItinerary: itinerary, recentVendor: vendor });
     } catch {
-      setCtx(prev => ({ ...prev, module }));
+      setCtx(prev => ({ ...prev, module: currentModule }));
     }
   }, [pathname]);
 
@@ -564,4 +564,3 @@ export default function NamaCopilot() {
     </>
   );
 }
-

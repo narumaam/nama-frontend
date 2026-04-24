@@ -9,11 +9,11 @@
 
 import React, { useState } from "react";
 import {
-  Zap, Plus, Play, Pause, Trash2, Edit3, CheckCircle, Clock,
+  Zap, Plus, Play, Trash2, CheckCircle, Clock,
   ArrowRight, MessageSquare, Mail, UserCheck, FileText,
-  Bell, RefreshCw, AlertCircle, ChevronDown, X, Copy,
-  ToggleLeft, ToggleRight, Activity, BellRing, Loader,
-  Calendar, Shield, TrendingUp, Users, Send, Eye,
+  Bell, RefreshCw, AlertCircle, X, Copy,
+  Activity, BellRing, Loader,
+  Calendar, Shield, Users, Send, Eye,
 } from "lucide-react";
 import { automationsApi } from "@/lib/api";
 
@@ -878,7 +878,7 @@ export default function AutomationsPage() {
               </div>
             ))}
             {runHistory.length === 0 && (
-              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-8">No runs yet. Hit "Run All Now" to start.</p>
+              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-8">No runs yet. Hit &quot;Run All Now&quot; to start.</p>
             )}
           </div>
         </div>

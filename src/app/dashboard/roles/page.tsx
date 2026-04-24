@@ -16,14 +16,13 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import {
-  Plus, Copy, Trash2, ChevronRight, Shield, Lock,
+  Plus, Copy, Trash2, Lock,
   Globe, Clock, DollarSign, Users, Building2, AlertTriangle,
-  CheckCircle, X, Search, Zap, Eye, EyeOff, Save,
-  RotateCcw, Star, ArrowRight, Info, Filter, UserPlus,
-  ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Edit3,
-  Sliders, History, AlertCircle, Sparkles, Loader2,
+  CheckCircle, X, Search, Eye, Save, ArrowRight, UserPlus,
+  ToggleLeft, ToggleRight, ChevronDown, ChevronUp,
+  Sliders, AlertCircle, Sparkles, Loader2,
 } from 'lucide-react'
-import { api, rolesApi } from '@/lib/api'
+import { rolesApi } from '@/lib/api'
 
 // ─── Permission atoms ─────────────────────────────────────────────────────────
 
@@ -1477,7 +1476,7 @@ export default function RolesPage() {
           <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <p className="text-sm font-black text-[#0F172A]">Assign to "{selectedRole?.name}"</p>
+                <p className="text-sm font-black text-[#0F172A]">Assign to &quot;{selectedRole?.name}&quot;</p>
                 <p className="text-xs text-slate-500 mt-0.5">{roleUsers.length} member{roleUsers.length !== 1 ? 's' : ''} currently assigned</p>
               </div>
               <button onClick={() => setShowAssign(false)} className="p-1.5 hover:bg-slate-100 rounded-lg">

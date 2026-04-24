@@ -11,7 +11,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Zap,
-  Server, Globe, Database, Shield, GitBranch, Clock,
+  Server, Globe, Shield, GitBranch, Clock,
   TrendingUp, Activity, Package, ChevronRight, Loader, Lock,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'

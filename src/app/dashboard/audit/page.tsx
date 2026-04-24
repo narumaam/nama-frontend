@@ -25,7 +25,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Clock,
-  RefreshCw, Wifi, WifiOff, Zap, Activity, Lock, Search,
+  RefreshCw, Wifi, Lock, Search,
   Brain, Server, Globe, Package, TrendingUp, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
@@ -491,7 +491,8 @@ export default function AuditAgentPage() {
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }

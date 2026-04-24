@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  Palmtree, Plus, Edit2, Copy, Eye, ChevronLeft, ChevronRight,
+  Palmtree, Plus, Edit2, Eye, ChevronLeft, ChevronRight,
   Plane, Hotel, Utensils, Bus, MapPin, Clock, Users, Tag,
   Filter, Search, Download, X, Check, AlertCircle, Calendar,
-  TrendingUp, CreditCard, Star, ChevronDown, ChevronUp, RefreshCw,
+  TrendingUp, CreditCard, Star, RefreshCw,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -673,7 +673,6 @@ function PackageBookings() {
     return matchPkg && matchPay && matchSearch;
   });
 
-  const totalRevenue = SEED_BOOKINGS.reduce((s, b) => s + b.totalAmount, 0);
   const totalSeats = SEED_PACKAGES.reduce((s, p) => s + p.departures.reduce((ss, d) => ss + d.seats, 0), 0);
   const totalBooked = SEED_PACKAGES.reduce((s, p) => s + p.departures.reduce((ss, d) => ss + d.booked, 0), 0);
   const avgPax = (SEED_BOOKINGS.reduce((s, b) => s + b.paxCount, 0) / SEED_BOOKINGS.length).toFixed(1);

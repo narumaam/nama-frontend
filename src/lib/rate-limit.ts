@@ -29,9 +29,11 @@ export const RATE_LIMITS = {
 
 // ─── Upstash Redis (production) ───────────────────────────────────────────────
 
-function makeUpstashLimiter(config: RateLimitConfig) {
-  const { Ratelimit } = require('@upstash/ratelimit');
-  const { Redis }     = require('@upstash/redis');
+async function makeUpstashLimiter(config: RateLimitConfig) {
+  const [{ Ratelimit }, { Redis }] = await Promise.all([
+    import('@upstash/ratelimit'),
+    import('@upstash/redis'),
+  ]);
 
   const redis = new Redis({
     url:   process.env.UPSTASH_REDIS_REST_URL!,
@@ -46,11 +48,11 @@ function makeUpstashLimiter(config: RateLimitConfig) {
 }
 
 // Cache limiter instances so we don't recreate them on every request
-const upstashLimiters = new Map<string, ReturnType<typeof makeUpstashLimiter>>();
+const upstashLimiters = new Map<string, Awaited<ReturnType<typeof makeUpstashLimiter>>>();
 
-function getUpstashLimiter(config: RateLimitConfig) {
+async function getUpstashLimiter(config: RateLimitConfig) {
   if (!upstashLimiters.has(config.storeKey)) {
-    upstashLimiters.set(config.storeKey, makeUpstashLimiter(config));
+    upstashLimiters.set(config.storeKey, await makeUpstashLimiter(config));
   }
   return upstashLimiters.get(config.storeKey)!;
 }
@@ -119,7 +121,7 @@ export async function rateLimit(
 
   if (useUpstash) {
     try {
-      const limiter = getUpstashLimiter(config);
+      const limiter = await getUpstashLimiter(config);
       const { success, reset } = await limiter.limit(ip);
       if (!success) {
         const retryAfter = Math.ceil((reset - Date.now()) / 1000);

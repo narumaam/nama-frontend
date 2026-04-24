@@ -4,10 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { leadsApi, itinerariesApi, quotationsApi, paymentsApi, Lead, ItineraryOut, Quotation } from '@/lib/api'
 import {
   FileText, Plus, Loader, AlertCircle, CheckCircle,
-  Clock, Send, Download, Eye, X, ChevronRight, ChevronDown,
-  Sparkles, DollarSign, Share2, TrendingUp, TrendingDown,
-  Minus, BarChart3, Info, Zap, Copy, CreditCard, Search,
-  Navigation, User,
+  Clock, Send, Download, X, ChevronRight, ChevronDown,
+  DollarSign, Share2, Info, Copy, CreditCard, Search,
+  Navigation,
 } from 'lucide-react'
 
 // ── Status styles ────────────────────────────────────────────────────────────
@@ -58,58 +57,6 @@ const SEED_LINE_ITEMS: Record<number, { component: string; net: number; gross: n
   ],
 }
 
-// ── Smart Pricing types ──────────────────────────────────────────────────────
-interface PricingBenchmark {
-  destination: string; avgMarginPct: number;
-  marketLow: number; marketMid: number; marketHigh: number;
-  demandTrend: 'UP' | 'DOWN' | 'STABLE'; demandPct: number;
-  tip: string; segment: string;
-}
-interface ApiBenchmark {
-  destination: string; avg_price_per_person: number; avg_margin_pct: number;
-  count: number; min_price: number | null; max_price: number | null;
-  data_source: 'live' | 'benchmark';
-}
-
-const STATIC_FALLBACK: Record<string, PricingBenchmark> = {
-  'Maldives':   { destination: 'Maldives',   avgMarginPct: 22, marketLow: 150000, marketMid: 250000, marketHigh: 500000, demandTrend: 'UP',     demandPct: 34, tip: 'High demand — push margins to 25%+. Overwater villas command premium.', segment: 'LUXURY' },
-  'Bali':       { destination: 'Bali',       avgMarginPct: 20, marketLow: 60000,  marketMid: 120000, marketHigh: 220000, demandTrend: 'UP',     demandPct: 18, tip: 'Competitive segment. Differentiate with unique experiences, not just hotels.', segment: 'PREMIUM' },
-  'Kenya':      { destination: 'Kenya',      avgMarginPct: 24, marketLow: 200000, marketMid: 350000, marketHigh: 600000, demandTrend: 'UP',     demandPct: 22, tip: 'Safari demand surging. Scarcity of good dates — use urgency in pitch.', segment: 'LUXURY' },
-  'Dubai':      { destination: 'Dubai',      avgMarginPct: 16, marketLow: 45000,  marketMid: 90000,  marketHigh: 180000, demandTrend: 'STABLE', demandPct: 2,  tip: 'Price-sensitive segment. Focus on bundled value. Keep margins 15-18%.', segment: 'MID' },
-  'Rajasthan':  { destination: 'Rajasthan',  avgMarginPct: 22, marketLow: 25000,  marketMid: 65000,  marketHigh: 150000, demandTrend: 'STABLE', demandPct: -3, tip: 'Heritage segment with loyal customers. Bundle cultural experiences for upsell.', segment: 'MID' },
-  'Santorini':  { destination: 'Santorini',  avgMarginPct: 25, marketLow: 120000, marketMid: 200000, marketHigh: 400000, demandTrend: 'UP',     demandPct: 15, tip: 'Europe honeymoon segment growing. High aspirational value — price confidently.', segment: 'LUXURY' },
-  'Kedarnath':  { destination: 'Kedarnath',  avgMarginPct: 18, marketLow: 12000,  marketMid: 22000,  marketHigh: 40000,  demandTrend: 'STABLE', demandPct: 5,  tip: 'Pilgrimage segment: value-driven. Reliability and safety are key selling points.', segment: 'BUDGET' },
-  'Leh Ladakh': { destination: 'Leh Ladakh', avgMarginPct: 20, marketLow: 20000,  marketMid: 38000,  marketHigh: 75000,  demandTrend: 'DOWN',   demandPct: -8, tip: 'Off-season approaching. Offer early-booking discounts. Adventure differentiates.', segment: 'MID' },
-}
-const DEFAULT_BENCHMARK: PricingBenchmark = {
-  destination: 'General', avgMarginPct: 20, marketLow: 50000, marketMid: 120000, marketHigh: 250000,
-  demandTrend: 'STABLE', demandPct: 0, tip: 'Set margins 18-22% for most destinations. Higher for luxury, lower for budget.', segment: 'MID',
-}
-
-function getPricingBenchmark(destination: string): PricingBenchmark {
-  const key = Object.keys(STATIC_FALLBACK).find(k => destination?.toLowerCase().includes(k.toLowerCase()))
-  return key ? STATIC_FALLBACK[key] : { ...DEFAULT_BENCHMARK, destination: destination || 'General' }
-}
-function apiBenchmarkToUI(api: ApiBenchmark): PricingBenchmark & { dataSource: 'live' | 'benchmark' } {
-  const avgPrice = api.avg_price_per_person
-  const marketLow  = api.min_price ?? Math.round(avgPrice * 0.6)
-  const marketMid  = Math.round(avgPrice)
-  const marketHigh = api.max_price ?? Math.round(avgPrice * 1.6)
-  const staticKey = Object.keys(STATIC_FALLBACK).find(k =>
-    api.destination.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(api.destination.toLowerCase())
-  )
-  const staticFb = staticKey ? STATIC_FALLBACK[staticKey] : DEFAULT_BENCHMARK
-  return {
-    destination: api.destination, avgMarginPct: api.avg_margin_pct,
-    marketLow, marketMid, marketHigh,
-    demandTrend: staticFb.demandTrend, demandPct: staticFb.demandPct,
-    tip: api.data_source === 'live'
-      ? `Based on ${api.count} real itinerary${api.count !== 1 ? 'ies' : 'y'} — avg ₹${Math.round(avgPrice/1000)}K/person, ${api.avg_margin_pct}% margin.`
-      : staticFb.tip,
-    segment: staticFb.segment, dataSource: api.data_source,
-  }
-}
-
 // ── Avatar initials helper ────────────────────────────────────────────────────
 function getInitials(name: string): string {
   const parts = (name || '').trim().split(' ')
@@ -141,9 +88,9 @@ function PaymentLinkModal({ quotation, onClose }: { quotation: Quotation; onClos
         currency: quotation.currency || 'INR',
       })
       setResult(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       setResult(null)
-      alert(err.message || 'Failed to generate payment link')
+      alert(err instanceof Error ? err.message : 'Failed to generate payment link')
     } finally { setLoading(false) }
   }
   const handleCopy = () => {
@@ -337,8 +284,6 @@ export default function QuotationsPage() {
   const [quoteToast, setQuoteToast] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
-  const [pricingBenchmarks, setPricingBenchmarks] = useState<Record<string, PricingBenchmark & { dataSource: 'live' | 'benchmark' }>>({})
-  const benchmarkFetchedRef = React.useRef<Set<string>>(new Set())
 
   // New quote form
   const [form, setForm] = useState({ lead_id: '', itinerary_id: '', lead_name: '', destination: '', base_price: '0', margin_pct: '20', notes: '' })
@@ -354,24 +299,6 @@ export default function QuotationsPage() {
   const [sendResult, setSendResult] = useState<{ ok: boolean; text: string } | null>(null)
 
   useEffect(() => { loadData() }, [])
-
-  // Fetch pricing benchmark when a row is expanded
-  useEffect(() => {
-    if (!expandedId) return
-    const q = quotations.find(x => x.id === expandedId)
-    if (!q?.destination) return
-    const dest = q.destination
-    if (benchmarkFetchedRef.current.has(dest)) return
-    benchmarkFetchedRef.current.add(dest)
-    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
-    fetch(`/api/v1/analytics/pricing-benchmarks?destination=${encodeURIComponent(dest)}`, { headers })
-      .then(r => r.ok ? r.json() : null).catch(() => null)
-      .then((rows: ApiBenchmark[] | null) => {
-        if (!rows || rows.length === 0) return
-        setPricingBenchmarks(prev => ({ ...prev, [dest]: apiBenchmarkToUI(rows[0]) }))
-      })
-  }, [expandedId, quotations]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true); setError(null)
@@ -407,15 +334,8 @@ export default function QuotationsPage() {
       setQuotations([created, ...quotations])
       setShowNew(false)
       setForm({ lead_id: '', itinerary_id: '', lead_name: '', destination: '', base_price: '0', margin_pct: '20', notes: '' })
-    } catch (e: any) { setError(e.message || 'Failed to create quotation') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to create quotation') }
     finally { setCreating(false) }
-  }
-
-  const handleStatusChange = async (id: number, newStatus: Quotation['status']) => {
-    try {
-      const updated = newStatus === 'SENT' ? await quotationsApi.send(id) : await quotationsApi.update(id, { status: newStatus })
-      setQuotations(quotations.map(q => q.id === id ? updated : q))
-    } catch (e: any) { setError(e.message || 'Status update failed') }
   }
 
   const handleExportQuotePDF = async (q: Quotation) => {

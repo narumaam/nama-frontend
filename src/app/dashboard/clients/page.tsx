@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Users, Search, MapPin, Phone, Mail, Calendar,
-  Briefcase, TrendingUp, Star, ChevronRight, Filter,
-  MessageSquare, Eye, Clock, Award, Globe, Tag,
+  Briefcase, TrendingUp, MessageSquare, Eye, Clock, Award, Globe, Tag, ChevronRight,
   Upload, X, CheckCircle, AlertCircle, FileText,
-  Download, ArrowRight, ArrowLeft, Loader2, ChevronDown,
+  Download, ArrowRight, ArrowLeft, Loader2,
 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import { usePermission } from '@/lib/permissions'
@@ -331,8 +330,8 @@ function ImportContactsModal({ onClose, onSuccess }: { onClose: () => void; onSu
       } else {
         setResult(data)
       }
-    } catch (err: any) {
-      setImportError(err.message || 'Import failed. Please try again.')
+    } catch (err: unknown) {
+      setImportError(err instanceof Error ? err.message : 'Import failed. Please try again.')
     } finally {
       setImporting(false)
     }
@@ -733,15 +732,15 @@ export default function ClientsPage() {
         const data = await res.json()
         if (data.clients?.length) {
           // Normalize API response to match local Client shape
-          const normalized: Client[] = data.clients.map((c: any) => ({
+          const normalized: Client[] = data.clients.map((c: Record<string, unknown>) => ({
             ...c,
             id: String(c.id),
-            name: c.full_name || c.name || 'Unknown',
-            open_leads: c.open_leads || 0,
-            assigned_agent: c.assigned_agent || '',
-            first_booking_date: c.first_booking_date || c.created_at || '',
-            last_contact: c.last_contact || c.updated_at || c.created_at || '',
-            preferred_destinations: c.preferred_destinations || [],
+            name: String(c.full_name || c.name || 'Unknown'),
+            open_leads: Number(c.open_leads || 0),
+            assigned_agent: String(c.assigned_agent || ''),
+            first_booking_date: String(c.first_booking_date || c.created_at || ''),
+            last_contact: String(c.last_contact || c.updated_at || c.created_at || ''),
+            preferred_destinations: Array.isArray(c.preferred_destinations) ? c.preferred_destinations.map(String) : [],
             tags: c.tags || [],
           }))
           setClients(normalized)

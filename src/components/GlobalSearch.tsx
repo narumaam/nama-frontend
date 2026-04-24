@@ -306,7 +306,7 @@ export default function GlobalSearch() {
             <div className="max-h-[400px] overflow-y-auto py-2">
               {results.length === 0 && !searching && (
                 <div className="py-10 text-center">
-                  <p className="text-sm text-slate-400 font-medium">No results for "{query}"</p>
+                  <p className="text-sm text-slate-400 font-medium">No results for &ldquo;{query}&rdquo;</p>
                 </div>
               )}
               {searching && results.length === 0 && (

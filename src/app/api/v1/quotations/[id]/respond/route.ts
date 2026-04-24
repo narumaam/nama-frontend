@@ -19,7 +19,7 @@ export async function POST(
       },
       body: JSON.stringify(body),
     })
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { success: false, detail: 'Could not reach the server. Please try again later.' },
       { status: 502 },

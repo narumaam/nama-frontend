@@ -14,15 +14,15 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Plus, Sparkles, Download, Eye, ChevronRight,
+  Plus, Sparkles, Download, Eye,
   Plane, Hotel, Car, Compass, Utensils, Clock, MapPin,
-  Edit2, Trash2, Loader2, MoreVertical, Star, Tag, Wifi,
-  Coffee, X, Save, ChevronDown, FileText, ArrowRight,
+  Edit2, Trash2, Loader2, Star, Tag,
+  X, Save, ChevronDown, FileText, ArrowRight,
   Users, Calendar,
 } from "lucide-react";
 import {
-  api, itinerariesApi, leadsApi, vendorsApi,
-  ItineraryOut, Lead, ItineraryRequest, ItineraryBlock, Vendor,
+  api, itinerariesApi, leadsApi,
+  ItineraryOut, Lead, ItineraryRequest,
 } from "@/lib/api";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────

@@ -14,12 +14,10 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
-  Stamp, Users, MapPin, Clock, CheckCircle, AlertCircle, XCircle,
-  Search, Filter, Plus, ChevronRight, BarChart2, Globe, Shield,
-  FileText, Settings, AlertTriangle, TrendingUp, TrendingDown,
-  Eye, Edit2, Send, Download, RefreshCw, Zap, Star, X,
-  Activity, Inbox, Archive, BookOpen, User, Phone, Mail,
-  Calendar, Check, Loader, ChevronDown, Info, Radar,
+  Stamp, Clock, CheckCircle, AlertCircle, XCircle, Check,
+  Search, Plus, BarChart2, Globe,
+  FileText, Settings, Send, Download, RefreshCw, X,
+  Inbox, Archive, Radar,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -284,8 +282,6 @@ function AppDetailModal({ app, onClose }: { app: VisaApplication; onClose: () =>
 
 // ── Compliance Heatmap ─────────────────────────────────────────────────────────
 function ComplianceHeatmap() {
-  const [hoveredCountry, setHoveredCountry] = useState<typeof HEATMAP_COUNTRIES[0] | null>(null);
-
   return (
     <div className="bg-[#1B2E5E]/5 rounded-2xl border border-[#1B2E5E]/10 overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1B2E5E]/10">
@@ -316,8 +312,6 @@ function ComplianceHeatmap() {
             key={country.code}
             className="absolute z-10"
             style={{ left: `${country.x}%`, top: `${country.y}%`, transform: 'translate(-50%,-50%)' }}
-            onMouseEnter={() => setHoveredCountry(country)}
-            onMouseLeave={() => setHoveredCountry(null)}
           >
             <div className={`relative group cursor-pointer`}>
               <div className={`w-4 h-4 rounded-full border-2 border-white shadow ${
@@ -595,7 +589,7 @@ function VisaRequirementsChecker() {
 
       {!checklist && !loading && origin && destination && (
         <p className="text-xs text-slate-400 text-center py-3">
-          Click "Get Checklist" to load requirements for {origin} → {destination}
+          Click &quot;Get Checklist&quot; to load requirements for {origin} → {destination}
         </p>
       )}
     </div>
@@ -627,10 +621,6 @@ export default function VisasPage() {
       return matchStatus && matchSearch;
     });
   }, [search, statusFilter, activeSection]);
-
-  const pendingCount     = APPLICATIONS.filter(a => a.status === "PENDING").length;
-  const approvedCount    = APPLICATIONS.filter(a => a.status === "APPROVED" || a.status === "VERIFIED").length;
-  const clarificationCount = APPLICATIONS.filter(a => a.status === "CLARIFICATION").length;
 
   return (
     <div className="flex h-[calc(100vh-64px)] -m-4 sm:-m-6 overflow-hidden bg-[#F8FAFC]">

@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Check, X, Zap, ChevronRight, ArrowRight,
-  Shield, Globe, Users, BarChart2, Bot, Key,
-  Building2, Star, MessageSquare, Calculator,
+  Shield, Globe, BarChart2, Bot, Key, MessageSquare, Calculator,
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -389,7 +388,7 @@ export default function PricingPage() {
             <h3 className="text-white text-2xl font-black mb-2">A Growth-tier DMC saves ₹10,200/month with BYOK</h3>
             <p className="text-slate-400 text-sm leading-relaxed">
               200 leads/month · 80 itineraries · 300 communications. Switching from NAMA-hosted AI
-              to Claude Haiku BYOK saves <strong className="text-white">₹8,500–₹12,000/month</strong> — that's
+              to Claude Haiku BYOK saves <strong className="text-white">₹8,500–₹12,000/month</strong> — that&apos;s
               more than half your subscription cost back every month.
             </p>
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">

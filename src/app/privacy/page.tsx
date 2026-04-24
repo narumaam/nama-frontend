@@ -180,7 +180,7 @@ export default function PrivacyPage() {
               content: (
                 <>
                   <p>
-                    NAMA OS ("NAMA", "we", "us", "our") is a SaaS platform for travel businesses, operated by
+                    NAMA OS (&ldquo;NAMA&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) is a SaaS platform for travel businesses, operated by
                     Narayan Mallapur (A 902, Vaishnavi Nakshatra, Tumkur Road, Yeshwantpur, Bengaluru 560 022,
                     Karnataka, India).
                   </p>
@@ -335,7 +335,7 @@ export default function PrivacyPage() {
                     <p className="font-bold text-white mb-1">Neon PostgreSQL</p>
                     <p className="text-slate-400">Serverless PostgreSQL hosted on AWS infrastructure (us-east-1 region). Neon is SOC 2 Type II certified.</p>
                   </div>
-                  <p className="mt-3">Application servers run on Railway (United States). The frontend is served via Vercel's global edge network.</p>
+                  <p className="mt-3">Application servers run on Railway (United States). The frontend is served via Vercel&apos;s global edge network.</p>
                 </>
               ),
             },
@@ -473,7 +473,7 @@ export default function PrivacyPage() {
               title: 'No data selling',
               content: (
                 <p>
-                  We do not sell, rent, or broker your personal data or your customers' data to any third party.
+                  We do not sell, rent, or broker your personal data or your customers&apos; data to any third party.
                   Data is shared with the above sub-processors solely to operate the platform on your behalf.
                 </p>
               ),
@@ -557,7 +557,7 @@ export default function PrivacyPage() {
                         <Pill label="SameSite=Strict" />
                       </div>
                       <p className="text-xs text-slate-400">
-                        Demo mode indicator cookie. Set when you use the "Try Demo" feature. Acts as a limited
+                        Demo mode indicator cookie. Set when you use the &ldquo;Try Demo&rdquo; feature. Acts as a limited
                         read-only Sales Manager session. SameSite=Strict. No personal data stored in this cookie.
                       </p>
                     </div>
@@ -577,7 +577,7 @@ export default function PrivacyPage() {
                     'Product tour completion state (localStorage)',
                   ]} />
                   <p className="mt-2 text-slate-400">
-                    These preferences are stored in your browser's localStorage and are never sent to our servers.
+                    These preferences are stored in your browser&apos;s localStorage and are never sent to our servers.
                   </p>
                 </>
               ),

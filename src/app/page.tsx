@@ -21,9 +21,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
-  Zap, ArrowRight, CheckCircle2, X, Loader, AlertCircle,
-  ChevronRight, Play, Shield, Globe, BarChart2, MessageSquare,
-  Map, Users, CreditCard, FileText, Store, Briefcase, Settings,
+  Zap, ArrowRight, CheckCircle2, X, Loader, Play, Shield, Globe, BarChart2, MessageSquare,
+  Map, Users, CreditCard, FileText, Store, Briefcase,
   GitBranch, Plug, Key, Inbox, Star, Brain, TrendingUp, Bot,
   LineChart, CheckCheck, XCircle,
 } from 'lucide-react'
@@ -442,7 +441,7 @@ export default function LandingPage() {
                     ))}
                     <div className="pt-1">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">AI Suggested Reply</p>
-                      <p className="text-xs text-slate-400 italic leading-relaxed">"{triageResult.reply}"</p>
+                      <p className="text-xs text-slate-400 italic leading-relaxed">&ldquo;{triageResult.reply}&rdquo;</p>
                     </div>
                   </div>
                 </div>
@@ -469,7 +468,7 @@ export default function LandingPage() {
               >
                 <div className="text-4xl mb-5">{card.emoji}</div>
                 <p className="text-base font-black text-white leading-snug mb-4">
-                  "{card.title}"
+                  &ldquo;{card.title}&rdquo;
                 </p>
                 <p className="text-sm text-slate-500 font-medium leading-relaxed">
                   {card.detail}
@@ -483,7 +482,7 @@ export default function LandingPage() {
             <div className="inline-flex flex-col items-center gap-4">
               <div className="w-px h-12 bg-gradient-to-b from-transparent via-[#14B8A6]/50 to-[#14B8A6]" />
               <p className="text-xl md:text-2xl font-black text-white">
-                You don't need to work harder.{' '}
+                You don&apos;t need to work harder.{' '}
                 <span className="text-[#14B8A6]">You need NAMA.</span>
               </p>
             </div>
@@ -539,7 +538,7 @@ export default function LandingPage() {
               <span className="text-[#14B8A6]"> changes everything.</span>
             </h2>
             <p className="text-slate-400 font-medium max-w-xl mx-auto">
-              NAMA isn't just a CRM with a chatbot bolted on. Every module is powered by AI trained for the travel industry.
+              NAMA isn&apos;t just a CRM with a chatbot bolted on. Every module is powered by AI trained for the travel industry.
             </p>
           </div>
 
@@ -604,7 +603,7 @@ export default function LandingPage() {
                     <Star key={i} size={14} className="text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-sm text-slate-600 font-medium leading-relaxed flex-1 mb-5">"{t.quote}"</p>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed flex-1 mb-5">&ldquo;{t.quote}&rdquo;</p>
                 <div className="flex items-center gap-3 pt-4 border-t border-slate-50">
                   <div className="w-9 h-9 rounded-full bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center font-black text-[#14B8A6] text-sm flex-shrink-0">
                     {t.avatar}
@@ -625,7 +624,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-[11px] font-black text-[#14B8A6] uppercase tracking-widest mb-3">Impact by the numbers</p>
-            <h2 className="text-4xl md:text-5xl font-black text-[#0F172A] tracking-tight">Numbers don't lie.</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-[#0F172A] tracking-tight">Numbers don&apos;t lie.</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {METRICS.map(m => {

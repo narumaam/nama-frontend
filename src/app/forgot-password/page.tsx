@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     try {
       // POST to backend — gracefully handle 404 (not yet implemented) so UX never breaks
-      const res = await fetch('/api/v1/auth/forgot-password', {
+      await fetch('/api/v1/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
               <span className="text-[#14B8A6]">everyone.</span>
             </h1>
             <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-xs">
-              Enter your work email and we'll send a secure reset link within 60 seconds. Your workspace and data are safe.
+              Enter your work email and we&apos;ll send a secure reset link within 60 seconds. Your workspace and data are safe.
             </p>
             <div className="mt-10 space-y-3">
               {[
@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
                   </div>
                   <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Reset your password</h2>
                   <p className="text-slate-500 font-medium mt-2 text-sm">
-                    Enter the email address on your NAMA account and we'll send a reset link.
+                    Enter the email address on your NAMA account and we&apos;ll send a reset link.
                   </p>
                 </div>
 
@@ -162,7 +162,7 @@ export default function ForgotPasswordPage() {
                 </p>
                 <p className="text-[#0F172A] font-black text-sm mb-8">{email}</p>
                 <p className="text-xs text-slate-400 font-medium mb-8">
-                  Didn't receive it? Check your spam folder, or{' '}
+                  Didn&apos;t receive it? Check your spam folder, or{' '}
                   <button
                     onClick={() => { setSent(false); setEmail('') }}
                     className="text-[#14B8A6] font-bold hover:underline"

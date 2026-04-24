@@ -183,7 +183,7 @@ function LoginPageInner() {
                     i === activeTestimonial ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
                 >
-                  <p className="text-sm text-slate-300 font-medium italic mb-4">"{t.quote}"</p>
+                  <p className="text-sm text-slate-300 font-medium italic mb-4">&ldquo;{t.quote}&rdquo;</p>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-[#14B8A6]/20 border border-[#14B8A6]/30 flex items-center justify-center font-black text-[#14B8A6] text-xs">
                       {t.avatar}
@@ -370,7 +370,7 @@ function LoginPageInner() {
             </form>
 
             <p className="mt-8 text-center text-[11px] text-slate-400 font-medium">
-              By signing in you agree to NAMA's{' '}
+              By signing in you agree to NAMA&apos;s{' '}
               <Link href="/terms" className="underline hover:text-slate-600">Terms</Link> &{' '}
               <Link href="/privacy" className="underline hover:text-slate-600">Privacy Policy</Link>
             </p>

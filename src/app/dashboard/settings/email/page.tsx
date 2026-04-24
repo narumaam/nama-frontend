@@ -383,7 +383,7 @@ export default function EmailSettingsPage() {
       setPollResult(res)
       setConfig(prev => ({ ...prev, last_imap_poll: new Date().toISOString() }))
       setShowPollDetails(true)
-    } catch (e: unknown) {
+    } catch {
       setPollResult({
         replies_found: 0,
         matched: 0,

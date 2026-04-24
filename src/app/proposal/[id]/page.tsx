@@ -17,12 +17,12 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Suspense } from 'react'
 import {
   MapPin, Calendar, Clock, Download, Share2,
   CheckCircle, Plane, Hotel, Car, Utensils,
-  Sparkles, ArrowRight, Zap, Loader,
+  Sparkles, ArrowRight, Loader,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ const DEMO_PROPOSAL: Proposal = {
 const fmt = (n: number, currency = 'INR') =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n)
 
-const BLOCK_STYLES: Record<string, { bg: string; text: string; icon: React.FC<any> }> = {
+const BLOCK_STYLES: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
   FLIGHT:   { bg: 'bg-blue-50',   text: 'text-blue-700',   icon: Plane },
   HOTEL:    { bg: 'bg-amber-50',  text: 'text-amber-700',  icon: Hotel },
   TRANSFER: { bg: 'bg-purple-50', text: 'text-purple-700', icon: Car },
@@ -100,7 +100,6 @@ const BLOCK_STYLES: Record<string, { bg: string; text: string; icon: React.FC<an
 // ── Main Component ─────────────────────────────────────────────────────────────
 function ProposalPageInner() {
   const params = useParams()
-  const searchParams = useSearchParams()
   const id = params?.id as string
   const [proposal, setProposal] = useState<Proposal | null>(null)
   const [loading, setLoading] = useState(true)
@@ -283,7 +282,7 @@ function ProposalPageInner() {
         <div className="no-print bg-gradient-to-r from-[#14B8A6] to-teal-500 px-4 py-12">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl font-black text-white mb-2">Ready to go?</h2>
-            <p className="text-teal-100 text-sm mb-8">Reply YES to your agent on WhatsApp and we'll lock in your booking today.</p>
+            <p className="text-teal-100 text-sm mb-8">Reply YES to your agent on WhatsApp and we&apos;ll lock in your booking today.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button onClick={handleWhatsApp} className="bg-white text-[#14B8A6] font-black px-8 py-4 rounded-2xl hover:bg-teal-50 transition-all flex items-center justify-center gap-2">
                 <Share2 size={18} /> Confirm on WhatsApp

@@ -141,10 +141,11 @@ export default function ProductTour({ steps, onDone, startDelay = 600 }: Product
     positionTooltip();
     window.addEventListener('resize', positionTooltip);
     window.addEventListener('scroll', positionTooltip, true);
+    const frameId = rafRef.current;
     return () => {
       window.removeEventListener('resize', positionTooltip);
       window.removeEventListener('scroll', positionTooltip, true);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (frameId) cancelAnimationFrame(frameId);
     };
   }, [visible, currentStep, positionTooltip]);
 

@@ -719,7 +719,7 @@ function StepConnectChannels({
       await navigator.clipboard.writeText(widgetSnippet)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
   }
 
   const saveWhatsApp = async () => {
@@ -728,7 +728,7 @@ function StepConnectChannels({
     try {
       await api.post('/api/v1/settings/whatsapp-number', { whatsapp_number: form.whatsapp.trim() })
       setWaSaved(true)
-    } catch (_) { /* best-effort */ } finally {
+    } catch { /* best-effort */ } finally {
       setWaSaving(false)
     }
   }
@@ -747,7 +747,7 @@ function StepConnectChannels({
         use_tls: true,
       })
       setSmtpSaved(true)
-    } catch (_) { /* best-effort */ } finally {
+    } catch { /* best-effort */ } finally {
       setSmtpSaving(false)
     }
   }
@@ -1042,7 +1042,7 @@ function StepWorkspace({
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-500 font-medium pb-1">
-        Your workspace is live — here's what's already waiting for you:
+        Your workspace is live — here&apos;s what&apos;s already waiting for you:
       </p>
       {cards.map((card, i) => (
         <div
@@ -1150,7 +1150,7 @@ function StepLaunch({ elapsed, onDashboard, onFirstLead }: {
       </div>
 
       <div>
-        <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">You're live!</h2>
+        <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">You&apos;re live!</h2>
         <p className="text-slate-500 font-medium mt-1.5">
           Setup complete in{' '}
           <span className="text-[#14B8A6] font-black">{formatElapsed(elapsed)}</span>
@@ -1244,7 +1244,7 @@ export default function OnboardingPage() {
         }
         if (parsed.startTime) startTimeRef.current = parsed.startTime
       }
-    } catch (_) { /* ignore parse errors */ }
+    } catch { /* ignore parse errors */ }
   }, [])
 
   // ── Persist step to localStorage ─────────────────────────────────────────
@@ -1257,7 +1257,7 @@ export default function OnboardingPage() {
         step,
         startTime: prev.startTime ?? startTimeRef.current,
       }))
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
   }, [step])
 
   // ── Tick elapsed timer once on launch step ────────────────────────────────
@@ -1299,14 +1299,14 @@ export default function OnboardingPage() {
           const data = await api.get<{items?: unknown[]} | unknown[]>('/api/v1/leads?limit=3')
           const leads = Array.isArray(data) ? data : ((data as {items?: unknown[]}).items ?? [])
           setSeededLeads((leads as []).slice(0, 2))
-        } catch (_) { /* best-effort */ }
+        } catch { /* best-effort */ }
         // Fetch seeded itineraries
         try {
           const itnData = await api.get<{items?: unknown[]} | unknown[]>('/api/v1/itineraries?limit=1')
           const itns = Array.isArray(itnData) ? itnData : ((itnData as {items?: unknown[]}).items ?? [])
           if (itns.length > 0) setSeededItinerary(itns[0] as never)
-        } catch (_) { /* best-effort */ }
-      } catch (_) { /* best-effort */ }
+        } catch { /* best-effort */ }
+      } catch { /* best-effort */ }
       setWorkspaceLoading(false)
     }
 
@@ -1324,7 +1324,7 @@ export default function OnboardingPage() {
   }, [step])
 
   const finish = useCallback((destination: string) => {
-    try { localStorage.removeItem(LS_KEY) } catch (_) { /* ignore */ }
+    try { localStorage.removeItem(LS_KEY) } catch { /* ignore */ }
 
     const userEmail = auth.user?.email ?? ''
     const userName  = welcome.name || auth.user?.email?.split('@')[0] || ''
@@ -1394,7 +1394,7 @@ export default function OnboardingPage() {
                         Your travel business. Automated.
                       </h2>
                       <p className="text-sm text-slate-500 font-medium mt-1">
-                        Let's get your workspace set up. Takes about a minute.
+                        Let&apos;s get your workspace set up. Takes about a minute.
                       </p>
                     </>
                   )}
@@ -1414,7 +1414,7 @@ export default function OnboardingPage() {
                         Let AI set up your agency in 30 seconds
                       </h2>
                       <p className="text-sm text-slate-500 font-medium mt-1">
-                        Describe your agency and we'll configure your team, roles, and dashboard automatically.
+                        Describe your agency and we&apos;ll configure your team, roles, and dashboard automatically.
                       </p>
                     </>
                   )}
@@ -1444,7 +1444,7 @@ export default function OnboardingPage() {
                         Your AI workspace is alive
                       </h2>
                       <p className="text-sm text-slate-500 font-medium mt-1">
-                        We've pre-loaded the essentials so you can start immediately.
+                        We&apos;ve pre-loaded the essentials so you can start immediately.
                       </p>
                     </>
                   )}
@@ -1479,7 +1479,7 @@ export default function OnboardingPage() {
                 <StepTeam invites={invites} onChange={setInvites} />
                 {inviteSendState === 'done' && (
                   <div className="mt-3 flex items-center gap-2 text-emerald-600 text-sm font-medium">
-                    <CheckCircle2 size={15} /> Invites sent — they'll receive an email to join your workspace.
+                    <CheckCircle2 size={15} /> Invites sent — they&apos;ll receive an email to join your workspace.
                   </div>
                 )}
               </>

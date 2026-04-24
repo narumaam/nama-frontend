@@ -15,12 +15,11 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, Plane, Hotel, Car, Map, FileText, CreditCard, StickyNote,
-  LayoutGrid, CheckCircle, XCircle, Clock, AlertCircle, ChevronRight,
-  MapPin, Users, Calendar, DollarSign, Download, Mail, Phone, MessageCircle,
-  Edit2, Plus, Printer, Send, Star, Package, Loader, Check,
-  Navigation, Receipt, Shield, Info, Copy, ExternalLink,
+  LayoutGrid, Clock, AlertCircle, MapPin, Users, Calendar, Download,
+  Mail, Phone, MessageCircle, Edit2, Plus, Printer, Send, Star,
+  Loader, Check, Navigation, Shield, Copy, ExternalLink,
 } from "lucide-react";
-import { bookingsApi, documentsApi, api, Booking } from "@/lib/api";
+import { bookingsApi, documentsApi, Booking } from "@/lib/api";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const fmtINR = (n: number) => {
@@ -607,7 +606,7 @@ function TransportTab({ booking }: { booking: Booking }) {
 }
 
 // ── Tab: Itinerary ─────────────────────────────────────────────────────────────
-function ItineraryTab({ booking, enriched }: { booking: Booking; enriched: typeof ENRICHMENT[0] }) {
+function ItineraryTab({ enriched }: { booking: Booking; enriched: typeof ENRICHMENT[0] }) {
   const days = Math.min(enriched.nights, 5);
   const dayActivities = [
     ["Arrival & Transfer to Hotel", "Welcome Dinner at Rooftop Restaurant", "Check-in & Freshen up"],
@@ -759,7 +758,7 @@ function PaymentsTab({ booking }: { booking: Booking }) {
 }
 
 // ── Tab: Notes ─────────────────────────────────────────────────────────────────
-function NotesTab({ booking, enriched }: { booking: Booking; enriched: typeof ENRICHMENT[0] }) {
+function NotesTab({}: { booking: Booking; enriched: typeof ENRICHMENT[0] }) {
   const [note, setNote] = useState(
     `Client is a repeat traveller — prefers boutique properties over chains.\n\n` +
     `Special requests: Early check-in (12:00 noon) requested at all hotels. ` +
@@ -905,7 +904,6 @@ export default function BookingDetailPage() {
 
   if (!booking) return null;
 
-  const st = STATUS_CFG[booking.status] || STATUS_CFG.DRAFT;
   const marginAmt = Math.round(booking.total_price * enriched.margin / 100);
   const paidAmt   = Math.round(booking.total_price * 0.25);
 

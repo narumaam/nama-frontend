@@ -19,7 +19,6 @@ import {
   PenLine,
   Calendar,
   Building2,
-  User,
   Tag,
   DollarSign,
   MapPin,

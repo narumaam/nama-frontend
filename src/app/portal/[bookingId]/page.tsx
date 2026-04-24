@@ -21,8 +21,7 @@ import {
   Plane, Hotel, Car, Utensils, MapPin, Phone, MessageCircle,
   Calendar, Clock, Users, CheckCircle, Circle, AlertCircle,
   Download, Share2, Copy, Check, ChevronDown, ChevronUp,
-  Sun, Cloud, CloudRain, Wind, FileText, Star, ArrowRight,
-  Shield, Globe, Navigation, Zap, Heart, FileCheck, Edit3
+  FileText, ArrowRight, Shield, Zap, Heart, FileCheck, Edit3
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -94,9 +93,6 @@ function makeDemoBooking(bookingId: string): Booking {
     dt.setDate(dt.getDate() + offset);
     return dt.toISOString().split('T')[0];
   };
-
-  const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 
   const getDayStatus = (dateStr: string): DayStatus => {
     const date = new Date(dateStr);
@@ -249,7 +245,7 @@ function makeDemoBooking(bookingId: string): Booking {
 
 // ─── Segment Icons ─────────────────────────────────────────────────────────────
 
-function SegmentIcon({ type, status }: { type: TripSegment['type']; status?: string }) {
+function SegmentIcon({ type }: { type: TripSegment['type'] }) {
   const icons: Record<string, React.ElementType> = {
     FLIGHT: Plane,
     HOTEL: Hotel,
@@ -322,7 +318,7 @@ function DayCard({ day }: { day: TripDay }) {
         <div className="border-t border-slate-100 divide-y divide-slate-50">
           {day.segments.map((seg, i) => (
             <div key={i} className={`flex items-start gap-3 p-4 ${day.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
-              <SegmentIcon type={seg.type} status={seg.status} />
+              <SegmentIcon type={seg.type} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2 flex-wrap">
                   {seg.time && (
@@ -365,7 +361,6 @@ function QuoteAcceptanceSection({
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [finalStatus, setFinalStatus] = useState<string | null>(null);
 
   // If already accepted/actioned from a previous session, show badge
   const alreadyActioned =
@@ -402,7 +397,6 @@ function QuoteAcceptanceSection({
       const data = await res.json();
       if (res.ok && data.success) {
         setSubmitted(true);
-        setFinalStatus(data.new_status);
       } else {
         setError(data.detail || 'Something went wrong. Please try again.');
       }
@@ -550,7 +544,7 @@ function QuoteAcceptanceSection({
         {action === 'accept' && (
           <div className="space-y-3">
             <div className="rounded-xl bg-emerald-900/30 border border-emerald-700/50 px-4 py-3 text-sm text-emerald-300">
-              You're about to <strong>accept this quote</strong>. Your travel consultant will be notified immediately.
+              You&apos;re about to <strong>accept this quote</strong>. Your travel consultant will be notified immediately.
             </div>
             <div className="flex gap-3">
               <button
