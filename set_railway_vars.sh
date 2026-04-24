@@ -5,11 +5,17 @@
 
 set -e
 
-RAILWAY_TOKEN="9febf656-7e39-49dc-8adf-01f7e41104ad"
+RAILWAY_TOKEN="${RAILWAY_TOKEN:-}"
 ANTHROPIC_API_KEY="${1:-}"
 
+if [ -z "$RAILWAY_TOKEN" ]; then
+  echo "Usage: RAILWAY_TOKEN=... bash set_railway_vars.sh YOUR_ANTHROPIC_API_KEY"
+  echo "Set RAILWAY_TOKEN in your shell instead of storing it in this file."
+  exit 1
+fi
+
 if [ -z "$ANTHROPIC_API_KEY" ]; then
-  echo "Usage: bash set_railway_vars.sh YOUR_ANTHROPIC_API_KEY"
+  echo "Usage: RAILWAY_TOKEN=... bash set_railway_vars.sh YOUR_ANTHROPIC_API_KEY"
   echo "Get your key from: https://console.anthropic.com/settings/keys"
   exit 1
 fi
@@ -101,8 +107,18 @@ set_var() {
   fi
 }
 
-set_var "SECRET_KEY"          "GrApFuCUoALbDQcp8NeWEXK1yOBztYsaOwLlskR7hck"
-set_var "REFRESH_SECRET_KEY"  "KnNPvsrt_B3fzsSGOdciLe8LOYp5b1IVo_5yXHg9zwM"
+if [ -n "${SECRET_KEY:-}" ]; then
+  set_var "SECRET_KEY" "$SECRET_KEY"
+else
+  echo "   ⚠️ SECRET_KEY not provided - leaving existing Railway value unchanged"
+fi
+
+if [ -n "${REFRESH_SECRET_KEY:-}" ]; then
+  set_var "REFRESH_SECRET_KEY" "$REFRESH_SECRET_KEY"
+else
+  echo "   ⚠️ REFRESH_SECRET_KEY not provided - leaving existing Railway value unchanged"
+fi
+
 set_var "ANTHROPIC_API_KEY"   "$ANTHROPIC_API_KEY"
 set_var "LOG_LEVEL"           "info"
 set_var "AI_BUDGET_USD"       "50"

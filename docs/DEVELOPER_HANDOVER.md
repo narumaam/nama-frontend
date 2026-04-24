@@ -265,7 +265,8 @@ git push origin main
 # Deploy preview: every PR gets a preview URL
 ```
 
-Vercel project: `nama-web`
+Vercel production project: `nama-frontend`
+Demo project: `nama-web`
 Production URL: `https://getnama.app`
 
 ### Backend (Railway)
@@ -282,7 +283,7 @@ Backend URL: `https://intuitive-blessing-production-30de.up.railway.app`
 ### Health Check
 
 ```bash
-curl https://intuitive-blessing-production-30de.up.railway.app/health
+curl https://intuitive-blessing-production-30de.up.railway.app/api/v1/health
 # Expected: {"status":"healthy","version":"0.3.0"}
 ```
 

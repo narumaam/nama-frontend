@@ -100,10 +100,11 @@ nama-frontend/
 |----------|-----|
 | Production app | https://getnama.app |
 | Backend API | https://intuitive-blessing-production-30de.up.railway.app |
-| Backend health | https://intuitive-blessing-production-30de.up.railway.app/health |
+| Backend health | https://intuitive-blessing-production-30de.up.railway.app/api/v1/health |
 | GitHub repo | https://github.com/narumaam/nama-frontend |
-| Vercel project | nama-web |
-| Railway project | intuitive-blessing |
+| Vercel production project | nama-frontend |
+| Vercel demo project | nama-web |
+| Railway backend service | intuitive-blessing |
 
 ---
 

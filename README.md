@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NAMA OS
 
-## Getting Started
+AI-first travel operating system for agencies, DMCs, and tour operators.
 
-First, run the development server:
+Production stack:
+
+- frontend: `https://www.getnama.app`
+- demo: `https://demo.getnama.app`
+- backend: `https://intuitive-blessing-production-30de.up.railway.app`
+
+## What this repo owns
+
+- public marketing site
+- registration and login flows
+- dashboard experience
+- Next.js API routes and edge middleware
+- FastAPI backend under `backend/`
+- deployment wiring for Vercel frontend + Railway backend
+
+## Repo shape
+
+```text
+nama-frontend/
+├── src/                  Next.js app and UI
+├── backend/              FastAPI backend
+├── docs/                 handover, deployment, product docs
+├── public/               static assets
+├── e2e/                  Playwright tests
+├── vercel.json           frontend -> backend proxy rules
+└── next.config.mjs       security headers and runtime config
+```
+
+## Local development
+
+### Frontend
+
+```bash
+npm install
+npm run dev
+```
+
+### Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+### Local env
+
+Create `.env.local` in the repo root:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NAMA_API_KEY=your-api-key
+NAMA_JWT_SECRET=your-jwt-secret
+```
+
+Create `.env` in `backend/`:
+
+```env
+DATABASE_URL=postgresql+asyncpg://user:pass@host/dbname
+NAMA_API_KEY=your-api-key
+NAMA_JWT_SECRET=your-jwt-secret
+```
+
+## Commands
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run lint
+npm run test:e2e
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- production project: `nama-frontend`
+- demo project: `nama-web`
+- production domain: `https://www.getnama.app`
 
-## Learn More
+### Railway
 
-To learn more about Next.js, take a look at the following resources:
+- backend service origin: `https://intuitive-blessing-production-30de.up.railway.app`
+- health check: `https://intuitive-blessing-production-30de.up.railway.app/api/v1/health`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Important notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `demo.getnama.app` is currently a separate Vercel project from production.
+- `vercel.json` is critical because it proxies `/api/v1/*` traffic to Railway.
+- token rotation and provider env verification are operational tasks and are not completed just by changing code in this repo.
 
-## Deploy on Vercel
+## Docs
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Start here:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/README.md`
+- `docs/DEVELOPER_HANDOVER.md`
+- `CLAUDE.md`

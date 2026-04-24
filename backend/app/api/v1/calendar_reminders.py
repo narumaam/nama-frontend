@@ -127,7 +127,9 @@ def _send_wa_reminder(phone: str, title: str, date: str, tenant_name: str) -> bo
 
 def _make_ics_token(tenant_id: int) -> str:
     """Generate a deterministic HMAC token for the iCal subscribe URL."""
-    secret = os.getenv("NAMA_JWT_SECRET", "nama_default_secret")
+    secret = os.getenv("NAMA_JWT_SECRET", "").strip()
+    if not secret:
+        raise RuntimeError("NAMA_JWT_SECRET must be configured for calendar token generation")
     msg = f"ical:{tenant_id}"
     return hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()[:32]
 
