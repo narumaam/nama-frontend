@@ -892,15 +892,26 @@ export default function LandingPage() {
               </p>
             </div>
             {[
-              { title: 'Product', links: ['Features', 'Pricing', 'BYOK Calculator', 'Kinetic Mode', 'Integrations'] },
-              { title: 'Company', links: ['About', 'Blog', 'Careers', 'Contact'] },
-              { title: 'Legal',   links: ['Privacy Policy', 'Terms of Service', 'Security', 'Compliance'] },
+              { title: 'Product', links: [
+                { label: 'Features', href: '#modules' },
+                { label: 'Pricing', href: '/pricing' },
+                { label: 'BYOK Calculator', href: '/byok-calculator' },
+                { label: 'Try the demo', href: 'https://demo.getnama.app' },
+              ]},
+              { title: 'Company', links: [
+                { label: 'Contact sales', href: 'mailto:hello@getnama.app?subject=NAMA%20OS%20enquiry' },
+                { label: 'Customer support', href: 'mailto:support@getnama.app' },
+              ]},
+              { title: 'Legal', links: [
+                { label: 'Privacy Policy', href: '/privacy' },
+                { label: 'Terms of Service', href: '/terms' },
+              ]},
             ].map(col => (
               <div key={col.title}>
                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">{col.title}</p>
                 <div className="space-y-2.5">
                   {col.links.map(l => (
-                    <a key={l} href="#" className="block text-sm text-slate-500 font-medium hover:text-[#0F172A] transition-colors">{l}</a>
+                    <a key={l.label} href={l.href} className="block text-sm text-slate-500 font-medium hover:text-[#0F172A] transition-colors">{l.label}</a>
                   ))}
                 </div>
               </div>

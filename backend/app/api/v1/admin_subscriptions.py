@@ -29,7 +29,7 @@ from app.models.billing import SubscriptionPlan, TenantSubscription, Subscriptio
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-subscriptions"])
 
-STAFF_ROLES = ["R0_NAMA_OWNER"]
+STAFF_ROLES = ["R0_NAMA_OWNER", "R1_SUPER_ADMIN"]
 
 
 # ─── Pydantic schemas ──────────────────────────────────────────────────────────

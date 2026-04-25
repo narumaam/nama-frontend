@@ -884,50 +884,39 @@ export default function RolesPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // On mount: fetch roles from backend and merge with seed data
+  // On mount: fetch roles from backend.
+  // If backend returns ANY array (including empty), use it as the authoritative
+  // source — do NOT keep seed roles around because that creates phantom roles
+  // whose permission saves will 404 against backend.
+  // Seed only persists if the API itself is unreachable.
   useEffect(() => {
     rolesApi.list().then(backendRoles => {
-      if (!backendRoles || backendRoles.length === 0) return
-      // Merge: backend roles take precedence by id; seed roles fill gaps
-      setRoles(prev => {
-        const byId = new Map(prev.map(r => [r.id, r]))
-        backendRoles.forEach(br => {
-          const existing = byId.get(br.id)
-          if (existing) {
-            // Rebuild permissions from backend flat array
-            const perms: Record<PermKey, Permission> = {}
-            br.permissions.forEach(p => {
-              perms[p] = { state: 'on', conditions: { ...EMPTY_CONDITION } }
-            })
-            byId.set(br.id, {
-              ...existing,
-              name: br.name,
-              description: br.description ?? existing.description,
-              permissions: perms,
-            })
-          } else {
-            // New role from backend — add it
-            const perms: Record<PermKey, Permission> = {}
-            br.permissions.forEach(p => {
-              perms[p] = { state: 'on', conditions: { ...EMPTY_CONDITION } }
-            })
-            byId.set(br.id, {
-              id: br.id,
-              name: br.name,
-              description: br.description ?? '',
-              color: '#64748b',
-              icon: '🔑',
-              isTemplate: false,
-              isLocked: false,
-              memberCount: 0,
-              version: 1,
-              createdAt: br.created_at ?? new Date().toISOString().split('T')[0],
-              permissions: perms,
-            })
-          }
+      if (!Array.isArray(backendRoles)) return
+      // Empty backend = empty UI (no phantom roles).
+      if (backendRoles.length === 0) {
+        setRoles([])
+        return
+      }
+      // Backend roles override seed entirely; build a fresh list from backend.
+      setRoles(() => backendRoles.map(br => {
+        const perms: Record<PermKey, Permission> = {}
+        br.permissions.forEach(p => {
+          perms[p] = { state: 'on', conditions: { ...EMPTY_CONDITION } }
         })
-        return Array.from(byId.values())
-      })
+        return {
+          id: br.id,
+          name: br.name,
+          description: br.description ?? '',
+          color: '#64748b',
+          icon: '🔑',
+          isTemplate: false,
+          isLocked: false,
+          memberCount: 0,
+          version: 1,
+          createdAt: br.created_at ?? new Date().toISOString().split('T')[0],
+          permissions: perms,
+        }
+      }))
     }).catch(() => {
       // Backend unreachable — silently use seed data
     })

@@ -746,10 +746,13 @@ export default function ItineraryBuilderPage() {
     if (!selected) return;
     setSaving(true);
     try {
-      await api.put(`/api/v1/itineraries/${selected.id}`, { days_json: days });
+      // Backend exposes PATCH (not PUT) for itinerary updates.
+      await api.patch(`/api/v1/itineraries/${selected.id}`, { days_json: days });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch { /* demo mode */ }
+    } catch (err) {
+      console.error('[itinerary] save failed', err);
+    }
     setSaving(false);
   };
 

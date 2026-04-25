@@ -724,7 +724,42 @@ function NewContractModal({ onClose }: { onClose: () => void }) {
 
 type Tab = "vendor" | "client" | "templates" | "expiring";
 
+// Contracts module backend is not yet shipped (no /api/v1/contracts router exists).
+// Until it lands, render a clean "Coming soon" page rather than the full UI with
+// dead Download / Send for Signature / Mark Signed / Renew / Terminate buttons.
 export default function ContractsPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white dark:from-[#0F172A] dark:to-[#1B2E5E] flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white dark:bg-white/5 backdrop-blur rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl p-10 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-[#14B8A6]/10 flex items-center justify-center mx-auto mb-5">
+          <FileSignature size={26} className="text-[#14B8A6]" />
+        </div>
+        <h2 className="text-2xl font-black text-[#0F172A] dark:text-white mb-2">
+          Contracts <span className="text-[#14B8A6]">— coming soon</span>
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+          Vendor contracts, client agreements, e-signature workflows, and renewal
+          alerts are part of the next release. For now you can still attach contract
+          PDFs to vendors and clients via{' '}
+          <a href="/dashboard/vendors" className="text-[#14B8A6] font-semibold hover:underline">Vendors</a> and{' '}
+          <a href="/dashboard/clients" className="text-[#14B8A6] font-semibold hover:underline">Clients</a>.
+        </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          Need a custom contract template now? Email{' '}
+          <a href="mailto:hello@getnama.app?subject=Contract%20template%20request" className="text-[#14B8A6] hover:underline">
+            hello@getnama.app
+          </a>
+          .
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Original ContractsPage UI is retained below as ContractsPageOriginal so the
+// component tree stays compilable; it is no longer routed.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function ContractsPageOriginal() {
   const [activeTab, setActiveTab] = useState<Tab>("vendor");
   const [vendorContracts, setVendorContracts] = useState<VendorContract[]>([]);
   const [clientAgreements, setClientAgreements] = useState<ClientAgreement[]>([]);

@@ -331,14 +331,17 @@ export default function TeamPage() {
           api.get<TeamResponse>("/api/v1/team"),
           api.get<RolesResponse>("/api/v1/roles"),
         ]);
-        if (teamRes.status === "fulfilled" && teamRes.value.members) {
+        // Trust the backend's response even when empty — set [] if backend says so.
+        // Seed only persists if the request itself was rejected (network/4xx/5xx),
+        // not when the backend cleanly returns an empty list.
+        if (teamRes.status === "fulfilled" && Array.isArray(teamRes.value?.members)) {
           setMembers(teamRes.value.members);
         }
-        if (rolesRes.status === "fulfilled" && rolesRes.value.roles) {
+        if (rolesRes.status === "fulfilled" && Array.isArray(rolesRes.value?.roles)) {
           setRoles(rolesRes.value.roles);
         }
       } catch {
-        // use seed data
+        // Network error — keep seed so the page isn't blank during outage.
       } finally {
         setLoading(false);
       }

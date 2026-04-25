@@ -774,6 +774,56 @@ def admin_list_all(
     return result
 
 
+# ─── Admin: reactivate any tenant's subscription ──────────────────────────────
+
+@router.put("/admin/{target_tenant_id}/reactivate", response_model=SubscriptionOut)
+def admin_reactivate_subscription(
+    target_tenant_id: int,
+    db:               Session = Depends(get_db),
+    claims:           dict    = Depends(RoleChecker(STAFF_ROLES)),
+):
+    """
+    Reactivate any tenant's pending-cancel or fully-cancelled subscription.
+    Used by the /owner/subscriptions admin UI to undo cancellations on behalf
+    of a customer. Does NOT change the plan or billing cycle.
+    """
+    sub = _sub_or_none(db, target_tenant_id)
+    if not sub:
+        raise HTTPException(status_code=404, detail="No subscription found for tenant")
+
+    if not sub.cancel_at_period_end and sub.status == "active":
+        raise HTTPException(status_code=409, detail="Subscription is already active with no pending cancellation")
+
+    sub.cancel_at_period_end = False
+    sub.status = "active"
+    if not sub.current_period_end or sub.current_period_end < datetime.now(timezone.utc):
+        sub.current_period_start = datetime.now(timezone.utc)
+        sub.current_period_end   = _period_end(sub.billing_cycle)
+
+    _record_event(
+        db, target_tenant_id, sub.id, "reactivated",
+        new_plan_id=sub.plan_id,
+        notes=f"Admin reactivated by user {claims.get('user_id')}",
+    )
+    db.commit()
+    db.refresh(sub)
+    logger.info(f"tenant={target_tenant_id} subscription admin-reactivated")
+
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == sub.plan_id).first()
+    plan_out = _plan_to_out(plan) if plan else None
+    return SubscriptionOut(
+        id=sub.id, tenant_id=sub.tenant_id, plan_id=sub.plan_id, plan=plan_out,
+        status=sub.status, billing_cycle=sub.billing_cycle,
+        current_period_start=sub.current_period_start,
+        current_period_end=sub.current_period_end,
+        cancel_at_period_end=sub.cancel_at_period_end,
+        trial_ends_at=sub.trial_ends_at,
+        razorpay_subscription_id=sub.razorpay_subscription_id,
+        notes=sub.notes,
+        created_at=sub.created_at, updated_at=sub.updated_at,
+    )
+
+
 # ─── Admin: force change any tenant's plan ────────────────────────────────────
 
 @router.put("/admin/{target_tenant_id}", response_model=SubscriptionOut)

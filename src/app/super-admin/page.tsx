@@ -13,9 +13,9 @@ import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 import {
   Building2, Users, Activity, Loader, AlertTriangle, Plus, RefreshCw,
-  Search, CheckCircle2, XCircle, ChevronDown, ChevronUp,
-  Shield, Zap, MoreHorizontal, Eye, Pause, Trash2,
-  Globe, Key, BarChart2, ArrowLeft, CreditCard,
+  Search, XCircle, ChevronDown, ChevronUp,
+  Shield, Zap, MoreHorizontal,
+  Globe, BarChart2, ArrowLeft, CreditCard,
 } from 'lucide-react'
 
 interface PlatformStats {
@@ -367,27 +367,21 @@ export default function SuperAdminDashboard() {
                           <MoreHorizontal size={15} />
                         </button>
                         {openMenu === t.id && (
-                          <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-xl shadow-lg z-10 w-40 py-1">
-                            <button className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-                              <Eye size={13} /> View Details
-                            </button>
-                            <button className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-                              <Key size={13} /> Reset Credentials
-                            </button>
-                            {t.status === 'ACTIVE' ? (
-                              <button className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-amber-600 hover:bg-amber-50">
-                                <Pause size={13} /> Suspend
-                              </button>
-                            ) : (
-                              <button className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-50">
-                                <CheckCircle2 size={13} /> Activate
-                              </button>
-                            )}
-                            {t.type !== 'PLATFORM' && (
-                              <button className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50">
-                                <Trash2 size={13} /> Delete
-                              </button>
-                            )}
+                          <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-xl shadow-lg z-10 w-56 py-2 px-3">
+                            <p className="text-[11px] font-medium text-slate-500">
+                              Tenant management actions (suspend / activate / delete / reset credentials) are coming in the next release.
+                            </p>
+                            <p className="mt-2 text-[11px] font-medium text-slate-400">
+                              For now, please email{' '}
+                              <a
+                                href="mailto:hello@getnama.app?subject=Tenant%20action%20request"
+                                className="text-[#14B8A6] hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                hello@getnama.app
+                              </a>
+                              .
+                            </p>
                           </div>
                         )}
                       </div>

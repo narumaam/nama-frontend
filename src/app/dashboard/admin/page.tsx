@@ -643,14 +643,17 @@ export default function AdminPage() {
   const { user } = useAuth()
   const router = useRouter()
 
+  // Allow R0 (NAMA Owner) and R1 (Super Admin), matching peer pages
+  // /investor, /audit, /status, /sentinel and the convention in CLAUDE.md.
+  const isAuthorized = !!user && (user.role === 'R0_NAMA_OWNER' || user.role === 'R1_SUPER_ADMIN')
+
   useEffect(() => {
-    if (user && user.role !== 'R0_NAMA_OWNER') {
+    if (user && !isAuthorized) {
       router.replace('/dashboard')
     }
-  }, [user, router])
+  }, [user, isAuthorized, router])
 
-  // Show nothing while auth is loading or if wrong role
-  if (!user || user.role !== 'R0_NAMA_OWNER') return null
+  if (!user || !isAuthorized) return null
 
   return <AdminDashboard />
 }

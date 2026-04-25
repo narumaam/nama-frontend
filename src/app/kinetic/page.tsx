@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Zap, Activity, Terminal, Globe, ChevronLeft,
@@ -19,6 +20,7 @@ import {
   Map, Users, CreditCard, Wifi, WifiOff,
   ArrowUpRight, ArrowDownRight, Eye,
 } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -178,7 +180,23 @@ function ForecastBars({ data }: { data: number[] }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+// Role-guarded wrapper — Kinetic is an internal command-center, R0/R1 only.
 export default function KineticPage() {
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
+  const isAuthorized = !!user && (user.role === 'R0_NAMA_OWNER' || user.role === 'R1_SUPER_ADMIN')
+
+  useEffect(() => {
+    if (!isLoading && !isAuthorized) {
+      router.replace('/dashboard')
+    }
+  }, [isLoading, isAuthorized, router])
+
+  if (isLoading || !isAuthorized) return null
+  return <KineticBody />
+}
+
+function KineticBody() {
   const [logs,    setLogs]    = useState<LogEntry[]>(INITIAL_LOGS)
   const [alerts,  setAlerts]  = useState<Alert[]>(INITIAL_ALERTS)
   const [paused,  setPaused]  = useState(false)

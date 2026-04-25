@@ -14,7 +14,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Plane, Hotel, Car, Map, FileText, CreditCard, StickyNote,
+  ArrowLeft, Hotel, Car, Map, FileText, StickyNote,
   LayoutGrid, Clock, AlertCircle, MapPin, Users, Calendar, Download,
   Mail, Phone, MessageCircle, Edit2, Plus, Printer, Send, Star,
   Loader, Check, Navigation, Shield, Copy, ExternalLink,
@@ -144,15 +144,14 @@ const DOC_TYPE_COLORS: Record<string, string> = {
 };
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
+// For launch: only Overview / Itinerary / Notes are surfaced. Flights, Hotels,
+// Transport, Documents, Payments tabs ship with real backend wiring in the
+// next release — currently each one renders hardcoded mock data indexed by
+// (booking.id % 2), which is misleading on a real customer's booking.
 const TABS = [
-  { id: "overview",   label: "Overview",   icon: LayoutGrid },
-  { id: "flights",    label: "Flights",    icon: Plane },
-  { id: "hotels",     label: "Hotels",     icon: Hotel },
-  { id: "transport",  label: "Transport",  icon: Car },
-  { id: "itinerary",  label: "Itinerary",  icon: Map },
-  { id: "documents",  label: "Documents",  icon: FileText },
-  { id: "payments",   label: "Payments",   icon: CreditCard },
-  { id: "notes",      label: "Notes",      icon: StickyNote },
+  { id: "overview",  label: "Overview",  icon: LayoutGrid },
+  { id: "itinerary", label: "Itinerary", icon: Map },
+  { id: "notes",     label: "Notes",     icon: StickyNote },
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
@@ -335,6 +334,7 @@ function OverviewTab({ booking, enriched }: { booking: Booking; enriched: typeof
 }
 
 // ── Tab: Flights ───────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function FlightsTab({ booking }: { booking: Booking }) {
   const idx = Math.min(booking.id % 2, FLIGHTS_DATA.length - 1);
   const data = FLIGHTS_DATA[idx];
@@ -485,6 +485,7 @@ function FlightsTab({ booking }: { booking: Booking }) {
 }
 
 // ── Tab: Hotels ────────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function HotelsTab({ booking }: { booking: Booking }) {
   const idx = Math.min(booking.id % 2, HOTELS_DATA.length - 1);
   const hotels = HOTELS_DATA[idx];
@@ -562,6 +563,7 @@ function HotelsTab({ booking }: { booking: Booking }) {
 }
 
 // ── Tab: Transport ─────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TransportTab({ booking }: { booking: Booking }) {
   const idx = Math.min(booking.id % 2, TRANSPORT_DATA.length - 1);
   const transfers = TRANSPORT_DATA[idx];
@@ -650,6 +652,7 @@ function ItineraryTab({ enriched }: { booking: Booking; enriched: typeof ENRICHM
 }
 
 // ── Tab: Documents ─────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DocumentsTab({ booking }: { booking: Booking }) {
   const idx = Math.min(booking.id % 2, DOCUMENTS_DATA.length - 1);
   const docs = DOCUMENTS_DATA[idx];
@@ -685,6 +688,7 @@ function DocumentsTab({ booking }: { booking: Booking }) {
 }
 
 // ── Tab: Payments ──────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function PaymentsTab({ booking }: { booking: Booking }) {
   const idx = Math.min(booking.id % 2, PAYMENTS_DATA.length - 1);
   const payments = PAYMENTS_DATA[idx];
@@ -1018,14 +1022,13 @@ export default function BookingDetailPage() {
       </div>
 
       {/* ── Tab content ─────────────────────────────────────────────────────── */}
+      {/* Flights/Hotels/Transport/Documents/Payments tabs are not in TABS for the
+          launch (they currently render hardcoded mocks). The components are kept
+          in this file (OvereviewTab callers use shared helpers) and re-enabled
+          alongside their backend wiring in the next release. */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {activeTab === "overview"   && <OverviewTab   booking={booking} enriched={enriched} />}
-        {activeTab === "flights"    && <FlightsTab    booking={booking} />}
-        {activeTab === "hotels"     && <HotelsTab     booking={booking} />}
-        {activeTab === "transport"  && <TransportTab  booking={booking} />}
         {activeTab === "itinerary"  && <ItineraryTab  booking={booking} enriched={enriched} />}
-        {activeTab === "documents"  && <DocumentsTab  booking={booking} />}
-        {activeTab === "payments"   && <PaymentsTab   booking={booking} />}
         {activeTab === "notes"      && <NotesTab      booking={booking} enriched={enriched} />}
       </div>
     </div>

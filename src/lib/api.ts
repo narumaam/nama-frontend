@@ -71,6 +71,9 @@ export interface Lead {
   priority: number
   triage_confidence: number
   suggested_reply?: string
+  notes?: string                // free-text notes column on the lead row
+  travel_dates?: string         // "free-text from message" per backend model
+  preferences?: string[]        // tags / preferences from triage
   created_at: string
   updated_at?: string
 }
@@ -736,6 +739,9 @@ export const billingApi = {
       plan_id: planId,
       billing_cycle: billingCycle,
     }),
+
+  adminReactivate: (tenantId: number) =>
+    api.put<TenantSubscription>(`/api/v1/billing/admin/${tenantId}/reactivate`, {}),
 }
 
 

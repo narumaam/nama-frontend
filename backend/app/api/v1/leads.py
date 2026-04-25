@@ -63,6 +63,87 @@ def list_leads(
     return result
 
 
+# ── Manual lead creation (Add Lead UI button) ───────────────────────────────
+class LeadCreateManual(BaseModel):
+    """Friendly schema for UI-driven 'Add Lead' — most fields optional."""
+    full_name:         Optional[str]      = None
+    email:             Optional[str]      = None
+    phone:             Optional[str]      = None
+    sender_id:         Optional[str]      = None  # auto-derived if blank
+    source:            Optional[str]      = "DIRECT"
+    destination:       Optional[str]      = None
+    duration_days:     Optional[int]      = None
+    travelers_count:   Optional[int]      = 1
+    travel_dates:      Optional[str]      = None
+    budget_per_person: Optional[float]    = None
+    currency:          Optional[str]      = "INR"
+    travel_style:      Optional[str]      = "Standard"
+    preferences:       Optional[List[str]] = None
+    raw_message:       Optional[str]      = None
+    notes:             Optional[str]      = None
+
+
+@router.post(
+    "/",
+    response_model=LeadOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new lead manually (Add Lead UI)",
+)
+def create_lead_manual(
+    body:      LeadCreateManual,
+    db:        Session = Depends(get_db),
+    tenant_id: int     = Depends(require_tenant),
+    _:         dict    = Depends(_any_agent_role),
+):
+    """
+    Create a lead from the dashboard 'Add Lead' modal.
+    Distinct from /leads/from-intentra (social signal) and /leads/import (CSV bulk).
+    """
+    from app.models.leads import Lead as _Lead, LeadSource as _LeadSource, LeadStatus as _LeadStatus
+
+    # Derive sender_id from email or phone if not provided (sender_id is non-null in DB).
+    sender_id = (body.sender_id or body.email or body.phone or f"manual:{tenant_id}:{datetime.now(timezone.utc).timestamp()}")
+
+    # Map source string → enum, fallback to DIRECT (or first valid value)
+    src_value = (body.source or "DIRECT").upper()
+    try:
+        src_enum = _LeadSource[src_value] if src_value in _LeadSource.__members__ else _LeadSource.DIRECT
+    except (KeyError, AttributeError):
+        # Some deployments use lowercase enum values
+        src_enum = next(iter(_LeadSource), None)
+
+    lead = _Lead(
+        tenant_id        = tenant_id,
+        sender_id        = sender_id,
+        source           = src_enum,
+        full_name        = body.full_name,
+        email            = body.email,
+        phone            = body.phone,
+        destination      = body.destination,
+        duration_days    = body.duration_days,
+        travelers_count  = body.travelers_count or 1,
+        travel_dates     = body.travel_dates,
+        budget_per_person= body.budget_per_person,
+        currency         = body.currency or "INR",
+        travel_style     = body.travel_style or "Standard",
+        preferences      = body.preferences or [],
+        raw_message      = body.raw_message,
+        notes            = body.notes,
+        status           = _LeadStatus.NEW,
+        triage_confidence= 0.0,
+    )
+    try:
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+    except Exception as exc:  # pragma: no cover
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Could not create lead: {exc}")
+
+    distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+    return lead
+
+
 @router.get("/{lead_id}", response_model=LeadOut, summary="Get a single lead")
 def read_lead(
     lead_id:   int,

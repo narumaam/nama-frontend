@@ -555,6 +555,22 @@ export default function OwnerSubscriptionsPage() {
                             >
                               <CreditCard size={11} /> Change Plan
                             </button>
+                            {(row.cancel_at_period_end || row.status === 'cancelled') && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await billingApi.adminReactivate(row.tenant_id)
+                                    await load()
+                                  } catch (e) {
+                                    console.error('[subscriptions] reactivate failed', e)
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 px-2.5 py-1.5 rounded-lg transition-all"
+                                title="Undo cancellation and resume billing"
+                              >
+                                <RefreshCw size={11} /> Reactivate
+                              </button>
+                            )}
                             <button
                               onClick={() => setGrantingRow(row)}
                               className="flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:bg-amber-50 px-2.5 py-1.5 rounded-lg transition-all"

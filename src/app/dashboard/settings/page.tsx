@@ -218,8 +218,10 @@ export default function SettingsPage() {
     finally { setKeysLoading(false) }
   }
 
-  // Fetch real team members — backend returns invite list (pending + accepted)
-  // Falls back to SEED_TEAM if API is unavailable
+  // Fetch real team members — backend returns invite list (pending + accepted).
+  // If the backend reaches but returns an empty array, render an EMPTY state
+  // (clear seed) so admins don't see fictional team members. Seed is only
+  // shown when the API itself is unreachable.
   const fetchTeamMembers = async () => {
     try {
       interface InviteRow {
@@ -230,7 +232,7 @@ export default function SettingsPage() {
         invited_at: string
       }
       const invites = await api.get<InviteRow[]>('/api/v1/settings/team')
-      if (Array.isArray(invites) && invites.length > 0) {
+      if (Array.isArray(invites)) {
         const mapped: TeamMember[] = invites.map((inv) => ({
           id: String(inv.id),
           email: inv.email,
@@ -239,11 +241,12 @@ export default function SettingsPage() {
           status: inv.status === 'accepted' ? 'active' : 'invited',
           invited_at: inv.invited_at,
         }))
+        // Set whatever backend says — including empty []. No seed leak.
         setTeamMembers(mapped)
       }
-      // If empty list from API, keep SEED_TEAM so UI is never blank
     } catch {
-      // Network error or no backend — keep SEED_TEAM
+      // Network error — keep SEED_TEAM as fallback so the page isn't blank during
+      // a backend outage. Empty backend means real empty state instead.
     }
   }
 

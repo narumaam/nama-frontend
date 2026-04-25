@@ -306,12 +306,17 @@ function LoginPageInner() {
                   <label className="block text-xs font-black text-slate-600 uppercase tracking-widest">
                     Password
                   </label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-[11px] text-[#14B8A6] font-bold hover:underline"
+                  {/*
+                    Forgot-password flow is hidden until Resend is wired in
+                    backend (auth.py:300-307 currently logs token but never sends).
+                    Until then, support can reset via email request.
+                  */}
+                  <a
+                    href="mailto:hello@getnama.app?subject=Password%20reset%20request"
+                    className="text-[11px] text-slate-400 font-bold hover:text-[#14B8A6] hover:underline"
                   >
-                    Forgot password?
-                  </Link>
+                    Need help?
+                  </a>
                 </div>
                 <div className="relative">
                   <input
@@ -355,17 +360,31 @@ function LoginPageInner() {
                 <div className="flex-1 h-px bg-slate-100" />
               </div>
 
-              {/* Demo access — bypasses Railway auth entirely */}
-              <div className="bg-[#14B8A6]/5 border border-[#14B8A6]/15 rounded-xl p-4 text-center">
-                <p className="text-[11px] text-slate-500 font-medium mb-2">Testing? Explore the full dashboard</p>
-                <button
-                  type="button"
-                  onClick={() => router.push('/demo')}
-                  className="text-[11px] font-black text-[#14B8A6] hover:underline"
-                >
-                  Enter demo mode →
-                </button>
-              </div>
+              {/*
+                Demo access — bypasses Railway auth entirely.
+                Hidden by default in production to avoid confusing prospects.
+                Visible when URL has ?demo=1, or on localhost, or on demo.getnama.app.
+              */}
+              {(() => {
+                if (typeof window === 'undefined') return null;
+                const showDemo =
+                  new URLSearchParams(window.location.search).has('demo') ||
+                  window.location.hostname === 'localhost' ||
+                  window.location.hostname.startsWith('demo.');
+                if (!showDemo) return null;
+                return (
+                  <div className="bg-[#14B8A6]/5 border border-[#14B8A6]/15 rounded-xl p-4 text-center">
+                    <p className="text-[11px] text-slate-500 font-medium mb-2">Testing? Explore the full dashboard</p>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/demo')}
+                      className="text-[11px] font-black text-[#14B8A6] hover:underline"
+                    >
+                      Enter demo mode →
+                    </button>
+                  </div>
+                );
+              })()}
 
             </form>
 

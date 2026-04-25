@@ -630,11 +630,42 @@ function PortalPageInner() {
   const [copied, setCopied] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
 
+  const [notFound, setNotFound] = useState(false);
+
   useEffect(() => {
-    // In production: fetch from GET /api/v1/bookings/${bookingId}/portal
-    // For now: use demo data
+    // Public-facing portal: customer arrives at /portal/{bookingId} from a link.
+    // Backend route GET /api/v1/portals/booking/{bookingId} is not yet wired,
+    // so for the launch we only accept demo / preview bookings explicitly.
+    // Anything else returns 404 instead of showing fictional data.
+    const id = (bookingId || '').toUpperCase();
+    const isDemo = id.startsWith('DEMO') || id.startsWith('PREVIEW') || id === 'DEMO-001';
+    if (!isDemo) {
+      setNotFound(true);
+      return;
+    }
     setBooking(makeDemoBooking(bookingId));
   }, [bookingId]);
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-10 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-5 text-3xl">🔒</div>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">Booking link not found</h2>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+            This booking link may have expired, been mistyped, or been revoked by your travel agent.
+            If you received this link recently, please reach out to your agent — they can re-share a fresh link.
+          </p>
+          <a
+            href="mailto:hello@getnama.app?subject=Booking%20link%20issue"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#14B8A6] text-white text-sm font-bold hover:bg-teal-500 transition-colors"
+          >
+            Email us if you need help
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (!booking) {
     return (
@@ -824,8 +855,11 @@ function PortalPageInner() {
           )}
         </div>
 
-        {/* Quote Acceptance Section — shown when quote is pending client action or already actioned */}
-        {booking.quotationId != null && (
+        {/* Quote Acceptance Section — shown when quote is pending client action or already actioned.
+            Only rendered when the URL carries a respond token (?token=...).
+            Without the token the backend will reject the submit with 403, so we
+            avoid showing a form that can't actually be submitted. */}
+        {booking.quotationId != null && respondToken && (
           booking.quotationStatus === 'SENT' ||
           booking.quotationStatus === 'PENDING' ||
           booking.quotationStatus === 'ACCEPTED' ||

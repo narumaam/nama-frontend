@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Search,
   Plus,
@@ -19,7 +19,9 @@ import {
 import { leadsApi, Lead } from "@/lib/api";
 
 // ── Extended seed type ──────────────────────────────────────────────────────
-interface SeedLead extends Lead {
+// SeedLead carries display-only fields and overrides `notes` with a structured
+// note-history array (different shape from the backend Lead.notes string).
+interface SeedLead extends Omit<Lead, "notes"> {
   temperature: "HOT" | "WARM" | "COLD";
   ai_score: number;
   ai_reasoning: string;
@@ -460,6 +462,84 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [tempFilter, setTempFilter] = useState("ALL");
   const [selectedLead, setSelectedLead] = useState<SeedLead | null>(null);
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [importToast, setImportToast] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reload leads from backend (used after create / import)
+  const reloadLeads = async () => {
+    try {
+      const data: unknown = await leadsApi.list();
+      const items: Lead[] = Array.isArray(data) ? data as Lead[] : ((data as { items?: Lead[] })?.items ?? []);
+      if (items.length === 0) return;
+      const merged: SeedLead[] = items.map((l) => {
+        const seed = SEED_LEADS.find((s) => s.id === l.id);
+        // Lead.notes is a backend `string | undefined`; SeedLead.notes is the
+        // UI's structured note-history array. Cast `l` to drop its `notes` so
+        // the spread doesn't mix the two shapes; SeedLead-shaped notes are
+        // assigned explicitly afterwards.
+        const lWithoutNotes = l as Omit<Lead, "notes">;
+        if (seed) return { ...seed, ...lWithoutNotes, notes: seed.notes };
+        return {
+          ...lWithoutNotes,
+          temperature: "WARM" as const,
+          ai_score: Math.round((l.triage_confidence ?? 0) * 100),
+          ai_reasoning: "Score based on triage confidence.",
+          travel_date: "—",
+          destination_flag: "🌍",
+          notes: [],
+          activity: [{ label: "Lead created", created_at: l.created_at }],
+        };
+      });
+      setLeads(merged);
+    } catch (e) {
+      console.error("[leads] reload failed", e);
+    }
+  };
+
+  const handleCreateLead = async (form: {
+    full_name: string; email: string; phone: string;
+    destination: string; source: string; notes: string;
+  }) => {
+    try {
+      await leadsApi.create({
+        full_name: form.full_name || undefined,
+        email: form.email || undefined,
+        phone: form.phone || undefined,
+        destination: form.destination || undefined,
+        source: (form.source || 'DIRECT') as Lead['source'],
+        notes: form.notes || undefined,
+      });
+      setAddLeadOpen(false);
+      setImportToast("Lead created");
+      setTimeout(() => setImportToast(null), 2500);
+      await reloadLeads();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Could not create lead";
+      setImportToast(`Create failed: ${msg}`);
+      setTimeout(() => setImportToast(null), 3500);
+    }
+  };
+
+  const handleImportCsv = async (file: File) => {
+    setImportToast("Importing CSV…");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/v1/leads/import", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: { imported?: number; skipped?: number } = await res.json();
+      setImportToast(`Imported ${data.imported ?? 0} leads · skipped ${data.skipped ?? 0}`);
+      setTimeout(() => setImportToast(null), 4000);
+      await reloadLeads();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "import failed";
+      setImportToast(`Import failed: ${msg}`);
+      setTimeout(() => setImportToast(null), 4000);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     leadsApi
@@ -470,10 +550,12 @@ export default function LeadsPage() {
         if (items.length > 0) {
           const merged: SeedLead[] = items.map((l) => {
             const seed = SEED_LEADS.find((s) => s.id === l.id);
+            // See reloadLeads() — Lead.notes (string) clashes with SeedLead.notes (array).
+            const lWithoutNotes = l as Omit<Lead, "notes">;
             return seed
-              ? { ...seed, ...l }
+              ? { ...seed, ...lWithoutNotes, notes: seed.notes }
               : {
-                  ...l,
+                  ...lWithoutNotes,
                   temperature: "WARM" as const,
                   ai_score: Math.round(l.triage_confidence * 100),
                   ai_reasoning: "Score based on triage confidence.",
@@ -554,10 +636,24 @@ export default function LeadsPage() {
               <Columns size={14} />Pipeline
             </button>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImportCsv(f);
+            }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+          >
             <Upload size={14} />Import CSV
           </button>
           <button
+            onClick={() => setAddLeadOpen(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#14B8A6] hover:bg-teal-500 text-white text-sm font-medium transition-colors shadow-sm"
             data-tour="add-lead"
           >
@@ -877,6 +973,155 @@ export default function LeadsPage() {
       {selectedLead && (
         <LeadSlideOver lead={selectedLead} onClose={() => setSelectedLead(null)} />
       )}
+
+      {/* Toast (import / create feedback) */}
+      {importToast && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-[#0F172A] text-white text-sm font-medium shadow-lg border border-white/10">
+          {importToast}
+        </div>
+      )}
+
+      {/* Add Lead Modal */}
+      {addLeadOpen && (
+        <AddLeadModal
+          onCancel={() => setAddLeadOpen(false)}
+          onSubmit={handleCreateLead}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Add Lead Modal ───────────────────────────────────────────────────────────
+function AddLeadModal({
+  onCancel,
+  onSubmit,
+}: {
+  onCancel: () => void;
+  onSubmit: (form: {
+    full_name: string;
+    email: string;
+    phone: string;
+    destination: string;
+    source: string;
+    notes: string;
+  }) => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    destination: "",
+    source: "DIRECT",
+    notes: "",
+  });
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.full_name && !form.email && !form.phone) return;
+    setBusy(true);
+    await onSubmit(form);
+    setBusy(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onCancel}>
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg bg-white dark:bg-[#0F172A] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[#0F172A] dark:text-white">Add Lead</h3>
+          <button type="button" onClick={onCancel} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5">
+            <X size={18} className="text-slate-500" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="col-span-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            Full name
+            <input
+              autoFocus
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              placeholder="e.g. Priya Mehta"
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-[#14B8A6]"
+            />
+          </label>
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Email
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="priya@example.com"
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-[#14B8A6]"
+            />
+          </label>
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Phone
+            <input
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="+91 98765 43210"
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-[#14B8A6]"
+            />
+          </label>
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Destination
+            <input
+              value={form.destination}
+              onChange={(e) => setForm({ ...form, destination: e.target.value })}
+              placeholder="Bali, Maldives, Paris…"
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-[#14B8A6]"
+            />
+          </label>
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Source
+            <select
+              value={form.source}
+              onChange={(e) => setForm({ ...form, source: e.target.value })}
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-[#14B8A6]"
+            >
+              <option value="DIRECT">Direct</option>
+              <option value="WEBSITE">Website</option>
+              <option value="WHATSAPP">WhatsApp</option>
+              <option value="EMAIL">Email</option>
+              <option value="SOCIAL">Social</option>
+              <option value="REFERRAL">Referral</option>
+            </select>
+          </label>
+          <label className="col-span-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            Notes
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              placeholder="Anything we should know about this lead?"
+              rows={3}
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-[#14B8A6] resize-none"
+            />
+          </label>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 mt-5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={busy || (!form.full_name && !form.email && !form.phone)}
+            className="px-4 py-2 rounded-xl bg-[#14B8A6] hover:bg-teal-500 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {busy ? "Creating…" : "Create Lead"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
