@@ -320,6 +320,15 @@ export default function FinancePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | "ALL">("ALL");
   const [expandedQuote, setExpandedQuote] = useState<string | null>(null);
+  // Live finance ledger summary from backend (total_revenue, total_cost,
+  // gross_profit, currency). Null until the first fetch lands; falls back
+  // to derived-from-seed numbers in the rendering layer when null.
+  const [ledgerSummary, setLedgerSummary] = useState<{
+    total_revenue: number;
+    total_cost: number;
+    gross_profit: number;
+    currency: string;
+  } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -347,8 +356,23 @@ export default function FinancePage() {
           }));
           setQuotations(mapped);
         }
-        // Finance summary (KPIs) — endpoint: GET /api/v1/finance/summary
-        // If unavailable, overview KPIs remain as seed values (static cards)
+
+        // Finance summary (KPIs) — GET /api/v1/finance/summary returns the
+        // tenant-scoped LedgerSummary. Failure is non-blocking; the Overview
+        // tab will fall back to numbers derived from seed quotations.
+        try {
+          const sum = await api.get<{
+            total_revenue: number;
+            total_cost: number;
+            gross_profit: number;
+            currency: string;
+          }>("/api/v1/finance/summary");
+          if (sum && typeof sum.total_revenue === 'number') {
+            setLedgerSummary(sum);
+          }
+        } catch {
+          /* keep ledgerSummary null → fall-back rendering */
+        }
       } catch {
         // fallback to seed data already set in initial state
       }
@@ -412,14 +436,52 @@ export default function FinancePage() {
         {activeTab === "overview" && (
           <div className="space-y-8">
 
-            {/* KPI Cards */}
+            {/* KPI Cards — backed by /api/v1/finance/summary when available.
+                Outstanding / Collected / Avg deal cards stay illustrative until
+                their dedicated endpoints (AR aging, monthly collected, average
+                deal size) ship in a follow-up release. */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: "Total Revenue", value: "₹18.4L", sub: "FY 2025-26", icon: TrendingUp, color: "text-[#14B8A6]", bg: "bg-teal-50 dark:bg-teal-900/20" },
-                { label: "Outstanding", value: "₹3.2L", sub: "4 invoices pending", icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
-                { label: "Collected This Month", value: "₹6.8L", sub: "+14% vs last month", icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-                { label: "Avg Deal Size", value: "₹1.95L", sub: "Based on 42 bookings", icon: BarChart2, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-              ].map(({ label, value, sub, icon: Icon, color, bg }) => (
+              {(() => {
+                const fmt = (n: number, currency = 'INR') => {
+                  if (currency === 'INR') {
+                    if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
+                    if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+                    return `₹${Math.round(n).toLocaleString('en-IN')}`;
+                  }
+                  return `${currency} ${Math.round(n).toLocaleString()}`;
+                };
+                const liveRevenue = ledgerSummary?.total_revenue;
+                const liveGP = ledgerSummary?.gross_profit;
+                const cur = ledgerSummary?.currency ?? 'INR';
+                return [
+                  {
+                    label: "Total Revenue",
+                    value: liveRevenue !== undefined ? fmt(liveRevenue, cur) : "—",
+                    sub: liveRevenue !== undefined ? "Live ledger" : "Awaiting first booking",
+                    icon: TrendingUp, color: "text-[#14B8A6]", bg: "bg-teal-50 dark:bg-teal-900/20",
+                  },
+                  {
+                    label: "Gross Profit",
+                    value: liveGP !== undefined ? fmt(liveGP, cur) : "—",
+                    sub: ledgerSummary && ledgerSummary.total_revenue > 0
+                      ? `${((ledgerSummary.gross_profit / ledgerSummary.total_revenue) * 100).toFixed(1)}% margin`
+                      : "Computed from real bookings",
+                    icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20",
+                  },
+                  {
+                    label: "Outstanding",
+                    value: "—",
+                    sub: "AR-aging in V6 reporting",
+                    icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20",
+                  },
+                  {
+                    label: "Avg Deal Size",
+                    value: "—",
+                    sub: "Average-deal endpoint in V6",
+                    icon: BarChart2, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20",
+                  },
+                ];
+              })().map(({ label, value, sub, icon: Icon, color, bg }) => (
                 <div key={label} className="bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-5">
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wide">{label}</span>
@@ -438,7 +500,9 @@ export default function FinancePage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Monthly Revenue</h2>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Jan – Dec 2026</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                    Illustrative — historical monthly breakdown ships with V6 reporting
+                  </p>
                 </div>
                 <div className="flex items-center gap-4 text-xs">
                   <span className="flex items-center gap-1.5">

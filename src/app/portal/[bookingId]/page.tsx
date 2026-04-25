@@ -634,16 +634,69 @@ function PortalPageInner() {
 
   useEffect(() => {
     // Public-facing portal: customer arrives at /portal/{bookingId} from a link.
-    // Backend route GET /api/v1/portals/booking/{bookingId} is not yet wired,
-    // so for the launch we only accept demo / preview bookings explicitly.
-    // Anything else returns 404 instead of showing fictional data.
-    const id = (bookingId || '').toUpperCase();
-    const isDemo = id.startsWith('DEMO') || id.startsWith('PREVIEW') || id === 'DEMO-001';
-    if (!isDemo) {
+    // Demo / preview IDs short-circuit to the canned demo data; everything
+    // else hits the new public backend route GET /api/v1/portals/booking/{id}.
+    const idUpper = (bookingId || '').toUpperCase();
+    const isDemoId = idUpper.startsWith('DEMO') || idUpper.startsWith('PREVIEW');
+    if (isDemoId) {
+      setBooking(makeDemoBooking(bookingId));
+      return;
+    }
+
+    // Real backend lookup. Backend returns 404 for unknown IDs; we surface
+    // the friendly "Booking link not found" page in that case rather than
+    // fictional data. Network errors also fall through to the not-found
+    // state so customers don't see a half-loaded skeleton forever.
+    let cancelled = false;
+    const numericId = Number.parseInt(bookingId, 10);
+    if (!Number.isFinite(numericId)) {
       setNotFound(true);
       return;
     }
-    setBooking(makeDemoBooking(bookingId));
+    fetch(`/api/v1/portals/booking/${numericId}`, { credentials: 'omit' })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 404) {
+          setNotFound(true);
+          return null;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled || !data) return;
+        // Backend may omit some optional fields; fill in safe defaults so the
+        // rendering code below doesn't crash on missing strings/arrays.
+        const safe: Booking = {
+          bookingRef: data.bookingRef ?? idUpper,
+          clientName: data.clientName ?? '',
+          clientPhone: data.clientPhone ?? '',
+          destination: data.destination ?? '',
+          packageName: data.packageName ?? data.destination ?? 'Your Trip',
+          travelDate: data.travelDate ?? '',
+          returnDate: data.returnDate ?? '',
+          pax: data.pax ?? 1,
+          agencyName: data.agencyName ?? 'NAMA Travel',
+          agentName: data.agentName ?? '',
+          agentPhone: data.agentPhone ?? '',
+          agentPhoto: data.agentPhoto ?? '',
+          heroImage: data.heroImage ?? '',
+          days: Array.isArray(data.days) ? data.days : [],
+          documents: Array.isArray(data.documents) ? data.documents : [],
+          emergencyPhone: data.emergencyPhone ?? '',
+          quotationStatus: data.quotationStatus,
+          quotationId: data.quotationId,
+          quotationTotal: data.quotationTotal,
+          quotationCurrency: data.quotationCurrency,
+          quotationItems: Array.isArray(data.quotationItems) ? data.quotationItems : [],
+        };
+        setBooking(safe);
+      })
+      .catch((err) => {
+        console.error('[portal] backend fetch failed', err);
+        if (!cancelled) setNotFound(true);
+      });
+    return () => { cancelled = true; };
   }, [bookingId]);
 
   if (notFound) {
