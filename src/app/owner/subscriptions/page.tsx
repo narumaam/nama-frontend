@@ -48,7 +48,10 @@ const SEED_PLANS: SubscriptionPlan[] = [
   { id: 3, name: 'Scale',   slug: 'scale',   price_monthly: 39999, price_yearly: 399990, price_monthly_usd: 479, price_yearly_usd: 4790, max_users: 15, max_leads: null, features: null, is_active: true, sort_order: 3 },
 ]
 
-const TENANT_NAMES: Record<number, string> = {
+// Used as fallback ONLY for the seed-data demo path (when backend is
+// unreachable). Real rows from /api/v1/billing/admin/all now ship with
+// row.tenant_name populated server-side from the Tenant table.
+const SEED_TENANT_NAMES: Record<number, string> = {
   2: 'Wanderlust Journeys',
   3: 'Heritage Trails Co.',
   4: 'Blue Horizon DMC',
@@ -111,7 +114,7 @@ function PlanChangeModal({ row, plans, onClose, onSaved }: PlanChangeModalProps)
           <div>
             <h2 className="font-black text-[#0F172A]">Change Plan</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Tenant #{row.tenant_id} · {TENANT_NAMES[row.tenant_id] ?? `Tenant ${row.tenant_id}`}
+              Tenant #{row.tenant_id} · {row.tenant_name ?? SEED_TENANT_NAMES[row.tenant_id] ?? `Tenant ${row.tenant_id}`}
             </p>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
@@ -261,7 +264,7 @@ function GrantTrialModal({ row, onClose, onSaved }: GrantTrialModalProps) {
             </div>
           )}
           <p className="text-sm text-slate-500">
-            Granting a free trial to <span className="font-bold text-slate-700">{TENANT_NAMES[row.tenant_id] ?? `Tenant #${row.tenant_id}`}</span>
+            Granting a free trial to <span className="font-bold text-slate-700">{row.tenant_name ?? SEED_TENANT_NAMES[row.tenant_id] ?? `Tenant #${row.tenant_id}`}</span>
           </p>
           <div>
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Trial Duration</label>
@@ -519,10 +522,10 @@ export default function OwnerSubscriptionsPage() {
                               className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
                               style={{ backgroundColor: ['#14B8A6','#3B82F6','#8B5CF6','#F97316','#EF4444','#10B981'][i % 6] }}
                             >
-                              {(TENANT_NAMES[row.tenant_id] ?? 'T')[0]}
+                              {(row.tenant_name ?? SEED_TENANT_NAMES[row.tenant_id] ?? 'T')[0]}
                             </div>
                             <div>
-                              <div className="font-bold text-sm text-[#0F172A]">{TENANT_NAMES[row.tenant_id] ?? `Tenant #${row.tenant_id}`}</div>
+                              <div className="font-bold text-sm text-[#0F172A]">{row.tenant_name ?? SEED_TENANT_NAMES[row.tenant_id] ?? `Tenant #${row.tenant_id}`}</div>
                               <div className="text-[10px] text-slate-400">ID #{row.tenant_id}</div>
                             </div>
                           </div>

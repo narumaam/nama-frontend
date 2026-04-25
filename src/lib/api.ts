@@ -711,6 +711,7 @@ export interface SubscriptionEvent {
 export interface AdminSubscriptionRow {
   id:                   number
   tenant_id:            number
+  tenant_name?:         string | null   // populated by backend admin/all from Tenant table
   plan:                 SubscriptionPlan | null
   status:               string
   billing_cycle:        string

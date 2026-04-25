@@ -137,6 +137,14 @@ export default function OwnerDashboard() {
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState(new Date())
+  // Subscription summary (MRR + plan breakdown). Shape mirrors backend
+  // /api/v1/admin/subscriptions/summary. Null until first fetch lands.
+  const [subSummary, setSubSummary] = useState<{
+    mrr_inr: number;
+    arr_inr: number;
+    total_subscriptions: number;
+    plan_breakdown: Record<string, number>;
+  } | null>(null)
 
   const load = useCallback(async () => {
     const token = getToken()
@@ -144,14 +152,18 @@ export default function OwnerDashboard() {
     setError(null)
     try {
       if (token) {
-        const [sRes, tRes] = await Promise.all([
-          fetch('/api/v1/admin/stats',            { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/api/v1/admin/tenants?limit=20', { headers: { Authorization: `Bearer ${token}` } }),
+        const [sRes, tRes, subRes] = await Promise.all([
+          fetch('/api/v1/admin/stats',                   { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/v1/admin/tenants?limit=20',        { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/v1/admin/subscriptions/summary',   { headers: { Authorization: `Bearer ${token}` } }),
         ])
         if (sRes.ok && tRes.ok) {
           const [s, t] = await Promise.all([sRes.json(), tRes.json()])
           setStats(s)
           setTenants(Array.isArray(t) ? t : (t.items ?? []))
+          if (subRes.ok) {
+            setSubSummary(await subRes.json())
+          }
           setLastRefresh(new Date())
           return
         }
@@ -263,30 +275,48 @@ export default function OwnerDashboard() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="font-black text-[#0F172A]">Monthly Recurring Revenue</h2>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Platform subscription ARR (INR)</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  {subSummary
+                    ? `${subSummary.total_subscriptions} subscriptions · ARR ₹${(subSummary.arr_inr / 1000).toFixed(1)}K`
+                    : 'Platform subscription summary (live)'}
+                </p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-black text-[#0F172A]">₹44.2K</div>
-                <div className="text-xs font-bold text-emerald-600 flex items-center justify-end gap-0.5">
-                  <TrendingUp size={11} /> +14.8% MoM
+                <div className="text-2xl font-black text-[#0F172A]">
+                  ₹{((subSummary?.mrr_inr ?? 0) / 1000).toFixed(1)}K
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium">
+                  Historical trend coming with V6 reporting
                 </div>
               </div>
             </div>
+            {/* Chart kept for visual continuity but tagged as illustrative.
+                Real historical MRR endpoint ships in a follow-up release. */}
             <RevenueChart data={MONTHLY_REVENUE} />
+            <p className="text-[10px] text-slate-400 italic mt-2">Illustrative trend; live reporting endpoint pending.</p>
             <div className="mt-4 grid grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-              {[
-                { label: 'Starter Plans', count: 22, pct: 47 },
-                { label: 'Growth Plans',  count: 18, pct: 38 },
-                { label: 'Scale Plans',   count:  7, pct: 15 },
-              ].map(p => (
-                <div key={p.label}>
-                  <div className="text-lg font-black text-[#0F172A]">{p.count}</div>
-                  <div className="text-xs text-slate-500 font-medium">{p.label}</div>
-                  <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full">
-                    <div className="h-1.5 bg-[#14B8A6] rounded-full" style={{ width: `${p.pct}%` }} />
-                  </div>
-                </div>
-              ))}
+              {(() => {
+                const breakdown = subSummary?.plan_breakdown ?? {};
+                const total = Math.max(1, Object.values(breakdown).reduce((a, b) => a + b, 0));
+                const fallback = [
+                  { slug: 'starter', label: 'Starter Plans' },
+                  { slug: 'growth',  label: 'Growth Plans'  },
+                  { slug: 'scale',   label: 'Scale Plans'   },
+                ];
+                return fallback.map((p) => {
+                  const count = breakdown[p.slug] ?? 0;
+                  const pct = Math.round((count / total) * 100);
+                  return (
+                    <div key={p.slug}>
+                      <div className="text-lg font-black text-[#0F172A]">{count}</div>
+                      <div className="text-xs text-slate-500 font-medium">{p.label}</div>
+                      <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full">
+                        <div className="h-1.5 bg-[#14B8A6] rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
 

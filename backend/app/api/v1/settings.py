@@ -409,7 +409,10 @@ def accept_invite_info(
     token: str,
     db: Session = Depends(get_db),
 ):
-    """Returns invite details so the registration page can pre-fill the form."""
+    """Returns invite details so the registration page can pre-fill the form.
+    READ-ONLY — does not mark the invite consumed. Call POST below after the
+    user is successfully created.
+    """
     invite = db.query(TenantInvite).filter(
         TenantInvite.token == token,
         TenantInvite.accepted_at.is_(None),
@@ -425,6 +428,46 @@ def accept_invite_info(
         "tenant_id": invite.tenant_id,
         "token": token,
         "message": "Invite valid. Complete registration to join the team.",
+    }
+
+
+@router.post(
+    "/team/invite/accept/{token}",
+    summary="Mark an invite token as accepted (called after successful user registration)",
+)
+def consume_invite_token(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Marks the invite as accepted (sets `accepted_at = utcnow()`), making it
+    unreusable. Idempotent in the sense that re-calling with an already-accepted
+    token returns 410 Gone — the caller should treat that as "already consumed,
+    nothing to do" rather than a hard error.
+
+    The frontend register flow calls this after `register-user` succeeds, so
+    that the invite cannot be replayed for the remaining 14-day TTL.
+    """
+    invite = db.query(TenantInvite).filter(
+        TenantInvite.token == token,
+        TenantInvite.revoked_at.is_(None),
+    ).first()
+    if not invite:
+        raise HTTPException(404, "Invite not found")
+    if invite.accepted_at is not None:
+        raise HTTPException(410, "This invite has already been used")
+    if invite.expires_at and invite.expires_at < datetime.utcnow():
+        raise HTTPException(410, "This invite has expired")
+
+    invite.accepted_at = datetime.utcnow()
+    db.commit()
+    db.refresh(invite)
+    return {
+        "email": invite.email,
+        "role": invite.role,
+        "tenant_id": invite.tenant_id,
+        "accepted_at": invite.accepted_at.isoformat() + "Z",
+        "message": "Invite consumed. The user is now joined to the tenant.",
     }
 
 

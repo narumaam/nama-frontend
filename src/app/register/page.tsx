@@ -165,6 +165,19 @@ function RegisterPage() {
           role: inviteData.role,
           tenant_id: inviteData.tenant_id,
         })
+        // Mark the invite as consumed — closes the security gap where the
+        // same token could otherwise be replayed for the remaining TTL.
+        // Best-effort: a 410 here just means it was already consumed, which
+        // is fine; we don't block the new user from being logged in.
+        try {
+          await fetch(`/api/v1/settings/team/invite/accept/${inviteToken}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          })
+        } catch {
+          /* non-blocking; invite consumption is a hardening, not a gate */
+        }
       } else {
         // Step 1: register org → get tenant_id
         const orgRes = await authApi.registerOrg({

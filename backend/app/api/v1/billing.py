@@ -134,6 +134,7 @@ class SubscriptionEventOut(BaseModel):
 class AdminSubscriptionOut(BaseModel):
     id:            int
     tenant_id:     int
+    tenant_name:   Optional[str] = None
     plan:          Optional[PlanOut]
     status:        str
     billing_cycle: str
@@ -760,12 +761,22 @@ def admin_list_all(
         q = q.filter(TenantSubscription.status == status)
     subs = q.order_by(TenantSubscription.created_at.desc()).offset(offset).limit(per_page).all()
 
+    # Pre-fetch tenant names in a single query to avoid N+1.
+    from app.models.auth import Tenant as _Tenant
+    tenant_ids = [s.tenant_id for s in subs]
+    tenants_map: dict[int, str] = {}
+    if tenant_ids:
+        for tid, tname in db.query(_Tenant.id, _Tenant.name).filter(_Tenant.id.in_(tenant_ids)).all():
+            tenants_map[tid] = tname
+
     result = []
     for sub in subs:
         plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == sub.plan_id).first()
         plan_out = _plan_to_out(plan) if plan else None
         result.append(AdminSubscriptionOut(
-            id=sub.id, tenant_id=sub.tenant_id, plan=plan_out,
+            id=sub.id, tenant_id=sub.tenant_id,
+            tenant_name=tenants_map.get(sub.tenant_id),
+            plan=plan_out,
             status=sub.status, billing_cycle=sub.billing_cycle,
             cancel_at_period_end=sub.cancel_at_period_end,
             current_period_end=sub.current_period_end,
