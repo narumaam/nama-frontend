@@ -1,11 +1,14 @@
 # NAMA OS — Project Memory
 
-## Current Status: ✅ LIVE · Backend + Frontend both operational
+## Current Status: ✅ LAUNCH-READY · Tiers 1–4 complete (T-1 day)
 
-**Last major commit:** `6a53b55` — fix: make landing page public — remove / from middleware matcher (2026-04-20)
-**Latest work (2026-04-20):** TypeScript build errors fixed (4 files), vercel.json proxy rewrites added, landing page made public, getnama.live v2 design deployed
+**Last major commit:** `c198163` — Tier 4D forecast live, holidays/visa illustrative (2026-04-26)
+**Latest work (2026-04-26):** Tier 4 shipped — Batches A (SEED leak fixes), B (inert button sweep), C (itinerary edit/preview/PDF), D (live forecast + honest illustrative labels). KEEP rollup at TIER-4-PROGRESS-2026-04-26.md.
+**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (polish sweep)
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
+
+**Launch verdict:** First customer can self-serve through the full critical path — register → onboarding → AI agency setup → channels → team → lead → AI itinerary → quote → booking → portal — and at every step the data shown is real, an honest empty state, or labelled illustrative. No surface lies, no admin button no-ops, no public route exposes other tenants' data.
 
 ---
 
