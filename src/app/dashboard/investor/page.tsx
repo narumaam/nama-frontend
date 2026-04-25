@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { TrendingUp, Building2, DollarSign, BarChart3, RefreshCw, ArrowUpRight, Lock } from "lucide-react";
+import { TrendingUp, Building2, DollarSign, BarChart3, RefreshCw, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 interface InvestorSummary {
@@ -144,9 +144,10 @@ export default function InvestorDashboard() {
                 <DollarSign className="w-4 h-4 text-teal-400" />
               </div>
               <div className="text-2xl font-bold text-white mt-2">{fmt(summary.gmv.total_inr)}</div>
-              <div className="flex items-center gap-1 text-xs text-teal-400 mt-1">
-                <ArrowUpRight className="w-3 h-3" /> +18.3% growth
-              </div>
+              {/* Historical-comparison growth delta deferred until /api/v1/admin/stats
+                  exposes a previous-period number (V6 reporting). Until then we
+                  show the current GMV without a misleading "+X% growth" badge. */}
+              <div className="text-xs text-slate-400 mt-1">Total platform GMV</div>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
@@ -187,7 +188,11 @@ export default function InvestorDashboard() {
             <div className="grid grid-cols-3 gap-6">
               <div>
                 <div className="text-xs text-slate-400 mb-1">MoM GMV Growth</div>
-                <div className="text-xl font-bold text-teal-400">+18.3%</div>
+                {/* Real MoM delta requires historical /admin/stats snapshots, which
+                    are queued for V6 reporting. Until then show — to avoid showing
+                    an investor-facing fake number. */}
+                <div className="text-xl font-bold text-slate-500">—</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Historical reporting in V6</div>
               </div>
               <div>
                 <div className="text-xs text-slate-400 mb-1">Avg Revenue / Tenant</div>

@@ -31,6 +31,7 @@ interface Tenant {
   type: string
   org_code: string | null
   status: string
+  user_count?: number   // backend admin.py:370 returns this per tenant
 }
 
 interface NewTenantForm {
@@ -356,7 +357,8 @@ export default function SuperAdminDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-sm font-semibold text-slate-600">
-                      {[7,14,3,22,5,11,18,8,25,2][i % 10]}
+                      {/* user_count comes from backend admin.py — falls back to "—" if absent (e.g. older deploy or DEMO_TENANTS) */}
+                      {t.user_count ?? '—'}
                     </td>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center justify-end gap-1 relative">
