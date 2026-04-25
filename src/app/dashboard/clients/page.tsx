@@ -685,7 +685,9 @@ function ImportContactsModal({ onClose, onSuccess }: { onClose: () => void; onSu
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>(SEED_CLIENTS)
+  // Start empty; fetchClients() will populate from backend.
+  // SEED_CLIENTS is reserved for real network failure (offline / demo mode).
+  const [clients, setClients] = useState<Client[]>([])
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterType, setFilterType] = useState('all')
@@ -730,24 +732,28 @@ export default function ClientsPage() {
       const res = await fetch('/api/v1/clients/')
       if (res.ok) {
         const data = await res.json()
-        if (data.clients?.length) {
-          // Normalize API response to match local Client shape
-          const normalized: Client[] = data.clients.map((c: Record<string, unknown>) => ({
-            ...c,
-            id: String(c.id),
-            name: String(c.full_name || c.name || 'Unknown'),
-            open_leads: Number(c.open_leads || 0),
-            assigned_agent: String(c.assigned_agent || ''),
-            first_booking_date: String(c.first_booking_date || c.created_at || ''),
-            last_contact: String(c.last_contact || c.updated_at || c.created_at || ''),
-            preferred_destinations: Array.isArray(c.preferred_destinations) ? c.preferred_destinations.map(String) : [],
-            tags: c.tags || [],
-          }))
-          setClients(normalized)
-        }
+        const rawList = Array.isArray(data.clients) ? data.clients : []
+        // Normalize API response to match local Client shape.
+        // Empty list is a valid new-tenant state — render it honestly, do NOT fall back to SEED.
+        const normalized: Client[] = rawList.map((c: Record<string, unknown>) => ({
+          ...c,
+          id: String(c.id),
+          name: String(c.full_name || c.name || 'Unknown'),
+          open_leads: Number(c.open_leads || 0),
+          assigned_agent: String(c.assigned_agent || ''),
+          first_booking_date: String(c.first_booking_date || c.created_at || ''),
+          last_contact: String(c.last_contact || c.updated_at || c.created_at || ''),
+          preferred_destinations: Array.isArray(c.preferred_destinations) ? c.preferred_destinations.map(String) : [],
+          tags: c.tags || [],
+        }))
+        setClients(normalized)
+      } else {
+        // API responded with non-OK (e.g. 401/500) — treat as offline; show SEED rather than blank.
+        setClients(SEED_CLIENTS)
       }
     } catch {
-      // Falls back to SEED_CLIENTS
+      // Real network failure → SEED fallback so demo / offline modes still render something
+      setClients(SEED_CLIENTS)
     }
   }
 

@@ -865,12 +865,17 @@ export default function BookingDetailPage() {
     bookingsApi.list()
       .then((list) => {
         if (cancelled) return;
-        const found = list.find(b => b.id === bookingId);
-        setBooking(found || SEED_BOOKINGS.find(b => b.id === bookingId) || SEED_BOOKINGS[0]);
+        // Prefer real booking by ID. Allow SEED match only if it shares the same ID
+        // (so demo IDs still load demo data). NEVER silently fall back to SEED_BOOKINGS[0]
+        // for an unknown ID — that lets a stranger probe URLs and see fake booking detail.
+        const found = list.find(b => b.id === bookingId)
+                   || SEED_BOOKINGS.find(b => b.id === bookingId);
+        setBooking(found || null);
       })
       .catch(() => {
         if (!cancelled) {
-          setBooking(SEED_BOOKINGS.find(b => b.id === bookingId) || SEED_BOOKINGS[0]);
+          // Network failure: still allow demo SEED match by ID, but no [0] fallback.
+          setBooking(SEED_BOOKINGS.find(b => b.id === bookingId) || null);
         }
       })
       .finally(() => { if (!cancelled) setLoading(false) });
@@ -906,7 +911,26 @@ export default function BookingDetailPage() {
     );
   }
 
-  if (!booking) return null;
+  if (!booking) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
+        <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+          <AlertCircle size={24} className="text-red-500" />
+        </div>
+        <h2 className="text-lg font-bold text-[#0F172A] mb-1">Booking not found</h2>
+        <p className="text-sm text-slate-500 mb-5 max-w-md">
+          We couldn&apos;t find a booking with ID #{bookingId}. It may have been deleted, or the link
+          may belong to a different workspace.
+        </p>
+        <button
+          onClick={() => router.push("/dashboard/bookings")}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1B2E5E] text-white text-sm font-semibold hover:bg-[#1B2E5E]/90 transition-colors"
+        >
+          <ArrowLeft size={14} /> Back to bookings
+        </button>
+      </div>
+    );
+  }
 
   const marginAmt = Math.round(booking.total_price * enriched.margin / 100);
   const paidAmt   = Math.round(booking.total_price * 0.25);

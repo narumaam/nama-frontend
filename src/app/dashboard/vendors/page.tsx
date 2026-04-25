@@ -879,7 +879,8 @@ export default function VendorsPage() {
   useEffect(() => {
     vendorsApi.list({}).then((data) => {
       const items = Array.isArray(data) ? data : []
-      setVendors(items.length > 0 ? (items as MarketplaceVendor[]) : SEED_VENDORS)
+      // Empty array on success = real new-tenant zero state. SEED is only for network failure.
+      setVendors(items as MarketplaceVendor[])
     }).catch(() => setVendors(SEED_VENDORS))
       .finally(() => setLoading(false))
   }, [])

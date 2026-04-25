@@ -666,10 +666,14 @@ export default function ItineraryBuilderPage() {
   useEffect(() => {
     itinerariesApi.list()
       .then(data => {
-        const list = Array.isArray(data) && data.length > 0 ? data : SEED;
+        // Empty array on success = real new-tenant zero state. Render it honestly.
+        // SEED is reserved for real network failure (offline / demo) in the catch below.
+        const list = Array.isArray(data) ? data : [];
         setItineraries(list);
-        setSelected(list[0]);
-        hydrateDays(list[0]);
+        if (list.length > 0) {
+          setSelected(list[0]);
+          hydrateDays(list[0]);
+        }
       })
       .catch(() => {
         setItineraries(SEED);

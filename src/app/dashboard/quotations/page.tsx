@@ -302,14 +302,17 @@ export default function QuotationsPage() {
 
   const loadData = async () => {
     setLoading(true); setError(null)
+    let networkFailed = false
     try {
       const [quotsData, leadsData, itinData] = await Promise.all([
-        quotationsApi.list({ size: 100 }).catch(() => ({ items: [] as Quotation[], total: 0, page: 1, size: 100 })),
+        quotationsApi.list({ size: 100 }).catch(() => { networkFailed = true; return { items: [] as Quotation[], total: 0, page: 1, size: 100 } }),
         leadsApi.list({ size: 50 }).catch(() => ({ items: [] })),
         itinerariesApi.list().catch(() => []),
       ])
       const quots = quotsData.items || []
-      setQuotations(quots.length > 0 ? quots : SEED_QUOTATIONS)
+      // Only fall back to SEED on real network failure (offline / demo mode).
+      // An empty array from a successful response is the new-tenant zero state — render it honestly.
+      setQuotations(networkFailed ? SEED_QUOTATIONS : quots)
       setLeads(leadsData.items || [])
       setItineraries(Array.isArray(itinData) ? itinData : [])
     } catch { setQuotations(SEED_QUOTATIONS) }

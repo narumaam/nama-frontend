@@ -540,11 +540,9 @@ export default function BookingsPage() {
     bookingsApi.list()
       .then((data) => {
         const items = Array.isArray(data) ? data : []
-        if (items.length > 0) {
-          setBookings(items.map(enrichBooking))
-        } else {
-          setBookings(SEED_BOOKINGS.map(enrichBooking))
-        }
+        // Empty list from a successful response is the new-tenant zero state — render it honestly.
+        // SEED fallback is reserved for real network failure below.
+        setBookings(items.map(enrichBooking))
       })
       .catch(() => setBookings(SEED_BOOKINGS.map(enrichBooking)))
       .finally(() => setLoading(false));
