@@ -332,23 +332,39 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ElementType; co
   { type: "NOTE",      label: "Note",          icon: FileText,  color: "text-slate-600 bg-slate-50 border-slate-200" },
 ];
 
-function AddBlockModal({ onClose, onAdd }: { onClose: () => void; onAdd: (b: DayBlock) => void }) {
-  const [selectedType, setSelectedType] = useState<BlockType>("ACTIVITY");
-  const [form, setForm] = useState({ title: "", description: "", price_gross: "", timeFrom: "", timeTo: "", location: "" });
+function AddBlockModal({ onClose, onAdd, existing }: { onClose: () => void; onAdd: (b: DayBlock) => void; existing?: DayBlock | null }) {
+  const isEdit = !!existing;
+  const [selectedType, setSelectedType] = useState<BlockType>(existing?.type ?? "ACTIVITY");
+  const [form, setForm] = useState({
+    title: existing?.title ?? "",
+    description: existing?.description ?? "",
+    price_gross: existing?.price_gross ? String(existing.price_gross) : "",
+    timeFrom: existing?.timeFrom ?? "",
+    timeTo: existing?.timeTo ?? "",
+    location: existing?.location ?? "",
+  });
 
   const handleAdd = () => {
     if (!form.title.trim()) return;
     onAdd({
-      id: `new_${Date.now()}`,
+      // Edit mode preserves the existing block id; add mode mints a new one.
+      id: existing?.id ?? `new_${Date.now()}`,
       type: selectedType,
       title: form.title.trim(),
       description: form.description.trim(),
       price_gross: parseFloat(form.price_gross) || 0,
-      currency: "USD",
+      currency: existing?.currency ?? "USD",
       timeFrom: form.timeFrom || undefined,
       timeTo: form.timeTo || undefined,
       location: form.location || undefined,
-      status: "PENDING",
+      status: existing?.status ?? "PENDING",
+      // Preserve any extra fields we don't surface in the form.
+      ...(existing ? {
+        imageUrl: existing.imageUrl,
+        subtitle: existing.subtitle,
+        quantity: existing.quantity,
+        tags: existing.tags,
+      } : {}),
     });
     onClose();
   };
@@ -357,7 +373,7 @@ function AddBlockModal({ onClose, onAdd }: { onClose: () => void; onAdd: (b: Day
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="font-bold text-[#1B2E5E] text-base">Add Activity</h3>
+          <h3 className="font-bold text-[#1B2E5E] text-base">{isEdit ? 'Edit Activity' : 'Add Activity'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
@@ -437,7 +453,7 @@ function AddBlockModal({ onClose, onAdd }: { onClose: () => void; onAdd: (b: Day
             disabled={!form.title.trim()}
             className="px-5 py-2.5 bg-[#1B2E5E] hover:bg-[#243c7a] disabled:opacity-40 text-white text-sm font-semibold rounded-xl flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> Add to Day
+            {isEdit ? <><Save className="w-4 h-4" /> Save Changes</> : <><Plus className="w-4 h-4" /> Add to Day</>}
           </button>
         </div>
       </div>
@@ -643,6 +659,7 @@ export default function ItineraryBuilderPage() {
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [activeDay, setActiveDay] = useState(1);
   const [showAddBlock, setShowAddBlock] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<{ dayNum: number; block: DayBlock } | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -745,6 +762,93 @@ export default function ItineraryBuilderPage() {
     );
   };
 
+  // Update an existing block in place — preserves order so the timeline doesn't reshuffle.
+  const updateBlock = (dayNum: number, block: DayBlock) => {
+    setDays(prev =>
+      prev.map(d => d.day_number === dayNum
+        ? {
+            ...d,
+            blocks: d.blocks.map(b =>
+              (b as DayBlock).id === block.id ? block : b
+            ),
+          }
+        : d
+      )
+    );
+  };
+
+  // Build a printer-friendly HTML preview of the current itinerary and open it
+  // in a new tab. autoPrint=true triggers the browser's Save-as-PDF dialog after
+  // a brief delay so the layout has time to render.
+  const openPreview = (autoPrint = false) => {
+    if (!selected) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const escape = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const total = days.reduce(
+      (sum, d) => sum + d.blocks.reduce((s, b) => s + ((b as DayBlock).price_gross || 0), 0),
+      0
+    );
+    const currency = (days.flatMap(d => d.blocks).find(b => (b as DayBlock).currency) as DayBlock | undefined)?.currency ?? 'USD';
+    const cs = currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency + ' ';
+    const html = `<!doctype html>
+<html><head><meta charset="utf-8"/><title>${escape(selected.title || 'Itinerary')}</title>
+<style>
+  @page { size: A4; margin: 14mm 12mm; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; color: #1B2E5E; margin: 0; padding: 0; }
+  .doc { max-width: 720px; margin: 0 auto; padding: 28px 22px; }
+  h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+  .day { margin-bottom: 22px; page-break-inside: avoid; }
+  .day-h { font-size: 15px; font-weight: 800; padding: 8px 0 4px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px; color: #1B2E5E; }
+  .day-narr { color: #475569; font-size: 12px; margin-bottom: 10px; line-height: 1.5; }
+  .blk { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+  .blk:last-child { border-bottom: 0; }
+  .blk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .blk-title { font-weight: 700; font-size: 13px; }
+  .blk-type { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; }
+  .blk-meta { color: #64748b; font-size: 11px; margin: 3px 0 4px; }
+  .blk-desc { color: #334155; font-size: 12px; line-height: 1.45; }
+  .blk-price { font-weight: 800; color: #14B8A6; white-space: nowrap; }
+  .total { margin-top: 22px; padding-top: 14px; border-top: 2px solid #1B2E5E; display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; }
+  .meta-row { color: #64748b; font-size: 12px; margin: 3px 0 16px; }
+</style></head>
+<body>
+<div class="doc">
+  <h1>${escape(selected.title || 'Itinerary')}</h1>
+  <div class="sub">${escape(selected.destination || '')} · ${selected.duration_days || days.length} days</div>
+  ${days.map(d => `
+    <div class="day">
+      <div class="day-h">Day ${d.day_number} — ${escape(d.title || '')}</div>
+      ${d.narrative ? `<div class="day-narr">${escape(d.narrative)}</div>` : ''}
+      ${d.blocks.map(raw => {
+        const b = raw as DayBlock;
+        const time = b.timeFrom ? `${b.timeFrom}${b.timeTo ? '–' + b.timeTo : ''}` : '';
+        const meta = [time, b.location || ''].filter(Boolean).join(' · ');
+        const price = b.price_gross > 0 ? `<div class="blk-price">${cs}${b.price_gross.toLocaleString()}</div>` : '';
+        return `<div class="blk">
+          <div class="blk-h">
+            <div>
+              <div class="blk-type">${escape(b.type)}</div>
+              <div class="blk-title">${escape(b.title)}</div>
+            </div>
+            ${price}
+          </div>
+          ${meta ? `<div class="blk-meta">${escape(meta)}</div>` : ''}
+          ${b.description ? `<div class="blk-desc">${escape(b.description)}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('')}
+  <div class="total"><span>Estimated total</span><span>${cs}${total.toLocaleString()}</span></div>
+</div>
+${autoPrint ? "<script>setTimeout(() => window.print(), 350);</script>" : ''}
+</body></html>`;
+    win.document.write(html);
+    win.document.close();
+  };
+
   // Save
   const handleSave = async () => {
     if (!selected) return;
@@ -811,10 +915,18 @@ export default function ItineraryBuilderPage() {
               {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
               Auto Generate (AI)
             </button>
-            <button className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-gray-400 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+            <button
+              onClick={() => openPreview(false)}
+              disabled={!selected}
+              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-gray-400 text-slate-700 text-xs font-semibold rounded-xl transition-colors disabled:opacity-40"
+            >
               <Eye className="w-3.5 h-3.5" /> Preview
             </button>
-            <button className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-gray-400 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+            <button
+              onClick={() => openPreview(true)}
+              disabled={!selected}
+              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-gray-400 text-slate-700 text-xs font-semibold rounded-xl transition-colors disabled:opacity-40"
+            >
               <Download className="w-3.5 h-3.5" /> Export PDF
             </button>
             <button
@@ -908,7 +1020,7 @@ export default function ItineraryBuilderPage() {
                     <ActivityCard
                       key={(block as DayBlock).id}
                       block={block as DayBlock}
-                      onEdit={() => {}}
+                      onEdit={() => setEditingBlock({ dayNum: currentDay.day_number, block: block as DayBlock })}
                       onDelete={() => removeBlock(currentDay.day_number, (block as DayBlock).id)}
                     />
                   ))}
@@ -1019,6 +1131,13 @@ export default function ItineraryBuilderPage() {
         <AddBlockModal
           onClose={() => setShowAddBlock(false)}
           onAdd={addBlock}
+        />
+      )}
+      {editingBlock && (
+        <AddBlockModal
+          onClose={() => setEditingBlock(null)}
+          onAdd={(b) => updateBlock(editingBlock.dayNum, b)}
+          existing={editingBlock.block}
         />
       )}
       {showAIModal && (
