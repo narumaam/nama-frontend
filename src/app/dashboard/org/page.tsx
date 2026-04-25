@@ -370,7 +370,7 @@ function TabOverview() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-black text-[#14B8A6] uppercase tracking-widest">Revenue Intelligence</span>
-              <span className="text-[9px] font-black bg-[#14B8A6]/20 text-[#14B8A6] px-2 py-0.5 rounded-full">LIVE</span>
+              <span className="text-[9px] font-black bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">ILLUSTRATIVE</span>
             </div>
             <p className="text-sm font-bold text-slate-100 leading-relaxed">
               <span className="text-[#14B8A6]">You lost ₹8.4L this week</span> due to slow response time on 6 leads.{' '}
@@ -396,7 +396,7 @@ function TabOverview() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="font-black text-[#0F172A]">Agent Leaderboard</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Performance this month · ranked by revenue</p>
+              <p className="text-xs text-slate-400 mt-0.5">Performance this month · ranked by revenue · <span className="text-amber-600 font-bold">illustrative</span></p>
             </div>
             <span className="text-[10px] font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full flex items-center gap-1">
               <Star size={10} fill="currentColor" /> Apr 2026
@@ -463,7 +463,7 @@ function TabOverview() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="font-black text-[#0F172A]">Risk Feed</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Items needing your attention</p>
+              <p className="text-xs text-slate-400 mt-0.5">Items needing your attention · <span className="text-amber-600 font-bold">illustrative</span></p>
             </div>
             <div className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center">
               <AlertTriangle size={12} className="text-red-500" />
@@ -885,6 +885,45 @@ function TabTeam() {
   const [selected, setSelected] = useState<string[]>([])
   const [bulkAction, setBulkAction] = useState('')
   const [flash, setFlash] = useState<string | null>(null)
+
+  // Wire to /api/v1/settings/team. Same pattern as /dashboard/settings + /team:
+  // when the backend returns an array (even empty), trust it. Seed only persists
+  // if the request itself is rejected (network / 5xx).
+  useEffect(() => {
+    interface InviteRow {
+      id: number
+      email: string
+      role: string
+      status: 'pending' | 'accepted' | 'expired'
+      invited_at: string
+    }
+    let cancelled = false
+    import('@/lib/api').then(({ api }) =>
+      api.get<InviteRow[]>('/api/v1/settings/team')
+    ).then((invites) => {
+      if (cancelled) return
+      if (Array.isArray(invites)) {
+        const mapped: TeamMember[] = invites.map((inv) => {
+          const def = ROLES_DEF.find((r) => r.id === inv.role.toLowerCase())
+          return {
+            id: String(inv.id),
+            name: '',
+            email: inv.email,
+            role: inv.role,
+            roleLabel: def?.label ?? inv.role,
+            roleBadge: (def?.bg ?? '') + ' ' + (def?.color ?? ''),
+            status: inv.status === 'accepted' ? 'active' : 'invited',
+            lastActive: '—',
+            avatar: (inv.email[0] || 'U').toUpperCase() + (inv.email[1] ?? '').toUpperCase(),
+          }
+        })
+        setMembers(mapped)
+      }
+    }).catch(() => {
+      // Backend unreachable — keep seed members so the tab isn't blank during outages.
+    })
+    return () => { cancelled = true }
+  }, [])
 
   const showFlash = (msg: string) => {
     setFlash(msg)
