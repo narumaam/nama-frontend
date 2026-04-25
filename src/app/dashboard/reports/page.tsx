@@ -561,8 +561,49 @@ function TeamTab() {
 function ForecastsTab() {
   const HISTORICAL_CONV_RATE = 16; // %
   const currentPipelineValue = 4890000 * 2.4;
+  const [liveBase30d, setLiveBase30d] = useState<number | null>(null);
+  const [confidence, setConfidence] = useState<number | null>(null);
+  const [recommendation, setRecommendation] = useState<string | null>(null);
 
-  const chartData = FORECAST_DATA.map(d => ({
+  // Fetch the live month-1 forecast from the backend.
+  // /analytics/forecast returns one period (BusinessForecast). We use its
+  // projected_gmv as the live anchor for Next-30d "base", and scale the 60d/90d
+  // bands from it. Bands beyond 30d remain modeled and the UI says so.
+  useEffect(() => {
+    let cancelled = false;
+    import('@/lib/api').then(({ api }) =>
+      api.get<{ target_month: string; projected_gmv: number; confidence_score: number; recommendation: string }>('/api/v1/analytics/forecast')
+    ).then((r) => {
+      if (cancelled || !r) return;
+      if (typeof r.projected_gmv === 'number') setLiveBase30d(r.projected_gmv);
+      if (typeof r.confidence_score === 'number') setConfidence(r.confidence_score);
+      if (typeof r.recommendation === 'string') setRecommendation(r.recommendation);
+    }).catch(() => {
+      // Backend unreachable / 401 / 500 → leave seed values in place.
+    });
+    return () => { cancelled = true };
+  }, []);
+
+  // If we have a live 30d figure, scale the rest of the model from it.
+  // Band ratios (optimistic / conservative) come from FORECAST_DATA seed.
+  const liveData = liveBase30d
+    ? FORECAST_DATA.map((d, i) => {
+        const seedBase = FORECAST_DATA[0].base || 1;
+        // 60d ≈ 1.88×, 90d ≈ 2.73× the base by the seed model — preserve those ratios.
+        const periodMultiplier = i === 0 ? 1 : d.base / seedBase;
+        const scaledBase = liveBase30d * periodMultiplier;
+        const optimisticRatio = d.optimistic / d.base;
+        const conservativeRatio = d.conservative / d.base;
+        return {
+          period: d.period,
+          base: scaledBase,
+          optimistic: scaledBase * optimisticRatio,
+          conservative: scaledBase * conservativeRatio,
+        };
+      })
+    : FORECAST_DATA;
+
+  const chartData = liveData.map(d => ({
     label: d.period,
     base: d.base,
     optimistic: d.optimistic,
@@ -585,9 +626,14 @@ function ForecastsTab() {
             <h3 className="font-extrabold text-[#0F172A] text-sm mb-1">{scenario.label}</h3>
             <p className="text-xs text-slate-400 mb-3">{scenario.desc}</p>
             <div className="space-y-1.5">
-              {FORECAST_DATA.map((d, i) => (
+              {liveData.map((d, i) => (
                 <div key={i} className="flex justify-between text-xs">
-                  <span className="text-slate-500">{d.period}</span>
+                  <span className="text-slate-500">
+                    {d.period}
+                    {i === 0 && liveBase30d != null && (
+                      <span className="ml-1.5 text-[8px] font-black text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">LIVE</span>
+                    )}
+                  </span>
                   <span className="font-black text-slate-800">{fmtINR(d[scenario.key])}</span>
                 </div>
               ))}
@@ -598,11 +644,29 @@ function ForecastsTab() {
 
       {/* Bar Chart */}
       <div className="bg-white border border-slate-100 rounded-2xl p-6">
-        <div className="mb-5">
-          <h3 className="font-extrabold text-[#0F172A]">Revenue Projection by Scenario</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Based on current pipeline × conversion rates</p>
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-extrabold text-[#0F172A]">Revenue Projection by Scenario</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {liveBase30d != null
+                ? <>Next-30d anchored to live forecast · 60d/90d projections modeled from current pipeline</>
+                : <>Based on current pipeline × conversion rates · <span className="text-amber-600 font-semibold">illustrative until /analytics/forecast wired</span></>}
+            </p>
+          </div>
+          {confidence != null && (
+            <div className="text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Confidence</p>
+              <p className="text-sm font-black text-[#14B8A6] mt-0.5">{Math.round(confidence * 100)}%</p>
+            </div>
+          )}
         </div>
         <GroupedBarChart data={chartData} />
+        {recommendation && (
+          <div className="mt-4 px-4 py-3 rounded-xl bg-[#14B8A6]/5 border border-[#14B8A6]/20">
+            <p className="text-[10px] font-black text-[#14B8A6] uppercase tracking-widest mb-1">AI Recommendation</p>
+            <p className="text-xs text-slate-700 leading-relaxed">{recommendation}</p>
+          </div>
+        )}
       </div>
 
       {/* Assumptions */}

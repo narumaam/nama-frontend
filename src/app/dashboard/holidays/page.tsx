@@ -1240,6 +1240,9 @@ export default function HolidaysPage() {
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 ml-12">
             Manage pre-packaged holiday products, departures, pricing, and bookings
+            <span className="ml-2 text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+              Bookings — illustrative
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-3 ml-12 sm:ml-0">

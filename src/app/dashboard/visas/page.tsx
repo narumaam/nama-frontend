@@ -752,7 +752,10 @@ export default function VisasPage() {
               {/* Application Queue */}
               <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
-                  <h2 className="text-sm font-extrabold text-[#1B2E5E]">Active Application Queue</h2>
+                  <h2 className="text-sm font-extrabold text-[#1B2E5E] flex items-center gap-2">
+                    Active Application Queue
+                    <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">Illustrative</span>
+                  </h2>
                   <div className="flex items-center gap-2">
                     <div className="relative">
                       <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
