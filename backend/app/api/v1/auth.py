@@ -194,6 +194,119 @@ def logout(response: Response):
     return
 
 
+# ── Atomic org + admin-user registration ─────────────────────────────────────
+# This single-call endpoint replaces the previous 2-call frontend flow
+# (register-org → register-user) which left orphan tenants when the second
+# call failed (e.g., 409 on duplicate email). Both writes happen in a single
+# transaction with rollback on either failure.
+
+class RegisterOrgRequest(BaseModel):
+    organization_name: str
+    admin_email: str
+    admin_password: str
+    admin_full_name: Optional[str] = None
+
+
+@router.post("/register-organization", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register_organization(
+    payload: RegisterOrgRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """
+    Atomic organization + admin-user registration. Single transaction. If any
+    step fails, NOTHING is committed — caller can retry safely without
+    creating orphan tenants. On success returns access token + sets refresh
+    cookie so the new admin is logged in without a separate /login call.
+    """
+    import re
+    import secrets
+    from app.models.auth import Tenant, TenantType, UserRole
+
+    # 1. Reject duplicate email up-front to avoid creating a tenant we can't use.
+    if db.query(User).filter(User.email == payload.admin_email).first():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    if not payload.organization_name.strip():
+        raise HTTPException(status_code=422, detail="Organization name is required")
+    if len(payload.admin_password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
+
+    # 2. Derive a unique org_code from the name. 4-char-name-prefix + 4 random hex.
+    slug = re.sub(r"[^A-Z0-9]", "", payload.organization_name.upper())[:4] or "ORG"
+    org_code = f"{slug}-{secrets.token_hex(2).upper()}"
+
+    # 3. Atomic create: tenant first (need its id), then user. db.flush() on the
+    # tenant gets us tenant.id without committing; if user creation throws,
+    # rollback wipes the tenant too.
+    try:
+        new_tenant = Tenant(
+            name=payload.organization_name.strip(),
+            type=TenantType.TRAVEL_COMPANY,
+            org_code=org_code,
+            base_currency="INR",
+            parent_id=None,
+            status="ACTIVE",
+            settings={},
+        )
+        db.add(new_tenant)
+        db.flush()  # populates new_tenant.id without committing
+
+        admin_user = User(
+            email=payload.admin_email,
+            hashed_password=hash_password(payload.admin_password),
+            full_name=payload.admin_full_name or payload.admin_email.split("@")[0],
+            tenant_id=new_tenant.id,
+            role=UserRole.R2_ORG_ADMIN,
+            is_active=True,
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+        db.refresh(new_tenant)
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Registration failed: {exc}")
+
+    role_str = admin_user.role.value if hasattr(admin_user.role, "value") else str(admin_user.role)
+
+    # 4. Issue tokens — admin is logged in immediately.
+    access_token = create_access_token(
+        user_id=admin_user.id,
+        tenant_id=admin_user.tenant_id,
+        role=role_str,
+        email=admin_user.email,
+    )
+    refresh_token = create_refresh_token(
+        user_id=admin_user.id,
+        tenant_id=admin_user.tenant_id,
+        role=role_str,
+        email=admin_user.email,
+    )
+    _set_refresh_cookie(response, refresh_token)
+
+    # 5. Best-effort welcome drip — never blocks registration.
+    try:
+        from app.api.v1.onboarding import _send_drip_email
+        _send_drip_email(admin_user.email, admin_user.full_name or admin_user.email, new_tenant.name, day=0)
+    except Exception:
+        pass
+
+    return TokenResponse(
+        access_token=access_token,
+        user_id=admin_user.id,
+        tenant_id=admin_user.tenant_id,
+        role=role_str,
+        email=admin_user.email,
+    )
+
+
 @router.post("/register-user", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register_user(
     payload: UserCreate,

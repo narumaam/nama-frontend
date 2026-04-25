@@ -179,20 +179,15 @@ function RegisterPage() {
           /* non-blocking; invite consumption is a hardening, not a gate */
         }
       } else {
-        // Step 1: register org → get tenant_id
-        const orgRes = await authApi.registerOrg({
+        // Atomic single-call: creates Tenant + admin User in one transaction.
+        // Replaces the previous register-org → register-user pair, which would
+        // leave an orphan tenant if the second call failed (duplicate email,
+        // network drop, etc).
+        await authApi.registerOrganization({
           organization_name: form.companyName,
           admin_email:       form.email,
           admin_password:    form.password,
-        })
-
-        // Step 2: register admin user under that tenant
-        await authApi.registerUser({
-          email:     form.email,
-          password:  form.password,
-          full_name: form.fullName,
-          role:      'R2_ORG_ADMIN',
-          tenant_id: orgRes.tenant_id,
+          admin_full_name:   form.fullName,
         })
       }
 
