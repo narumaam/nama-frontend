@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Users, Search, MapPin, Phone, Mail, Calendar,
   Briefcase, TrendingUp, MessageSquare, Eye, Clock, Award, Globe, Tag, ChevronRight,
@@ -685,6 +686,7 @@ function ImportContactsModal({ onClose, onSuccess }: { onClose: () => void; onSu
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ClientsPage() {
+  const router = useRouter()
   // Start empty; fetchClients() will populate from backend.
   // SEED_CLIENTS is reserved for real network failure (offline / demo mode).
   const [clients, setClients] = useState<Client[]>([])
@@ -1002,13 +1004,27 @@ export default function ClientsPage() {
                   )}
 
                   <div className="flex gap-2 pt-1">
-                    <button className="flex items-center gap-1.5 px-4 py-2 bg-[#0F172A] text-white text-xs font-bold rounded-xl hover:bg-slate-700 transition-all">
+                    <button
+                      onClick={() => {
+                        const subject = `Hello ${clientName(client).split(' ')[0]}`
+                        const body = `Hi ${clientName(client).split(' ')[0]},\n\n`
+                        window.location.href = `mailto:${client.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+                      }}
+                      title={client.email ? `Email ${client.email}` : 'No email on file'}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#0F172A] text-white text-xs font-bold rounded-xl hover:bg-slate-700 transition-all"
+                    >
                       <MessageSquare size={13} /> Message
                     </button>
-                    <button className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-300 transition-all">
+                    <button
+                      onClick={() => router.push(`/dashboard/bookings?client=${encodeURIComponent(clientName(client))}`)}
+                      className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-300 transition-all"
+                    >
                       <Eye size={13} /> View Bookings
                     </button>
-                    <button className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-300 transition-all">
+                    <button
+                      onClick={() => router.push(`/dashboard/leads?client=${encodeURIComponent(clientName(client))}&new=1`)}
+                      className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-300 transition-all"
+                    >
                       <TrendingUp size={13} /> New Lead
                     </button>
                   </div>

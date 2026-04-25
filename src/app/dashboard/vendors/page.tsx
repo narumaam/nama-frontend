@@ -1087,12 +1087,31 @@ export default function VendorsPage() {
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#14B8A6] resize-none" />
                     </div>
                     <button
-                      onClick={() => setRequestSubmitted(true)}
+                      onClick={() => {
+                        // No backend yet — submit by composing an email to NAMA support.
+                        // This is honest: the customer sees their default mail client open,
+                        // pre-filled, so they know the request actually goes somewhere.
+                        const subject = `Vendor request: ${requestVendor.name} (${requestVendor.category}) in ${requestVendor.destination}`
+                        const body = [
+                          `Vendor name: ${requestVendor.name}`,
+                          `Category: ${requestVendor.category}`,
+                          `Destination: ${requestVendor.destination}`,
+                          `Vendor email: ${requestVendor.email || '—'}`,
+                          ``,
+                          `Notes:`,
+                          requestVendor.notes || '—',
+                        ].join('\n')
+                        window.location.href = `mailto:support@getnama.app?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+                        setRequestSubmitted(true)
+                      }}
                       disabled={!requestVendor.name || !requestVendor.destination}
                       className="w-full py-3 rounded-xl bg-[#14B8A6] text-white font-bold text-sm hover:bg-teal-600 transition-colors disabled:opacity-40"
                     >
                       Submit Request
                     </button>
+                    <p className="text-[11px] text-slate-400 text-center mt-2">
+                      Opens your email client to send this request to support@getnama.app — typical onboarding within 48 hours.
+                    </p>
                   </div>
                 )}
               </div>

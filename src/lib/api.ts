@@ -309,6 +309,15 @@ export const leadsApi = {
   assign: (leadId: number, userId: number) =>
     api.post<Lead>(`/api/v1/leads/${leadId}/assign?user_id=${userId}`, {}),
   delete: (id: number) => api.delete<void>(`/api/v1/leads/${id}`),
+  addNote: (leadId: number, content: string, author?: string) =>
+    api.post<Array<{ id: string; content: string; author?: string | null; created_at: string }>>(
+      `/api/v1/leads/${leadId}/notes`,
+      { content, author }
+    ),
+  listNotes: (leadId: number) =>
+    api.get<Array<{ id: string; content: string; author?: string | null; created_at: string }>>(
+      `/api/v1/leads/${leadId}/notes`
+    ),
 }
 
 // Query Triage (M1)

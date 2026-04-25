@@ -19,7 +19,7 @@ import {
   Mail, Phone, MessageCircle, Edit2, Plus, Printer, Send, Star,
   Loader, Check, Navigation, Shield, Copy, ExternalLink,
 } from "lucide-react";
-import { bookingsApi, documentsApi, Booking } from "@/lib/api";
+import { bookingsApi, documentsApi, leadsApi, Booking } from "@/lib/api";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const fmtINR = (n: number) => {
@@ -855,6 +855,8 @@ export default function BookingDetailPage() {
   const [loading,  setLoading]  = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [leadEmail, setLeadEmail] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
 
   // Derive enrichment from seed
   const enriched = booking ? ENRICHMENT[(booking.id % 6)] : ENRICHMENT[0];
@@ -900,6 +902,42 @@ export default function BookingDetailPage() {
       // demo mode — fail silently
     } finally {
       setInvoiceLoading(false);
+    }
+  };
+
+  // Lazily load the lead email the first time the user clicks Email Client,
+  // and cache it so subsequent clicks fire immediately.
+  const handleEmailClient = async () => {
+    if (!booking) return;
+    setEmailLoading(true);
+    try {
+      let email = leadEmail;
+      if (!email && booking.lead_id) {
+        try {
+          const lead = await leadsApi.get(booking.lead_id);
+          email = (lead && (lead as { email?: string }).email) || null;
+          if (email) setLeadEmail(email);
+        } catch {
+          // demo mode / 404 — fall through
+        }
+      }
+      const subject = `Your booking #${booking.id} — ${enriched.destination}`;
+      const body = `Hi ${enriched.client_name.split(' ')[0]},\n\nYour booking #${booking.id} for ${enriched.destination} is confirmed for ${enriched.depart} → ${enriched.return}.\n\nLet me know if you have any questions.`;
+      const href = `mailto:${email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = href;
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  // "Edit Booking" routes to the underlying itinerary's editor — that's where
+  // most edit surface lives (days, blocks, pricing). If no itinerary is
+  // attached we fall back to the bookings list.
+  const handleEditBooking = () => {
+    if (booking?.itinerary_id) {
+      router.push(`/dashboard/itineraries?id=${booking.itinerary_id}`);
+    } else {
+      router.push('/dashboard/bookings');
     }
   };
 
@@ -958,10 +996,20 @@ export default function BookingDetailPage() {
                 {invoiceLoading ? <Loader size={11} className="animate-spin" /> : <Download size={11} />}
                 Invoice
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-100 transition-colors">
-                <Mail size={11} /> Email Client
+              <button
+                onClick={handleEmailClient}
+                disabled={emailLoading}
+                title={leadEmail ? `Email ${leadEmail}` : "Add a contact email on the lead to enable"}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-100 transition-colors disabled:opacity-50"
+              >
+                {emailLoading ? <Loader size={11} className="animate-spin" /> : <Mail size={11} />}
+                Email Client
               </button>
-              <button className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1B2E5E] text-white rounded-lg text-xs font-semibold hover:bg-[#1B2E5E]/90 transition-colors">
+              <button
+                onClick={handleEditBooking}
+                title={booking.itinerary_id ? "Open this booking's itinerary" : "No itinerary attached"}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1B2E5E] text-white rounded-lg text-xs font-semibold hover:bg-[#1B2E5E]/90 transition-colors"
+              >
                 <Edit2 size={11} /> Edit Booking
               </button>
             </div>

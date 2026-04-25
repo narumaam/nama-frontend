@@ -471,7 +471,8 @@ function DocumentCard({ doc, onGenerate }: { doc: SeedDoc; onGenerate: (type: Do
           <Download size={13} /> Download
         </button>
         <button
-          title="Send"
+          onClick={handleDownload}
+          title="Open in editor to send via WhatsApp / email"
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-colors"
         >
           <MessageCircle size={13} /> Send

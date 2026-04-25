@@ -267,14 +267,29 @@ function LeadSlideOver({
   const [tab, setTab] = useState<"overview" | "notes" | "activity">("overview");
   const [noteText, setNoteText] = useState("");
   const [notes, setNotes] = useState(lead.notes);
+  const [savingNote, setSavingNote] = useState(false);
 
-  function addNote() {
-    if (!noteText.trim()) return;
-    setNotes((prev) => [
-      { text: noteText.trim(), created_at: new Date().toISOString() },
-      ...prev,
-    ]);
+  async function addNote() {
+    const text = noteText.trim();
+    if (!text || savingNote) return;
+    // Optimistic local prepend so the slideover feels instant.
+    const optimistic = { text, created_at: new Date().toISOString() };
+    setNotes((prev) => [optimistic, ...prev]);
     setNoteText("");
+    // Demo / seed leads have non-numeric or out-of-range IDs. Skip backend POST
+    // for those (they'd 404). For real leads, persist via /leads/{id}/notes.
+    if (typeof lead.id === "number" && lead.id > 0) {
+      setSavingNote(true);
+      try {
+        await leadsApi.addNote(lead.id, text);
+      } catch {
+        // Real network failure — leave the optimistic note in place; the user
+        // can retry by re-typing. We deliberately don't roll back, since the
+        // slideover closes on click-outside and rolling back would be jarring.
+      } finally {
+        setSavingNote(false);
+      }
+    }
   }
 
   return (
