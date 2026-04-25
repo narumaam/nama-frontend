@@ -10,7 +10,48 @@ function getToken(): string | null {
   return localStorage.getItem('nama_token')
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+// ── Refresh-token interceptor ────────────────────────────────────────────────
+// Backend issues an HttpOnly `nama_refresh_token` cookie on login + register.
+// When an authenticated request returns 401, attempt a single refresh:
+//   POST /api/v1/auth/refresh — picks up cookie, returns {access_token, ...}
+// On success, store the new access token + retry the original request once.
+// On failure, fall back to the existing logout-and-redirect behaviour.
+//
+// In-flight refresh promise is shared across concurrent 401s so we don't
+// stampede /refresh with duplicate calls when many requests fail at once.
+let refreshInFlight: Promise<string | null> | null = null
+
+async function attemptRefresh(): Promise<string | null> {
+  if (typeof window === 'undefined') return null
+  if (refreshInFlight) return refreshInFlight
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch(`${BASE}/api/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) return null
+      const data: { access_token?: string; user_id?: number; tenant_id?: number; role?: string; email?: string } = await res.json()
+      if (!data.access_token) return null
+      localStorage.setItem('nama_token', data.access_token)
+      // Mirror auth-context's user shape so role guards re-hydrate cleanly.
+      if (data.user_id !== undefined && data.tenant_id !== undefined && data.role) {
+        const userPayload = { userId: data.user_id, tenantId: data.tenant_id, role: data.role, email: data.email ?? '' }
+        localStorage.setItem('nama_user', JSON.stringify(userPayload))
+      }
+      return data.access_token
+    } catch (err) {
+      console.warn('[api] refresh failed', err)
+      return null
+    } finally {
+      refreshInFlight = null
+    }
+  })()
+  return refreshInFlight
+}
+
+async function request<T>(path: string, options: RequestInit = {}, _isRetry = false): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -18,11 +59,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers })
+  // credentials: 'include' so the refresh cookie travels with same-origin
+  // requests proxied through Vercel rewrites to Railway.
+  const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' })
 
-  // 401 → token expired/invalid → force logout and redirect to login with banner
-  // Skip the redirect when in demo mode — demo users have no real JWT so 401s are
-  // expected from Railway; the page will fall back to seed data via .catch().
+  // 401 → try refresh once, then retry original request once. If refresh
+  // itself fails (and we're not already retrying), fall through to logout.
+  if (res.status === 401 && !_isRetry && !path.includes('/auth/refresh')) {
+    if (typeof window !== 'undefined') {
+      const isDemo = document.cookie.split(';').some((c) => c.trim().startsWith('nama_demo=1'))
+      if (!isDemo) {
+        const newToken = await attemptRefresh()
+        if (newToken) {
+          // Refresh succeeded — retry the original request once with the new token.
+          return request<T>(path, options, true)
+        }
+      }
+    }
+  }
+
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
       const isDemo = document.cookie.split(';').some((c) => c.trim().startsWith('nama_demo=1'))

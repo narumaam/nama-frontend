@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Check, X, Zap, ChevronRight, ArrowRight,
   Shield, Globe, BarChart2, Bot, Key, MessageSquare, Calculator,
 } from 'lucide-react';
+import { billingApi, SubscriptionPlan, PlansResponse } from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Plan {
@@ -253,10 +254,48 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showComparison, setShowComparison] = useState(false);
 
-  const planPrice = (base: number | null) => {
-    if (base === null) return null;
-    return billingAnnual ? Math.round(base * 0.8) : base;
+  // Live prices + currency from backend; fall back to hardcoded PLANS on failure.
+  // Match backend plans to the local PLANS array by slug (starter/growth/scale).
+  const [livePlans, setLivePlans] = useState<SubscriptionPlan[] | null>(null);
+  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+
+  useEffect(() => {
+    billingApi.getPlans()
+      .then((res: PlansResponse | SubscriptionPlan[]) => {
+        // Backend may return either { plans, detected_currency } or a bare array.
+        if (Array.isArray(res)) {
+          setLivePlans(res);
+        } else {
+          setLivePlans(res.plans);
+          if (res.detected_currency === 'USD' || res.detected_currency === 'INR') {
+            setCurrency(res.detected_currency);
+          }
+        }
+      })
+      .catch((err) => {
+        // Network / 5xx — hardcoded PLANS stay; pricing page still renders.
+        console.warn('[pricing] backend unreachable, using fallback prices', err);
+      });
+  }, []);
+
+  // Resolve display price for a plan slug. Backend price wins; fallback uses
+  // the hardcoded `Plan.price` (which is INR-based). Returned in the active
+  // currency.
+  const planPrice = (plan: Plan): number | null => {
+    if (plan.price === null) return null;
+    const live = livePlans?.find((p) => p.slug === plan.id);
+    if (live) {
+      const monthly = currency === 'USD' ? (live.price_monthly_usd ?? live.price_monthly) : live.price_monthly;
+      const yearly  = currency === 'USD' ? (live.price_yearly_usd  ?? live.price_yearly)  : live.price_yearly;
+      return billingAnnual ? Math.round((yearly ?? monthly * 12) / 12) : monthly;
+    }
+    return billingAnnual ? Math.round(plan.price * 0.8) : plan.price;
   };
+
+  // Currency symbol for rendering.
+  const currencySymbol = currency === 'USD' ? '$' : '₹';
+  const formatPrice = (n: number) =>
+    currency === 'USD' ? n.toLocaleString('en-US') : n.toLocaleString('en-IN');
 
   const colorMap: Record<string, { card: string; cta: string; badge: string; border: string }> = {
     slate:  { card: 'bg-white border-slate-200',                 cta: 'bg-slate-800 hover:bg-slate-700 text-white',          badge: '', border: 'border-slate-200' },
@@ -322,7 +361,7 @@ export default function PricingPage() {
       <section className="max-w-7xl mx-auto px-4 pb-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {PLANS.map((plan) => {
           const c = colorMap[plan.color];
-          const price = planPrice(plan.price);
+          const price = planPrice(plan);
           const textColor = plan.highlight ? 'text-white' : 'text-slate-800';
           const mutedColor = plan.highlight ? 'text-slate-400' : 'text-slate-500';
           const divider = plan.highlight ? 'border-white/10' : 'border-slate-100';
@@ -344,16 +383,19 @@ export default function PricingPage() {
               <div className="mb-5">
                 {price !== null ? (
                   <div className="flex items-end gap-1">
-                    <span className={`text-4xl font-black ${textColor}`}>₹{price.toLocaleString('en-IN')}</span>
+                    <span className={`text-4xl font-black ${textColor}`}>{currencySymbol}{formatPrice(price)}</span>
                     <span className={`text-sm ${mutedColor} mb-1.5`}>{plan.period}</span>
                   </div>
                 ) : (
                   <span className={`text-4xl font-black ${textColor}`}>{plan.priceLabel}</span>
                 )}
                 <p className={`text-xs ${mutedColor} mt-1`}>{plan.seats}</p>
-                {billingAnnual && plan.price !== null && (
+                {billingAnnual && price !== null && (
                   <p className="text-xs text-green-400 font-semibold mt-0.5">
-                    ₹{Math.round((plan.price * 0.8 * 12) / 1000)}K/year · saves ₹{Math.round(plan.price * 12 * 0.2 / 1000)}K
+                    {currencySymbol}{formatPrice(price * 12)}/year
+                    {plan.price !== null && (
+                      <> · saves ~20%</>
+                    )}
                   </p>
                 )}
               </div>

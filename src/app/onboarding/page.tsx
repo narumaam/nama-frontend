@@ -455,10 +455,15 @@ function StepAISetup({
     }
   }, [description, phase])
 
-  // Apply config to backend and advance wizard
+  // Apply config to backend and advance wizard.
+  // Earlier this was fire-and-forget — wizard advanced even when the backend
+  // rejected the config, leaving the user with a half-set-up workspace and
+  // no error message. Now the wizard only advances on a real success; errors
+  // are surfaced inline so the user can fix the input and retry.
   const applyConfig = useCallback(async () => {
     if (!config) return
     setApplyLoading(true)
+    setError('')
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null
       const res = await fetch('/api/v1/onboarding/apply-config', {
@@ -469,16 +474,18 @@ function StepAISetup({
         },
         body: JSON.stringify({ config }),
       })
-      // Fire-and-forget — we proceed even if the backend isn't reachable
-      // (the wizard will still advance and config is held in component state)
       if (!res.ok) {
-        console.warn('[apply-config] Backend returned', res.status)
+        const errBody: { detail?: string; error?: string } = await res.json().catch(() => ({}))
+        const msg = errBody.detail || errBody.error || `Backend returned HTTP ${res.status}`
+        throw new Error(msg)
       }
-    } catch (e) {
-      console.warn('[apply-config] Network error:', e)
+      // Success — advance the wizard.
+      onConfigApplied(config)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not save your setup. Please try again.'
+      setError(msg)
     } finally {
       setApplyLoading(false)
-      onConfigApplied(config!)
     }
   }, [config, onConfigApplied])
 
