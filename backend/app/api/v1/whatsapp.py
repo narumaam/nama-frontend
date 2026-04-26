@@ -92,6 +92,42 @@ async def receive_message(
         return {"status": "ok"}  # Always return 200 to Meta
 
 
+def _resolve_tenant_from_phone_id(db: Session, phone_number_id: str) -> Optional[int]:
+    """
+    Tier 8A: Map an inbound Meta phone_number_id to the tenant who owns it.
+
+    Each tenant configures their Meta phone_id during onboarding (Step 4 of
+    the wizard) and we store it under tenant.settings['whatsapp_phone_id'].
+    The webhook payload includes value.metadata.phone_number_id telling us
+    which agency's WhatsApp number received the message.
+
+    Returns the tenant_id if a single match is found. Returns None if no
+    tenant has registered that phone_id — caller should drop the message
+    rather than misroute it.
+    """
+    if not phone_number_id:
+        return None
+    try:
+        from app.models.auth import Tenant
+        # JSON column query — Postgres syntax
+        candidates = db.query(Tenant).filter(
+            Tenant.settings["whatsapp_phone_id"].astext == str(phone_number_id)
+        ).all()
+        if len(candidates) == 1:
+            return candidates[0].id
+        # Either no match (phone_id never registered) or impossible duplicate
+        # (data corruption). Either way, refuse to misroute.
+        if len(candidates) > 1:
+            logger.warning(
+                "_resolve_tenant_from_phone_id: %d tenants share phone_id=%s — refusing to misroute",
+                len(candidates), phone_number_id,
+            )
+        return None
+    except Exception as exc:
+        logger.warning("_resolve_tenant_from_phone_id error: %s", exc)
+        return None
+
+
 async def _process_inbound(msg: dict, value: dict, db: Session):
     """
     Creates or updates a Lead from an inbound WhatsApp message.
@@ -126,13 +162,27 @@ async def _process_inbound(msg: dict, value: dict, db: Session):
         if not wa_from:
             return
 
+        # Tier 8A: resolve the receiving tenant from value.metadata.phone_number_id.
+        # Without this, every tenant's inbound messages would land in tenant 1.
+        phone_number_id = (value.get("metadata") or {}).get("phone_number_id", "")
+        resolved_tenant_id = _resolve_tenant_from_phone_id(db, phone_number_id)
+        if resolved_tenant_id is None:
+            logger.warning(
+                "_process_inbound: dropping message — no tenant registered for phone_number_id=%s",
+                phone_number_id,
+            )
+            return
+
         phone_display = f"+{wa_from}"
         timestamp_str = datetime.now(timezone.utc).strftime("%d/%m %H:%M")
 
-        # Check if an open lead already exists for this sender
+        # Tier 8A: scope the existing-lead query by tenant so customer A's lead
+        # never receives customer B's incoming message, even if the same phone
+        # has reached out to both agencies.
         existing = (
             db.query(Lead)
             .filter(
+                Lead.tenant_id == resolved_tenant_id,
                 Lead.sender_id == wa_from,
                 Lead.status.notin_(["WON", "LOST"]),
             )
@@ -146,13 +196,13 @@ async def _process_inbound(msg: dict, value: dict, db: Session):
                 f"\n[WA {timestamp_str}] {text}"
             )
             db.commit()
-            logger.info("_process_inbound: appended to existing lead %s", existing.id)
+            logger.info("_process_inbound: appended to existing lead %s (tenant=%s)", existing.id, existing.tenant_id)
             target_lead_id = existing.id
             target_tenant_id = existing.tenant_id
         else:
-            # Create a new Lead — default to tenant 1 (real impl: map phone_id → tenant)
+            # Tier 8A: create lead in the resolved tenant's workspace, NOT tenant 1.
             new_lead = Lead(
-                tenant_id       = 1,
+                tenant_id       = resolved_tenant_id,
                 sender_id       = wa_from,
                 source          = LeadSource.WHATSAPP,
                 full_name       = contact_name or phone_display,
@@ -164,7 +214,7 @@ async def _process_inbound(msg: dict, value: dict, db: Session):
             )
             db.add(new_lead)
             db.commit()
-            logger.info("_process_inbound: created new lead from %s", wa_from)
+            logger.info("_process_inbound: created new lead from %s (tenant=%s)", wa_from, resolved_tenant_id)
             target_lead_id = new_lead.id
             target_tenant_id = new_lead.tenant_id
 

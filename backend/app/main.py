@@ -108,10 +108,83 @@ app = FastAPI(
     title="NAMA AI-First Travel OS",
     version="0.3.0",
     description="World-class AI-native B2B2C travel operating system. All Hard Stops resolved.",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    # Tier 8B: disable the default doc routes so we can re-mount them under auth.
+    # Set DOCS_PUBLIC=true in the environment to restore public docs (e.g. for
+    # local dev). In production, leave unset — only R0/R1 can view via /api/docs.
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
+
+
+# Tier 8B: auth-gated OpenAPI docs.
+# A leak of the route tree to the public internet is a credibility + security
+# smell even if every endpoint does its own auth check. We re-implement
+# /api/docs, /api/redoc, /api/openapi.json behind a session check that
+# requires R0_NAMA_OWNER or R1_SUPER_ADMIN.
+def _docs_access_check(request: Request) -> None:
+    """Allow only authenticated R0/R1 staff. Anyone else gets a 404."""
+    if os.getenv("DOCS_PUBLIC", "").lower() == "true":
+        return
+    # Lazily resolve to avoid circular imports at module load.
+    from app.api.v1.deps import get_current_user as _gcu
+    from fastapi import HTTPException as _HE
+    try:
+        token = ""
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+        else:
+            # Fallback: cookie-based auth used by some flows
+            token = request.cookies.get("nama_token", "")
+        if not token:
+            # 404 not 401 — never tell the caller the docs exist.
+            raise _HE(status_code=404, detail="Not Found")
+        # Decode JWT claims directly (avoid the full DB-backed get_current_user
+        # path — these endpoints are touched by R0/R1 manually, no need for the
+        # full request lifecycle dep).
+        from app.core.security import decode_access_token
+        claims = decode_access_token(token)
+        role = (claims or {}).get("role", "")
+        if role not in ("R0_NAMA_OWNER", "R1_SUPER_ADMIN"):
+            raise _HE(status_code=404, detail="Not Found")
+    except _HE:
+        raise
+    except Exception:
+        raise _HE(status_code=404, detail="Not Found")
+
+
+# Tier 8B: gated re-implementation of /api/docs, /api/redoc, /api/openapi.json.
+# Returns 404 to anyone without an R0/R1 access token, indistinguishable from
+# a missing route. Set DOCS_PUBLIC=true env var to bypass for local dev.
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.utils import get_openapi as _get_openapi
+
+@app.get("/api/openapi.json", include_in_schema=False)
+def _openapi_gated(request: Request):
+    _docs_access_check(request)
+    return _get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+@app.get("/api/docs", include_in_schema=False)
+def _docs_gated(request: Request):
+    _docs_access_check(request)
+    return get_swagger_ui_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} — Swagger UI",
+    )
+
+@app.get("/api/redoc", include_in_schema=False)
+def _redoc_gated(request: Request):
+    _docs_access_check(request)
+    return get_redoc_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} — ReDoc",
+    )
 
 # ── Middleware stack (order matters — outermost applied last) ──────────────────
 
