@@ -1,10 +1,10 @@
 # NAMA OS — Project Memory
 
-## Current Status: ✅ LAUNCH-READY · Tiers 1–5 complete (T-1 day)
+## Current Status: ✅ LAUNCH-READY · Tiers 1–6 complete (T-1 day)
 
-**Latest work (2026-04-26 session 2):** Tier 5 shipped — Batches A (Razorpay webhook HMAC fix — was P0 security bug), B (kanban drag-drop persists), C (itinerary builder mobile responsive), D (booking detail Documents+Payments tabs restored with real data). KEEP rollup at TIER-5-PROGRESS-2026-04-26.md.
-**Previous work (2026-04-26 session 1):** Tier 4 shipped — Batches A (SEED leak fixes), B (inert button sweep), C (itinerary edit/preview/PDF), D (live forecast + honest illustrative labels).
-**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (honesty polish) → Tier 5 (production hardening: payments, kanban, mobile, restored booking tabs)
+**Latest work (2026-04-26 session 3):** Tier 6 shipped — Batches A (Comms inbox real backend, lead-derived threads + persistent send), B (booking detail Itinerary tab now real with Flights/Hotels filter chips), C (a11y quick-wins: prefers-reduced-motion + header aria-labels). KEEP rollup at TIER-6-PROGRESS-2026-04-26.md. The build now has zero "fake-data" surfaces.
+**Previous work (2026-04-26 session 2):** Tier 5 shipped — Razorpay HMAC fix (P0), kanban drag-drop, mobile itinerary, booking Documents+Payments restored.
+**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (honesty polish) → Tier 5 (production hardening: payments, kanban, mobile, restored booking tabs) → Tier 6 (feature surface: comms threads, real itinerary tab, a11y baseline)
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
