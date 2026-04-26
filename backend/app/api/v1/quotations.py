@@ -77,6 +77,12 @@ class Quotation(Base):
     sent_at         = Column(DateTime, nullable=True)
     is_deleted      = Column(Boolean, default=False, nullable=False)
     respond_token   = Column(String(64), nullable=True, index=True)  # SECURITY: validates public respond endpoint
+    # Tier 8C: snapshot fields populated when the quote is ACCEPTED.
+    # Once frozen, downstream profit calculations use these values regardless of
+    # subsequent edits to base_price / margin_pct / total_price.
+    accepted_at         = Column(DateTime, nullable=True)
+    accepted_total      = Column(Numeric(12, 2), nullable=True)
+    accepted_currency   = Column(String(3), nullable=True)
     created_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
@@ -343,6 +349,10 @@ def accept_quotation(
         )
     q.status     = QuotationStatus.ACCEPTED
     q.updated_at = datetime.now(timezone.utc)
+    # Tier 8C: freeze the price snapshot at customer-accept moment.
+    q.accepted_at       = q.updated_at
+    q.accepted_total    = q.total_price
+    q.accepted_currency = q.currency
     db.commit()
     db.refresh(q)
     logger.info(f"Quotation accepted: tenant={tenant_id} id={quotation_id}")
@@ -626,6 +636,10 @@ def client_respond_to_quotation(
 
     if body.action == "accept":
         q.status = QuotationStatus.ACCEPTED
+        # Tier 8C: freeze the price snapshot at customer-accept moment.
+        q.accepted_at       = datetime.now(timezone.utc)
+        q.accepted_total    = q.total_price
+        q.accepted_currency = q.currency
         user_message = "Quote accepted! Your travel consultant will be in touch shortly to confirm next steps."
     else:
         q.status = QuotationStatus.REJECTED  # closest existing status for revision
