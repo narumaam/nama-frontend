@@ -203,7 +203,10 @@ def get_public_booking(
     from app.models.leads import Lead
     from app.models.itineraries import Itinerary
     from app.models.auth import Tenant
-    from app.models.quotations import Quotation
+    # Quotation lives in api.v1.quotations (not a dedicated models/ file).
+    # Pre-Tier-8 this lazy import failed at request time → endpoint always 500'd.
+    # Caught by the Tier 8 smoke test post-deploy.
+    from app.api.v1.quotations import Quotation
 
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
