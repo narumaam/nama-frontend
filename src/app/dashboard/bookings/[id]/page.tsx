@@ -633,45 +633,187 @@ function TransportTab({ booking }: { booking: Booking }) {
 }
 
 // ── Tab: Itinerary ─────────────────────────────────────────────────────────────
-function ItineraryTab({ enriched }: { booking: Booking; enriched: typeof ENRICHMENT[0] }) {
-  const days = Math.min(enriched.nights, 5);
-  const dayActivities = [
-    ["Arrival & Transfer to Hotel", "Welcome Dinner at Rooftop Restaurant", "Check-in & Freshen up"],
-    ["City Tour – Major Landmarks", "Lunch at Local Restaurant", "Sunset Viewpoint Visit", "Night Market Walk"],
-    ["Day Trip to Nature Reserve", "Guided Hiking Experience", "Traditional Village Visit"],
-    ["Leisure Day – Beach/Pool", "Optional Spa Treatment", "Shopping at Local Market"],
-    ["Check-out & Departure Transfer", "Airport Drop-off"],
-  ];
+// Tier 6B: real itinerary tab — fetches the booking's underlying itinerary
+// from /api/v1/itineraries/{id} and renders day blocks with filter chips for
+// Flights / Hotels / Transfers / Activities / Meals. Replaces hardcoded mock
+// dayActivities. Falls back to enriched-derived empty state when no itinerary
+// is attached or the fetch fails.
+
+interface ItineraryBlock {
+  id?: string;
+  type?: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  timeFrom?: string;
+  timeTo?: string;
+  location?: string;
+  price_gross?: number;
+  currency?: string;
+}
+
+interface ItineraryDayApi {
+  day_number: number;
+  title?: string;
+  narrative?: string;
+  blocks?: ItineraryBlock[];
+}
+
+interface ItineraryApi {
+  id?: number;
+  title?: string;
+  destination?: string;
+  duration_days?: number;
+  days_json?: ItineraryDayApi[];
+}
+
+const BLOCK_FILTERS: Array<{ id: string; label: string; types: string[] | null }> = [
+  { id: 'all',       label: 'All',        types: null },
+  { id: 'flight',    label: 'Flights',    types: ['FLIGHT'] },
+  { id: 'hotel',     label: 'Hotels',     types: ['HOTEL', 'ACCOMMODATION'] },
+  { id: 'transfer',  label: 'Transfers',  types: ['TRANSFER'] },
+  { id: 'activity',  label: 'Activities', types: ['ACTIVITY'] },
+  { id: 'meal',      label: 'Dining',     types: ['MEAL'] },
+];
+
+function ItineraryTab({ booking, enriched }: { booking: Booking; enriched: typeof ENRICHMENT[0] }) {
+  const [itinerary, setItinerary] = useState<ItineraryApi | null>(null);
+  const [itinLoading, setItinLoading] = useState(true);
+  const [filter, setFilter] = useState<string>('all');
+
+  useEffect(() => {
+    if (!booking.itinerary_id) { setItinLoading(false); return; }
+    let cancelled = false;
+    setItinLoading(true);
+    import('@/lib/api').then(({ api }) =>
+      api.get<ItineraryApi>(`/api/v1/itineraries/${booking.itinerary_id}`)
+    ).then((r) => { if (!cancelled) setItinerary(r); })
+      .catch(() => { if (!cancelled) setItinerary(null); })
+      .finally(() => { if (!cancelled) setItinLoading(false); });
+    return () => { cancelled = true; };
+  }, [booking.itinerary_id]);
+
+  const activeFilter = BLOCK_FILTERS.find(f => f.id === filter) || BLOCK_FILTERS[0];
+  const allBlocks: ItineraryBlock[] = (itinerary?.days_json || []).flatMap(d => d.blocks || []);
+  // Per-chip counts so the badges feel alive even before the user clicks.
+  const counts: Record<string, number> = BLOCK_FILTERS.reduce((acc, f) => {
+    if (f.types === null) acc[f.id] = allBlocks.length;
+    else acc[f.id] = allBlocks.filter(b => f.types!.includes((b.type || '').toUpperCase())).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+  if (itinLoading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-slate-400">
+        <Loader size={18} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (!itinerary || !itinerary.days_json || itinerary.days_json.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+          <Map size={20} className="text-slate-400" />
+        </div>
+        <h3 className="text-sm font-bold text-slate-700">No itinerary attached</h3>
+        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+          This booking doesn&apos;t have an itinerary yet. Open the itinerary builder
+          to draft one, then attach it to the booking.
+        </p>
+        <a href="/dashboard/itineraries" className="mt-4 flex items-center gap-1.5 text-sm text-[#14B8A6] font-semibold hover:underline">
+          Open itinerary builder <ExternalLink size={13} />
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{enriched.nights}-night itinerary · {enriched.destination}</p>
-        <a href="/dashboard/itineraries" className="flex items-center gap-1.5 text-sm text-[#14B8A6] font-semibold hover:underline">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <p className="text-sm text-slate-500">
+          {itinerary.duration_days || itinerary.days_json.length}-day itinerary · {itinerary.destination || enriched.destination}
+        </p>
+        <a href={`/dashboard/itineraries?id=${booking.itinerary_id}`} className="flex items-center gap-1.5 text-sm text-[#14B8A6] font-semibold hover:underline">
           Open full editor <ExternalLink size={13} />
         </a>
       </div>
-      {Array.from({ length: days }).map((_, di) => (
-        <div key={di} className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-3.5 bg-slate-50 border-b border-slate-100">
-            <div className="w-7 h-7 rounded-lg bg-[#1B2E5E] flex items-center justify-center text-white text-xs font-black">
-              {di + 1}
-            </div>
-            <span className="font-bold text-[#1B2E5E] text-sm">Day {di + 1}</span>
-            <span className="text-xs text-slate-400 ml-auto">
-              {new Date(new Date(enriched.depart).getTime() + di * 86400000).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short" })}
-            </span>
-          </div>
-          <div className="p-4 space-y-2">
-            {(dayActivities[di] || dayActivities[0]).map((act, ai) => (
-              <div key={ai} className="flex items-center gap-3 py-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] flex-shrink-0" />
-                <span className="text-sm text-slate-700">{act}</span>
+
+      {/* Filter chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {BLOCK_FILTERS.map(f => {
+          const isActive = filter === f.id;
+          const count = counts[f.id];
+          return (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                isActive
+                  ? 'bg-[#1B2E5E] text-white'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              {f.label}
+              {count > 0 && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                }`}>{count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Days */}
+      {itinerary.days_json.map(day => {
+        const blocks = (day.blocks || []).filter(b => {
+          if (activeFilter.types === null) return true;
+          return activeFilter.types.includes((b.type || '').toUpperCase());
+        });
+        if (blocks.length === 0 && filter !== 'all') return null; // hide days with no matches when filtering
+        return (
+          <div key={day.day_number} className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-3.5 bg-slate-50 border-b border-slate-100">
+              <div className="w-7 h-7 rounded-lg bg-[#1B2E5E] flex items-center justify-center text-white text-xs font-black">
+                {day.day_number}
               </div>
-            ))}
+              <div className="flex-1 min-w-0">
+                <span className="font-bold text-[#1B2E5E] text-sm truncate block">{day.title || `Day ${day.day_number}`}</span>
+                {day.narrative && filter === 'all' && (
+                  <span className="text-[11px] text-slate-400 line-clamp-1">{day.narrative}</span>
+                )}
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {blocks.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">No items on this day.</p>
+              ) : blocks.map((b, bi) => (
+                <div key={b.id || bi} className="flex items-start gap-3 py-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] flex-shrink-0 mt-2" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {b.type && (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{b.type}</span>
+                      )}
+                      <span className="text-sm font-semibold text-slate-700">{b.title || 'Untitled'}</span>
+                      {(b.timeFrom || b.location) && (
+                        <span className="text-xs text-slate-400">
+                          {b.timeFrom && `${b.timeFrom}${b.timeTo ? '–' + b.timeTo : ''}`}
+                          {b.timeFrom && b.location && ' · '}
+                          {b.location}
+                        </span>
+                      )}
+                    </div>
+                    {b.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{b.description}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
