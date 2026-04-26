@@ -22,7 +22,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Session
@@ -584,3 +584,106 @@ def get_active_byok_key(db: Session, tenant_id: int, provider: str) -> Optional[
         logger.error(f"Failed to decrypt BYOK key for tenant={tenant_id} provider={provider}: {e}")
         return None
 
+
+
+# ─── Tax Settings (Tier 9D follow-up) ─────────────────────────────────────────
+# Customer admin OR finance role configures their tax rate + label.
+# Read by documents.py invoice generator. Default = 0 (no tax line) until set.
+
+class TaxSettingsIn(BaseModel):
+    tax_rate_pct: float
+    tax_label: Optional[str] = "GST"
+
+    @field_validator("tax_rate_pct")
+    @classmethod
+    def _bounded_rate(cls, v: float) -> float:
+        if v < 0 or v > 50:
+            raise ValueError("tax_rate_pct must be between 0 and 50")
+        return round(v, 2)
+
+
+class TaxSettingsOut(BaseModel):
+    tax_rate_pct: float
+    tax_label: str
+    configured: bool
+
+
+_finance_or_admin = RoleChecker([
+    UserRole.R0_NAMA_OWNER,
+    UserRole.R1_SUPER_ADMIN,
+    UserRole.R2_ORG_ADMIN,
+    UserRole.R5_FINANCE_ADMIN,
+])
+
+
+@router.get("/tax", response_model=TaxSettingsOut, summary="Get tenant tax configuration")
+def get_tax_settings(
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+):
+    """
+    Returns the tenant's configured tax rate + label.
+    `configured=false` means no tax line will appear on invoices yet —
+    customer admin or finance must set the rate before sending invoices.
+    """
+    from app.models.auth import Tenant
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    settings = (tenant.settings or {}) if tenant else {}
+    raw_rate = settings.get("tax_rate_pct")
+    return TaxSettingsOut(
+        tax_rate_pct=float(raw_rate) if raw_rate is not None else 0.0,
+        tax_label=settings.get("tax_label", "GST"),
+        configured=raw_rate is not None,
+    )
+
+
+@router.put("/tax", response_model=TaxSettingsOut, summary="Set tenant tax configuration")
+def update_tax_settings(
+    body: TaxSettingsIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    tenant_id: int = Depends(require_tenant),
+    claims: dict = Depends(_finance_or_admin),
+):
+    """
+    Customer admin or finance role sets the tax rate + label.
+    Audit-logged. Takes effect on next invoice generation.
+    """
+    from app.models.auth import Tenant
+    from app.core.audit import write_audit
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    settings = dict(tenant.settings or {})
+    old_rate = settings.get("tax_rate_pct")
+    old_label = settings.get("tax_label")
+    settings["tax_rate_pct"] = body.tax_rate_pct
+    settings["tax_label"] = body.tax_label or "GST"
+    tenant.settings = settings
+    db.commit()
+
+    # Synthesize an actor for audit (claims is a dict not a User object)
+    class _Actor:
+        pass
+    actor = _Actor()
+    actor.id = claims.get("user_id") if isinstance(claims, dict) else None
+    actor.email = claims.get("email") if isinstance(claims, dict) else None
+    actor.role = claims.get("role") if isinstance(claims, dict) else None
+    actor.tenant_id = tenant_id
+
+    write_audit(
+        db=db, actor=actor, request=request,
+        action="settings.tax.update",
+        target_type="tenant", target_id=str(tenant_id),
+        details={
+            "old": {"tax_rate_pct": old_rate, "tax_label": old_label},
+            "new": {"tax_rate_pct": body.tax_rate_pct, "tax_label": body.tax_label},
+        },
+    )
+
+    return TaxSettingsOut(
+        tax_rate_pct=body.tax_rate_pct,
+        tax_label=body.tax_label or "GST",
+        configured=True,
+    )

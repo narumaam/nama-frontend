@@ -14,7 +14,7 @@ Acceptance Gate (HS-1):
   ✓ Refresh endpoint issues new access token and rotates refresh token
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Cookie, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -77,6 +77,7 @@ def _clear_refresh_cookie(response: Response) -> None:
 
 @router.post("/login", response_model=TokenResponse)
 def login(
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -84,10 +85,25 @@ def login(
     """
     Authenticate with email + password.
     Returns access token in JSON body; refresh token in httpOnly cookie.
+
+    Tier 9B: writes auth.login.success / auth.login.failure to audit_log.
     """
+    from app.core.audit import write_audit
+
     user: Optional[User] = db.query(User).filter(User.email == form_data.username).first()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
+        # Audit failed login (without leaking which side failed).
+        write_audit(
+            db=db,
+            actor=user,  # may be None
+            action="auth.login.failure",
+            target_type="email",
+            target_id=form_data.username,
+            outcome="failure",
+            error_message="invalid_credentials",
+            request=request,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -95,10 +111,22 @@ def login(
         )
 
     if not user.is_active:
+        write_audit(
+            db=db, actor=user,
+            action="auth.login.failure", outcome="failure",
+            error_message="account_deactivated",
+            request=request,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Account is deactivated",
         )
+
+    write_audit(
+        db=db, actor=user,
+        action="auth.login.success",
+        request=request,
+    )
 
     role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
 

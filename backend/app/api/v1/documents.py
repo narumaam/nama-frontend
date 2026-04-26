@@ -533,9 +533,42 @@ def _build_invoice_html(booking: Booking, lead_name: str, destination: str, trav
     invoice_number = f"INV-{booking.tenant_id:04d}-{booking.id:06d}"
     issue_date = datetime.now().strftime("%d %b %Y")
     total_price = float(booking.total_price)
-    base_price = round(total_price * 0.85, 2)
-    gst = round(total_price * 0.15, 2) if booking.currency == "INR" else 0.0
     currency = booking.currency or "INR"
+
+    # Tier 9D: tax rate is tenant-configurable.
+    # The customer admin / finance role sets:
+    #   tenant.settings["tax_rate_pct"]  — e.g. 18 (GST), 5 (transport), 0 (export)
+    #   tenant.settings["tax_label"]     — e.g. "GST", "IGST", "CGST+SGST", "VAT"
+    # If neither is set, NO tax line appears on the invoice — admin must
+    # explicitly configure their rate. Better to show tax-exclusive total
+    # than to silently invent a rate that may not apply to the customer's
+    # business or jurisdiction.
+    tax_rate_pct = 0.0
+    tax_label = "Tax"
+    try:
+        from sqlalchemy.orm import object_session
+        sess = object_session(booking)
+        if sess is not None:
+            from app.models.auth import Tenant as _Tenant
+            tenant_row = sess.query(_Tenant).filter(_Tenant.id == booking.tenant_id).first()
+            if tenant_row and tenant_row.settings:
+                raw_rate = tenant_row.settings.get("tax_rate_pct")
+                if raw_rate is not None:
+                    tax_rate_pct = float(raw_rate)
+                tax_label = tenant_row.settings.get("tax_label", "Tax")
+    except Exception:
+        # If settings can't be read, default to no tax line — better to be
+        # silent than to show a wrong rate.
+        pass
+
+    tax_rate = tax_rate_pct / 100.0
+    if tax_rate > 0:
+        # total is tax-inclusive (matches the price the customer agreed to).
+        base_price = round(total_price / (1 + tax_rate), 2)
+        gst = round(total_price - base_price, 2)
+    else:
+        base_price = total_price
+        gst = 0.0
     status_val = booking.status.value if hasattr(booking.status, "value") else str(booking.status)
     is_paid = status_val in ("CONFIRMED", "COMPLETED")
 
@@ -551,11 +584,13 @@ def _build_invoice_html(booking: Booking, lead_name: str, destination: str, trav
           PAID
         </div>"""
 
+    # Tier 9D: render the configured tax label + actual rate from tenant settings.
     gst_row = ""
+    tax_display = f"{tax_label} ({tax_rate_pct:g}%)" if tax_rate_pct > 0 else tax_label
     if gst > 0:
         gst_row = f"""
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569">GST (18%)</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569">{tax_display}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569">1</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;text-align:right">{fmt(gst)}</td>
         </tr>"""
@@ -757,7 +792,7 @@ def _build_invoice_html(booking: Booking, lead_name: str, destination: str, trav
     <div class="section-title">Invoice Summary</div>
     <div class="totals-box">
       <div class="totals-row"><span>Base Package</span><span>{fmt(base_price)}</span></div>
-      {"<div class='totals-row'><span>GST (18%)</span><span>" + fmt(gst) + "</span></div>" if gst > 0 else ""}
+      {"<div class='totals-row'><span>" + tax_display + "</span><span>" + fmt(gst) + "</span></div>" if gst > 0 else ""}
       <div class="totals-row grand"><span>Total Payable</span><span>{fmt(total_price)}</span></div>
     </div>
 

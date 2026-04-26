@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Numeric, Enum as SAEnum
@@ -202,10 +202,22 @@ def list_quotations(
 )
 def create_quotation(
     payload:   QuotationCreate,
+    request:   Request,
     db:        Session = Depends(get_db),
     tenant_id: int     = Depends(require_tenant),
     _:         dict    = Depends(_any_staff),
 ):
+    """
+    Tier 9A: honors the Idempotency-Key request header.
+    Repeat requests with the same key return the originally-created quotation.
+    """
+    from app.core.idempotency import idempotency_store
+    idem_key = request.headers.get("Idempotency-Key", "")
+    if idem_key:
+        cached = idempotency_store.get(tenant_id, "quotations.create", idem_key)
+        if cached is not None:
+            return cached
+
     total_price = round(payload.base_price * (1 + payload.margin_pct / 100), 2)
     q = Quotation(
         tenant_id    = tenant_id,
@@ -225,6 +237,10 @@ def create_quotation(
     db.commit()
     db.refresh(q)
     logger.info(f"Quotation created: tenant={tenant_id} id={q.id} destination={q.destination}")
+
+    if idem_key:
+        idempotency_store.set(tenant_id, "quotations.create", idem_key, q)
+
     return q
 
 

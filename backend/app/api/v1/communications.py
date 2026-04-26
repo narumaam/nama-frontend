@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.communications import Message, CommunicationThread, DraftResponse, MessageDraftRequest, MessageChannel, MessageRole, ThreadStatus
@@ -271,6 +271,7 @@ def _deliver_via_smtp(db: Session, tenant_id: int, to_email: Optional[str], subj
 @router.post("/send", response_model=Message)
 async def send_message(
     message: Message,
+    request: Request,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -283,8 +284,21 @@ async def send_message(
     persists to ConversationMessage with the resulting status (SENT / FAILED
     / QUEUED), regardless of delivery success — so the message shows up in
     the thread either way and the agent can retry from the UI.
+
+    Tier 9A: Idempotency-Key header support. A repeated send with the same
+    key returns the original Message instead of double-firing the WhatsApp
+    or SMTP send (which would spam the customer).
     """
     from app.api.v1.leads import _NOTE_PREFIX, _NOTE_SEP
+    from app.core.idempotency import idempotency_store
+
+    # Tier 9A: idempotency check — critical for outbound channels because a
+    # double-send is customer-visible and embarrassing.
+    idem_key = request.headers.get("Idempotency-Key", "")
+    if idem_key:
+        cached = idempotency_store.get(current_user.tenant_id, "comms.send", idem_key)
+        if cached is not None:
+            return cached
 
     message.timestamp = datetime.now(timezone.utc)
     message.role = MessageRole.AGENT
@@ -343,6 +357,10 @@ async def send_message(
         # Best-effort — the legacy notes append above is still committed below.
         pass
     db.commit()
+
+    # Tier 9A: cache so retries with the same Idempotency-Key don't double-fire.
+    if idem_key:
+        idempotency_store.set(current_user.tenant_id, "comms.send", idem_key, message)
 
     return message
 

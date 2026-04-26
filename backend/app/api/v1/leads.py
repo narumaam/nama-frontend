@@ -114,6 +114,38 @@ def create_lead_manual(
         if cached is not None:
             return cached
 
+    # Tier 9C: lead deduplication on phone OR email within the tenant.
+    # If a non-WON/LOST lead already exists for this contact, return it
+    # instead of creating a duplicate. Common scenario: same customer fills
+    # the website widget twice in one session, or staff adds a lead the
+    # WhatsApp webhook already created.
+    if (body.phone or body.email):
+        from app.models.leads import Lead as _Lead, LeadStatus as _LeadStatus
+        dedup_q = db.query(_Lead).filter(_Lead.tenant_id == tenant_id)
+        if body.phone and body.email:
+            dedup_q = dedup_q.filter(
+                (_Lead.phone == body.phone) | (_Lead.email == body.email.lower())
+            )
+        elif body.phone:
+            dedup_q = dedup_q.filter(_Lead.phone == body.phone)
+        else:
+            dedup_q = dedup_q.filter(_Lead.email == body.email.lower())
+        existing = dedup_q.filter(
+            _Lead.status.notin_([_LeadStatus.WON, _LeadStatus.LOST])
+        ).order_by(_Lead.created_at.desc()).first()
+        if existing:
+            # Append the new enquiry as a note rather than create a dup.
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+            new_note_text = (body.notes or body.raw_message or "Repeat enquiry")[:500]
+            extra_note = f"\n[Repeat enquiry {ts}] {new_note_text}"
+            existing.notes = (existing.notes or "") + extra_note
+            existing.updated_at = datetime.now(timezone.utc)
+            db.commit()
+            db.refresh(existing)
+            if idem_key:
+                idempotency_store.set(tenant_id, "leads.create", idem_key, existing)
+            return existing
+
     # Derive sender_id from email or phone if not provided (sender_id is non-null in DB).
     sender_id = (body.sender_id or body.email or body.phone or f"manual:{tenant_id}:{datetime.now(timezone.utc).timestamp()}")
 

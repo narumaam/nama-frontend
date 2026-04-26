@@ -154,6 +154,62 @@ def _docs_access_check(request: Request) -> None:
         raise _HE(status_code=404, detail="Not Found")
 
 
+# Tier 9A: global error envelope.
+# All 4xx/5xx responses are normalized to:
+#   { "error": { "code": "<machine_code>", "message": "<human_text>", "details": {...} } }
+# This makes the frontend's error-handling code uniform across endpoints.
+# Legacy `{detail: ...}` is preserved inside `details.legacy_detail` for back-compat.
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse as _JSONResponse
+from starlette.exceptions import HTTPException as _StarletteHTTPException
+import logging as _logging
+_log = _logging.getLogger(__name__)
+
+
+def _envelope(code: str, message: str, status_code: int, details: dict | None = None) -> _JSONResponse:
+    body = {"error": {"code": code, "message": message, "details": details or {}}}
+    return _JSONResponse(status_code=status_code, content=body)
+
+
+@app.exception_handler(_StarletteHTTPException)
+async def _envelope_http_exception(request: Request, exc: _StarletteHTTPException):
+    # FastAPI's HTTPException is a subclass; this catches both.
+    detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    code_map = {400: "bad_request", 401: "unauthorized", 403: "forbidden",
+                404: "not_found", 409: "conflict", 410: "gone", 422: "unprocessable",
+                429: "rate_limited", 500: "internal_error", 503: "service_unavailable"}
+    return _envelope(
+        code=code_map.get(exc.status_code, f"http_{exc.status_code}"),
+        message=detail or "An error occurred",
+        status_code=exc.status_code,
+        details={"legacy_detail": exc.detail} if not isinstance(exc.detail, str) else None,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def _envelope_validation_error(request: Request, exc: RequestValidationError):
+    # Pydantic 422s — preserve the field-level error list under details.
+    return _envelope(
+        code="validation_error",
+        message="Request validation failed",
+        status_code=422,
+        details={"errors": exc.errors()},
+    )
+
+
+@app.exception_handler(Exception)
+async def _envelope_unhandled(request: Request, exc: Exception):
+    # Last-resort catcher for unexpected errors. Logged so Sentry/log aggregation
+    # picks them up, but returned as a sanitized envelope (no stack trace leaks).
+    _log.exception("Unhandled exception on %s %s: %s", request.method, request.url.path, exc)
+    return _envelope(
+        code="internal_error",
+        message="Internal server error",
+        status_code=500,
+        details={"path": str(request.url.path)},
+    )
+
+
 # Tier 8B: gated re-implementation of /api/docs, /api/redoc, /api/openapi.json.
 # Returns 404 to anyone without an R0/R1 access token, indistinguishable from
 # a missing route. Set DOCS_PUBLIC=true env var to bypass for local dev.
@@ -315,6 +371,10 @@ app.include_router(communications.router,  prefix="/api/v1/comms",        tags=[
 app.include_router(content.router,         prefix="/api/v1/content",      tags=["content"])
 app.include_router(corporate.router,       prefix="/api/v1/corporate",    tags=["corporate"])
 app.include_router(financials.router,      prefix="/api/v1/finance",      tags=["financials"])
+
+#   Tier 9B: GDPR / DPDP data export + deletion-request endpoints
+from app.api.v1 import data_export as _data_export_router
+app.include_router(_data_export_router.router, prefix="/api/v1/me", tags=["data-export"])
 
 #   Bookings with Saga pattern (HS-3)
 app.include_router(bookings.router,        prefix="/api/v1/bookings",     tags=["bookings"])

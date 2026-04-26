@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from datetime import datetime, timezone
@@ -284,39 +285,100 @@ async def get_itinerary(
     )
 
 
+class ItineraryPatchBody(BaseModel):
+    """
+    Tier 9A: full PATCH body for /itineraries/{id}.
+
+    Accepts the fields the frontend's "Save" button sends (days_json) AND the
+    status transition fields the staff endpoints use. Both are optional —
+    callers send what they want to change.
+    """
+    status: Optional[str] = None
+    days_json: Optional[list] = None
+    title: Optional[str] = None
+    destination: Optional[str] = None
+    duration_days: Optional[int] = None
+    total_price: Optional[float] = None
+    currency: Optional[str] = None
+
+
 @router.patch("/{itinerary_id}", response_model=ItineraryOut)
-async def update_itinerary_status(
+async def update_itinerary(
     itinerary_id: int,
-    status: str,
+    request: Request,
+    body: Optional[ItineraryPatchBody] = None,
+    status: Optional[str] = None,  # legacy query-param support
     tenant_id: int = Depends(require_tenant),
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Update itinerary status (e.g., DRAFT -> SENT, SENT -> ACCEPTED).
+    Update fields on an itinerary. All body fields are optional; pass only
+    what you want to change.
+
+    Tier 9A: optimistic concurrency via If-Match header.
+    Frontend stores `updated_at` from the last fetched itinerary. On save:
+      If-Match: <updated_at_iso8601>
+    If the server-side updated_at differs (someone else saved meanwhile),
+    return 409 Conflict so the user sees a "stale view" prompt instead of
+    silently overwriting.
+
+    Legacy: status= query param still works for back-compat with older clients.
     """
     itinerary = get_or_404(db, Itinerary, itinerary_id, tenant_id, "Itinerary not found")
 
-    # Validate status
-    try:
-        new_status = ItineraryStatus[status.upper()]
-    except KeyError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status. Must be one of: {[s.value for s in ItineraryStatus]}",
+    # Tier 9A: optimistic-locking gate. Honored only when client sends If-Match.
+    if_match = request.headers.get("If-Match", "").strip().strip('"')
+    if if_match:
+        current_etag = (
+            itinerary.updated_at.isoformat()
+            if getattr(itinerary, "updated_at", None) else ""
         )
+        if current_etag != if_match:
+            raise HTTPException(
+                status_code=409,
+                detail="Itinerary has been modified by another user. Refresh and retry.",
+            )
 
-    # Update status and timestamp
-    itinerary.status = new_status
-    if new_status == ItineraryStatus.SENT:
-        itinerary.sent_at = datetime.now(timezone.utc)
-    elif new_status == ItineraryStatus.ACCEPTED:
-        itinerary.accepted_at = datetime.now(timezone.utc)
-    elif new_status == ItineraryStatus.REJECTED:
-        itinerary.rejected_at = datetime.now(timezone.utc)
-    elif new_status == ItineraryStatus.EXPIRED:
-        itinerary.expires_at = datetime.now(timezone.utc)
+    # Resolve status from either source (body wins over legacy query param).
+    incoming_status = (body.status if body else None) or status
+    if incoming_status:
+        try:
+            new_status = ItineraryStatus[incoming_status.upper()]
+        except KeyError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status. Must be one of: {[s.value for s in ItineraryStatus]}",
+            )
+        itinerary.status = new_status
+        if new_status == ItineraryStatus.SENT:
+            itinerary.sent_at = datetime.now(timezone.utc)
+        elif new_status == ItineraryStatus.ACCEPTED:
+            itinerary.accepted_at = datetime.now(timezone.utc)
+        elif new_status == ItineraryStatus.REJECTED:
+            itinerary.rejected_at = datetime.now(timezone.utc)
+        elif new_status == ItineraryStatus.EXPIRED:
+            itinerary.expires_at = datetime.now(timezone.utc)
 
+    # Tier 9A: actually persist days_json + other body fields. This was the
+    # latent bug — the frontend's Save button has been sending these in body
+    # but the endpoint signature treated them as query params, so they were
+    # silently 422'd or ignored.
+    if body:
+        if body.days_json is not None:
+            itinerary.days_json = body.days_json
+        if body.title is not None:
+            itinerary.title = body.title
+        if body.destination is not None:
+            itinerary.destination = body.destination
+        if body.duration_days is not None:
+            itinerary.duration_days = body.duration_days
+        if body.total_price is not None:
+            itinerary.total_price = body.total_price
+        if body.currency is not None:
+            itinerary.currency = body.currency
+
+    itinerary.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(itinerary)
 
