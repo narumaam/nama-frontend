@@ -1,10 +1,10 @@
 # NAMA OS — Project Memory
 
-## Current Status: ✅ LAUNCH-READY · Tiers 1–4 complete (T-1 day)
+## Current Status: ✅ LAUNCH-READY · Tiers 1–5 complete (T-1 day)
 
-**Last major commit:** `c198163` — Tier 4D forecast live, holidays/visa illustrative (2026-04-26)
-**Latest work (2026-04-26):** Tier 4 shipped — Batches A (SEED leak fixes), B (inert button sweep), C (itinerary edit/preview/PDF), D (live forecast + honest illustrative labels). KEEP rollup at TIER-4-PROGRESS-2026-04-26.md.
-**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (polish sweep)
+**Latest work (2026-04-26 session 2):** Tier 5 shipped — Batches A (Razorpay webhook HMAC fix — was P0 security bug), B (kanban drag-drop persists), C (itinerary builder mobile responsive), D (booking detail Documents+Payments tabs restored with real data). KEEP rollup at TIER-5-PROGRESS-2026-04-26.md.
+**Previous work (2026-04-26 session 1):** Tier 4 shipped — Batches A (SEED leak fixes), B (inert button sweep), C (itinerary edit/preview/PDF), D (live forecast + honest illustrative labels).
+**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (honesty polish) → Tier 5 (production hardening: payments, kanban, mobile, restored booking tabs)
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
