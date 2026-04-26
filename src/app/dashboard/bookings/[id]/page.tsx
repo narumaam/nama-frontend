@@ -144,16 +144,41 @@ const DOC_TYPE_COLORS: Record<string, string> = {
 };
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
-// For launch: only Overview / Itinerary / Notes are surfaced. Flights, Hotels,
-// Transport, Documents, Payments tabs ship with real backend wiring in the
-// next release — currently each one renders hardcoded mock data indexed by
-// (booking.id % 2), which is misleading on a real customer's booking.
+// Tab set restored in Tier 5D. Documents + Payments now back on real data
+// (booking_items + /api/v1/payments/ledger?booking_id=X) with honest empty
+// states. Flights / Hotels / Transport remain off the tab strip — they would
+// duplicate what the Itinerary tab already renders in proper sequence; we'll
+// expose them as filterable chips inside Itinerary in a future iteration.
 const TABS = [
   { id: "overview",  label: "Overview",  icon: LayoutGrid },
   { id: "itinerary", label: "Itinerary", icon: Map },
+  { id: "documents", label: "Documents", icon: FileText },
+  { id: "payments",  label: "Payments",  icon: Download },
   { id: "notes",     label: "Notes",     icon: StickyNote },
 ] as const;
 type TabId = typeof TABS[number]["id"];
+
+// LedgerEntry shape returned by GET /api/v1/payments/ledger?booking_id=X
+interface LedgerEntryRow {
+  id: number;
+  entry_type: string;          // CREDIT | DEBIT
+  amount: number;
+  currency: string;
+  description: string;
+  reference?: string | null;
+  created_at: string;
+  booking_id?: number | null;
+}
+
+// BookingItem shape — used to surface vouchers / confirmations as documents
+interface BookingItemRow {
+  id: number;
+  item_name: string;
+  item_type?: string | null;
+  voucher_url?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -687,6 +712,132 @@ function DocumentsTab({ booking }: { booking: Booking }) {
   );
 }
 
+// ── Tab: Documents (Tier 5D — backed by booking_items.voucher_url) ────────────
+function DocumentsTabLive({ items, loading }: { items: BookingItemRow[]; loading: boolean }) {
+  const docs = items.filter(it => it.voucher_url);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-slate-400">
+        <Loader size={18} className="animate-spin" />
+      </div>
+    );
+  }
+  if (docs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+          <FileText size={20} className="text-slate-400" />
+        </div>
+        <h3 className="text-sm font-bold text-slate-700">No documents yet</h3>
+        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+          Vouchers and confirmations will appear here as you upload PDFs against
+          this booking&apos;s items, or as the AI generates them on confirmation.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {docs.map(d => (
+        <a
+          key={d.id}
+          href={d.voucher_url || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl p-4 hover:border-[#14B8A6]/30 hover:shadow-sm transition-all"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center flex-shrink-0">
+            <FileText size={18} className="text-[#14B8A6]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-slate-800 truncate">{d.item_name}</div>
+            <div className="flex items-center gap-2 mt-0.5">
+              {d.item_type && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{d.item_type}</span>}
+              {d.start_date && <span className="text-[10px] text-slate-400">{d.start_date.slice(0, 10)}</span>}
+            </div>
+          </div>
+          <ExternalLink size={15} className="text-slate-300" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+// ── Tab: Payments (Tier 5D — backed by /api/v1/payments/ledger?booking_id) ────
+function PaymentsTabLive({ booking, entries, loading }: { booking: Booking; entries: LedgerEntryRow[]; loading: boolean }) {
+  const received = entries
+    .filter(e => e.entry_type === 'CREDIT')
+    .reduce((sum, e) => sum + (e.amount || 0), 0);
+  const pending = Math.max(0, booking.total_price - received);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-slate-400">
+        <Loader size={18} className="animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-slate-100 rounded-2xl p-4">
+          <div className="text-xs text-slate-400 uppercase font-semibold mb-1">Total Value</div>
+          <div className="text-xl font-extrabold text-[#1B2E5E]">{fmtINR(booking.total_price)}</div>
+        </div>
+        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+          <div className="text-xs text-emerald-600 uppercase font-semibold mb-1">Received</div>
+          <div className="text-xl font-extrabold text-emerald-700">{fmtINR(received)}</div>
+        </div>
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <div className="text-xs text-amber-600 uppercase font-semibold mb-1">Outstanding</div>
+          <div className="text-xl font-extrabold text-amber-700">{fmtINR(pending)}</div>
+        </div>
+      </div>
+
+      {/* Ledger entries */}
+      {entries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-white border border-slate-100 rounded-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+            <Download size={20} className="text-slate-400" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-700">No payments recorded yet</h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm">
+            Payment entries appear here when Razorpay / Stripe webhooks confirm
+            captures, or when you manually record a deposit against this booking.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+          <div className="grid grid-cols-12 gap-3 px-4 py-2 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <div className="col-span-3">Date</div>
+            <div className="col-span-2">Type</div>
+            <div className="col-span-4">Description</div>
+            <div className="col-span-3 text-right">Amount</div>
+          </div>
+          {entries.map(e => (
+            <div key={e.id} className="grid grid-cols-12 gap-3 px-4 py-3 border-b border-slate-50 last:border-b-0 text-sm">
+              <div className="col-span-3 text-slate-500 text-xs">{e.created_at.slice(0, 10)}</div>
+              <div className="col-span-2">
+                <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                  e.entry_type === 'CREDIT' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                }`}>
+                  {e.entry_type}
+                </span>
+              </div>
+              <div className="col-span-4 text-slate-700 truncate">{e.description}</div>
+              <div className={`col-span-3 text-right font-bold ${e.entry_type === 'CREDIT' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {e.entry_type === 'CREDIT' ? '+' : '-'}{fmtINR(e.amount)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Tab: Payments ──────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function PaymentsTab({ booking }: { booking: Booking }) {
@@ -857,6 +1008,36 @@ export default function BookingDetailPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [leadEmail, setLeadEmail] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [bookingItems, setBookingItems] = useState<BookingItemRow[]>([]);
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntryRow[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+
+  // Fetch booking_items + ledger entries when the booking lands.
+  // Both are best-effort; on failure the tabs render their empty state.
+  useEffect(() => {
+    if (!booking) return;
+    let cancelled = false;
+    setDocsLoading(true);
+    setPaymentsLoading(true);
+    import('@/lib/api').then(({ api }) => {
+      // booking_items: enriched booking detail endpoint — fall back gracefully.
+      api.get<{ items?: BookingItemRow[] } | BookingItemRow[]>(`/api/v1/bookings/${booking.id}/items`)
+        .then((r) => {
+          if (cancelled) return;
+          const list = Array.isArray(r) ? r : Array.isArray(r?.items) ? r.items : [];
+          setBookingItems(list);
+        })
+        .catch(() => { if (!cancelled) setBookingItems([]); })
+        .finally(() => { if (!cancelled) setDocsLoading(false); });
+
+      api.get<LedgerEntryRow[]>(`/api/v1/payments/ledger?booking_id=${booking.id}`)
+        .then((r) => { if (!cancelled) setLedgerEntries(Array.isArray(r) ? r : []); })
+        .catch(() => { if (!cancelled) setLedgerEntries([]); })
+        .finally(() => { if (!cancelled) setPaymentsLoading(false); });
+    });
+    return () => { cancelled = true; };
+  }, [booking]);
 
   // Derive enrichment from seed
   const enriched = booking ? ENRICHMENT[(booking.id % 6)] : ENRICHMENT[0];
@@ -1101,6 +1282,8 @@ export default function BookingDetailPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {activeTab === "overview"   && <OverviewTab   booking={booking} enriched={enriched} />}
         {activeTab === "itinerary"  && <ItineraryTab  booking={booking} enriched={enriched} />}
+        {activeTab === "documents"  && <DocumentsTabLive items={bookingItems}    loading={docsLoading} />}
+        {activeTab === "payments"   && <PaymentsTabLive booking={booking} entries={ledgerEntries} loading={paymentsLoading} />}
         {activeTab === "notes"      && <NotesTab      booking={booking} enriched={enriched} />}
       </div>
     </div>
