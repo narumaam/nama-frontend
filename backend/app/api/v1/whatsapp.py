@@ -147,6 +147,8 @@ async def _process_inbound(msg: dict, value: dict, db: Session):
             )
             db.commit()
             logger.info("_process_inbound: appended to existing lead %s", existing.id)
+            target_lead_id = existing.id
+            target_tenant_id = existing.tenant_id
         else:
             # Create a new Lead — default to tenant 1 (real impl: map phone_id → tenant)
             new_lead = Lead(
@@ -163,6 +165,43 @@ async def _process_inbound(msg: dict, value: dict, db: Session):
             db.add(new_lead)
             db.commit()
             logger.info("_process_inbound: created new lead from %s", wa_from)
+            target_lead_id = new_lead.id
+            target_tenant_id = new_lead.tenant_id
+
+        # Tier 7B: persist the inbound message to ConversationMessage so it
+        # appears in /threads alongside any historical notes. Dedupe via the
+        # Meta wamid (msg.id) so retries don't insert duplicates.
+        try:
+            from app.models.conversation_messages import (
+                ConversationMessage, MessageDirection, MessageDeliveryStatus,
+            )
+            wa_msg_id = msg.get("id") or ""
+            if wa_msg_id:
+                already = (
+                    db.query(ConversationMessage)
+                    .filter(
+                        ConversationMessage.tenant_id == target_tenant_id,
+                        ConversationMessage.external_id == wa_msg_id,
+                    )
+                    .first()
+                )
+                if already:
+                    return
+            cm = ConversationMessage(
+                tenant_id=target_tenant_id,
+                lead_id=target_lead_id,
+                channel="WHATSAPP",
+                direction=MessageDirection.INBOUND.value,
+                status=MessageDeliveryStatus.RECEIVED.value,
+                content=text or "",
+                external_id=wa_msg_id or None,
+                peer_address=phone_display,
+                author_name=contact_name or phone_display,
+            )
+            db.add(cm)
+            db.commit()
+        except Exception as cm_err:
+            logger.warning("_process_inbound: ConversationMessage insert failed: %s", cm_err)
 
     except Exception as e:
         logger.error("_process_inbound error: %s", e)

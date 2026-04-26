@@ -336,6 +336,51 @@ def poll_replies_endpoint(
         else:
             unmatched += 1
 
+        # Tier 7B: persist the inbound email to ConversationMessage so it
+        # appears in /threads. Match the lead via the quotation's lead_id when
+        # we threaded successfully; otherwise leave lead_id null and surface
+        # the message as an unattributed inbound. Dedupe via Message-ID header.
+        try:
+            from app.models.conversation_messages import (
+                ConversationMessage, MessageDirection, MessageDeliveryStatus,
+            )
+            msg_id_header = (reply.get("message_id") or "").strip("<> ")
+            target_lead_id = None
+            if matched_quotation_id:
+                try:
+                    from app.api.v1.quotations import Quotation as _Q
+                    q_row = db.query(_Q).filter(_Q.id == matched_quotation_id).first()
+                    target_lead_id = getattr(q_row, "lead_id", None) if q_row else None
+                except Exception:
+                    target_lead_id = None
+            if msg_id_header:
+                already_cm = (
+                    db.query(ConversationMessage)
+                    .filter(
+                        ConversationMessage.tenant_id == tenant_id,
+                        ConversationMessage.external_id == msg_id_header,
+                    )
+                    .first()
+                )
+            else:
+                already_cm = None
+            if not already_cm:
+                cm = ConversationMessage(
+                    tenant_id=tenant_id,
+                    lead_id=target_lead_id,
+                    channel="EMAIL",
+                    direction=MessageDirection.INBOUND.value,
+                    status=MessageDeliveryStatus.RECEIVED.value,
+                    content=(reply.get("body_text") or "")[:8000],
+                    external_id=msg_id_header or None,
+                    peer_address=reply.get("from_email"),
+                    author_name=reply.get("from_name") or reply.get("from_email"),
+                )
+                db.add(cm)
+                db.commit()
+        except Exception as cm_err:
+            logger.warning("IMAP poll: ConversationMessage insert failed: %s", cm_err)
+
         reply_summary.append({
             "from_email":    reply.get("from_email"),
             "subject":       reply.get("subject"),
