@@ -255,13 +255,48 @@ def verify_stripe_signature(payload_bytes: bytes, sig_header: str) -> bool:
         return False
 
 
-def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) -> bool:
+def verify_razorpay_webhook_signature(raw_body: bytes, signature: str) -> bool:
     """
-    Verify Razorpay webhook payment signature.
+    Verify a Razorpay WEBHOOK signature.
+
+    Per Razorpay docs (https://razorpay.com/docs/webhooks/validate-test/):
+      X-Razorpay-Signature = hmac_sha256(raw_request_body, RAZORPAY_WEBHOOK_SECRET)
+
+    The signature is computed over the EXACT raw bytes Razorpay POSTed —
+    no parsing, no field reordering, no string concatenation. Any reformat
+    will make the comparison fail.
+
     Acceptance Gate: invalid signature → return False → caller raises HTTP 400.
     """
     secret = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
-    if not secret:
+    if not secret or not signature:
+        return False
+
+    try:
+        expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+        return hmac.compare_digest(expected, signature)
+    except Exception:
+        return False
+
+
+def verify_razorpay_payment_signature(order_id: str, payment_id: str, signature: str) -> bool:
+    """
+    Verify a Razorpay client-side PAYMENT signature.
+
+    This is a DIFFERENT flow from webhook verification — used after the
+    Razorpay Checkout SDK calls handler() with razorpay_order_id +
+    razorpay_payment_id + razorpay_signature on the frontend.
+
+    Per Razorpay docs:
+      razorpay_signature = hmac_sha256(order_id + "|" + payment_id,
+                                       RAZORPAY_KEY_SECRET)
+
+    Note this uses RAZORPAY_KEY_SECRET (the API key secret), NOT
+    RAZORPAY_WEBHOOK_SECRET. They are different secrets and must not
+    be conflated.
+    """
+    secret = os.getenv("RAZORPAY_KEY_SECRET", "")
+    if not secret or not signature:
         return False
 
     try:
@@ -270,6 +305,18 @@ def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) ->
         return hmac.compare_digest(expected, signature)
     except Exception:
         return False
+
+
+# Backward-compat alias — preserved so any caller still importing the old name
+# keeps working. New code should call verify_razorpay_webhook_signature
+# directly. Marked for removal once we've migrated all call sites.
+def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) -> bool:
+    """DEPRECATED: legacy alias that misused webhook secret with payment-signature
+    formula. Kept temporarily so unmigrated imports don't break. Do not use
+    for webhook verification — call verify_razorpay_webhook_signature(raw_body,
+    signature) instead, or verify_razorpay_payment_signature for client-side
+    payment confirmation."""
+    return verify_razorpay_payment_signature(order_id, payment_id, signature)
 
 
 # ── Webhook event persistence ─────────────────────────────────────────────────

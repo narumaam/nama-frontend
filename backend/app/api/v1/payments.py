@@ -21,7 +21,7 @@ from app.api.v1.deps import require_tenant, get_token_claims
 from app.models.payments import Payment, PaymentStatus, PaymentProvider, LedgerEntry
 from app.core.payments import (
     verify_stripe_signature,
-    verify_razorpay_signature,
+    verify_razorpay_webhook_signature,
     persist_webhook_event,
 )
 from app.core.rls import tenant_query
@@ -228,15 +228,19 @@ async def razorpay_webhook(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
-    # Razorpay passes order_id + payment_id + signature for payment events
+    # Razorpay webhooks are signed with HMAC-SHA256 over the RAW request body
+    # (not over individual fields). The signature is in X-Razorpay-Signature.
+    # See: https://razorpay.com/docs/webhooks/validate-test/
     event_type = payload.get("event", "")
     payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
     order_id = payment_data.get("order_id", "")
     payment_id = payment_data.get("id", "")
     signature = request.headers.get("x-razorpay-signature", "")
 
-    # Gate: reject if signature invalid
-    if not verify_razorpay_signature(order_id, payment_id, signature):
+    # Gate: reject if signature invalid. We pass the RAW body bytes captured
+    # at line 224, before json.loads — even whitespace differences would
+    # break the HMAC comparison.
+    if not verify_razorpay_webhook_signature(body, signature):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid Razorpay webhook signature",
