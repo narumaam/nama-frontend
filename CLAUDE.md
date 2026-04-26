@@ -1,10 +1,10 @@
 # NAMA OS — Project Memory
 
-## Current Status: ✅ LAUNCH-READY · Tiers 1–7 complete (T-1 day)
+## Current Status: ✅ LAUNCH-READY · Tiers 1–8 complete (T-1 day)
 
-**Latest work (2026-04-26 session 4):** Tier 7 shipped — Batches A (ConversationMessage model + Alembic migration + /threads merge layer), B (WhatsApp + IMAP webhooks write inbound rows with dedup), C (/comms/send actually POSTs to WhatsApp Cloud API / tenant SMTP and persists OUTBOUND with status). KEEP rollup at TIER-7-PROGRESS-2026-04-26.md. End-to-end two-way conversation persistence is live.
-**Previous work (2026-04-26 session 3):** Tier 6 shipped — comms threads, real itinerary tab, a11y baseline.
-**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (honesty polish) → Tier 5 (production hardening: payments, kanban, mobile, restored booking tabs) → Tier 6 (feature surface: comms threads, real itinerary tab, a11y baseline) → Tier 7 (two-way conversation persistence: ConversationMessage table, webhook writes, real outbound delivery)
+**Latest work (2026-04-26 session 5):** Tier 8 shipped — Production hardening from deep audit. Batches A (WhatsApp multi-tenant fix), B (auth-gate /api/docs), C (quotation accept-snapshot + migration), D (customer portal HMAC tokens), E (idempotency keys), F (GitHub Actions CI gate), G (rollback runbook). Score lift: 6.4 → 7.4 projected. KEEP rollup at TIER-8-PROGRESS-2026-04-26.md.
+**Previous work (2026-04-26 session 4):** Tier 7 shipped — two-way conversation persistence (ConversationMessage table, webhook writes, real outbound delivery).
+**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (honesty polish) → Tier 5 (production hardening: payments, kanban, mobile, restored booking tabs) → Tier 6 (feature surface: comms threads, real itinerary tab, a11y baseline) → Tier 7 (two-way conversation persistence) → Tier 8 (production hardening from audit: multi-tenant, security, data integrity, DevOps)
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
