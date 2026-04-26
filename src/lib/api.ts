@@ -289,7 +289,7 @@ export const authApi = {
       tenant_id: number;
       role: string;
       email: string;
-    }>('/api/v1/auth/register-organization', data),
+    }>('/api/v1/register-organization', data),
   validateInvite: (token: string) =>
     api.get<{email: string; role: string; tenant_id: number; token?: string; message?: string; company_name?: string}>(`/api/v1/settings/team/invite/accept/${token}`),
 }
