@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
-from app.db.base import Base
+from app.db.session import Base
 
 
 class EmailTemplate(Base):
