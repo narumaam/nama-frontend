@@ -1121,19 +1121,30 @@ function StepLaunch({ elapsed, onDashboard, onFirstLead }: {
   onFirstLead: () => void
 }) {
   const [burst, setBurst] = useState(false)
+  // Tier 6C: respect prefers-reduced-motion. Users with vestibular sensitivity
+  // get a static celebration instead of the spinning confetti burst.
+  const [reducedMotion, setReducedMotion] = useState(false)
 
   useEffect(() => {
-    // Trigger confetti burst shortly after mount
-    const t = setTimeout(() => setBurst(true), 200)
-    return () => clearTimeout(t)
+    if (typeof window === 'undefined') return
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReducedMotion(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
+    mql.addEventListener('change', handler)
+    // Skip the burst entirely if the user prefers reduced motion.
+    if (!mql.matches) {
+      const t = setTimeout(() => setBurst(true), 200)
+      return () => { clearTimeout(t); mql.removeEventListener('change', handler) }
+    }
+    return () => mql.removeEventListener('change', handler)
   }, [])
 
   return (
     <div className="flex flex-col items-center gap-6 py-4 text-center">
       {/* Confetti burst container */}
       <div className="relative flex items-center justify-center w-28 h-28">
-        {/* Particles */}
-        {CONFETTI_PARTICLES.map(p => (
+        {/* Particles — skipped when prefers-reduced-motion is set */}
+        {!reducedMotion && CONFETTI_PARTICLES.map(p => (
           <div
             key={p.id}
             className="absolute rounded-full pointer-events-none"

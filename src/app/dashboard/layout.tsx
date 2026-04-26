@@ -393,6 +393,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation menu"
               className="lg:hidden p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
             >
               <Menu size={20} />
@@ -406,6 +407,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             {/* Day / Night toggle */}
             <button
               onClick={toggleTheme}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
               title={isDark ? "Switch to light mode" : "Switch to dark mode"}
               className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors rounded-xl hover:bg-slate-100 dark:hover:bg-white/10"
             >
@@ -414,6 +416,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             {/* Notification bell */}
             <button
               onClick={() => setNotifOpen(o => !o)}
+              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
               className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
             >
               <Bell size={20} />
