@@ -15,7 +15,7 @@ import io
 import csv
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -91,6 +91,7 @@ class LeadCreateManual(BaseModel):
 )
 def create_lead_manual(
     body:      LeadCreateManual,
+    request:   Request,
     db:        Session = Depends(get_db),
     tenant_id: int     = Depends(require_tenant),
     _:         dict    = Depends(_any_agent_role),
@@ -98,8 +99,20 @@ def create_lead_manual(
     """
     Create a lead from the dashboard 'Add Lead' modal.
     Distinct from /leads/from-intentra (social signal) and /leads/import (CSV bulk).
+
+    Tier 8E: honors the Idempotency-Key request header. Repeated requests with
+    the same key (within 24h) return the originally-created lead instead of
+    creating duplicates — protects against double-click + network-retry bugs.
     """
     from app.models.leads import Lead as _Lead, LeadSource as _LeadSource, LeadStatus as _LeadStatus
+    from app.core.idempotency import idempotency_store
+
+    # Tier 8E: idempotency check. Fail-open if header is absent.
+    idem_key = request.headers.get("Idempotency-Key", "")
+    if idem_key:
+        cached = idempotency_store.get(tenant_id, "leads.create", idem_key)
+        if cached is not None:
+            return cached
 
     # Derive sender_id from email or phone if not provided (sender_id is non-null in DB).
     sender_id = (body.sender_id or body.email or body.phone or f"manual:{tenant_id}:{datetime.now(timezone.utc).timestamp()}")
@@ -141,6 +154,11 @@ def create_lead_manual(
         raise HTTPException(status_code=400, detail=f"Could not create lead: {exc}")
 
     distributed_cache.invalidate_pattern(f"leads:{tenant_id}:*")
+
+    # Tier 8E: cache the response so a same-key retry within 24h returns this row.
+    if idem_key:
+        idempotency_store.set(tenant_id, "leads.create", idem_key, lead)
+
     return lead
 
 
