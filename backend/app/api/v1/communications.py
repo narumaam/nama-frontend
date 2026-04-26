@@ -5,33 +5,137 @@ from app.schemas.communications import Message, CommunicationThread, DraftRespon
 from app.agents.comms import CommsAgent
 from app.api.v1.deps import get_current_user, RoleChecker
 from app.models.auth import UserRole
-from typing import List, Dict, Any
-from datetime import datetime, timedelta
+from app.models.leads import Lead, LeadStatus
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 comms_agent = CommsAgent()
 
+
+# Map a lead's source enum to the comms channel enum.
+# Anything we don't recognise lands in IN_APP so the thread still renders.
+def _source_to_channel(source: Optional[str]) -> MessageChannel:
+    s = (source or "").upper()
+    if "WHATSAPP" in s or s == "WA":
+        return MessageChannel.WHATSAPP
+    if "EMAIL" in s or "MAIL" in s or "GMAIL" in s or "OUTLOOK" in s:
+        return MessageChannel.EMAIL
+    return MessageChannel.IN_APP
+
+
+# Map a lead's CRM status to the thread status surface.
+# WON/LOST → ARCHIVED; CONTACTED/QUALIFIED waiting on lead → PENDING_REPLY; else ACTIVE.
+def _lead_to_thread_status(status: Optional[str]) -> ThreadStatus:
+    s = (status or "").upper()
+    if s in ("WON", "LOST", "CLOSED"):
+        return ThreadStatus.ARCHIVED
+    if s in ("CONTACTED", "PROPOSAL_SENT", "QUALIFIED"):
+        return ThreadStatus.PENDING_REPLY
+    return ThreadStatus.ACTIVE
+
+
+def _build_thread_from_lead(lead: Lead) -> CommunicationThread:
+    """
+    Build a CommunicationThread view from a single Lead row.
+
+    Each thread bundles:
+      - The lead's initial enquiry (CLIENT message, derived from suggested_reply
+        or the first note we have, falling back to a synthetic intro).
+      - All saved notes (AGENT messages by default, parsed from lead.notes).
+
+    This is a read-only projection — there is no ConversationMessage table yet.
+    Real two-way persistence will land when the WhatsApp / IMAP webhooks start
+    writing to a dedicated message store.
+    """
+    from app.api.v1.leads import _parse_notes
+
+    channel = _source_to_channel(getattr(lead, "source", None))
+    notes = _parse_notes(getattr(lead, "notes", None))
+
+    messages: List[Message] = []
+    thread_id = lead.id
+
+    # 1. Synthetic intro from the lead row itself — gives every thread a CLIENT
+    #    opener so the chat UI has something to render. Falls back gracefully
+    #    if the lead has no destination / suggested_reply.
+    intro_text = (getattr(lead, "suggested_reply", None) or "").strip()
+    if not intro_text:
+        dest = getattr(lead, "destination", None) or "their travel plans"
+        intro_text = f"New enquiry about {dest}."
+    messages.append(Message(
+        thread_id=thread_id,
+        channel=channel,
+        role=MessageRole.CLIENT,
+        content=intro_text,
+        timestamp=lead.created_at if getattr(lead, "created_at", None) else datetime.now(timezone.utc),
+    ))
+
+    # 2. Notes become AGENT messages in the thread, in chronological order.
+    for n in reversed(notes):  # _parse_notes returns newest-first; chat wants oldest-first
+        try:
+            ts = datetime.fromisoformat(n.created_at.replace("Z", "+00:00")) if n.created_at else datetime.now(timezone.utc)
+        except Exception:
+            ts = datetime.now(timezone.utc)
+        messages.append(Message(
+            thread_id=thread_id,
+            channel=channel,
+            role=MessageRole.AGENT,
+            content=n.content,
+            timestamp=ts,
+        ))
+
+    last_at = max(m.timestamp for m in messages) if messages else (lead.updated_at or lead.created_at or datetime.now(timezone.utc))
+
+    return CommunicationThread(
+        id=thread_id,
+        lead_id=lead.id,
+        tenant_id=lead.tenant_id,
+        status=_lead_to_thread_status(getattr(lead, "status", None)),
+        last_message_at=last_at,
+        messages=messages,
+    )
+
+
 @router.get("/threads", response_model=List[CommunicationThread])
 def get_active_threads(
     current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    limit: int = 50,
+    include_archived: bool = False,
 ):
     """
-    Get all active communication threads for the organization (M5).
+    Real communication threads for the current tenant (Tier 6A).
+
+    Each thread is derived from a Lead row + its parsed notes. Returns the
+    most recently updated leads first, capped at `limit` (default 50).
+
+    Set `include_archived=true` to surface WON/LOST leads as well.
     """
-    # Mocking threads for prototype
-    return [
-        CommunicationThread(
-            id=101,
-            lead_id=1,
-            tenant_id=current_user.tenant_id,
-            status=ThreadStatus.ACTIVE,
-            last_message_at=datetime.utcnow() - timedelta(minutes=15),
-            messages=[
-                Message(thread_id=101, channel=MessageChannel.WHATSAPP, role=MessageRole.CLIENT, content="Hi NAMA! My husband and I are planning a 5-day luxury trip to Dubai. We love fine dining and desert adventures.")
-            ]
-        )
-    ]
+    q = db.query(Lead).filter(Lead.tenant_id == current_user.tenant_id)
+    if not include_archived:
+        q = q.filter(Lead.status.notin_([LeadStatus.WON, LeadStatus.LOST])) if hasattr(LeadStatus, "WON") else q
+    leads = q.order_by(Lead.updated_at.desc().nullslast(), Lead.created_at.desc()).limit(limit).all()
+    return [_build_thread_from_lead(l) for l in leads]
+
+
+@router.get("/threads/{thread_id}", response_model=CommunicationThread)
+def get_thread(
+    thread_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Single-thread fetch. thread_id is the lead_id.
+    Returns 404 if the lead doesn't exist or belongs to another tenant.
+    """
+    lead = db.query(Lead).filter(
+        Lead.id == thread_id,
+        Lead.tenant_id == current_user.tenant_id,
+    ).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    return _build_thread_from_lead(lead)
 
 @router.post("/draft", response_model=DraftResponse)
 async def draft_communication(
@@ -78,15 +182,40 @@ async def send_message(
 ):
     """
     Send a message through the unified communication channel (M5).
-    This would trigger WhatsApp/Email APIs in a real app.
+
+    Tier 6A: real persistence. The outbound message is appended to the
+    underlying lead's notes column so it shows up in the thread on next
+    fetch. Channel-side delivery (WhatsApp Cloud API, Resend, etc.) still
+    requires customer-supplied creds — the function will short-circuit to
+    "stored only" when those env vars aren't set.
     """
-    # Prototype: Logic to record and 'send' the message
-    message.timestamp = datetime.utcnow()
+    from app.api.v1.leads import _NOTE_PREFIX, _NOTE_SEP
+
+    message.timestamp = datetime.now(timezone.utc)
     message.role = MessageRole.AGENT
-    
-    # Analyze sentiment for inbound client messages (to demo AI capability)
-    # (Simplified for the 'send' agent logic)
-    
+
+    lead = db.query(Lead).filter(
+        Lead.id == message.thread_id,
+        Lead.tenant_id == current_user.tenant_id,
+    ).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Persist outbound message as a structured note so it appears in the
+    # thread on next /threads/{id} fetch. Same format as POST /leads/{id}/notes.
+    now_iso = message.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+    author = (current_user.email if hasattr(current_user, "email") else None) or "Agent"
+    new_entry = f"{_NOTE_PREFIX} {now_iso} | {author} | {message.content}"
+    existing = (lead.notes or "").strip()
+    lead.notes = f"{existing}{_NOTE_SEP}{new_entry}" if existing else new_entry
+    lead.updated_at = datetime.now(timezone.utc)
+    db.commit()
+
+    # TODO Tier 7+: actual channel delivery —
+    #   if message.channel == WHATSAPP and WHATSAPP_TOKEN set: POST to Meta Cloud API
+    #   if message.channel == EMAIL    and SMTP configured:   send via TenantEmailConfig
+    # For now we record and return; UI sees the message in the next thread fetch.
+
     return message
 
 

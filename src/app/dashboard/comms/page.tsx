@@ -65,6 +65,9 @@ const TONES = [
   { value: "Formal",       label: "Formal",       icon: Star },
 ];
 
+// Tier 6A: This array is now used as offline / first-paint fallback only.
+// On mount the page fetches /api/v1/comms/threads and replaces it with real
+// threads. SEED preserves the demo experience when the backend is unreachable.
 const MOCK_HISTORY = [
   { id: 1, lead: "Ravi Mehta",   context: "Quote Sent",          channel: "whatsapp", sent_at: "2 hrs ago",   status: "delivered" },
   { id: 2, lead: "Priya Singh",  context: "Follow Up",           channel: "email",    sent_at: "Yesterday",   status: "opened" },
@@ -72,6 +75,32 @@ const MOCK_HISTORY = [
   { id: 4, lead: "Karan Kapoor", context: "Payment Reminder",    channel: "email",    sent_at: "3 days ago",  status: "delivered" },
   { id: 5, lead: "Deepika Nair", context: "Itinerary Ready",     channel: "whatsapp", sent_at: "4 days ago",  status: "replied" },
 ];
+
+interface ThreadRow {
+  id: number;
+  lead: string;
+  context: string;
+  channel: string;
+  sent_at: string;
+  status: string;
+}
+
+// Compact relative-time formatter for thread row "sent_at" column.
+// "5m" / "3h" / "2d" / "Mar 14"
+function relativeTimeShort(iso: string): string {
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '—';
+  const diff = Date.now() - t;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 // ── Follow-up Template Library ─────────────────────────────────────────────────
 interface FollowUpTemplate {
@@ -442,6 +471,39 @@ export default function CommsPage() {
       setSelectedLead(SEED_LEADS[0]);
     }).finally(() => setLeadsLoading(false));
   }, []);
+
+  // Tier 6A: fetch real comms threads from backend; map to ThreadRow shape so
+  // the existing "Recent Sent Messages" UI can render real data without a
+  // wholesale redesign. Falls back to MOCK_HISTORY only on real network failure.
+  const [threadRows, setThreadRows] = useState<ThreadRow[]>(MOCK_HISTORY);
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('nama_token') : null;
+    fetch('/api/v1/comms/threads?limit=20', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((threads: Array<{ id: number; lead_id: number; status: string; last_message_at: string; messages: Array<{ channel: string; content: string }> }>) => {
+        if (!Array.isArray(threads)) return;
+        // Empty list = brand-new tenant with no leads yet → render empty, NOT seed
+        const mapped: ThreadRow[] = threads.map((t) => {
+          const matchedLead = (leads.length > 0 ? leads : SEED_LEADS).find((l) => l.id === t.lead_id);
+          const lastMsg = t.messages && t.messages.length ? t.messages[t.messages.length - 1] : null;
+          const channel = (lastMsg?.channel || 'IN_APP').toLowerCase();
+          return {
+            id: t.id,
+            lead: matchedLead?.full_name || `Lead #${t.lead_id}`,
+            context: lastMsg?.content?.slice(0, 60) || '—',
+            channel: channel === 'whatsapp' ? 'whatsapp' : channel === 'email' ? 'email' : 'in_app',
+            sent_at: relativeTimeShort(t.last_message_at),
+            status: t.status === 'PENDING_REPLY' ? 'opened' : t.status === 'ARCHIVED' ? 'replied' : 'delivered',
+          };
+        });
+        setThreadRows(mapped);
+      })
+      .catch(() => {
+        // Network / 401 — keep MOCK_HISTORY so the panel isn't blank during outage
+      });
+  }, [leads]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -995,7 +1057,7 @@ export default function CommsPage() {
                   <span className="text-xs text-slate-400 dark:text-slate-500">Last 30 days</span>
                 </div>
                 <div className="divide-y divide-slate-50 dark:divide-white/5">
-                  {MOCK_HISTORY.map((msg) => (
+                  {threadRows.map((msg) => (
                     <div key={msg.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.channel === "whatsapp" ? "bg-[#25D366]" : "bg-blue-500"}`}>
                         {msg.channel === "whatsapp" ? <Phone size={12} className="text-white" /> : <Mail size={12} className="text-white" />}
