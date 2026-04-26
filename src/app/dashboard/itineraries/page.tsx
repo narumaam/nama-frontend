@@ -878,10 +878,10 @@ ${autoPrint ? "<script>setTimeout(() => window.print(), 350);</script>" : ''}
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Top context bar ──────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* Breadcrumb info */}
-          <div className="flex items-center gap-0 text-xs divide-x divide-gray-200">
+          {/* Breadcrumb info — hide divider chips on mobile to keep room for actions */}
+          <div className="hidden md:flex items-center gap-0 text-xs divide-x divide-gray-200">
             <div className="pr-4">
               <span className="font-black uppercase text-[10px] tracking-widest text-slate-400">Client</span>
               <div className="font-bold text-[#1B2E5E] mt-0.5">{clientName}</div>
@@ -949,7 +949,9 @@ ${autoPrint ? "<script>setTimeout(() => window.print(), 350);</script>" : ''}
       <div className="flex h-[calc(100vh-120px)] overflow-hidden">
 
         {/* ── Left panel: Trip Duration ──────────────────────────────────────── */}
-        <div className="w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+        {/* Hidden on mobile (<md). Day picker is also exposed inline above the
+            day content for narrow viewports. */}
+        <div className="hidden md:flex w-56 flex-shrink-0 bg-white border-r border-gray-200 flex-col overflow-hidden">
           <div className="p-4 border-b border-gray-100">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trip Duration</span>
           </div>
@@ -989,8 +991,35 @@ ${autoPrint ? "<script>setTimeout(() => window.print(), 350);</script>" : ''}
 
         {/* ── Main content: Day activities ────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto bg-gray-50">
+          {/* Mobile-only horizontal day picker — replaces the hidden left sidebar.
+              Visible <md, scrollable, sticky to the top of the scroll area. */}
+          {days.length > 0 && (
+            <div className="md:hidden sticky top-0 z-10 bg-gray-50/95 backdrop-blur border-b border-gray-200 px-3 py-2">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {days.map(day => (
+                  <button
+                    key={day.day_number}
+                    onClick={() => setActiveDay(day.day_number)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                      activeDay === day.day_number
+                        ? 'bg-[#1B2E5E] text-white'
+                        : 'bg-white text-slate-600 border border-gray-200'
+                    }`}
+                  >
+                    Day {day.day_number}
+                  </button>
+                ))}
+                <button
+                  onClick={addDay}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border-2 border-dashed border-gray-300 text-gray-400 hover:border-[#14B8A6] hover:text-[#14B8A6]"
+                >
+                  + Day
+                </button>
+              </div>
+            </div>
+          )}
           {currentDay ? (
-            <div className="max-w-3xl mx-auto p-6">
+            <div className="max-w-3xl mx-auto p-4 md:p-6">
               {/* Day header */}
               <div className="flex items-start justify-between mb-6">
                 <div>
@@ -1075,7 +1104,9 @@ ${autoPrint ? "<script>setTimeout(() => window.print(), 350);</script>" : ''}
         </div>
 
         {/* ── Right panel: Quick summary ──────────────────────────────────────── */}
-        <div className="w-64 flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+        {/* Hidden on mobile + tablet (<lg). Total + per-day breakdown is
+            secondary; the main content needs the full width on narrow viewports. */}
+        <div className="hidden lg:flex w-64 flex-shrink-0 bg-white border-l border-gray-200 flex-col overflow-hidden">
           <div className="p-4 border-b border-gray-100">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trip Summary</span>
           </div>
