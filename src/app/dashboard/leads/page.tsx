@@ -472,6 +472,25 @@ function LeadSlideOver({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const [leads, setLeads] = useState<SeedLead[]>(SEED_LEADS);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+
+  // Drag-drop a lead to a new pipeline column. Optimistic UI: change status
+  // locally first so the card snaps over instantly, then PATCH the backend.
+  // On failure: revert the lead to its previous status. Demo / SEED leads
+  // (id <= 0) skip the network call.
+  const moveLeadToColumn = async (leadId: number, newStatus: string) => {
+    const before = leads.find((l) => l.id === leadId);
+    if (!before || before.status === newStatus) return;
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
+    if (typeof leadId === 'number' && leadId > 0) {
+      try {
+        await leadsApi.update(leadId, { status: newStatus });
+      } catch {
+        // Roll back so the column count and card placement match reality.
+        setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: before.status } : l)));
+      }
+    }
+  };
   const [view, setView] = useState<"list" | "pipeline">("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -919,10 +938,33 @@ export default function LeadsPage() {
           {KANBAN_COLS.map((col) => {
             const colLeads = filtered.filter((l) => l.status === col);
             const colValue = colLeads.reduce((sum, l) => sum + (l.budget_per_person ?? 0), 0);
+            const isDropTarget = dragOverCol === col;
             return (
               <div
                 key={col}
-                className="flex-shrink-0 w-64 bg-slate-100 dark:bg-[#0F1B35]/50 rounded-2xl p-3 flex flex-col gap-3"
+                onDragOver={(e) => {
+                  // Allow drop. Native drag-drop requires preventDefault on dragOver
+                  // for the drop event to fire.
+                  e.preventDefault();
+                  if (dragOverCol !== col) setDragOverCol(col);
+                }}
+                onDragLeave={(e) => {
+                  // Only clear when leaving the column root, not its children.
+                  if (e.currentTarget === e.target) setDragOverCol(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverCol(null);
+                  const raw = e.dataTransfer.getData('text/plain');
+                  const draggedId = Number(raw);
+                  if (!Number.isFinite(draggedId)) return;
+                  moveLeadToColumn(draggedId, col);
+                }}
+                className={`flex-shrink-0 w-64 rounded-2xl p-3 flex flex-col gap-3 transition-colors ${
+                  isDropTarget
+                    ? 'bg-[#14B8A6]/10 ring-2 ring-[#14B8A6]/40'
+                    : 'bg-slate-100 dark:bg-[#0F1B35]/50'
+                }`}
               >
                 {/* Column header */}
                 <div className="flex items-center justify-between">
@@ -938,14 +980,21 @@ export default function LeadsPage() {
                 {/* Cards */}
                 {colLeads.length === 0 && (
                   <div className="text-center py-8 text-slate-300 dark:text-slate-600 text-xs">
-                    No leads
+                    {isDropTarget ? 'Drop here' : 'No leads'}
                   </div>
                 )}
                 {colLeads.map((lead) => (
-                  <button
+                  <div
                     key={lead.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', String(lead.id));
+                    }}
                     onClick={() => setSelectedLead(lead)}
-                    className="w-full text-left bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-3 hover:shadow-md transition-shadow"
+                    role="button"
+                    tabIndex={0}
+                    className="w-full text-left bg-white dark:bg-[#0F1B35] border border-slate-100 dark:border-white/5 rounded-xl p-3 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <div
@@ -976,7 +1025,7 @@ export default function LeadsPage() {
                       </span>
                       <span className="text-[10px] text-slate-400">{lead.travel_date}</span>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             );
