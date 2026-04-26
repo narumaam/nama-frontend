@@ -420,3 +420,4 @@ def prometheus_metrics():
             content=f"# HELP nama_up NAMA backend is running\n# TYPE nama_up gauge\nnama_up 1\n",
             media_type="text/plain; version=0.0.4",
         )
+
