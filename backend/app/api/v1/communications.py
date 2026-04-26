@@ -6,6 +6,9 @@ from app.agents.comms import CommsAgent
 from app.api.v1.deps import get_current_user, RoleChecker
 from app.models.auth import UserRole
 from app.models.leads import Lead, LeadStatus
+from app.models.conversation_messages import (
+    ConversationMessage, MessageDirection, MessageDeliveryStatus,
+)
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
 
@@ -35,18 +38,18 @@ def _lead_to_thread_status(status: Optional[str]) -> ThreadStatus:
     return ThreadStatus.ACTIVE
 
 
-def _build_thread_from_lead(lead: Lead) -> CommunicationThread:
+def _build_thread_from_lead(lead: Lead, db: Optional[Session] = None) -> CommunicationThread:
     """
     Build a CommunicationThread view from a single Lead row.
 
-    Each thread bundles:
-      - The lead's initial enquiry (CLIENT message, derived from suggested_reply
-        or the first note we have, falling back to a synthetic intro).
-      - All saved notes (AGENT messages by default, parsed from lead.notes).
+    Reads from two sources, in priority order:
+      1. ConversationMessage rows for this lead — durable inbound/outbound
+         records from webhooks + /send (Tier 7A onward).
+      2. Lead notes — legacy projection from Tier 6A. Used for back-compat
+         so historical leads with notes-only history still render.
 
-    This is a read-only projection — there is no ConversationMessage table yet.
-    Real two-way persistence will land when the WhatsApp / IMAP webhooks start
-    writing to a dedicated message store.
+    Each thread also gets a synthetic intro CLIENT message derived from the
+    lead's suggested_reply / destination so the chat UI always has an opener.
     """
     from app.api.v1.leads import _parse_notes
 
@@ -56,9 +59,7 @@ def _build_thread_from_lead(lead: Lead) -> CommunicationThread:
     messages: List[Message] = []
     thread_id = lead.id
 
-    # 1. Synthetic intro from the lead row itself — gives every thread a CLIENT
-    #    opener so the chat UI has something to render. Falls back gracefully
-    #    if the lead has no destination / suggested_reply.
+    # 1. Synthetic intro from the lead row itself.
     intro_text = (getattr(lead, "suggested_reply", None) or "").strip()
     if not intro_text:
         dest = getattr(lead, "destination", None) or "their travel plans"
@@ -71,8 +72,8 @@ def _build_thread_from_lead(lead: Lead) -> CommunicationThread:
         timestamp=lead.created_at if getattr(lead, "created_at", None) else datetime.now(timezone.utc),
     ))
 
-    # 2. Notes become AGENT messages in the thread, in chronological order.
-    for n in reversed(notes):  # _parse_notes returns newest-first; chat wants oldest-first
+    # 2. Legacy notes (Tier 6A path) — render in chronological order.
+    for n in reversed(notes):
         try:
             ts = datetime.fromisoformat(n.created_at.replace("Z", "+00:00")) if n.created_at else datetime.now(timezone.utc)
         except Exception:
@@ -84,6 +85,38 @@ def _build_thread_from_lead(lead: Lead) -> CommunicationThread:
             content=n.content,
             timestamp=ts,
         ))
+
+    # 3. Tier 7A: pull real persisted ConversationMessage rows on top of the
+    #    legacy projection. Inbound rows come back as CLIENT, outbound as AGENT.
+    #    Wrapped in try/except so a missing/empty conversation_messages table
+    #    (e.g. before the migration runs) silently degrades to the legacy view.
+    if db is not None:
+        try:
+            cm_rows = (
+                db.query(ConversationMessage)
+                .filter(
+                    ConversationMessage.tenant_id == lead.tenant_id,
+                    ConversationMessage.lead_id == lead.id,
+                )
+                .order_by(ConversationMessage.created_at.asc())
+                .all()
+            )
+            for cm in cm_rows:
+                try:
+                    cm_channel = MessageChannel(cm.channel)
+                except ValueError:
+                    cm_channel = MessageChannel.IN_APP
+                role = MessageRole.CLIENT if cm.direction == MessageDirection.INBOUND.value else MessageRole.AGENT
+                messages.append(Message(
+                    thread_id=thread_id,
+                    channel=cm_channel,
+                    role=role,
+                    content=cm.content or "",
+                    timestamp=cm.created_at or datetime.now(timezone.utc),
+                ))
+        except Exception:
+            # Table may not exist yet (pre-migration) or DB hiccup — ignore.
+            pass
 
     last_at = max(m.timestamp for m in messages) if messages else (lead.updated_at or lead.created_at or datetime.now(timezone.utc))
 
@@ -116,7 +149,7 @@ def get_active_threads(
     if not include_archived:
         q = q.filter(Lead.status.notin_([LeadStatus.WON, LeadStatus.LOST])) if hasattr(LeadStatus, "WON") else q
     leads = q.order_by(Lead.updated_at.desc().nullslast(), Lead.created_at.desc()).limit(limit).all()
-    return [_build_thread_from_lead(l) for l in leads]
+    return [_build_thread_from_lead(l, db=db) for l in leads]
 
 
 @router.get("/threads/{thread_id}", response_model=CommunicationThread)
@@ -135,7 +168,7 @@ def get_thread(
     ).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return _build_thread_from_lead(lead)
+    return _build_thread_from_lead(lead, db=db)
 
 @router.post("/draft", response_model=DraftResponse)
 async def draft_communication(
@@ -174,6 +207,67 @@ async def draft_communication(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+async def _deliver_via_whatsapp(content: str, peer_phone: Optional[str]) -> tuple[bool, Optional[str], Optional[str]]:
+    """
+    Deliver a text message via WhatsApp Cloud API. Returns (success, external_id, error).
+    Falls back to (False, None, "no creds") when WHATSAPP_TOKEN / WHATSAPP_PHONE_ID
+    aren't set so the caller can store the message as QUEUED rather than fail.
+    """
+    import os as _os
+    import httpx as _httpx
+    token = _os.getenv("WHATSAPP_TOKEN", "")
+    phone_id = _os.getenv("WHATSAPP_PHONE_ID", "")
+    if not token or not phone_id or not peer_phone:
+        return False, None, "WhatsApp credentials not configured"
+    to = peer_phone.replace("+", "").replace(" ", "").replace("-", "")
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {"body": content[:4000]},  # Meta caps at 4096 chars
+    }
+    try:
+        async with _httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"https://graph.facebook.com/v19.0/{phone_id}/messages",
+                json=payload,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                timeout=10.0,
+            )
+            data = resp.json()
+            if resp.status_code == 200:
+                wamid = (data.get("messages") or [{}])[0].get("id")
+                return True, wamid, None
+            err = (data.get("error", {}) or {}).get("message") or "WhatsApp send failed"
+            return False, None, err
+    except Exception as exc:
+        return False, None, str(exc)
+
+
+def _deliver_via_smtp(db: Session, tenant_id: int, to_email: Optional[str], subject: str, body: str) -> tuple[bool, Optional[str], Optional[str]]:
+    """
+    Deliver an email via the tenant's SMTP config. Returns (success, message_id, error).
+    Falls back gracefully when no TenantEmailConfig is set up.
+    """
+    if not to_email:
+        return False, None, "No recipient email"
+    try:
+        from app.models.email_config import TenantEmailConfig
+        from app.core.email_service import send_via_smtp
+        cfg = db.query(TenantEmailConfig).filter(TenantEmailConfig.tenant_id == tenant_id).first()
+        if not cfg or not cfg.smtp_host:
+            return False, None, "SMTP not configured"
+        # send_via_smtp returns {sent, message_id, error}. Treat the body text
+        # as both HTML (will render in email clients) and plaintext.
+        result = send_via_smtp(cfg, to_email, subject, body, text=body)
+        if isinstance(result, dict) and result.get("sent"):
+            return True, result.get("message_id") or None, None
+        err = (result.get("error") if isinstance(result, dict) else None) or "SMTP send failed"
+        return False, None, err
+    except Exception as exc:
+        return False, None, str(exc)
+
+
 @router.post("/send", response_model=Message)
 async def send_message(
     message: Message,
@@ -181,13 +275,14 @@ async def send_message(
     db: Session = Depends(get_db)
 ):
     """
-    Send a message through the unified communication channel (M5).
+    Send a message through the unified communication channel.
 
-    Tier 6A: real persistence. The outbound message is appended to the
-    underlying lead's notes column so it shows up in the thread on next
-    fetch. Channel-side delivery (WhatsApp Cloud API, Resend, etc.) still
-    requires customer-supplied creds — the function will short-circuit to
-    "stored only" when those env vars aren't set.
+    Tier 7C: real channel delivery. When the lead has a phone number and
+    WHATSAPP_TOKEN is set, fires the message via Meta Cloud API. When the
+    tenant has an EMAIL channel + SMTP configured, sends via SMTP. Always
+    persists to ConversationMessage with the resulting status (SENT / FAILED
+    / QUEUED), regardless of delivery success — so the message shows up in
+    the thread either way and the agent can retry from the UI.
     """
     from app.api.v1.leads import _NOTE_PREFIX, _NOTE_SEP
 
@@ -201,20 +296,53 @@ async def send_message(
     if not lead:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    # Persist outbound message as a structured note so it appears in the
-    # thread on next /threads/{id} fetch. Same format as POST /leads/{id}/notes.
+    # 1. Append to legacy notes for back-compat with the Tier 6A view.
     now_iso = message.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
     author = (current_user.email if hasattr(current_user, "email") else None) or "Agent"
     new_entry = f"{_NOTE_PREFIX} {now_iso} | {author} | {message.content}"
     existing = (lead.notes or "").strip()
     lead.notes = f"{existing}{_NOTE_SEP}{new_entry}" if existing else new_entry
     lead.updated_at = datetime.now(timezone.utc)
-    db.commit()
 
-    # TODO Tier 7+: actual channel delivery —
-    #   if message.channel == WHATSAPP and WHATSAPP_TOKEN set: POST to Meta Cloud API
-    #   if message.channel == EMAIL    and SMTP configured:   send via TenantEmailConfig
-    # For now we record and return; UI sees the message in the next thread fetch.
+    # 2. Tier 7C: actual channel delivery.
+    delivery_status = MessageDeliveryStatus.QUEUED
+    external_id: Optional[str] = None
+    error_message: Optional[str] = None
+
+    if message.channel == MessageChannel.WHATSAPP:
+        ok, ext_id, err = await _deliver_via_whatsapp(message.content, getattr(lead, "phone", None))
+        delivery_status = MessageDeliveryStatus.SENT if ok else MessageDeliveryStatus.FAILED
+        external_id = ext_id
+        error_message = err if not ok else None
+    elif message.channel == MessageChannel.EMAIL:
+        subject = f"Re: {getattr(lead, 'destination', None) or 'your enquiry'}"
+        ok, ext_id, err = _deliver_via_smtp(db, current_user.tenant_id, getattr(lead, "email", None), subject, message.content)
+        delivery_status = MessageDeliveryStatus.SENT if ok else MessageDeliveryStatus.FAILED
+        external_id = ext_id
+        error_message = err if not ok else None
+    else:
+        # IN_APP — no external delivery, just persist.
+        delivery_status = MessageDeliveryStatus.NONE
+
+    # 3. Persist as ConversationMessage so /threads renders it on next fetch.
+    try:
+        cm = ConversationMessage(
+            tenant_id=current_user.tenant_id,
+            lead_id=lead.id,
+            channel=message.channel.value if hasattr(message.channel, "value") else str(message.channel),
+            direction=MessageDirection.OUTBOUND.value,
+            status=delivery_status.value,
+            content=message.content or "",
+            external_id=external_id,
+            peer_address=(getattr(lead, "phone", None) if message.channel == MessageChannel.WHATSAPP else getattr(lead, "email", None)),
+            author_name=author,
+            error_message=error_message,
+        )
+        db.add(cm)
+    except Exception:
+        # Best-effort — the legacy notes append above is still committed below.
+        pass
+    db.commit()
 
     return message
 
