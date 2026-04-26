@@ -1,0 +1,101 @@
+name: CI Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Tier 8F: Runs on every push to main + every PR. Catches the class of bugs
+# that have been silently breaking deploys in the past (the email_template.py
+# import error from this week being the canonical example).
+#
+# What it checks:
+#   1. TypeScript strict compile (next.js types)
+#   2. ESLint (next lint)
+#   3. Python AST parse on every .py file under backend/
+#   4. Import smoke test for every model under backend/app/models/
+#      — catches "from app.db.base" wrong-import bugs at PR time, not deploy time
+#   5. Alembic migration heads dry-run (offline SQL generation)
+
+jobs:
+  frontend:
+    name: Frontend (TypeScript + ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: TypeScript strict compile
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: ESLint
+        run: npx next lint
+        continue-on-error: false
+
+  backend:
+    name: Backend (Python + Alembic dry-run)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Python AST parse (every .py compiles)
+        run: |
+          python -m compileall -q app/
+
+      - name: Import smoke test (every model loads)
+        # Tier 8F: this would have caught the email_template.py "from app.db.base"
+        # bug that blocked every backend deploy for ~5 days.
+        run: |
+          python -c "
+          import os, importlib, pathlib, sys
+          os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
+          os.environ.setdefault('NAMA_JWT_SECRET', 'ci-test-secret-do-not-use-in-prod')
+          os.environ.setdefault('NAMA_REFRESH_SECRET', 'ci-test-refresh-secret-do-not-use')
+          models = pathlib.Path('app/models')
+          for f in models.rglob('*.py'):
+              if f.stem.startswith('_'):
+                  continue
+              mod = 'app.models.' + str(f.relative_to(models)).replace('/', '.').rstrip('.py').rstrip('.')
+              try:
+                  importlib.import_module(mod)
+                  print('OK', mod)
+              except Exception as e:
+                  print('FAIL', mod, type(e).__name__, e, file=sys.stderr)
+                  sys.exit(1)
+          "
+
+      - name: Alembic migration dry-run (offline SQL)
+        # Generates SQL without running it. Catches schema-clash bugs.
+        env:
+          DATABASE_URL: sqlite:///:memory:
+        run: |
+          alembic upgrade --sql heads > /tmp/alembic.sql || true
+          # Ensure the dry-run produced output and didn't error fatally.
+          if ! [ -s /tmp/alembic.sql ]; then
+            echo "Alembic dry-run produced no SQL — likely an error. Check chain."
+            alembic upgrade --sql heads
+            exit 1
+          fi
+          echo "Alembic dry-run OK ($(wc -l < /tmp/alembic.sql) lines of SQL)"
