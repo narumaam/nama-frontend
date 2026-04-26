@@ -1,10 +1,10 @@
 # NAMA OS — Project Memory
 
-## Current Status: ✅ LAUNCH-READY · Tiers 1–6 complete (T-1 day)
+## Current Status: ✅ LAUNCH-READY · Tiers 1–7 complete (T-1 day)
 
-**Latest work (2026-04-26 session 3):** Tier 6 shipped — Batches A (Comms inbox real backend, lead-derived threads + persistent send), B (booking detail Itinerary tab now real with Flights/Hotels filter chips), C (a11y quick-wins: prefers-reduced-motion + header aria-labels). KEEP rollup at TIER-6-PROGRESS-2026-04-26.md. The build now has zero "fake-data" surfaces.
-**Previous work (2026-04-26 session 2):** Tier 5 shipped — Razorpay HMAC fix (P0), kanban drag-drop, mobile itinerary, booking Documents+Payments restored.
-**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (honesty polish) → Tier 5 (production hardening: payments, kanban, mobile, restored booking tabs) → Tier 6 (feature surface: comms threads, real itinerary tab, a11y baseline)
+**Latest work (2026-04-26 session 4):** Tier 7 shipped — Batches A (ConversationMessage model + Alembic migration + /threads merge layer), B (WhatsApp + IMAP webhooks write inbound rows with dedup), C (/comms/send actually POSTs to WhatsApp Cloud API / tenant SMTP and persists OUTBOUND with status). KEEP rollup at TIER-7-PROGRESS-2026-04-26.md. End-to-end two-way conversation persistence is live.
+**Previous work (2026-04-26 session 3):** Tier 6 shipped — comms threads, real itinerary tab, a11y baseline.
+**Tier ladder shipped:** Tier 1 (launch blockers, 18 files) → Tier 2 (wiring + atomicity) → Tier 3 (atomic register + customer portal + finance + org control) → Tier 4 (honesty polish) → Tier 5 (production hardening: payments, kanban, mobile, restored booking tabs) → Tier 6 (feature surface: comms threads, real itinerary tab, a11y baseline) → Tier 7 (two-way conversation persistence: ConversationMessage table, webhook writes, real outbound delivery)
 **Latest deploy:** Vercel + Railway both auto-deploy on push to main
 **Backend health:** `{"status":"healthy","version":"0.3.0"}` — confirmed 2026-04-18
 
