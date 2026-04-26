@@ -104,9 +104,31 @@ def get_db():
 
     Uses context-manager pattern so exceptions during the request still
     trigger session.close() and return the connection to the pool.
+
+    Tier 10D — RLS plumbing:
+      If the request has a known tenant_id (set by RequestLoggingMiddleware
+      from the JWT), execute `SET LOCAL app.tenant_id = N` so any RLS
+      policies keyed off `current_setting('app.tenant_id', true)` evaluate
+      cleanly. SET LOCAL only lasts for the current transaction, so the
+      session is safe to return to the pool after request completion.
+
+      Currently a no-op until RLS policies are enabled on tables (see
+      migration `t7u8v9w0x1y2_add_tenant_rls_policies.py`). Adding it now
+      makes the eventual enforcement flip a one-line change.
     """
     db = SessionLocal()
     try:
+        if not _is_sqlite:
+            try:
+                from app.core.structured_log import get_tenant_id
+                tid = get_tenant_id()
+                if tid is not None:
+                    # SET LOCAL must run inside a transaction. SQLAlchemy 2.x
+                    # auto-begins on first execute; SET LOCAL itself counts.
+                    db.execute(text("SET LOCAL app.tenant_id = :tid"), {"tid": int(tid)})
+            except Exception:
+                # Never let RLS plumbing fail a request — fall through silently.
+                pass
         yield db
     finally:
         db.close()

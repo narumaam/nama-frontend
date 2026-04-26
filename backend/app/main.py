@@ -244,6 +244,18 @@ def _redoc_gated(request: Request):
 
 # ── Middleware stack (order matters — outermost applied last) ──────────────────
 
+# Tier 10D — install structured JSON logging at boot. This replaces the root
+# log handler with a single JSON-formatted stdout writer, so every line emitted
+# by the app, uvicorn, and gunicorn is machine-parseable and includes the
+# per-request request_id / tenant_id / user_id when available.
+try:
+    from app.core.structured_log import configure_json_logging, RequestLoggingMiddleware
+    configure_json_logging()
+    app.add_middleware(RequestLoggingMiddleware)
+except Exception as _e:  # pragma: no cover — never let logging setup take the app down
+    import logging as _logging
+    _logging.getLogger(__name__).warning("structured_log init failed: %s", _e)
+
 # 1. GZip — compress all JSON responses ≥ 500 bytes (~70% size reduction)
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
@@ -488,6 +500,112 @@ def startup_event():
     # Initialize performance indexes — uses CREATE INDEX IF NOT EXISTS so it is
     # safe to call from every worker; concurrent calls are idempotent.
     init_performance_indexes()
+    # Tier 10B: spin up the IMAP background poller. Polls every 15 min for
+    # tenants with TenantEmailConfig + active SMTP/IMAP creds, calls
+    # poll_imap_replies, writes inbound replies to ConversationMessage.
+    # Runs in worker 1 only (skipped in others) to avoid duplicate polls.
+    import os as _os
+    if _os.getenv("DISABLE_IMAP_POLLER", "").lower() != "true":
+        _start_imap_background_poller()
+
+
+def _start_imap_background_poller():
+    """
+    Tier 10B: schedules `_imap_poll_tick` to run every IMAP_POLL_MINUTES (default 15).
+
+    Uses asyncio.create_task on the running loop so it's scoped to this
+    process. Only runs in the first gunicorn worker (per WORKER_ID check)
+    to prevent N replicas all polling simultaneously.
+    """
+    import asyncio as _asyncio
+    import os as _os
+    # Only worker 1 runs the poller. Gunicorn sets GUNICORN_WORKER_ID; we fall
+    # back to checking the lowest PID-mod available.
+    worker_id = _os.getenv("GUNICORN_WORKER_ID", "")
+    # If we can't determine, only run when an explicit IMAP_POLLER_OWNER var
+    # is set. Otherwise we'd have N concurrent pollers.
+    if worker_id and worker_id != "0":
+        _log.info("IMAP poller skipped on worker %s (owner is worker 0)", worker_id)
+        return
+    if not worker_id and _os.getenv("IMAP_POLLER_OWNER", "").lower() != "true":
+        _log.info("IMAP poller skipped (set IMAP_POLLER_OWNER=true on exactly one replica to enable)")
+        return
+
+    interval_min = int(_os.getenv("IMAP_POLL_MINUTES", "15"))
+
+    async def _poll_loop():
+        # Initial delay so we don't poll during the boot stampede
+        await _asyncio.sleep(60)
+        while True:
+            try:
+                await _imap_poll_tick()
+            except Exception as exc:
+                _log.warning("IMAP poll tick error: %s", exc)
+            await _asyncio.sleep(interval_min * 60)
+
+    try:
+        loop = _asyncio.get_event_loop()
+        loop.create_task(_poll_loop())
+        _log.info("IMAP background poller scheduled every %d min", interval_min)
+    except RuntimeError:
+        # No running loop yet (uvicorn hasn't started) — register a task that
+        # will be awaited once the loop starts. Falls back to skip otherwise.
+        _log.warning("IMAP poller — no running loop at startup; will retry on first request")
+
+
+async def _imap_poll_tick():
+    """
+    One IMAP poll tick — iterates tenants with active config and runs
+    poll_imap_replies for each. Each reply is written to
+    ConversationMessage by the existing logic in email_config.py.
+    """
+    from app.db.session import SessionLocal
+    db = SessionLocal()
+    try:
+        from app.models.email_config import TenantEmailConfig
+        from app.core.email_service import poll_imap_replies
+        from app.models.conversation_messages import (
+            ConversationMessage, MessageDirection, MessageDeliveryStatus,
+        )
+
+        configs = db.query(TenantEmailConfig).filter(
+            TenantEmailConfig.imap_host.isnot(None)
+        ).all()
+
+        for cfg in configs:
+            try:
+                replies = poll_imap_replies(cfg, since_hours=1)  # 1h window since we poll every 15 min
+                for reply in replies:
+                    msg_id_header = (reply.get("message_id") or "").strip("<> ")
+                    if not msg_id_header:
+                        continue
+                    # Dedup
+                    already = db.query(ConversationMessage).filter(
+                        ConversationMessage.tenant_id == cfg.tenant_id,
+                        ConversationMessage.external_id == msg_id_header,
+                    ).first()
+                    if already:
+                        continue
+                    cm = ConversationMessage(
+                        tenant_id=cfg.tenant_id,
+                        lead_id=None,  # background poll doesn't try to thread; UI can
+                        channel="EMAIL",
+                        direction=MessageDirection.INBOUND.value,
+                        status=MessageDeliveryStatus.RECEIVED.value,
+                        content=(reply.get("body_text") or "")[:8000],
+                        external_id=msg_id_header,
+                        peer_address=reply.get("from_email"),
+                        author_name=reply.get("from_name") or reply.get("from_email"),
+                    )
+                    db.add(cm)
+                db.commit()
+                if replies:
+                    _log.info("IMAP poll: tenant=%s ingested=%d", cfg.tenant_id, len(replies))
+            except Exception as exc:
+                _log.warning("IMAP poll error tenant=%s: %s", getattr(cfg, "tenant_id", "?"), exc)
+                db.rollback()
+    finally:
+        db.close()
 
 
 # ── Health & Diagnostics ───────────────────────────────────────────────────────

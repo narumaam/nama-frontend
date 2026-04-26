@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/Toast";
 import {
   Plus, Sparkles, Download, Eye,
   Plane, Hotel, Car, Compass, Utensils, Clock, MapPin,
@@ -654,6 +655,7 @@ function ItinerarySelectorDropdown({
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function ItineraryBuilderPage() {
+  const toast = useToast();
   const [itineraries, setItineraries] = useState<ItineraryOut[]>(SEED);
   const [selected, setSelected] = useState<ItineraryOut | null>(SEED[0]);
   const [days, setDays] = useState<ItineraryDay[]>([]);
@@ -858,8 +860,10 @@ ${autoPrint ? "<script>setTimeout(() => window.print(), 350);</script>" : ''}
       await api.patch(`/api/v1/itineraries/${selected.id}`, { days_json: days });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
+      toast.success('Itinerary saved');
     } catch (err) {
       console.error('[itinerary] save failed', err);
+      toast.error('Could not save itinerary. Please try again.');
     }
     setSaving(false);
   };

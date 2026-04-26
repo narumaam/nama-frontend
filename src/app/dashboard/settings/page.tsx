@@ -122,7 +122,7 @@ const SEED_AUDIT: AuditEntry[] = [
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
-type Tab = 'subscription' | 'api-keys' | 'team' | 'roles' | 'markups' | 'profile' | 'branding' | 'notifications' | 'audit'
+type Tab = 'subscription' | 'api-keys' | 'team' | 'roles' | 'markups' | 'tax' | 'profile' | 'branding' | 'notifications' | 'audit'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'subscription',  label: 'Subscription',   icon: CreditCard },
@@ -130,6 +130,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'team',          label: 'Team',            icon: Users },
   { id: 'roles',         label: 'Roles',           icon: Lock },
   { id: 'markups',       label: 'Markups',         icon: DollarSign },
+  { id: 'tax',           label: 'Tax',             icon: DollarSign },
   { id: 'profile',       label: 'Profile',         icon: User },
   { id: 'branding',      label: 'Branding',        icon: Palette },
   { id: 'notifications', label: 'Notifications',   icon: Bell },
@@ -181,6 +182,13 @@ export default function SettingsPage() {
   const [markupDomestic, setMarkupDomestic] = useState('12')
   const [markupHoneymoon, setMarkupHoneymoon] = useState('20')
   const [markupSaving, setMarkupSaving] = useState(false)
+
+  // Tax state (Tier 10E — wires GET/PUT /api/v1/settings/tax — Tier 9D backend)
+  const [taxRate, setTaxRate] = useState<string>('')           // empty = not configured
+  const [taxLabel, setTaxLabel] = useState<string>('GST')
+  const [taxConfigured, setTaxConfigured] = useState<boolean>(false)
+  const [taxLoading, setTaxLoading] = useState<boolean>(false)
+  const [taxSaving, setTaxSaving] = useState<boolean>(false)
 
   // Notifications state
   const [notifLeads, setNotifLeads] = useState(true)
@@ -332,6 +340,51 @@ export default function SettingsPage() {
     setMarkupSaving(false)
     flash('Markup rules saved')
   }
+
+  // ─── Tax settings (Tier 10E) ────────────────────────────────────────────────
+  const loadTaxSettings = async () => {
+    setTaxLoading(true)
+    try {
+      const data = await api.get<{ tax_rate_pct: number; tax_label: string; configured: boolean }>(
+        '/api/v1/settings/tax'
+      )
+      setTaxRate(data.configured ? String(data.tax_rate_pct) : '')
+      setTaxLabel(data.tax_label || 'GST')
+      setTaxConfigured(!!data.configured)
+    } catch (e) {
+      // Fail-soft — endpoint requires R0/R1/R2/R5 role; non-finance users see empty form.
+    } finally {
+      setTaxLoading(false)
+    }
+  }
+
+  const saveTaxSettings = async () => {
+    const rateNum = parseFloat(taxRate)
+    if (Number.isNaN(rateNum) || rateNum < 0 || rateNum > 50) {
+      setError('Tax rate must be a number between 0 and 50')
+      setTimeout(() => setError(null), 4000)
+      return
+    }
+    setTaxSaving(true)
+    try {
+      await api.put<{ tax_rate_pct: number; tax_label: string; configured: boolean }>(
+        '/api/v1/settings/tax',
+        { tax_rate_pct: rateNum, tax_label: taxLabel.trim() || 'GST' }
+      )
+      setTaxConfigured(true)
+      flash('Tax settings saved — applies to new invoices')
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || e?.message || 'Could not save tax settings')
+      setTimeout(() => setError(null), 4000)
+    } finally {
+      setTaxSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 'tax') loadTaxSettings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
 
   const saveNotifications = async () => {
     setNotifSaving(true)
@@ -766,7 +819,84 @@ export default function SettingsPage() {
               <p className="text-xs text-teal-700">
                 When you create a quotation, NAMA automatically adds the applicable markup to the base vendor cost.
                 The markup is shown transparently in the quote breakdown unless you enable &quot;hide markup&quot; in Quote Settings.
-                GST is calculated on the post-markup price.
+                Tax is calculated on the post-markup price using the rate configured in the Tax tab.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAX ── (Tier 10E — wires Tier 9D backend /settings/tax) */}
+      {tab === 'tax' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="font-extrabold text-[#0F172A] text-lg">Tax Configuration</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Set your tenant's tax rate + label. Used on every invoice + quotation. Default is 0 (no tax line) until you configure it.
+                </p>
+              </div>
+              <button
+                onClick={saveTaxSettings}
+                disabled={taxSaving || taxLoading}
+                className="flex items-center gap-2 bg-[#14B8A6] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-teal-600 transition-all disabled:opacity-70"
+              >
+                {taxSaving ? <><Loader size={14} className="animate-spin" /> Saving</> : <><Save size={14} /> Save</>}
+              </button>
+            </div>
+
+            {taxLoading && (
+              <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+                <Loader size={12} className="animate-spin" /> Loading current tax settings…
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="border border-slate-100 rounded-xl p-5">
+                <label className="block text-sm font-bold text-slate-700 mb-1">Tax Rate</label>
+                <p className="text-xs text-slate-400 mb-3">As a percentage. Bounded 0–50. Set 0 to suppress the tax line entirely.</p>
+                <div className="relative">
+                  <input
+                    type="number" step="0.01" min="0" max="50"
+                    value={taxRate}
+                    onChange={(e) => setTaxRate(e.target.value)}
+                    placeholder="e.g. 5 or 18"
+                    className="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-xl focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all text-lg font-black text-[#0F172A]"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">%</span>
+                </div>
+              </div>
+
+              <div className="border border-slate-100 rounded-xl p-5">
+                <label className="block text-sm font-bold text-slate-700 mb-1">Tax Label</label>
+                <p className="text-xs text-slate-400 mb-3">Shown on the invoice line — e.g. GST, VAT, Sales Tax.</p>
+                <input
+                  type="text" maxLength={20}
+                  value={taxLabel}
+                  onChange={(e) => setTaxLabel(e.target.value)}
+                  placeholder="GST"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-[#14B8A6] focus:ring-4 focus:ring-[#14B8A6]/10 outline-none transition-all text-lg font-black text-[#0F172A]"
+                />
+              </div>
+            </div>
+
+            <div className={`mt-6 p-4 rounded-xl border ${taxConfigured ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+              <p className={`text-xs font-bold mb-1 ${taxConfigured ? 'text-green-800' : 'text-amber-800'}`}>
+                {taxConfigured ? 'Tax is configured' : 'Tax not yet configured'}
+              </p>
+              <p className={`text-xs ${taxConfigured ? 'text-green-700' : 'text-amber-700'}`}>
+                {taxConfigured
+                  ? `New invoices will show "${taxLabel || 'GST'} (${taxRate || '0'}%)" computed on the post-markup line subtotal.`
+                  : 'Until you save a rate, invoices will be generated without a tax line. This is the safe default — no tax is assumed.'}
+              </p>
+            </div>
+
+            <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <p className="text-xs font-bold text-slate-700 mb-1">Who can change this</p>
+              <p className="text-xs text-slate-500">
+                Only Org Admin (R2), Finance Admin (R5), Super Admin (R1), and Owner (R0) roles can update tax settings.
+                Every change is recorded in the Audit Log.
               </p>
             </div>
           </div>

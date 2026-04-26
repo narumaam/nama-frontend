@@ -215,7 +215,15 @@ def get_pricing_benchmarks(
     """
     Return pricing benchmarks for destinations, using real DB data (3+ itineraries)
     or FALLBACK_BENCHMARKS when live data is sparse.
+
+    Tier 10C: response cached for 5 minutes per (tenant, destination) — aggregate
+    re-computation over all itineraries is the most expensive read on this router.
     """
+    cache_key = f"pricing_benchmarks:{tenant_id}:{(destination or '').lower()}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     try:
         from app.models.itineraries import Itinerary
 
@@ -308,6 +316,8 @@ def get_pricing_benchmarks(
                         "data_source": "benchmark",
                     })
 
+        # Tier 10C: cache for 5 min — aggregates rarely move and the scan is expensive.
+        _cache_set(cache_key, results, ttl_seconds=300)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

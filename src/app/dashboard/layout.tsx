@@ -19,6 +19,7 @@ import ChecklistWidget from '@/components/ChecklistWidget';
 import { CurrencyProvider } from '@/lib/currency-context';
 import CurrencySelector from '@/components/CurrencySelector';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
+import { ToastProvider } from '@/components/Toast';
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { isDark, toggle: toggleTheme } = useTheme();
@@ -522,9 +523,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // Tier 10A: ToastProvider lifts toasts to a global concern. Any dashboard
+  // page can call useToast() to surface success / error / info messages
+  // with consistent styling, dismissal, and screen-reader announcements.
   return (
     <ThemeProvider>
-      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+      <ToastProvider>
+        <DashboardLayoutInner>{children}</DashboardLayoutInner>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

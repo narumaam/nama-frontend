@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.communications import Message, CommunicationThread, DraftResponse, MessageDraftRequest, MessageChannel, MessageRole, ThreadStatus
@@ -11,6 +11,7 @@ from app.models.conversation_messages import (
 )
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
+import hashlib
 
 router = APIRouter()
 comms_agent = CommsAgent()
@@ -36,6 +37,77 @@ def _lead_to_thread_status(status: Optional[str]) -> ThreadStatus:
     if s in ("CONTACTED", "PROPOSAL_SENT", "QUALIFIED"):
         return ThreadStatus.PENDING_REPLY
     return ThreadStatus.ACTIVE
+
+
+def _build_thread_from_lead_with_messages(
+    lead: Lead,
+    cm_rows: List[ConversationMessage],
+) -> CommunicationThread:
+    """
+    Tier 10C: same projection as `_build_thread_from_lead` but takes
+    pre-fetched ConversationMessage rows for this lead. Used by the bulk
+    /threads endpoint to avoid N+1 — the caller batches one query for all
+    leads, groups by lead_id, and hands each list in here.
+    """
+    from app.api.v1.leads import _parse_notes
+
+    channel = _source_to_channel(getattr(lead, "source", None))
+    notes = _parse_notes(getattr(lead, "notes", None))
+
+    messages: List[Message] = []
+    thread_id = lead.id
+
+    intro_text = (getattr(lead, "suggested_reply", None) or "").strip()
+    if not intro_text:
+        dest = getattr(lead, "destination", None) or "their travel plans"
+        intro_text = f"New enquiry about {dest}."
+    messages.append(Message(
+        thread_id=thread_id,
+        channel=channel,
+        role=MessageRole.CLIENT,
+        content=intro_text,
+        timestamp=lead.created_at if getattr(lead, "created_at", None) else datetime.now(timezone.utc),
+    ))
+
+    for n in reversed(notes):
+        try:
+            ts = datetime.fromisoformat(n.created_at.replace("Z", "+00:00")) if n.created_at else datetime.now(timezone.utc)
+        except Exception:
+            ts = datetime.now(timezone.utc)
+        messages.append(Message(
+            thread_id=thread_id,
+            channel=channel,
+            role=MessageRole.AGENT,
+            content=n.content,
+            timestamp=ts,
+        ))
+
+    for cm in cm_rows:
+        try:
+            cm_channel = MessageChannel(cm.channel)
+        except ValueError:
+            cm_channel = MessageChannel.IN_APP
+        role = MessageRole.CLIENT if cm.direction == MessageDirection.INBOUND.value else MessageRole.AGENT
+        messages.append(Message(
+            thread_id=thread_id,
+            channel=cm_channel,
+            role=role,
+            content=cm.content or "",
+            timestamp=cm.created_at or datetime.now(timezone.utc),
+        ))
+
+    last_at = max(m.timestamp for m in messages) if messages else (
+        lead.updated_at or lead.created_at or datetime.now(timezone.utc)
+    )
+
+    return CommunicationThread(
+        id=thread_id,
+        lead_id=lead.id,
+        tenant_id=lead.tenant_id,
+        status=_lead_to_thread_status(getattr(lead, "status", None)),
+        last_message_at=last_at,
+        messages=messages,
+    )
 
 
 def _build_thread_from_lead(lead: Lead, db: Optional[Session] = None) -> CommunicationThread:
@@ -132,6 +204,8 @@ def _build_thread_from_lead(lead: Lead, db: Optional[Session] = None) -> Communi
 
 @router.get("/threads", response_model=List[CommunicationThread])
 def get_active_threads(
+    request: Request,
+    response: Response,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db),
     limit: int = 50,
@@ -140,16 +214,58 @@ def get_active_threads(
     """
     Real communication threads for the current tenant (Tier 6A).
 
-    Each thread is derived from a Lead row + its parsed notes. Returns the
-    most recently updated leads first, capped at `limit` (default 50).
+    Each thread is derived from a Lead row + its persisted ConversationMessage
+    history (Tier 7A). Returns the most recently updated leads first, capped
+    at `limit` (default 50). Set `include_archived=true` to surface WON/LOST
+    leads as well.
 
-    Set `include_archived=true` to surface WON/LOST leads as well.
+    Tier 10C performance:
+      - one query for leads, one query for *all* matching ConversationMessage
+        rows (was N+1 — one cm query per lead).
+      - ETag computed from (lead_count, max(lead.updated_at), max(cm.created_at)).
+        If client sends matching `If-None-Match`, returns 304 with empty body.
     """
     q = db.query(Lead).filter(Lead.tenant_id == current_user.tenant_id)
     if not include_archived:
         q = q.filter(Lead.status.notin_([LeadStatus.WON, LeadStatus.LOST])) if hasattr(LeadStatus, "WON") else q
     leads = q.order_by(Lead.updated_at.desc().nullslast(), Lead.created_at.desc()).limit(limit).all()
-    return [_build_thread_from_lead(l, db=db) for l in leads]
+
+    lead_ids = [l.id for l in leads]
+    cm_by_lead: Dict[int, List[ConversationMessage]] = {lid: [] for lid in lead_ids}
+    max_cm_ts: Optional[datetime] = None
+
+    if lead_ids:
+        try:
+            cm_rows = (
+                db.query(ConversationMessage)
+                .filter(
+                    ConversationMessage.tenant_id == current_user.tenant_id,
+                    ConversationMessage.lead_id.in_(lead_ids),
+                )
+                .order_by(ConversationMessage.created_at.asc())
+                .all()
+            )
+            for cm in cm_rows:
+                cm_by_lead.setdefault(cm.lead_id, []).append(cm)
+                if cm.created_at and (max_cm_ts is None or cm.created_at > max_cm_ts):
+                    max_cm_ts = cm.created_at
+        except Exception:
+            # Pre-migration safety: table may not exist yet — degrade silently.
+            cm_by_lead = {lid: [] for lid in lead_ids}
+
+    # ETag: cheap fingerprint over what could change the response body.
+    max_lead_ts = max((l.updated_at or l.created_at for l in leads), default=None)
+    etag_seed = f"{len(leads)}|{max_lead_ts.isoformat() if max_lead_ts else '-'}|{max_cm_ts.isoformat() if max_cm_ts else '-'}|{int(include_archived)}|{limit}"
+    etag = 'W/"' + hashlib.sha1(etag_seed.encode("utf-8")).hexdigest() + '"'
+
+    if request.headers.get("if-none-match") == etag:
+        # Returning a Response directly bypasses response_model validation.
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers={"ETag": etag})
+
+    response.headers["ETag"] = etag
+    response.headers["Cache-Control"] = "private, max-age=15"
+
+    return [_build_thread_from_lead_with_messages(l, cm_by_lead.get(l.id, [])) for l in leads]
 
 
 @router.get("/threads/{thread_id}", response_model=CommunicationThread)
@@ -214,6 +330,7 @@ async def _deliver_via_whatsapp(content: str, peer_phone: Optional[str]) -> tupl
     aren't set so the caller can store the message as QUEUED rather than fail.
     """
     import os as _os
+    import asyncio as _asyncio
     import httpx as _httpx
     token = _os.getenv("WHATSAPP_TOKEN", "")
     phone_id = _os.getenv("WHATSAPP_PHONE_ID", "")
@@ -226,22 +343,40 @@ async def _deliver_via_whatsapp(content: str, peer_phone: Optional[str]) -> tupl
         "type": "text",
         "text": {"body": content[:4000]},  # Meta caps at 4096 chars
     }
-    try:
-        async with _httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"https://graph.facebook.com/v19.0/{phone_id}/messages",
-                json=payload,
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                timeout=10.0,
-            )
-            data = resp.json()
-            if resp.status_code == 200:
-                wamid = (data.get("messages") or [{}])[0].get("id")
-                return True, wamid, None
-            err = (data.get("error", {}) or {}).get("message") or "WhatsApp send failed"
-            return False, None, err
-    except Exception as exc:
-        return False, None, str(exc)
+
+    # Tier 10B: retry-with-backoff. 3 attempts, exponential delay (0.5s, 1s, 2s).
+    # Retryable: 429 rate-limit, 5xx server errors, network exceptions.
+    # NOT retryable: 4xx other than 429 (bad payload, invalid token, blocked
+    # number, etc.) — fail fast so we don't waste customer's tier quota.
+    MAX_ATTEMPTS = 3
+    last_error = "WhatsApp send failed"
+    for attempt in range(MAX_ATTEMPTS):
+        try:
+            async with _httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"https://graph.facebook.com/v19.0/{phone_id}/messages",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                    timeout=10.0,
+                )
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200:
+                    wamid = (data.get("messages") or [{}])[0].get("id")
+                    return True, wamid, None
+
+                last_error = (data.get("error", {}) or {}).get("message") or f"HTTP {resp.status_code}"
+
+                # Retry on 429 + 5xx; bail on other 4xx
+                if resp.status_code != 429 and resp.status_code < 500:
+                    return False, None, last_error
+        except Exception as exc:
+            last_error = str(exc)
+
+        # Exponential backoff before next attempt (skip after final attempt)
+        if attempt < MAX_ATTEMPTS - 1:
+            await _asyncio.sleep(0.5 * (2 ** attempt))
+
+    return False, None, last_error
 
 
 def _deliver_via_smtp(db: Session, tenant_id: int, to_email: Optional[str], subject: str, body: str) -> tuple[bool, Optional[str], Optional[str]]:

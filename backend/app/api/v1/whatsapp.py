@@ -80,8 +80,15 @@ async def receive_message(
         for entry in payload.get("entry", []):
             for change in entry.get("changes", []):
                 value = change.get("value", {})
+                # Inbound messages from customers
                 for msg in value.get("messages", []):
                     background_tasks.add_task(_process_inbound, msg, value, db)
+                # Tier 10B: delivery-status events (sent → delivered → read).
+                # Meta sends these as a separate field on the same webhook URL.
+                # Update the corresponding ConversationMessage so the agent UI
+                # shows the real channel state, not just our SENT-or-FAILED.
+                for status_evt in value.get("statuses", []):
+                    background_tasks.add_task(_process_status_update, status_evt, db)
 
         return {"status": "ok"}
 
@@ -126,6 +133,79 @@ def _resolve_tenant_from_phone_id(db: Session, phone_number_id: str) -> Optional
     except Exception as exc:
         logger.warning("_resolve_tenant_from_phone_id error: %s", exc)
         return None
+
+
+async def _process_status_update(status_evt: dict, db: Session):
+    """
+    Tier 10B: WhatsApp messages.statuses webhook handler.
+
+    Meta sends per-message status updates: sent / delivered / read / failed.
+    We look up the ConversationMessage row by its external_id (the wamid we
+    stored when /comms/send fired the message) and update status in place.
+
+    Schema reference (Meta Cloud API v19):
+      status_evt = {
+        "id": "wamid.HBgM...",       # outbound message id we stored
+        "status": "delivered" | "read" | "failed" | "sent",
+        "timestamp": "1234567890",
+        "errors": [{...}]            # only on status=failed
+      }
+    """
+    try:
+        from app.models.conversation_messages import (
+            ConversationMessage, MessageDeliveryStatus,
+        )
+
+        wamid = status_evt.get("id") or ""
+        new_status = (status_evt.get("status") or "").upper()
+        if not wamid or not new_status:
+            return
+
+        # Map Meta status enum to our internal enum
+        status_map = {
+            "SENT":      MessageDeliveryStatus.SENT.value,
+            "DELIVERED": MessageDeliveryStatus.DELIVERED.value,
+            "READ":      MessageDeliveryStatus.READ.value,
+            "FAILED":    MessageDeliveryStatus.FAILED.value,
+        }
+        target_status = status_map.get(new_status)
+        if target_status is None:
+            return
+
+        # external_id query — fast because of ix_conv_msgs_tenant_external (Tier 7A).
+        # We don't filter by tenant_id because wamid is globally unique anyway.
+        cm = (
+            db.query(ConversationMessage)
+            .filter(ConversationMessage.external_id == wamid)
+            .first()
+        )
+        if cm is None:
+            # Message was sent by a different system or wamid is from a Tier 7C-pre row
+            logger.info("Status update for unknown wamid=%s — skipping", wamid)
+            return
+
+        # Don't downgrade: if we already have READ, ignore later DELIVERED events
+        # (they can arrive out of order on flaky connections)
+        rank = {"QUEUED": 0, "SENT": 1, "DELIVERED": 2, "READ": 3, "FAILED": -1}
+        old_rank = rank.get(cm.status, -2)
+        new_rank = rank.get(target_status, -2)
+        # Always allow FAILED to override; otherwise only forward progressions
+        if target_status != MessageDeliveryStatus.FAILED.value and new_rank <= old_rank:
+            return
+
+        cm.status = target_status
+        if target_status == MessageDeliveryStatus.FAILED.value:
+            errs = status_evt.get("errors") or []
+            if errs:
+                cm.error_message = (errs[0].get("message") or errs[0].get("title") or "")[:512]
+        db.commit()
+        logger.info("Status update wamid=%s %s → %s", wamid, cm.status, target_status)
+    except Exception as exc:
+        logger.warning("_process_status_update error: %s", exc)
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 async def _process_inbound(msg: dict, value: dict, db: Session):
